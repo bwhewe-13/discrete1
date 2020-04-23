@@ -72,7 +72,11 @@ class func:
         return np.tile(np.concatenate(temp),(N,1)).T
     #     return np.tile(np.concatenate([eval(kk) for jj,kk in zip(ind,ops)]),(N,1)).T
     
-    
+    def update_q_inf(N,L,mu,scatter,phi,start,stop,g):
+        import numpy as np
+        if L == 0:
+            return np.tile(np.sum(scatter[:,g,start:stop]*phi[:,start:stop],axis=(1,0)),(N,1))
+        return np.array([np.sum(func.scattering_approx(L,mu[n]).reshape(L+1,1)*scatter[:,g,start:stop]*phi[:,start:stop],axis=(1,0)) for n in range(N)])
 # =============================================================================
 #     def djinn_predict(name,data,mirror=False):
 #         from djinn import djinn
@@ -224,7 +228,7 @@ class eigen:
             phi: a I x L+1 x G array
         '''
         import numpy as np
-        from discrete1 import sn_tools
+        from discrete1.util import sn_tools
 
         phi_old = np.random.rand(self.I,self.L+1,self.G)
         k_old = np.linalg.norm(phi_old)
@@ -410,7 +414,7 @@ class eigen_djinn:
         Returns:
             phi: a I x L+1 x G array  '''
         import numpy as np
-        from discrete1 import sn_tools
+        from discrete1.util import sn_tools
         from djinn import djinn
         #Initialize and normalize phi
         phi_old = np.random.rand(self.I,self.L+1,self.G)
@@ -457,3 +461,129 @@ class eigen_djinn:
             # Update sources
             sources = phi_old[:,0,:] * self.chiNuFission 
         return phi,keff
+
+class inf_eigen:
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L):
+        self.G = G
+        self.N = N
+        self.mu = mu
+        self.w = w
+        self.total = total
+        self.scatter = scatter
+        self.chiNuFission = chiNuFission
+        self.L = L
+   
+    def one_group(N,mu,w,total,scatter,L,external,guess,tol=1e-08,MAX_ITS=100,LOUD=False):   
+        ''' 
+        Arguments:
+            N: Number of angles
+            mu: vector of angles between -1 and 1
+            w: vector of weights for the angles
+            total: I x 1 vector of the total cross section for each spatial cell
+            scatter: I x L+1 array for the scattering of the spatial cell by moment
+            L: Number of moments
+            external: I x N array for the external sources
+            I: Number of spatial cells
+            delta: width of one spatial cell
+            guess: Initial guess of the scalar flux for a specific energy group (I x L+1)
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iterations and change between iterations, default is False
+        Returns:
+            phi: a I x L+1 array
+        '''
+        import numpy as np
+        
+        converged = 0
+        count = 1
+        phi = np.zeros((L+1))
+        phi_old = guess.copy()
+        
+        while not(converged):
+            phi *= 0
+            for n in range(N):
+                non_weight_scatter = func.scattering_approx(L,mu[n])
+                weight_scatter = w[n]*non_weight_scatter
+                temp_scat = np.sum(non_weight_scatter*scatter*phi_old,axis=0)
+                psi = (temp_scat + external[n])/(total)
+                phi = phi + w[n] * non_weight_scatter * psi
+            change = np.linalg.norm((phi - phi_old)/phi/((L+1)))
+            converged = (change < tol) or (count >= MAX_ITS) 
+            if LOUD:
+                print('Iteration:',count,' Change:',change)
+            count += 1
+            phi_old = phi.copy()
+        return phi
+
+
+    def multi_group(G,N,mu,w,total,scatter,L,nuChiFission,tol=1e-08,MAX_ITS=100,LOUD=False):
+        '''
+        Arguments:
+            G: number of energy groups
+            N: number of angles
+            mu: vector of angles between -1 and 1
+            w: vector of weights for the angles
+            total: G x 1 vector of the total cross section for each spatial cell and energy level
+            scatter: L+1 x G array for the scattering of the spatial cell by moment and energy
+            L: Number of moments
+            nuChiFission: 
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iteration number and the change between iterations, default is False
+        Returns:
+            phi: a L+1 x G array
+        '''
+        import numpy as np
+        phi_old = np.zeros((L+1,G))
+        converged = 0
+        count = 1
+        while not (converged):
+            if LOUD:
+                print('New Inner Loop Iteration\n======================================')
+            phi = np.zeros(phi_old.shape)
+            for g in range(G):
+                if (LOUD):
+                    print("Inner Transport Iterations\n===================================")
+                if g == 0:
+                    q_tilde = nuChiFission[g] + func.update_q_inf(N,L,mu,scatter,phi_old,g+1,G,g)
+                else:
+                    q_tilde = nuChiFission[g] + func.update_q_inf(N,L,mu,scatter,phi_old,g+1,G,g) + func.update_q_inf(N,L,mu,scatter,phi,0,g,g)
+                phi[:,g] = inf_eigen.one_group(N,mu,w,total[g],scatter[:,g,g],L,q_tilde,tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD,guess=phi_old[:,g])
+            change = np.linalg.norm((phi - phi_old)/phi/((L+1)))
+            if LOUD:
+                print('Change is',change,count)
+            converged = (change < tol) or (count >= MAX_ITS) 
+            count += 1
+            phi_old = phi.copy()
+        return phi
+
+    def transport(self,tol=1e-12,MAX_ITS=100,LOUD=True):
+        import numpy as np
+        
+        phi_old = np.random.rand(self.L+1,self.G)
+        k_old = np.linalg.norm(phi_old)
+        phi_old /= k_old
+        
+        sources = phi_old[0,:] * self.chiNuFission 
+        
+        converged = 0
+        count = 1
+        while not (converged):
+            if LOUD:
+                print('Outer Transport Iteration\n===================================')
+            phi = inf_eigen.multi_group(self.G,self.N,self.mu,self.w,total,scatter.reshape(L+1,G,G),self.L,sources,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+            
+            keff = np.linalg.norm(phi)
+            phi /= np.linalg.norm(phi)
+            k_change = np.fabs(keff - k_old)
+            change = np.linalg.norm((phi-phi_old)/phi/((self.L+1)))
+            if LOUD:
+                print('Change is',change,count,'Keff is',keff)
+            converged = (change < tol) or (count >= MAX_ITS)
+            count += 1
+            k_old = keff
+            phi_old = phi.copy()
+            sources = phi_old[0,:] * self.chiNuFission 
+
+        return phi,keff    
+    
