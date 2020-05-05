@@ -389,12 +389,12 @@ class eigen_djinn:
             else:
                 enriched_width = zones[2] - zones[1] 
                 # Separate out part going into DJINN
-                enriched_ = phi_old[zones[1]:zones[2],0:].copy()
+                enriched_ = phi_old[zones[1]:zones[2],0,:].copy()
                 # Normalize by energy group (save norm to multiply back in)
                 normed_ = np.linalg.norm(enriched_,axis=0)
                 enriched_ /= normed_
                 # Predict enriched zone y with normalized phi
-                dj_pred = model.predict(enriched_).reshape(enriched_width,self.G,self.G)*normed_
+                dj_pred = model.predict(enriched_).reshape(enriched_width,G,G)*normed_
             phi = np.zeros(phi_old.shape)
             # Iterate over all the energy groups
             for g in range(G):
@@ -440,7 +440,7 @@ class eigen_djinn:
         # Set width of enriched zone 
         enriched_width = zones[2] - zones[1] 
         # Separate out part going into DJINN
-        enriched_ = phi_old[zones[1]:zones[2],0:].copy()
+        enriched_ = phi_old[zones[1]:zones[2],0,:].copy()
         # Normalize by energy group (save norm to multiply back in)
         normed_ = np.linalg.norm(enriched_,axis=0)
         enriched_ /= normed_
@@ -478,7 +478,7 @@ class eigen_djinn:
             #Update phi
             phi_old = phi.copy()
             # Update y - Separate zone going into DJINN
-            enriched_ = phi_old[zones[1]:zones[2],0:].copy()
+            enriched_ = phi_old[zones[1]:zones[2],0,:].copy()
             # Normalize by energy group (save norm to multiply back in)
             normed_ = np.linalg.norm(enriched_,axis=0)
             enriched_ /= normed_
@@ -713,7 +713,9 @@ class inf_eigen_djinn:
                 dj_pred = djinn_prediction.copy()
             else:
                 # Make sure it is normalized
-                dj_pred = model.predict(phi_old).reshape(L+1,G,G)
+                normed = phi_old/np.linalg.norm(phi_old)
+                dj_pred = model.predict(normed).reshape(L+1,G,G)
+                dj_pred *= np.linalg.norm(phi_old)
             # Iterate over all the energy groups
             for g in range(G):
                 if (LOUD):
