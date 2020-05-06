@@ -715,7 +715,7 @@ class inf_eigen_djinn:
                 # Make sure it is normalized
                 normed = phi_old/np.linalg.norm(phi_old)
                 dj_pred = model.predict(normed).reshape(L+1,G,G)
-                dj_pred *= np.linalg.norm(phi_old)
+                #dj_pred *= np.linalg.norm(phi_old)
             # Iterate over all the energy groups
             for g in range(G):
                 if (LOUD):
@@ -784,4 +784,167 @@ class inf_eigen_djinn:
             # Update sources
             sources = phi_old[0,:] * self.chiNuFission 
         return phi,keff    
+    
+class inf_eigen_djinn2:
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L):
+        self.G = G
+        self.N = N
+        self.mu = mu
+        self.w = w
+        self.total = total
+        self.scatter = scatter
+        self.chiNuFission = chiNuFission
+        self.L = L
+   
+    def one_group(N,mu,w,total,djinn_1g,L,external,guess,tol=1e-08,MAX_ITS=100,LOUD=False):   
+        ''' Infinite DJINN One Group Calculation - y
+        Arguments:
+            N: Number of angles
+            mu: vector of angles between -1 and 1
+            w: vector of weights for the angles
+            total: value of the total cross section for each spatial cell
+            djinn_1g: L+1 list of DJINN predicted sigma_s*phi
+            L: Number of moments
+            external: 2 x N array for the external sources
+            guess: Initial guess of the scalar flux for a specific energy group (L+1)
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iterations and change between iterations, default is False
+        Returns:
+            phi: a L+1 array
+        '''
+        import numpy as np
+        # Initialize phi_old and phi
+        phi = np.zeros((L+1))
+        phi_old = guess.copy()
+        # Parameters for convergence/count
+        converged = 0
+        count = 1
+        while not(converged):
+            # zero out new phi matrix
+            phi *= 0
+            # Iterate over all the observable angles
+            for n in range(N):
+                # Calculate (2l+1)P(l)(mu)
+                non_weight_scatter = func.scattering_approx(L,mu[n])
+                # Combine (2l+1)P(l)(mu) and sigma_s*phi for scattering term
+                temp_scat = np.sum(non_weight_scatter*djinn_1g,axis=0)
+                # Calculate angular flux
+                psi = (temp_scat + external[n])/(total)
+                # Update scalar flux
+                phi = phi + w[n] * non_weight_scatter * psi
+            # Check for convergence
+            change = np.linalg.norm((phi - phi_old)/phi/((L+1)))
+            converged = (change < tol) or (count >= MAX_ITS) 
+            if LOUD:
+                print('Iteration:',count,' Change:',change)
+            count += 1
+            # Update phi
+            phi_old = phi.copy()
+        return phi
+
+
+    def multi_group(G,N,mu,w,total,L,nuChiFission,model,djinn_prediction,tol=1e-08,MAX_ITS=100,LOUD=False):
+        ''' Infinite DJINN Multigroup Calculation (Source Iteration) - y
+        Arguments:
+            G: number of energy groups
+            N: number of angles
+            mu: vector of angles between -1 and 1
+            w: vector of weights for the angles
+            total: G x 1 vector of the total cross section for each spatial cell and energy level
+            scatter: L+1 x G array for the scattering of the spatial cell by moment and energy
+            L: Number of moments
+            nuChiFission: G x 1 external source
+            model_name: DJINN model
+            djinn_prediction: Outer Iteration Predicted sigma_s*phi
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iteration number and the change between iterations, default is False
+        Returns:
+            phi: a L+1 x G array
+        '''
+        import numpy as np        
+        # Initialize phi
+        phi_old = np.zeros((L+1,G))
+        # Parameters for convergence/count
+        converged = 0
+        count = 1
+        while not (converged):
+            if LOUD:
+                print('New Inner Loop Iteration\n======================================')
+            # zero out new phi
+            phi = np.zeros(phi_old.shape)
+            # Update the DJINN predictions with new phi
+            if count == 1:
+                dj_pred = djinn_prediction.copy()
+            else:
+                # Make sure it is normalized
+                normed = phi_old/np.linalg.norm(phi_old)
+                dj_pred = model.predict(normed).reshape(L+1,G)
+                #dj_pred *= np.linalg.norm(phi_old)
+            # Iterate over all the energy groups
+            for g in range(G):
+                if (LOUD):
+                    print("Inner Transport Iterations\n===================================")
+                # Assigns new value to phi L+1 
+                phi[:,g] = inf_eigen_djinn2.one_group(N,mu,w,total[g],dj_pred[:,g],L,np.tile(nuChiFission[g],(N,1)),phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
+            # Check for convergence
+            change = np.linalg.norm((phi - phi_old)/phi/((L+1)))
+            if LOUD:
+                print('Change is',change,count)
+            converged = (change < tol) or (count >= MAX_ITS) 
+            count += 1
+            # Update phi and repeat
+            phi_old = phi.copy()
+        return phi
+
+    def transport(self,model_name,tol=1e-12,MAX_ITS=100,LOUD=True):
+        ''' Infinite DJINN Multigroup Calculation (Power Iteration) - y
+        Arguments:
+            model_name: file location of DJINN model
+            tol: tolerance of convergence, default is 1e-12
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iteration number and the change between iterations, default is False
+        Returns:
+            phi: a L+1 x G array  
+            '''
+        import numpy as np
+        from djinn import djinn
+        # Initialize and normalize phi
+        phi_old = np.random.rand(self.L+1,self.G)
+        phi_old /= np.linalg.norm(phi_old)
+        # Load DJINN model
+        model = djinn.load(model_name=model_name)
+        # Predict sigma_s*phi from initialized phi
+        #phi_old = np.load('mydata/djinn_test/true_phi_infinite.npy')
+        djinn_y = model.predict(phi_old).reshape(self.L+1,self.G)
+        # Set sources for power iteration
+        sources = phi_old[0,:] * self.chiNuFission 
+        # Parameters for convergence/count
+        converged = 0
+        count = 1
+        while not (converged):
+            if LOUD:
+                print('Outer Transport Iteration\n===================================')
+            # Calculate phi with original sources
+            phi = inf_eigen_djinn2.multi_group(self.G,self.N,self.mu,self.w,self.total,self.L,sources,model,djinn_y,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+            # Calculate k-effective
+            keff = np.linalg.norm(phi)
+            # Normalize to 1
+            phi /= np.linalg.norm(phi)
+            # Check for convergence
+            change = np.linalg.norm((phi-phi_old)/phi/((self.L+1)))
+            if LOUD:
+                print('Change is',change,count,'Keff is',keff)
+            converged = (change < tol) or (count >= MAX_ITS)
+            count += 1
+            # Update phi
+            phi_old = phi.copy()
+            # Update djinn_y
+            djinn_y = model.predict(phi_old).reshape(self.L+1,self.G)
+            # Update sources
+            sources = phi_old[0,:] * self.chiNuFission 
+        return phi,keff   
+    
+    
     
