@@ -490,7 +490,7 @@ class eigen_djinn:
         return phi,keff
 
 class inf_eigen:
-    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L):
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,matmul=False):
         self.G = G
         self.N = N
         self.mu = mu
@@ -499,8 +499,9 @@ class inf_eigen:
         self.scatter = scatter
         self.chiNuFission = chiNuFission
         self.L = L
+        self.matmul = matmul
    
-    def one_group(N,mu,w,total,scatter,L,external,guess,tol=1e-08,MAX_ITS=100,LOUD=False):   
+    def one_group(self,N,mu,w,total,scatter,L,external,guess,pred_1g=None,tol=1e-08,MAX_ITS=100,LOUD=False):   
         ''' Infinite Eigenvalue Problem - One Group
         Arguments:
             N: Number of angles
@@ -528,7 +529,10 @@ class inf_eigen:
             for n in range(N):
                 non_weight_scatter = func.scattering_approx(L,mu[n])
                 #weight_scatter = w[n]*non_weight_scatter
-                temp_scat = np.sum(non_weight_scatter*scatter*phi_old,axis=0)
+                if self.matmul:
+                    temp_scat = np.sum(non_weight_scatter*pred_1g,axis=0)
+                else:
+                    temp_scat = np.sum(non_weight_scatter*scatter*phi_old,axis=0)
                 psi = (temp_scat + external[n])/(total)
                 phi = phi + w[n] * non_weight_scatter * psi
             change = np.linalg.norm((phi - phi_old)/phi/((L+1)))
@@ -540,7 +544,7 @@ class inf_eigen:
         return phi
 
 
-    def multi_group(G,N,mu,w,total,scatter,L,nuChiFission,tol=1e-08,MAX_ITS=100,LOUD=False):
+    def multi_group(self,G,N,mu,w,total,scatter,L,nuChiFission,prediction=None,tol=1e-08,MAX_ITS=100,LOUD=False):
         ''' Infinite Eigenvalue Problem - Multigroup
         Arguments:
             G: number of energy groups
@@ -564,14 +568,154 @@ class inf_eigen:
             if LOUD:
                 print('New Inner Loop Iteration\n======================================')
             phi = np.zeros(phi_old.shape)
+            if self.matmul:
+                if count == 1:
+                    dj_pred = prediction.copy()
+                else:
+                    dj_pred = (scatter[0] @ phi_old[0]).reshape(L+1,G)
             for g in range(G):
                 if (LOUD):
                     print("Inner Transport Iterations\n===================================")
-                if g == 0:
-                    q_tilde = nuChiFission[g] + func.update_q_inf(N,L,mu,scatter,phi_old,g+1,G,g)
+                if self.matmul:
+                    phi[:,g] = inf_eigen.one_group(self,N,mu,w,total[g],scatter[:,g,g],L,np.tile(nuChiFission[g],(N,1)),phi_old[:,g],dj_pred[:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
                 else:
-                    q_tilde = nuChiFission[g] + func.update_q_inf(N,L,mu,scatter,phi_old,g+1,G,g) + func.update_q_inf(N,L,mu,scatter,phi,0,g,g)
-                phi[:,g] = inf_eigen.one_group(N,mu,w,total[g],scatter[:,g,g],L,q_tilde,phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
+                    if g == 0:
+                        q_tilde = nuChiFission[g] + func.update_q_inf(N,L,mu,scatter,phi_old,g+1,G,g)
+                    else:
+                        q_tilde = nuChiFission[g] + func.update_q_inf(N,L,mu,scatter,phi_old,g+1,G,g) + func.update_q_inf(N,L,mu,scatter,phi,0,g,g)
+                    phi[:,g] = inf_eigen.one_group(self,N,mu,w,total[g],scatter[:,g,g],L,q_tilde,phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
+            change = np.linalg.norm((phi - phi_old)/phi/((L+1)))
+            if LOUD:
+                print('Change is',change,count)
+            converged = (change < tol) or (count >= MAX_ITS) 
+            count += 1
+            phi_old = phi.copy()
+        return phi
+
+    def transport(self,predy=None,tol=1e-12,MAX_ITS=100,LOUD=True):
+        ''' Infinite Eigenvalue Problem
+        Arguments:
+            self:
+            tol: tolerance of convergence, default is 1e-12
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iteration number and the change between iterations, default is True
+        Returns:
+            phi: a L+1 x G array     '''
+        import numpy as np
+        # Initialize and normalize phi
+        phi_old = np.random.rand(self.L+1,self.G)
+        phi_old /= np.linalg.norm(phi_old)       
+        # Calculate original source terms
+        sources = phi_old[0,:] * self.chiNuFission
+        if self.matmul:
+            predy = (self.scatter @ phi_old[0]).reshape(self.L+1,self.G)
+        # Parameters for convergence/count
+        converged = 0
+        count = 1
+        while not (converged):
+            if LOUD:
+                print('Outer Transport Iteration\n===================================')
+            # Calculate phi
+            phi = inf_eigen.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter.reshape(self.L+1,self.G,self.G),self.L,sources,predy,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+            # Normalize phi and k-effective
+            keff = np.linalg.norm(phi)
+            phi /= np.linalg.norm(phi)
+            # Check for convergence
+            change = np.linalg.norm((phi-phi_old)/phi/((self.L+1)))
+            if LOUD:
+                print('Change is',change,count,'Keff is',keff)
+            converged = (change < tol) or (count >= MAX_ITS)
+            count += 1
+            # Update phi and source terms
+            phi_old = phi.copy()
+            if self.matmul:
+                predy = (self.scatter @ phi_old[0]).reshape(self.L+1,self.G)
+            sources = phi_old[0,:] * self.chiNuFission 
+        return phi,keff    
+
+class inf_eigen2:
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L):
+        self.G = G
+        self.N = N
+        self.mu = mu
+        self.w = w
+        self.total = total
+        self.scatter = scatter
+        self.chiNuFission = chiNuFission
+        self.L = L
+   
+    def one_group(N,mu,w,total,pred_1g,L,external,guess,tol=1e-08,MAX_ITS=100,LOUD=False):   
+        ''' Infinite Eigenvalue Problem - One Group
+        Arguments:
+            N: Number of angles
+            mu: vector of angles between -1 and 1
+            w: vector of weights for the angles
+            total: scalar of the total cross section
+            scatter: L+1 array for the scattering moments
+            L: Number of moments
+            external: N x 2 array for the external sources
+            guess: Initial guess of the scalar flux for a specific energy group (L+1)
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iterations and change between iterations, default is False
+        Returns:
+            phi: a L+1 array     '''
+        import numpy as np
+        
+        converged = 0
+        count = 1
+        phi = np.zeros((L+1))
+        phi_old = guess.copy()
+        
+        while not(converged):
+            phi *= 0
+            for n in range(N):
+                non_weight_scatter = func.scattering_approx(L,mu[n])
+                #weight_scatter = w[n]*non_weight_scatter
+                temp_scat = np.sum(non_weight_scatter*pred_1g,axis=0)
+                psi = (temp_scat + external[n])/(total)
+                phi = phi + w[n] * non_weight_scatter * psi
+            change = np.linalg.norm((phi - phi_old)/phi/((L+1)))
+            converged = (change < tol) or (count >= MAX_ITS) 
+            if LOUD:
+                print('Iteration:',count,' Change:',change)
+            count += 1
+            phi_old = phi.copy()
+        return phi
+
+
+    def multi_group(G,N,mu,w,total,scatter,L,nuChiFission,prediction,tol=1e-08,MAX_ITS=100,LOUD=False):
+        ''' Infinite Eigenvalue Problem - Multigroup
+        Arguments:
+            G: number of energy groups
+            N: number of angles
+            mu: vector of angles between -1 and 1
+            w: vector of weights for the angles
+            total: G x 1 vector of the total cross section for each spatial cell and energy level
+            scatter: L+1 x G array for the scattering of the spatial cell by moment and energy
+            L: Number of moments 
+            nuChiFission: Sources for each energy group
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iteration number and the change between iterations, default is False
+        Returns:
+            phi: a L+1 x G array     '''
+        import numpy as np
+        phi_old = np.zeros((L+1,G))
+        converged = 0
+        count = 1
+        while not (converged):
+            if LOUD:
+                print('New Inner Loop Iteration\n======================================')
+            phi = np.zeros(phi_old.shape)
+            if count == 1:
+                dj_pred = prediction.copy()
+            else:
+                dj_pred = (scatter[0] @ phi_old[0]).reshape(L+1,G)
+            for g in range(G):
+                if (LOUD):
+                    print("Inner Transport Iterations\n===================================")
+                phi[:,g] = inf_eigen2.one_group(N,mu,w,total[g],dj_pred[:,g],L,np.tile(nuChiFission[g],(N,1)),phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
             change = np.linalg.norm((phi - phi_old)/phi/((L+1)))
             if LOUD:
                 print('Change is',change,count)
@@ -595,6 +739,7 @@ class inf_eigen:
         phi_old /= np.linalg.norm(phi_old)       
         # Calculate original source terms
         sources = phi_old[0,:] * self.chiNuFission 
+        predy = (self.scatter @ phi_old[0]).reshape(self.L+1,self.G) 
         # Parameters for convergence/count
         converged = 0
         count = 1
@@ -602,7 +747,7 @@ class inf_eigen:
             if LOUD:
                 print('Outer Transport Iteration\n===================================')
             # Calculate phi
-            phi = inf_eigen.multi_group(self.G,self.N,self.mu,self.w,self.total,self.scatter.reshape(self.L+1,self.G,self.G),self.L,sources,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+            phi = inf_eigen2.multi_group(self.G,self.N,self.mu,self.w,self.total,self.scatter.reshape(self.L+1,self.G,self.G),self.L,sources,predy,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
             # Normalize phi and k-effective
             keff = np.linalg.norm(phi)
             phi /= np.linalg.norm(phi)
@@ -614,8 +759,9 @@ class inf_eigen:
             count += 1
             # Update phi and source terms
             phi_old = phi.copy()
+            predy = (self.scatter @ phi_old[0]).reshape(self.L+1,self.G)
             sources = phi_old[0,:] * self.chiNuFission 
-        return phi,keff    
+        return phi,keff  
 
 
 class inf_eigen_djinn:
@@ -852,7 +998,6 @@ class inf_eigen_djinn2:
             mu: vector of angles between -1 and 1
             w: vector of weights for the angles
             total: G x 1 vector of the total cross section for each spatial cell and energy level
-            scatter: L+1 x G array for the scattering of the spatial cell by moment and energy
             L: Number of moments
             nuChiFission: G x 1 external source
             model_name: DJINN model
@@ -881,7 +1026,9 @@ class inf_eigen_djinn2:
                 # Make sure it is normalized
                 normed = phi_old/np.linalg.norm(phi_old)
                 dj_pred = model.predict(normed).reshape(L+1,G)
-                #dj_pred *= np.linalg.norm(phi_old)
+                # matrix * vec to right answer 
+                # data set with DJINN predictions and true values and input fluxes
+                # dj_pred, phi_old, uh3_scatter @ phi_old
             # Iterate over all the energy groups
             for g in range(G):
                 if (LOUD):
@@ -916,8 +1063,8 @@ class inf_eigen_djinn2:
         # Load DJINN model
         model = djinn.load(model_name=model_name)
         # Predict sigma_s*phi from initialized phi
-        #phi_old = np.load('mydata/djinn_test/true_phi_infinite.npy')
-        djinn_y = model.predict(phi_old).reshape(self.L+1,self.G)
+        phi_old = np.load('mydata/djinn_test/true_phi_infinite.npy')
+        djinn_y = phi_old.copy() #model.predict(phi_old).reshape(self.L+1,self.G)
         # Set sources for power iteration
         sources = phi_old[0,:] * self.chiNuFission 
         # Parameters for convergence/count
