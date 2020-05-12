@@ -468,7 +468,7 @@ class eigen_djinn:
         return phi,keff
 
 class inf_eigen:
-    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,matmul=False):
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,matmul=False,track=False):
         self.G = G
         self.N = N
         self.mu = mu
@@ -478,6 +478,7 @@ class inf_eigen:
         self.chiNuFission = chiNuFission
         self.L = L
         self.matmul = matmul
+        self.track = track
    
     def one_group(self,N,mu,w,total,scatter,L,external,guess,pred_1g=None,tol=1e-08,MAX_ITS=100,LOUD=False):   
         ''' Infinite Eigenvalue Problem - One Group
@@ -542,6 +543,8 @@ class inf_eigen:
         phi_old = np.zeros((L+1,G))
         converged = 0
         count = 1
+        if self.track:
+            mymat = np.zeros((1,2,G))
         while not (converged):
             if LOUD:
                 print('New Inner Loop Iteration\n======================================')
@@ -551,6 +554,9 @@ class inf_eigen:
                     dj_pred = prediction.copy()
                 else:
                     dj_pred = (scatter[0] @ phi_old[0]).reshape(L+1,G)
+            if self.track:
+                track_temp = np.vstack((phi_old[0].flatten(),(scatter[0] @ phi_old[0]).flatten()))
+                mymat = np.vstack((mymat,track_temp.reshape(1,2,G)))
             for g in range(G):
                 if (LOUD):
                     print("Inner Transport Iterations\n===================================")
@@ -568,6 +574,8 @@ class inf_eigen:
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
+        if self.track:
+            return phi,mymat[1:]
         return phi
 
     def transport(self,predy=None,tol=1e-12,MAX_ITS=100,LOUD=True):
@@ -587,6 +595,8 @@ class inf_eigen:
         sources = phi_old[0,:] * self.chiNuFission
         if self.matmul:
             predy = (self.scatter @ phi_old[0]).reshape(self.L+1,self.G)
+        if self.track:
+            allmat = np.zeros((1,2,87))
         # Parameters for convergence/count
         converged = 0
         count = 1
@@ -594,7 +604,11 @@ class inf_eigen:
             if LOUD:
                 print('Outer Transport Iteration\n===================================')
             # Calculate phi
-            phi = inf_eigen.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter.reshape(self.L+1,self.G,self.G),self.L,sources,predy,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+            if self.track:
+                phi,tempmat = inf_eigen.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter.reshape(self.L+1,self.G,self.G),self.L,sources,predy,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+                allmat = np.vstack((allmat,tempmat))
+            else:
+                phi = inf_eigen.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter.reshape(self.L+1,self.G,self.G),self.L,sources,predy,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
             # Normalize phi and k-effective
             keff = np.linalg.norm(phi)
             phi /= np.linalg.norm(phi)
@@ -609,10 +623,12 @@ class inf_eigen:
             if self.matmul:
                 predy = (self.scatter @ phi_old[0]).reshape(self.L+1,self.G)
             sources = phi_old[0,:] * self.chiNuFission 
+        if self.track:
+            return phi,keff,allmat[1:]
         return phi,keff    
 
-class inf_eigen_djinn2:
-    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L):
+class inf_eigen_djinn:
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,track=False):
         self.G = G
         self.N = N
         self.mu = mu
@@ -621,6 +637,7 @@ class inf_eigen_djinn2:
         self.scatter = scatter
         self.chiNuFission = chiNuFission
         self.L = L
+        self.track = track
    
     def one_group(N,mu,w,total,djinn_1g,L,external,guess,tol=1e-08,MAX_ITS=100,LOUD=False):   
         ''' Infinite DJINN One Group Calculation - y
@@ -670,7 +687,7 @@ class inf_eigen_djinn2:
         return phi
 
 
-    def multi_group(G,N,mu,w,total,scatter,L,nuChiFission,model,djinn_prediction,tol=1e-08,MAX_ITS=100,LOUD=False):
+    def multi_group(self,G,N,mu,w,total,scatter,L,nuChiFission,model,djinn_prediction,tol=1e-08,MAX_ITS=100,LOUD=False):
         ''' Infinite DJINN Multigroup Calculation (Source Iteration) - y
         Arguments:
             G: number of energy groups
@@ -694,7 +711,8 @@ class inf_eigen_djinn2:
         # Parameters for convergence/count
         converged = 0
         count = 1
-        mymat = np.zeros((100,3,G))
+        if self.track:
+            mymat = np.zeros((1,3,G))
         while not (converged):
             if LOUD:
                 print('New Inner Loop Iteration\n======================================')
@@ -708,25 +726,27 @@ class inf_eigen_djinn2:
                 # Make sure it is normalized
                 normed = phi_old/np.linalg.norm(phi_old)
             dj_pred = model.predict(normed).reshape(L+1,G)
-            mymat[count-1] = np.vstack((dj_pred.flatten(),normed.flatten(),scatter @ phi_old[0]))
-                # matrix * vec to right answer 
-                # data set with DJINN predictions and true values and input fluxes
-                # dj_pred, phi_old, uh3_scatter @ phi_old
+            if self.track:
+                # dj_pred, phi_old (normalized), uh3_scatter @ phi_old
+                track_temp = np.vstack((dj_pred.flatten(),normed.flatten(),scatter @ phi_old[0]))
+                mymat = np.vstack((mymat,track_temp.reshape(1,3,87)))
             # Iterate over all the energy groups
             for g in range(G):
                 if (LOUD):
                     print("Inner Transport Iterations\n===================================")
                 # Assigns new value to phi L+1 
-                phi[:,g] = inf_eigen_djinn2.one_group(N,mu,w,total[g],dj_pred[:,g],L,np.tile(nuChiFission[g],(N,1)),phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
+                phi[:,g] = inf_eigen_djinn.one_group(N,mu,w,total[g],dj_pred[:,g],L,np.tile(nuChiFission[g],(N,1)),phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
             # Check for convergence
             change = np.linalg.norm((phi - phi_old)/phi/((L+1)))
             if LOUD:
                 print('Change is',change,count)
-            converged = (count >= MAX_ITS) #(change < tol) or (count >= MAX_ITS) 
+            converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             # Update phi and repeat
             phi_old = phi.copy()
-        return phi,mymat
+        if self.track:
+            return phi,mymat[1:]
+        return phi
 
     def transport(self,model_name,tol=1e-12,MAX_ITS=100,LOUD=True):
         ''' Infinite DJINN Multigroup Calculation (Power Iteration) - y
@@ -746,11 +766,12 @@ class inf_eigen_djinn2:
         # Load DJINN model
         model = djinn.load(model_name=model_name)
         # Predict sigma_s*phi from initialized phi
-        phi_old = np.load('mydata/djinn_test/true_phi_infinite.npy')
-        djinn_y = phi_old.copy() #model.predict(phi_old).reshape(self.L+1,self.G)
+        # phi_old = np.load('mydata/djinn_test/true_phi.npy') # Hot start
+        djinn_y = model.predict(phi_old).reshape(self.L+1,self.G)
         # Set sources for power iteration
         sources = phi_old[0,:] * self.chiNuFission 
-        allmat = np.zeros((100,100,3,87))
+        if self.track:
+            allmat = np.zeros((1,3,87))
         # Parameters for convergence/count
         converged = 0
         count = 1
@@ -758,8 +779,11 @@ class inf_eigen_djinn2:
             if LOUD:
                 print('Outer Transport Iteration\n===================================')
             # Calculate phi with original sources
-            phi,tempmat = inf_eigen_djinn2.multi_group(self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,model,djinn_y,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
-            allmat[count-1] = tempmat
+            if self.track:
+                phi,tempmat = inf_eigen_djinn.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,model,djinn_y,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+                allmat = np.vstack((allmat,tempmat))
+            else:
+                phi = inf_eigen_djinn.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,model,djinn_y,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
             # Calculate k-effective
             keff = np.linalg.norm(phi)
             # Normalize to 1
@@ -768,7 +792,7 @@ class inf_eigen_djinn2:
             change = np.linalg.norm((phi-phi_old)/phi/((self.L+1)))
             if LOUD:
                 print('Change is',change,count,'Keff is',keff)
-            converged = (count >= MAX_ITS) #(change < tol) or (count >= MAX_ITS)
+            converged = (change < tol) or (count >= MAX_ITS)
             count += 1
             # Update phi
             phi_old = phi.copy()
@@ -776,7 +800,9 @@ class inf_eigen_djinn2:
             djinn_y = model.predict(phi_old).reshape(self.L+1,self.G)
             # Update sources
             sources = phi_old[0,:] * self.chiNuFission 
-        return phi,keff,allmat   
+        if self.track:
+            return phi,keff,allmat[1:]   
+        return phi,keff
     
     
     
