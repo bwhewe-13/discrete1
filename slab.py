@@ -78,7 +78,6 @@ class func:
             return np.tile(np.sum(scatter[:,g,start:stop]*phi[:,start:stop],axis=(1,0)),(N,1))
         return np.array([np.sum(func.scattering_approx(L,mu[n]).reshape(L+1,1)*scatter[:,g,start:stop]*phi[:,start:stop],axis=(1,0)) for n in range(N)])
 
-    
 class eigen:
     def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I):
         self.G = G
@@ -226,7 +225,7 @@ class eigen:
             scatterSn = self.scatter.copy()
             totalSn = self.total.copy()
             
-        sources = phi_old[:,0,:] * self.chiNuFission #np.sum(self.chiNuFission,axis=0)
+        sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old[:,0,:]) 
 
         while not (converged):
             if LOUD:
@@ -242,10 +241,10 @@ class eigen:
             converged = (change < tol) or (count >= MAX_ITS)
             count += 1
             phi_old = phi.copy()
-            sources = phi_old[:,0,:] * self.chiNuFission # np.sum(self.chiNuFission,axis=0)
+            sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old[:,0,:]) 
+            # sources = phi_old[:,0,:] * self.chiNuFission # np.sum(self.chiNuFission,axis=0)
         return phi,keff
 
-    
 class eigen_djinn:
     def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I):
         self.G = G
@@ -592,7 +591,7 @@ class inf_eigen:
         phi_old = np.random.rand(self.L+1,self.G)
         phi_old /= np.linalg.norm(phi_old)       
         # Calculate original source terms
-        sources = phi_old[0,:] * self.chiNuFission
+        sources = self.chiNuFission @ phi_old[0] 
         if self.matmul:
             predy = (self.scatter @ phi_old[0]).reshape(self.L+1,self.G)
         if self.track:
@@ -622,7 +621,8 @@ class inf_eigen:
             phi_old = phi.copy()
             if self.matmul:
                 predy = (self.scatter @ phi_old[0]).reshape(self.L+1,self.G)
-            sources = phi_old[0,:] * self.chiNuFission 
+            # sources = phi_old[0,:] * self.chiNuFission 
+            sources = self.chiNuFission @ phi_old[0]
         if self.track:
             return phi,keff,allmat[1:]
         return phi,keff    
@@ -803,6 +803,4 @@ class inf_eigen_djinn:
         if self.track:
             return phi,keff,allmat[1:]   
         return phi,keff
-    
-    
     

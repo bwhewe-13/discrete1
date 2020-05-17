@@ -52,6 +52,11 @@ class sn_tools:
             for c,ii in enumerate(layers):
                 fission = np.vstack((fission,np.repeat(xs[c].reshape(1,G),ii,axis=0)))
             return fission
+        elif dtype == 'fission2':
+            fission = np.empty((0,G,G))
+            for c,ii in enumerate(layers):
+                fission = np.vstack((fission,np.repeat(xs[c].reshape(1,G,G),ii,axis=0)))
+            return fission
         elif dtype == 'scatter':
             scatter = np.empty((0,L+1,G,G))
             for c,ii in enumerate(layers):
@@ -121,16 +126,22 @@ class nnets:
 
 class chem:
     ''' Getting number densities for different compounds '''
-    def u235_mic2mac(micro,density=18.8,molar=235.04393):
+    def micMac(xs,element):
         ''' Converts microscopc cross sections to macroscopic
         Arguments:
-        micro: microscopic cross section to be converted
-        density: density of element (Uranium is 18.8 g/cm^3)
-        molar: molar mass of element (Uranium-235 is 235.04393 g/mol)
+            xs: microscopic cross section to be converted
+            element: string of element or list of element [molar mass,density]
+                molar mass is g/mol, density is g/cm^3
         Returns:
-        Macroscopic cross section
+            Macroscopic cross section
         '''
-        return micro*1e-24*density*6.022e23/molar
+        if type(element) == str:
+            import json
+            library = json.load(open('discrete1/element_dictionary.json'))
+            info = library[element]
+        else:
+            info = element.copy()
+        return xs*1e-24*info[1]*6.022e23/info[0]
 
     def cleaning_compound(compound):
         import re
@@ -156,9 +167,9 @@ class chem:
         molar_mass = 0
         for ii,jj in zip(compound,counter):
             if ii == 'U':
-                molar_mass += (enrich*library['U-235']+(1-enrich)*library['U-238'])*jj
+                molar_mass += (enrich*library['U-235'][0]+(1-enrich)*library['U-238'][0])*jj
             else:
-                molar_mass += library[ii]*jj
+                molar_mass += library[ii][0]*jj
         return molar_mass
 
     def number_density(compound,counter,molar_mass,density,enrich,library):
@@ -166,8 +177,8 @@ class chem:
         density_list = []
         for ckk,kk in enumerate(compound):
             if kk == 'U':
-                density_list.append(((enrich*density*NA)/library['U-235']*(enrich*library['U-235']+(1-enrich)*library['U-238'])/molar_mass)*counter[ckk])
-                density_list.append((((1-enrich)*density*NA)/library['U-238']*(enrich*library['U-235']+(1-enrich)*library['U-238'])/molar_mass)*counter[ckk])
+                density_list.append(((enrich*density*NA)/library['U-235'][0]*(enrich*library['U-235'][0]+(1-enrich)*library['U-238'][0])/molar_mass)*counter[ckk])
+                density_list.append((((1-enrich)*density*NA)/library['U-238'][0]*(enrich*library['U-235'][0]+(1-enrich)*library['U-238'][0])/molar_mass)*counter[ckk])
             else:
                 density_list.append(((density*NA)/molar_mass)*counter[ckk])
         return density_list
@@ -176,7 +187,7 @@ class chem:
         import numpy as np
         if library is None:
             import json
-            library = json.load(open('discrete/scripts/element_dictionary.txt'))
+            library = json.load(open('discrete1/element_dictionary.json'))
 
         # Formatting (compounds and count of each)
         compound,counter = chem.cleaning_compound(compound)
