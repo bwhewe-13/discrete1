@@ -110,8 +110,8 @@ class inf_eigen_djinn:
         uh3_total = uh3_density[0]*u235total + uh3_density[1]*u238total + uh3_density[2]*h1total
     
         # Fission Cross Section
-        u235fission = np.load('mydata/u235/fullFission.npy')[eval(spec_temp)]
-        u238fission = np.load('mydata/u238/fullFission.npy')[eval(spec_temp)]
+        u235fission = np.load('mydata/u235/nufission_0{}.npy'.format(spec_temp))[0]
+        u238fission = np.load('mydata/u238/nufission_0{}.npy'.format(spec_temp))[0]
     
         uh3_fission = uh3_density[0]*u235fission + uh3_density[1]*u238fission
 
@@ -120,7 +120,7 @@ class inf_eigen_djinn:
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w)
         
-        return G,N,mu,w,uh3_total,uh3_scatter,uh3_fission,L
+        return G,N,mu,w,uh3_total,uh3_scatter.T,uh3_fission.T,L
         
         
         
