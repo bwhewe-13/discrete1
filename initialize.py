@@ -46,17 +46,17 @@ class eigen_djinn:
         uh3_238_total = uh3_238_density[0]*u238total + uh3_238_density[1]*h1total
     
         # Fission Cross Section
-        u235fission = np.load('mydata/u235/fullFission.npy')[eval(spec_temp)]
-        u238fission = np.load('mydata/u238/fullFission.npy')[eval(spec_temp)]
+        u235fission = np.load('mydata/u235/nufission_0{}.npy'.format(spec_temp))[0]
+        u238fission = np.load('mydata/u238/nufission_0{}.npy'.format(spec_temp))[0]
     
         uh3_fission = uh3_density[0]*u235fission + uh3_density[1]*u238fission
-        uh3_238_fission = uh3_238_density[0]*u238total
-        hdpe_fission = np.zeros(dim)
+        uh3_238_fission = uh3_238_density[0]*u238fission
+        hdpe_fission = np.zeros((dim,dim))
     
         # Cross section layers
-        xs_scatter = [hdpe_scatter,uh3_scatter,uh3_238_scatter,uh3_scatter,hdpe_scatter]
+        xs_scatter = [hdpe_scatter.T,uh3_scatter.T,uh3_238_scatter.T,uh3_scatter.T,hdpe_scatter.T]
         xs_total = [hdpe_total,uh3_total,uh3_238_total,uh3_total,hdpe_total]
-        xs_fission = [hdpe_fission,uh3_fission,uh3_238_fission,uh3_fission,hdpe_fission]
+        xs_fission = [hdpe_fission.T,uh3_fission.T,uh3_238_fission.T,uh3_fission.T,hdpe_fission.T]
     
         # Setting up eigenvalue equation
         N = 8; L = 0; R = sum(distance); G = dim
@@ -66,7 +66,7 @@ class eigen_djinn:
         I = int(sum(layers))
     
         scatter_ = sn_tools.mixed_propagate(xs_scatter,layers,G=dim,L=L,dtype='scatter')
-        fission_ = sn_tools.mixed_propagate(xs_fission,layers,G=dim,dtype='fission')
+        fission_ = sn_tools.mixed_propagate(xs_fission,layers,G=dim,dtype='fission2')
         total_ = sn_tools.mixed_propagate(xs_total,layers,G=dim)
         
         return G,N,mu,w,total_,scatter_,fission_,L,R,I
