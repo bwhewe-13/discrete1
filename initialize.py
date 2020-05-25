@@ -36,10 +36,10 @@ class eigen_djinn:
         uh3_238_scatter = uh3_238_density[0]*u238scatter + uh3_238_density[1]*h1scatter
     
         # Total Cross Section
-        u235total = np.load('mydata/u235/fullTotal.npy')[eval(spec_temp)]
-        u238total = np.load('mydata/u238/fullTotal.npy')[eval(spec_temp)]
-        h1total = np.load('mydata/h1/fullTotal.npy')[eval(spec_temp)]
-        c12total = np.load('mydata/cnat/fullTotal.npy')[eval(spec_temp)]
+        u235total = np.load('mydata/u235/vecTotal.npy')[eval(spec_temp)]
+        u238total = np.load('mydata/u238/vecTotal.npy')[eval(spec_temp)]
+        h1total = np.load('mydata/h1/vecTotal.npy')[eval(spec_temp)]
+        c12total = np.load('mydata/cnat/vecTotal.npy')[eval(spec_temp)]
     
         uh3_total = uh3_density[0]*u235total + uh3_density[1]*u238total + uh3_density[2]*h1total
         hdpe_total = hdpe_density[0]*c12total + hdpe_density[1]*h1total
@@ -88,12 +88,17 @@ class inf_eigen_djinn:
         print('|| DJINN model location has to be specified')
         print('=========================================================')
         
-    def variables():
+    def variables(conc=None):
         from discrete1.util import chem
         import numpy as np
         # Layer densities
-        conc = 0.1; density_uh3 = 10.95; 
+        if conc is None:
+            conc = 0.2
+        print('Concentration: ',conc)
+        density_uh3 = 10.95; 
         uh3_density = chem.density_list('UH3',density_uh3,conc)
+        # conc = 1; density_uh3 = 10.95; 
+        # uh3_density = chem.density_list('U',density_uh3,conc)
     
         # Loading Cross Section Data
         dim = 87; spec_temp = '00'
@@ -104,9 +109,9 @@ class inf_eigen_djinn:
         uh3_scatter = uh3_density[0]*u235scatter + uh3_density[1]*u238scatter + uh3_density[2]*h1scatter
     
         # Total Cross Section
-        u235total = np.load('mydata/u235/fullTotal.npy')[eval(spec_temp)]
-        u238total = np.load('mydata/u238/fullTotal.npy')[eval(spec_temp)]
-        h1total = np.load('mydata/h1/fullTotal.npy')[eval(spec_temp)]    
+        u235total = np.load('mydata/u235/vecTotal.npy')[eval(spec_temp)]
+        u238total = np.load('mydata/u238/vecTotal.npy')[eval(spec_temp)]
+        h1total = np.load('mydata/h1/vecTotal.npy')[eval(spec_temp)]    
         uh3_total = uh3_density[0]*u235total + uh3_density[1]*u238total + uh3_density[2]*h1total
     
         # Fission Cross Section

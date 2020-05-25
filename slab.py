@@ -589,7 +589,8 @@ class inf_eigen:
         import numpy as np
         # Initialize and normalize phi
         phi_old = np.random.rand(self.L+1,self.G)
-        phi_old /= np.linalg.norm(phi_old)       
+        k_old = np.linalg.norm(phi_old)
+        phi_old /= np.linalg.norm(phi_old)
         # Calculate original source terms
         sources = self.chiNuFission @ phi_old[0] 
         if self.matmul:
@@ -615,10 +616,11 @@ class inf_eigen:
             change = np.linalg.norm((phi-phi_old)/phi/((self.L+1)))
             if LOUD:
                 print('Change is',change,count,'Keff is',keff)
-            converged = (change < tol) or (count >= MAX_ITS)
+            converged = (change < tol) or (count >= MAX_ITS) or (abs(k_old - keff) < 1e-10)
             count += 1
             # Update phi and source terms
             phi_old = phi.copy()
+            k_old = keff
             if self.matmul:
                 predy = (self.scatter @ phi_old[0]).reshape(self.L+1,self.G)
             # sources = phi_old[0,:] * self.chiNuFission 
@@ -725,7 +727,9 @@ class inf_eigen_djinn:
             else:
                 # Make sure it is normalized
                 normed = phi_old/np.linalg.norm(phi_old)
-            dj_pred = model.predict(normed).reshape(L+1,G)
+            dj_pred_ns = model.predict(normed).flatten()
+            scale = np.sum(normed[0]*np.sum(scatter,axis=0))/np.sum(dj_pred_ns)
+            dj_pred = (dj_pred_ns*scale).reshape(L+1,G)
             if self.track:
                 # dj_pred, phi_old (normalized), uh3_scatter @ phi_old
                 track_temp = np.vstack((dj_pred.flatten(),normed.flatten(),scatter @ phi_old[0]))
@@ -762,14 +766,18 @@ class inf_eigen_djinn:
         from djinn import djinn
         # Initialize and normalize phi
         phi_old = np.random.rand(self.L+1,self.G)
+        k_old = np.linalg.norm(phi_old)
         phi_old /= np.linalg.norm(phi_old)
         # Load DJINN model
         model = djinn.load(model_name=model_name)
         # Predict sigma_s*phi from initialized phi
         # phi_old = np.load('mydata/djinn_test/true_phi.npy') # Hot start
-        djinn_y = model.predict(phi_old).reshape(self.L+1,self.G)
+        # djinn_y = model.predict(phi_old).reshape(self.L+1,self.G)
+        djinn_y_ns = model.predict(phi_old).flatten()
+        scale = np.sum(phi_old[0]*np.sum(self.scatter,axis=0))/np.sum(djinn_y_ns)
+        djinn_y = (djinn_y_ns*scale).reshape(self.L+1,self.G)
         # Set sources for power iteration
-        sources = phi_old[0,:] * self.chiNuFission 
+        sources = self.chiNuFission @ phi_old[0]
         if self.track:
             allmat = np.zeros((1,3,87))
         # Parameters for convergence/count
@@ -792,14 +800,17 @@ class inf_eigen_djinn:
             change = np.linalg.norm((phi-phi_old)/phi/((self.L+1)))
             if LOUD:
                 print('Change is',change,count,'Keff is',keff)
-            converged = (change < tol) or (count >= MAX_ITS)
+            converged = (change < tol) or (count >= MAX_ITS) or (abs(k_old - keff) < 1e-8)
             count += 1
             # Update phi
             phi_old = phi.copy()
+            k_old = keff
             # Update djinn_y
-            djinn_y = model.predict(phi_old).reshape(self.L+1,self.G)
+            djinn_y_ns = model.predict(phi_old).flatten()
+            scale = np.sum(phi_old[0]*np.sum(self.scatter,axis=0))/np.sum(djinn_y_ns)
+            djinn_y = (djinn_y_ns*scale).reshape(self.L+1,self.G)
             # Update sources
-            sources = phi_old[0,:] * self.chiNuFission 
+            sources = self.chiNuFission @ phi_old[0]
         if self.track:
             return phi,keff,allmat[1:]   
         return phi,keff

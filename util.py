@@ -1,7 +1,7 @@
 class display:
     ''' Tools for graphing current problems '''
     def error_calc(original,predicted):
-        return (original-predicted)**2/original*100
+        return (abs(original-predicted)/original)*100
 
     def split_graph(array):
         import numpy as np
@@ -11,11 +11,16 @@ class display:
         import numpy as np
         return np.round(abs(orig-new)/orig,2)
 
-    def energy_grid(energy):
-        grid = []
-        for ii in range(len(energy)-1):
-            grid.append((energy[ii]+energy[ii+1])*0.5)
-        return grid
+    def gridPlot(energyGrid):
+        ''' Get the averages between the energy grid sides for plotting 
+        against the different energies
+        Arguments:
+        energyGrid: 1D numpy array of size N+1
+        Returns:
+        An averaged energyGrid of size N    '''
+        import numpy as np
+        return np.array([float(energyGrid[ii]+energyGrid[jj])/2 for ii,jj in 
+                         zip(range(len(energyGrid)-1),range(1,len(energyGrid)))])
 
 class sn_tools:
     ''' Tools for discrete ordinates codes (dimensional purposes/convergence) '''
@@ -123,6 +128,41 @@ class nnets:
         if half:
             return 0.5*total
         return int(total)
+    
+    def djinn_metric(loc,metric='MSE',score=False):
+        ''' Gets the Best Metric for DJINN Models - Rough Comparison
+        Arguments:
+            loc: string location of DJINN model errors
+                i.e. y_djinn_errors/model_ntrees*
+        Returns None   '''
+        import numpy as np
+        import glob
+        address = np.sort(glob.glob(loc))
+        error_data = []
+        # gets list of all data errors
+        for ii in address:
+            temp = []
+            with open(ii,'r') as f:
+                for ii in f.readlines():
+                    broken = ii.split()
+                    temp.append(np.array([broken[1],broken[5],broken[-1]],dtype=float))
+            error_data.append(np.array(temp))
+        # Calculate the least error from MSE, MAE, EVS
+        tots = []
+        for ii in range(len(address)):
+            if metric == 'MSE':
+                tots.append(np.sum(np.fabs(np.subtract(error_data[ii],[0,0,1])),axis=0)[0])
+            elif metric == 'MAE':
+                tots.append(np.sum(np.fabs(np.subtract(error_data[ii],[0,0,1])),axis=0)[1])
+            elif metric == 'EVS':
+                tots.append(np.sum(np.fabs(np.subtract(error_data[ii],[0,0,1])),axis=0)[2]) #explained variance score
+            else:
+                print('Combination of MSE, MAE, EVS')
+                tots.append(np.sum(np.fabs(np.subtract(error_data[ii],[0,0,1]))))
+        tots = np.array(tots)
+        if score:
+            print(tots[np.argmin(tots)])
+        print(address[np.argmin(tots)])
 
 class chem:
     ''' Getting number densities for different compounds '''
@@ -224,16 +264,16 @@ class other_tools:
             return np.append([np.min(np.where(energyGrid>=i)) for i in boundaries],len(energyGrid))
         return np.array([np.min(np.where(energyGrid>=i)) for i in boundaries])
 
-    def gridPlot(energyGrid):
-        ''' Get the averages between the energy grid sides for plotting 
-        against the different energies
-        Arguments:
-        energyGrid: 1D numpy array of size L+1
-        Returns:
-        An averaged energyGrid of size L
-        '''
-        import numpy as np
-        return np.array([float(energyGrid[ii]+energyGrid[jj])/2 for ii,jj in zip(range(len(energyGrid)-1),range(1,len(energyGrid)))])
+    # def gridPlot(energyGrid):
+    #     ''' Get the averages between the energy grid sides for plotting 
+    #     against the different energies
+    #     Arguments:
+    #     energyGrid: 1D numpy array of size L+1
+    #     Returns:
+    #     An averaged energyGrid of size L
+    #     '''
+    #     import numpy as np
+    #     return np.array([float(energyGrid[ii]+energyGrid[jj])/2 for ii,jj in zip(range(len(energyGrid)-1),range(1,len(energyGrid)))])
 
     def collapse(crossSection,index):
         ''' Collapsing different cross sections into specific groups
