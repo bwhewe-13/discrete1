@@ -69,8 +69,8 @@ problem = s.eigen(dim,N,mu,w,total_,scatter_,fission_,L,R,I)
 phi,keff = problem.transport(LOUD=True)
 
 # Track keff and distaces
-outF = open("layer_tracker.txt", "w")
-line = 'Layers: {}     Keff: {}'.format(str(distance),keff)
+outF = open("hist_layer.txt", "a")
+line = 'Layers: {}     Delta: {}     Keff: {}'.format(str(distance),usr_input.delta,keff)
 outF.write(line)
 outF.write("\n")
 outF.close()
