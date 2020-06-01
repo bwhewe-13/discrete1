@@ -467,7 +467,7 @@ class eigen_djinn:
         return phi,keff
 
 class inf_eigen:
-    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,matmul=False,track=False):
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,enrich=False,matmul=False,track=False):
         self.G = G
         self.N = N
         self.mu = mu
@@ -476,6 +476,7 @@ class inf_eigen:
         self.scatter = scatter
         self.chiNuFission = chiNuFission
         self.L = L
+        self.enrich = enrich
         self.matmul = matmul
         self.track = track
    
@@ -543,7 +544,7 @@ class inf_eigen:
         converged = 0
         count = 1
         if self.track:
-            mymat = np.zeros((1,2,G))
+            mymat = np.zeros((1,3,G))
         while not (converged):
             if LOUD:
                 print('New Inner Loop Iteration\n======================================')
@@ -554,8 +555,13 @@ class inf_eigen:
                 else:
                     dj_pred = (scatter[0] @ phi_old[0]).reshape(L+1,G)
             if self.track:
-                track_temp = np.vstack((phi_old[0].flatten(),(scatter[0] @ phi_old[0]).flatten()))
-                mymat = np.vstack((mymat,track_temp.reshape(1,2,G)))
+                # norms = phi_old[0].flatten()/np.linalg.norm(phi_old[0])
+                # if np.sum(np.isnan(norms)) != G:    
+                #     track_temp = np.vstack((np.repeat(self.enrich,G),norms,(scatter[0] @ norms).flatten()))
+                #     # track_temp = np.vstack((phi_old[0].flatten(),(scatter[0] @ phi_old[0]).flatten()))
+                #     mymat = np.vstack((mymat,track_temp.reshape(1,3,G)))
+                track_temp = np.vstack((np.repeat(self.enrich,G),phi_old[0].flatten(),(scatter[0] @ phi_old[0]).flatten()))
+                mymat = np.vstack((mymat,track_temp.reshape(1,3,G)))
             for g in range(G):
                 if (LOUD):
                     print("Inner Transport Iterations\n===================================")
@@ -596,7 +602,7 @@ class inf_eigen:
         if self.matmul:
             predy = (self.scatter @ phi_old[0]).reshape(self.L+1,self.G)
         if self.track:
-            allmat = np.zeros((1,2,87))
+            allmat = np.zeros((1,3,87))
         # Parameters for convergence/count
         converged = 0
         count = 1
@@ -630,7 +636,7 @@ class inf_eigen:
         return phi,keff    
 
 class inf_eigen_djinn:
-    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,track=False):
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,enrich=False,track=False):
         self.G = G
         self.N = N
         self.mu = mu
@@ -639,6 +645,7 @@ class inf_eigen_djinn:
         self.scatter = scatter
         self.chiNuFission = chiNuFission
         self.L = L
+        self.enrich = enrich
         self.track = track
    
     def one_group(N,mu,w,total,djinn_1g,L,external,guess,tol=1e-08,MAX_ITS=100,LOUD=False):   
@@ -721,15 +728,23 @@ class inf_eigen_djinn:
             # zero out new phi
             phi = np.zeros(phi_old.shape)
             # Update the DJINN predictions with new phi
-            if count == 1:
-                #dj_pred = djinn_prediction.copy()
-                normed = phi_old.copy()
+            if(np.sum(phi_old) == 0):
+                dj_pred = np.zeros((L+1,G))
             else:
-                # Make sure it is normalized
-                normed = phi_old/np.linalg.norm(phi_old)
-            dj_pred_ns = model.predict(normed).flatten()
-            scale = np.sum(normed[0]*np.sum(scatter,axis=0))/np.sum(dj_pred_ns)
-            dj_pred = (dj_pred_ns*scale).reshape(L+1,G)
+                if count == 1:
+                    # dj_pred = djinn_prediction.copy()
+                    normed = phi_old.copy()
+                else:
+                    # Make sure it is normalized
+                    # normed = phi_old/np.linalg.norm(phi_old)
+                    normed = phi_old.copy()
+                if self.enrich:
+                    dj_pred_ns = model.predict(np.array([self.enrich]+list(normed.flatten()))).flatten()
+                else:
+                    dj_pred_ns = model.predict(normed)
+                scale = np.sum(normed[0]*np.sum(scatter,axis=0))/np.sum(dj_pred_ns)
+                # scale = np.linalg.norm(normed[0]*np.sum(scatter,axis=0))/np.linalg.norm(dj_pred_ns)
+                dj_pred = (dj_pred_ns*scale).reshape(L+1,G)
             if self.track:
                 # dj_pred, phi_old (normalized), uh3_scatter @ phi_old
                 track_temp = np.vstack((dj_pred.flatten(),normed.flatten(),scatter @ phi_old[0]))
@@ -772,8 +787,10 @@ class inf_eigen_djinn:
         model = djinn.load(model_name=model_name)
         # Predict sigma_s*phi from initialized phi
         # phi_old = np.load('mydata/djinn_test/true_phi.npy') # Hot start
-        # djinn_y = model.predict(phi_old).reshape(self.L+1,self.G)
-        djinn_y_ns = model.predict(phi_old).flatten()
+        if self.enrich:
+            djinn_y_ns = model.predict(np.array([self.enrich]+list(phi_old.flatten()))).flatten()
+        else:
+            djinn_y_ns = model.predict(phi_old)
         scale = np.sum(phi_old[0]*np.sum(self.scatter,axis=0))/np.sum(djinn_y_ns)
         djinn_y = (djinn_y_ns*scale).reshape(self.L+1,self.G)
         # Set sources for power iteration
@@ -800,15 +817,23 @@ class inf_eigen_djinn:
             change = np.linalg.norm((phi-phi_old)/phi/((self.L+1)))
             if LOUD:
                 print('Change is',change,count,'Keff is',keff)
-            converged = (change < tol) or (count >= MAX_ITS) or (abs(k_old - keff) < 1e-8)
+            converged = (change < tol) or (count >= MAX_ITS) or (abs(k_old - keff) < 1e-10)
             count += 1
             # Update phi
             phi_old = phi.copy()
             k_old = keff
             # Update djinn_y
-            djinn_y_ns = model.predict(phi_old).flatten()
-            scale = np.sum(phi_old[0]*np.sum(self.scatter,axis=0))/np.sum(djinn_y_ns)
-            djinn_y = (djinn_y_ns*scale).reshape(self.L+1,self.G)
+            if(np.sum(phi_old) == 0):
+                djinn_y = np.zeros((self.L+1,self.G))
+            else:
+                if self.enrich:
+                    djinn_y_ns = model.predict(np.array([self.enrich]+list(phi_old.flatten()))).flatten()
+                else:
+                    djinn_y_ns = model.predict(phi_old)
+                scale = np.sum(phi_old[0]*np.sum(self.scatter,axis=0))/np.sum(djinn_y_ns)
+                # scale = np.linalg.norm(phi_old[0]*np.sum(self.scatter,axis=0))/np.linalg.norm(djinn_y_ns)
+                djinn_y = (djinn_y_ns*scale).reshape(self.L+1,self.G)
+            print(np.sum(phi_old[0]*np.sum(self.scatter,axis=0)),np.sum(self.scatter @ phi_old[0]))
             # Update sources
             sources = self.chiNuFission @ phi_old[0]
         if self.track:
