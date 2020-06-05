@@ -24,6 +24,27 @@ class display:
 
 class sn_tools:
     ''' Tools for discrete ordinates codes (dimensional purposes/convergence) '''
+    def layer_slice(layers,half=True):
+        import numpy as np
+        if half:
+            split = int(len(layers)*0.5)
+            layers[split:split+1] = [int(layers[split]*0.5)]*2
+        bounds = np.cumsum(layers)
+        bounds = np.insert(bounds,0,0)
+        return [slice(bounds[ii],bounds[ii+1]) for ii in range(len(bounds)-1)]
+        
+    def enrich_list(length,enrich,splits):
+        import numpy as np
+        lst = np.zeros((length))
+        # Ensuring lists
+        # if type(enrich) != list:
+        #     enrich = [enrich]
+        if type(splits) != list:
+            splits = [splits]
+        for ii in range(len(splits)):
+            lst[splits[ii]] = enrich
+        return lst
+    
     def propagate(xs=None,G=None,I=None,N=None,L=None,dtype='total'):
         import numpy as np
         if dtype == 'total':
@@ -162,7 +183,7 @@ class nnets:
         tots = np.array(tots)
         if score:
             print(tots[np.argmin(tots)])
-        print(address[np.argmin(tots)])
+        return address[np.argmin(tots)]
 
 class chem:
     ''' Getting number densities for different compounds '''
