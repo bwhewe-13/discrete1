@@ -273,7 +273,7 @@ class eigen:
                 for ii in self.splits:
                     length = len(range(*ii.indices(self.I)))
                     enrichment = np.repeat(self.enrich[ii],self.G).reshape(length,1,self.G)
-                    multiplier = np.einsum('ijk,ik->ij',self.chiNuFission[ii][:,0],phi_old[ii][:,0]) # matrix multiplication
+                    multiplier = np.einsum('ijk,ik->ij',self.chiNuFission[ii],phi_old[ii][:,0]) # matrix multiplication
                     track_temp = np.hstack((enrichment,phi_old[ii],multiplier.reshape(length,1,self.G)))
                     allmat_fis = np.vstack((allmat_fis,track_temp))
             # sources = phi_old[:,0,:] * self.chiNuFission # np.sum(self.chiNuFission,axis=0)
