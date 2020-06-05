@@ -10,15 +10,17 @@ class eigen_djinn:
         print('|| model location has to be specified')
         print('=========================================================')
         
-    def variables():
+    def variables(conc=None):
         from discrete1.util import chem,sn_tools
         import numpy as np
         
         distance = [0.69,0.17,0.3,0.17,0.69]
         delta = 0.001 # original spatial cell width
-    
+        if conc is None:
+            conc = 0.2
+        print('Concentration: ',conc)
         # Layer densities
-        conc = 0.1; density_uh3 = 10.95; density_ch3 = 0.97
+        density_uh3 = 10.95; density_ch3 = 0.97
         uh3_density = chem.density_list('UH3',density_uh3,conc)
         hdpe_density = chem.density_list('CH3',density_ch3)
         uh3_238_density = chem.density_list('U^238H3',density_uh3)
@@ -71,12 +73,15 @@ class eigen_djinn:
         
         return G,N,mu,w,total_,scatter_,fission_,L,R,I
     
-    def boundaries():
-        import numpy as np
+    def boundaries(conc):
+        # import numpy as np
+        from discrete1.util import sn_tools
         distance = [0.69,0.17,0.3,0.17,0.69]
         delta = 0.001
         layers = [int(ii/delta) for ii in distance]
-        return np.cumsum([0]+layers)
+        splits = sn_tools.layer_slice(layers)
+        enrichment = sn_tools.enrich_list(sum(layers),conc,[splits[1],splits[2]])
+        return enrichment,splits
     
 class inf_eigen_djinn:
     ''' Infinite eigenvalue djinn problem '''

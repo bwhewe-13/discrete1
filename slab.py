@@ -79,7 +79,7 @@ class func:
         return np.array([np.sum(func.scattering_approx(L,mu[n]).reshape(L+1,1)*scatter[:,g,start:stop]*phi[:,start:stop],axis=(1,0)) for n in range(N)])
 
 class eigen:
-    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I):
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,track=False,enrich=None,splits=None):
         self.G = G
         self.N = N
         self.mu = mu
@@ -90,6 +90,9 @@ class eigen:
         self.L = L
         self.I = I
         self.delta = float(R)/I
+        self.track = track
+        self.enrich = enrich
+        self.splits = splits
         
     def one_group(N,mu,w,total,scatter,L,external,I,delta,guess,tol=1e-08,MAX_ITS=100,LOUD=False):
         ''' 
@@ -148,7 +151,7 @@ class eigen:
 
         return phi
     
-    def multi_group(G,N,mu,w,total,scatter,L,nuChiFission,I,delta,tol=1e-08,MAX_ITS=100,LOUD=False):
+    def multi_group(self,G,N,mu,w,total,scatter,L,nuChiFission,I,delta,tol=1e-08,MAX_ITS=100,LOUD=False):
         '''
         Arguments:
             G: number of energy groups
@@ -171,10 +174,19 @@ class eigen:
         phi_old = np.zeros((I,L+1,G))
         converged = 0
         count = 1
+        if self.track:            
+            mymat = np.zeros((1,3,G))
         while not (converged):
             if LOUD:
                 print('New Inner Loop Iteration\n======================================')
             phi = np.zeros(phi_old.shape)
+            if self.track == 'scatter' or self.track == 'both':
+                for ii in self.splits:
+                    length = len(range(*ii.indices(I)))
+                    enrichment = np.repeat(self.enrich[ii],G).reshape(length,1,G)
+                    multiplier = np.einsum('ijk,ik->ij',scatter[ii][:,0],phi_old[ii][:,0]) # matrix multiplication
+                    track_temp = np.hstack((enrichment,phi_old[ii],multiplier.reshape(length,1,G)))
+                    mymat = np.vstack((mymat,track_temp))
             for g in range(G):
                 if (LOUD):
                     print("Inner Transport Iterations\n===================================")
@@ -189,6 +201,8 @@ class eigen:
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
+        if self.track:
+            return phi,mymat[1:]
         return phi
 
     def transport(self,tol=1e-12,MAX_ITS=100,LOUD=True,dimen=False):
@@ -223,14 +237,27 @@ class eigen:
             totalSn = sn_tools.propagate(xs=self.total,I=self.I,G=self.G,dtype='total')
         else:
             scatterSn = self.scatter.copy()
-            totalSn = self.total.copy()
-            
+            totalSn = self.total.copy()            
         sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old[:,0,:]) 
-
+        if self.track:
+            if self.track == 'scatter' or self.track == 'both':
+                allmat_sca = np.zeros((1,3,self.G))
+            if self.track == 'fission' or self.track == 'both':
+                allmat_fis = np.zeros((1,3,self.G))
+                for ii in self.splits:
+                    length = len(range(*ii.indices(self.I)))
+                    enrichment = np.repeat(self.enrich[ii],self.G).reshape(length,1,self.G)
+                    multiplier = np.einsum('ijk,ik->ij',self.chiNuFission[ii],phi_old[ii][:,0]) # matrix multiplication
+                    track_temp = np.hstack((enrichment,phi_old[ii],multiplier.reshape(length,1,self.G)))
+                    allmat_fis = np.vstack((allmat_fis,track_temp))
         while not (converged):
             if LOUD:
                 print('Outer Transport Iteration\n===================================')
-            phi = eigen.multi_group(self.G,self.N,self.mu,self.w,totalSn,scatterSn,self.L,sources,self.I,self.delta,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+            if self.track == 'scatter' or self.track == 'both':
+                phi,tempmat = eigen.multi_group(self,self.G,self.N,self.mu,self.w,totalSn,scatterSn,self.L,sources,self.I,self.delta,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+                allmat_sca = np.vstack((allmat_sca,tempmat))
+            else:
+                phi = eigen.multi_group(self,self.G,self.N,self.mu,self.w,totalSn,scatterSn,self.L,sources,self.I,self.delta,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
 
             keff = np.linalg.norm(phi)
             phi /= np.linalg.norm(phi)
@@ -242,7 +269,21 @@ class eigen:
             count += 1
             phi_old = phi.copy()
             sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old[:,0,:]) 
+            if self.track == 'fission' or self.track == 'both':
+                for ii in self.splits:
+                    length = len(range(*ii.indices(self.I)))
+                    enrichment = np.repeat(self.enrich[ii],self.G).reshape(length,1,self.G)
+                    multiplier = np.einsum('ijk,ik->ij',self.chiNuFission[ii][:,0],phi_old[ii][:,0]) # matrix multiplication
+                    track_temp = np.hstack((enrichment,phi_old[ii],multiplier.reshape(length,1,self.G)))
+                    allmat_fis = np.vstack((allmat_fis,track_temp))
             # sources = phi_old[:,0,:] * self.chiNuFission # np.sum(self.chiNuFission,axis=0)
+        if self.track:
+            if self.track == 'both':
+                return phi,keff,allmat_fis[1:],allmat_sca[1:]
+            if self.track == 'scatter':
+                return phi,keff,allmat_sca[1:]
+            if self.track == 'fission':
+                return phi,keff,allmat_fis[1:]
         return phi,keff
 
 class eigen_djinn:
@@ -544,7 +585,10 @@ class inf_eigen:
         converged = 0
         count = 1
         if self.track:
-            mymat = np.zeros((1,3,G))
+            if self.enrich:
+                mymat = np.zeros((1,3,G))
+            else:
+                mymat = np.zeros((1,2,G))
         while not (converged):
             if LOUD:
                 print('New Inner Loop Iteration\n======================================')
@@ -554,19 +598,26 @@ class inf_eigen:
                     dj_pred = prediction.copy()
                 else:
                     dj_pred = (scatter[0] @ phi_old[0]).reshape(L+1,G)
-            if self.track:
-                # norms = phi_old[0].flatten()/np.linalg.norm(phi_old[0])
-                # if np.sum(np.isnan(norms)) != G:    
-                #     track_temp = np.vstack((np.repeat(self.enrich,G),norms,(scatter[0] @ norms).flatten()))
-                #     # track_temp = np.vstack((phi_old[0].flatten(),(scatter[0] @ phi_old[0]).flatten()))
-                #     mymat = np.vstack((mymat,track_temp.reshape(1,3,G)))
-                track_temp = np.vstack((np.repeat(self.enrich,G),phi_old[0].flatten(),(scatter[0] @ phi_old[0]).flatten()))
-                mymat = np.vstack((mymat,track_temp.reshape(1,3,G)))
+                    
+            if self.track == 'scatter':
+                if self.enrich:
+                    track_temp = np.vstack((np.repeat(self.enrich,G),phi_old[0].flatten(),(scatter[0] @ phi_old[0]).flatten()))
+                    mymat = np.vstack((mymat,track_temp.reshape(1,3,G)))
+                else:
+                    track_temp = np.vstack((phi_old[0].flatten(),(scatter[0] @ phi_old[0]).flatten()))
+                    mymat = np.vstack((mymat,track_temp.reshape(1,2,G)))
+                    
             for g in range(G):
                 if (LOUD):
                     print("Inner Transport Iterations\n===================================")
                 if self.matmul:
                     phi[:,g] = inf_eigen.one_group(self,N,mu,w,total[g],scatter[:,g,g],L,np.tile(nuChiFission[g],(N,1)),phi_old[:,g],dj_pred[:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
+                # elif self.track == 'fission':
+                #     if g == 0:
+                #         q_tilde = multiplier[g] + func.update_q_inf(N,L,mu,scatter,phi_old,g+1,G,g)
+                #     else:
+                #         q_tilde = multiplier[g] + func.update_q_inf(N,L,mu,scatter,phi_old,g+1,G,g) + func.update_q_inf(N,L,mu,scatter,phi,0,g,g)
+                #     phi[:,g] = inf_eigen.one_group(self,N,mu,w,total[g],scatter[:,g,g],L,q_tilde,phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
                 else:
                     if g == 0:
                         q_tilde = nuChiFission[g] + func.update_q_inf(N,L,mu,scatter,phi_old,g+1,G,g)
@@ -579,7 +630,7 @@ class inf_eigen:
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
-        if self.track:
+        if self.track == 'scatter':
             return phi,mymat[1:]
         return phi
 
@@ -595,14 +646,24 @@ class inf_eigen:
         import numpy as np
         # Initialize and normalize phi
         phi_old = np.random.rand(self.L+1,self.G)
-        k_old = np.linalg.norm(phi_old)
+        # k_old = np.linalg.norm(phi_old)
         phi_old /= np.linalg.norm(phi_old)
         # Calculate original source terms
         sources = self.chiNuFission @ phi_old[0] 
         if self.matmul:
             predy = (self.scatter @ phi_old[0]).reshape(self.L+1,self.G)
         if self.track:
-            allmat = np.zeros((1,3,87))
+            if self.enrich:
+                allmat = np.zeros((1,3,self.G))
+            else:
+                allmat = np.zeros((1,2,self.G))
+        if self.track == 'fission':
+            if self.enrich:
+                track_temp = np.vstack((np.repeat(self.enrich,self.G),phi_old[0].flatten(),(self.chiNuFission @ phi_old[0]).flatten()))
+                allmat = np.vstack((allmat,track_temp.reshape(1,3,self.G)))
+            else:
+                track_temp = np.vstack((phi_old[0].flatten(),(self.chiNuFission @ phi_old[0]).flatten()))
+                allmat = np.vstack((allmat,track_temp.reshape(1,2,self.G)))
         # Parameters for convergence/count
         converged = 0
         count = 1
@@ -610,7 +671,7 @@ class inf_eigen:
             if LOUD:
                 print('Outer Transport Iteration\n===================================')
             # Calculate phi
-            if self.track:
+            if self.track == 'scatter':
                 phi,tempmat = inf_eigen.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter.reshape(self.L+1,self.G,self.G),self.L,sources,predy,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
                 allmat = np.vstack((allmat,tempmat))
             else:
@@ -622,21 +683,28 @@ class inf_eigen:
             change = np.linalg.norm((phi-phi_old)/phi/((self.L+1)))
             if LOUD:
                 print('Change is',change,count,'Keff is',keff)
-            converged = (change < tol) or (count >= MAX_ITS) or (abs(k_old - keff) < 1e-10)
+            converged = (change < tol) or (count >= MAX_ITS) #or (abs(k_old - keff) < 1e-10)
             count += 1
             # Update phi and source terms
             phi_old = phi.copy()
-            k_old = keff
+            # k_old = keff
             if self.matmul:
                 predy = (self.scatter @ phi_old[0]).reshape(self.L+1,self.G)
             # sources = phi_old[0,:] * self.chiNuFission 
             sources = self.chiNuFission @ phi_old[0]
+            if self.track == 'fission':
+                if self.enrich:
+                    track_temp = np.vstack((np.repeat(self.enrich,self.G),phi_old[0].flatten(),(self.chiNuFission @ phi_old[0]).flatten()))
+                    allmat = np.vstack((allmat,track_temp.reshape(1,3,self.G)))
+                else:
+                    track_temp = np.vstack((phi_old[0].flatten(),(self.chiNuFission @ phi_old[0]).flatten()))
+                    allmat = np.vstack((allmat,track_temp.reshape(1,2,self.G)))
         if self.track:
             return phi,keff,allmat[1:]
         return phi,keff    
 
 class inf_eigen_djinn:
-    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,enrich=False,track=False):
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,dtype='scatter',enrich=False):
         self.G = G
         self.N = N
         self.mu = mu
@@ -645,11 +713,12 @@ class inf_eigen_djinn:
         self.scatter = scatter
         self.chiNuFission = chiNuFission
         self.L = L
+        self.dtype = dtype
         self.enrich = enrich
-        self.track = track
+        
    
-    def one_group(N,mu,w,total,djinn_1g,L,external,guess,tol=1e-08,MAX_ITS=100,LOUD=False):   
-        ''' Infinite DJINN One Group Calculation - y
+    def one_group_scatter(N,mu,w,total,djinn_1g,L,external,guess,tol=1e-08,MAX_ITS=100,LOUD=False):   
+        ''' Infinite DJINN One Group Calculation - y scatter
         Arguments:
             N: Number of angles
             mu: vector of angles between -1 and 1
@@ -695,9 +764,47 @@ class inf_eigen_djinn:
             phi_old = phi.copy()
         return phi
 
+    def one_group_fission(self,N,mu,w,total,scatter,L,external,guess,tol=1e-08,MAX_ITS=100,LOUD=False):   
+        """ Infinite Eigenvalue Problem - One Group
+        Arguments:
+            N: Number of angles
+            mu: vector of angles between -1 and 1
+            w: vector of weights for the angles
+            total: scalar of the total cross section
+            scatter: L+1 array for the scattering moments
+            L: Number of moments
+            external: N x 2 array for the external sources
+            guess: Initial guess of the scalar flux for a specific energy group (L+1)
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iterations and change between iterations, default is False
+        Returns:
+            phi: a L+1 array   """
+        import numpy as np
+        
+        converged = 0
+        count = 1
+        phi = np.zeros((L+1))
+        phi_old = guess.copy()
+        
+        while not(converged):
+            phi *= 0
+            for n in range(N):
+                non_weight_scatter = func.scattering_approx(L,mu[n])
+                #weight_scatter = w[n]*non_weight_scatter
+                temp_scat = np.sum(non_weight_scatter*scatter*phi_old,axis=0)
+                psi = (temp_scat + external[n])/(total)
+                phi = phi + w[n] * non_weight_scatter * psi
+            change = np.linalg.norm((phi - phi_old)/phi/((L+1)))
+            converged = (change < tol) or (count >= MAX_ITS) 
+            if LOUD:
+                print('Iteration:',count,' Change:',change)
+            count += 1
+            phi_old = phi.copy()
+        return phi
 
     def multi_group(self,G,N,mu,w,total,scatter,L,nuChiFission,model,djinn_prediction,tol=1e-08,MAX_ITS=100,LOUD=False):
-        ''' Infinite DJINN Multigroup Calculation (Source Iteration) - y
+        """ Infinite DJINN Multigroup Calculation (Source Iteration) - y
         Arguments:
             G: number of energy groups
             N: number of angles
@@ -713,48 +820,48 @@ class inf_eigen_djinn:
             LOUD: prints the iteration number and the change between iterations, default is False
         Returns:
             phi: a L+1 x G array
-        '''
+        """
         import numpy as np        
         # Initialize phi
         phi_old = np.zeros((L+1,G))
         # Parameters for convergence/count
         converged = 0
         count = 1
-        if self.track:
-            mymat = np.zeros((1,3,G))
+
         while not (converged):
             if LOUD:
                 print('New Inner Loop Iteration\n======================================')
             # zero out new phi
             phi = np.zeros(phi_old.shape)
             # Update the DJINN predictions with new phi
-            if(np.sum(phi_old) == 0):
-                dj_pred = np.zeros((L+1,G))
-            else:
-                if count == 1:
-                    # dj_pred = djinn_prediction.copy()
-                    normed = phi_old.copy()
+            if self.dtype == 'scatter' or self.dtype == 'both':
+                if(np.sum(phi_old) == 0):
+                    dj_pred = np.zeros((L+1,G))
                 else:
-                    # Make sure it is normalized
-                    # normed = phi_old/np.linalg.norm(phi_old)
                     normed = phi_old.copy()
-                if self.enrich:
-                    dj_pred_ns = model.predict(np.array([self.enrich]+list(normed.flatten()))).flatten()
-                else:
-                    dj_pred_ns = model.predict(normed)
-                scale = np.sum(normed[0]*np.sum(scatter,axis=0))/np.sum(dj_pred_ns)
-                # scale = np.linalg.norm(normed[0]*np.sum(scatter,axis=0))/np.linalg.norm(dj_pred_ns)
-                dj_pred = (dj_pred_ns*scale).reshape(L+1,G)
-            if self.track:
-                # dj_pred, phi_old (normalized), uh3_scatter @ phi_old
-                track_temp = np.vstack((dj_pred.flatten(),normed.flatten(),scatter @ phi_old[0]))
-                mymat = np.vstack((mymat,track_temp.reshape(1,3,87)))
-            # Iterate over all the energy groups
-            for g in range(G):
-                if (LOUD):
-                    print("Inner Transport Iterations\n===================================")
-                # Assigns new value to phi L+1 
-                phi[:,g] = inf_eigen_djinn.one_group(N,mu,w,total[g],dj_pred[:,g],L,np.tile(nuChiFission[g],(N,1)),phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
+                    if self.enrich:
+                        dj_pred_ns = model.predict(np.array([self.enrich]+list(normed.flatten()))).flatten()
+                    else:
+                        dj_pred_ns = model.predict(normed)
+                    scale = np.sum(normed[0]*np.sum(scatter,axis=0))/np.sum(dj_pred_ns)
+                    dj_pred = (dj_pred_ns*scale).reshape(L+1,G)
+                # if self.track:
+                #     # dj_pred, phi_old (normalized), uh3_scatter @ phi_old
+                #     track_temp = np.vstack((dj_pred.flatten(),normed.flatten(),scatter @ phi_old[0]))
+                #     mymat = np.vstack((mymat,track_temp.reshape(1,3,87)))
+                # Iterate over all the energy groups
+                for g in range(G):
+                    if (LOUD):
+                        print("Inner Transport Iterations\n===================================")
+                    # Assigns new value to phi L+1 
+                    phi[:,g] = inf_eigen_djinn.one_group_scatter(N,mu,w,total[g],dj_pred[:,g],L,np.tile(nuChiFission[g],(N,1)),phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
+            elif self.dtype == 'fission':
+                for g in range(G):
+                    if g == 0:
+                        q_tilde = nuChiFission[g] + func.update_q_inf(N,L,mu,scatter,phi_old,g+1,G,g)
+                    else:
+                        q_tilde = nuChiFission[g] + func.update_q_inf(N,L,mu,scatter,phi_old,g+1,G,g) + func.update_q_inf(N,L,mu,scatter,phi,0,g,g)
+                    phi[:,g] = inf_eigen_djinn.one_group_fission(self,N,mu,w,total[g],scatter[:,g,g],L,q_tilde,phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
             # Check for convergence
             change = np.linalg.norm((phi - phi_old)/phi/((L+1)))
             if LOUD:
@@ -763,20 +870,20 @@ class inf_eigen_djinn:
             count += 1
             # Update phi and repeat
             phi_old = phi.copy()
-        if self.track:
-            return phi,mymat[1:]
+        # if self.track:
+        #     return phi,mymat[1:]
         return phi
 
     def transport(self,model_name,tol=1e-12,MAX_ITS=100,LOUD=True):
-        ''' Infinite DJINN Multigroup Calculation (Power Iteration) - y
+        """ Infinite DJINN Multigroup Calculation (Power Iteration) - y
         Arguments:
             model_name: file location of DJINN model
+                if both: list of file locations (scatter,fission)
             tol: tolerance of convergence, default is 1e-12
             MAX_ITS: maximum iterations allowed, default is 100
             LOUD: prints the iteration number and the change between iterations, default is False
         Returns:
-            phi: a L+1 x G array  
-            '''
+            phi: a L+1 x G array  """
         import numpy as np
         from djinn import djinn
         # Initialize and normalize phi
@@ -784,19 +891,48 @@ class inf_eigen_djinn:
         k_old = np.linalg.norm(phi_old)
         phi_old /= np.linalg.norm(phi_old)
         # Load DJINN model
-        model = djinn.load(model_name=model_name)
+        if self.dtype == 'both':    
+            model_scatter = djinn.load(model_name=model_name[0])
+            model_fission = djinn.load(model_name=model_name[1])
+        elif self.dtype == 'scatter':
+            model_scatter = djinn.load(model_name=model_name)
+        elif self.dtype == 'fission':
+            model_fission = djinn.load(model_name=model_name)
+        # Set lengths and predict model
+        if self.enrich:
+            if self.dtype == 'scatter' or self.dtype == 'both':
+                djinn_scatter_ns = model_scatter.predict(np.array([self.enrich]+list(phi_old.flatten()))).flatten()
+            if self.dtype == 'fission' or self.dtype == 'both':
+                djinn_fission_ns = model_fission.predict(np.array([self.enrich]+list(phi_old.flatten()))).flatten()
+        else:
+            if self.dtype == 'scatter' or self.dtype =='both':
+                djinn_scatter_ns = model_scatter.predict(phi_old)
+            if self.dtype == 'fission' or self.dtype == 'both':
+                djinn_fission_ns = model_fission.predict(phi_old)
+                
         # Predict sigma_s*phi from initialized phi
         # phi_old = np.load('mydata/djinn_test/true_phi.npy') # Hot start
-        if self.enrich:
-            djinn_y_ns = model.predict(np.array([self.enrich]+list(phi_old.flatten()))).flatten()
-        else:
-            djinn_y_ns = model.predict(phi_old)
-        scale = np.sum(phi_old[0]*np.sum(self.scatter,axis=0))/np.sum(djinn_y_ns)
-        djinn_y = (djinn_y_ns*scale).reshape(self.L+1,self.G)
-        # Set sources for power iteration
-        sources = self.chiNuFission @ phi_old[0]
-        if self.track:
-            allmat = np.zeros((1,3,87))
+        # Setting length of vector to include label or not
+        # if self.enrich:
+        #     djinn_y_ns = model.predict(np.array([self.enrich]+list(phi_old.flatten()))).flatten()
+        # else:
+        #     djinn_y_ns = model.predict(phi_old)
+            
+        if np.sum(phi_old) == 0 or self.dtype == 'fission':
+            djinn_scatter = np.zeros((self.L+1,self.G))
+        elif self.dtype == 'scatter' or self.dtype == 'both':
+            scale = np.sum(phi_old[0]*np.sum(self.scatter,axis=0))/np.sum(djinn_scatter_ns)
+            djinn_scatter = (djinn_scatter_ns*scale).reshape(self.L+1,self.G)
+            # Set sources for power iteration
+            if self.dtype == 'scatter':
+                sources = self.chiNuFission @ phi_old[0]
+        if self.dtype == 'fission' or self.dtype == 'both':
+            scale = np.sum(phi_old[0]*np.sum(self.chiNuFission,axis=0))/np.sum(djinn_fission_ns)
+            sources = (djinn_fission_ns*scale).flatten()
+            self.scatter = self.scatter.reshape(self.L+1,self.G,self.G)
+    
+        # if self.track:
+        #     allmat = np.zeros((1,3,87))
         # Parameters for convergence/count
         converged = 0
         count = 1
@@ -804,11 +940,11 @@ class inf_eigen_djinn:
             if LOUD:
                 print('Outer Transport Iteration\n===================================')
             # Calculate phi with original sources
-            if self.track:
-                phi,tempmat = inf_eigen_djinn.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,model,djinn_y,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
-                allmat = np.vstack((allmat,tempmat))
-            else:
-                phi = inf_eigen_djinn.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,model,djinn_y,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+            # if self.track:
+            #     phi,tempmat = inf_eigen_djinn.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,model,djinn_y,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+            #     allmat = np.vstack((allmat,tempmat))
+            # else:
+            phi = inf_eigen_djinn.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,model_scatter,djinn_scatter,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
             # Calculate k-effective
             keff = np.linalg.norm(phi)
             # Normalize to 1
@@ -822,21 +958,52 @@ class inf_eigen_djinn:
             # Update phi
             phi_old = phi.copy()
             k_old = keff
-            # Update djinn_y
-            if(np.sum(phi_old) == 0):
-                djinn_y = np.zeros((self.L+1,self.G))
+            
+            # Assign lengths and predict new matrix multiplication
+            if self.enrich:
+                if self.dtype == 'scatter' or self.dtype == 'both':
+                    djinn_scatter_ns = model_scatter.predict(np.array([self.enrich]+list(phi_old.flatten()))).flatten()
+                if self.dtype == 'fission' or self.dtype == 'both':
+                    djinn_fission_ns = model_fission.predict(np.array([self.enrich]+list(phi_old.flatten()))).flatten()
             else:
-                if self.enrich:
-                    djinn_y_ns = model.predict(np.array([self.enrich]+list(phi_old.flatten()))).flatten()
-                else:
-                    djinn_y_ns = model.predict(phi_old)
-                scale = np.sum(phi_old[0]*np.sum(self.scatter,axis=0))/np.sum(djinn_y_ns)
-                # scale = np.linalg.norm(phi_old[0]*np.sum(self.scatter,axis=0))/np.linalg.norm(djinn_y_ns)
-                djinn_y = (djinn_y_ns*scale).reshape(self.L+1,self.G)
-            print(np.sum(phi_old[0]*np.sum(self.scatter,axis=0)),np.sum(self.scatter @ phi_old[0]))
-            # Update sources
-            sources = self.chiNuFission @ phi_old[0]
-        if self.track:
-            return phi,keff,allmat[1:]   
+                if self.dtype == 'scatter' or self.dtype == 'both':
+                    djinn_scatter_ns = model_scatter.predict(phi_old)
+                if self.dtype == 'fission' or self.dtype == 'both':
+                    djinn_fission_ns = model_fission.predict(phi_old)                    
+            # If there is all zeros, return zeros
+            if np.sum(phi_old) == 0 or self.dtype == 'fission':
+                djinn_scatter = np.zeros((self.L+1,self.G))
+                if self.dtype != 'fission':
+                    sources = np.zeros((self.G))
+            # Scaling after DJINN
+            elif self.dtype == 'scatter' or self.dtype == 'both':
+                scale = np.sum(phi_old[0]*np.sum(self.scatter,axis=0))/np.sum(djinn_scatter_ns)
+                djinn_scatter = (djinn_scatter_ns*scale).reshape(self.L+1,self.G)
+                # Set sources for power iteration
+                if self.dtype == 'scatter':
+                    sources = self.chiNuFission @ phi_old[0]
+            if self.dtype == 'fission' or self.dtype == 'both':
+                scale = np.sum(phi_old[0]*np.sum(self.chiNuFission,axis=0))/np.sum(djinn_fission_ns)
+                sources = (djinn_fission_ns*scale).flatten()
+                self.scatter = self.scatter.reshape(self.L+1,self.G,self.G)
+                
+            # if self.enrich:
+            #     djinn_y_ns = model.predict(np.array([self.enrich]+list(phi_old.flatten()))).flatten()
+            # else:
+            #     djinn_y_ns = model.predict(phi_old)
+            # if np.sum(phi_old) == 0 or self.dtype == 'fission':
+            #     djinn_y = np.zeros((self.L+1,self.G))
+            # elif self.dtype == 'scatter':
+            #     scale = np.sum(phi_old[0]*np.sum(self.scatter,axis=0))/np.sum(djinn_y_ns)
+            #     djinn_y = (djinn_y_ns*scale).reshape(self.L+1,self.G)
+            #     # Update sources
+            #     sources = self.chiNuFission @ phi_old[0]
+            # if self.dtype == 'fission':
+            #     scale = np.sum(phi_old[0]*np.sum(self.chiNuFission,axis=0))/np.sum(djinn_y_ns)
+            #     sources = (djinn_y_ns*scale).flatten()
+                
+            # print(np.sum(phi_old[0]*np.sum(self.scatter,axis=0)),np.sum(self.scatter @ phi_old[0]))
+        # if self.track:
+        #     return phi,keff,allmat[1:]   
         return phi,keff
     
