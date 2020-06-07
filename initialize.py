@@ -10,7 +10,7 @@ class eigen_djinn:
         print('|| model location has to be specified')
         print('=========================================================')
         
-    def variables(conc=None):
+    def variables(conc=None,symm=False):
         from discrete1.util import chem,sn_tools
         import numpy as np
         
@@ -18,6 +18,8 @@ class eigen_djinn:
         #delta = 0.2 # original spatial cell width
         distance = [200,75,150,75,200]
         delta = 1
+        if symm:
+            distance = [200,75,75]
         if conc is None:
             conc = 0.2
         print('Concentration: ',conc)
@@ -66,6 +68,10 @@ class eigen_djinn:
         N = 8; L = 0; R = sum(distance); G = dim
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w)
+        if symm:
+            mu = mu[int(N*0.5):]
+            w = w[int(N*0.5):]
+            N = int(N*0.5) 
         layers = [int(ii/delta) for ii in distance]
         I = int(sum(layers))
     
@@ -75,15 +81,20 @@ class eigen_djinn:
         
         return G,N,mu,w,total_,scatter_,fission_,L,R,I
     
-    def boundaries(conc):
+    def boundaries(conc,symm=False):
         # import numpy as np
         from discrete1.util import sn_tools
         #distance = [50,35,40,35,50]
         #delta = 0.2
         distance = [200,75,150,75,200]
+        if symm:
+            distance = [200,75,75]
         delta = 1
         layers = [int(ii/delta) for ii in distance]
-        splits = sn_tools.layer_slice(layers)
+        if symm:
+            splits = sn_tools.layer_slice(layers,half=False)
+        else:
+            splits = sn_tools.layer_slice(layers)
         enrichment = sn_tools.enrich_list(sum(layers),conc,[splits[1],splits[2]])
         return enrichment,splits
     

@@ -297,6 +297,187 @@ class eigen:
                 return phi,keff,allmat_fis[1:]
         return phi,keff
 
+class eigen_symm:
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,track=False,enrich=None,splits=None):
+        self.G = G
+        self.N = N
+        self.mu = mu
+        self.w = w
+        self.total = total
+        self.scatter = scatter
+        self.chiNuFission = chiNuFission
+        self.L = L
+        self.I = I
+        self.delta = float(R)/I
+        self.track = track
+        self.enrich = enrich
+        self.splits = splits
+        
+    def one_group(N,mu,w,total,scatter,L,external,I,delta,guess,tol=1e-08,MAX_ITS=100,LOUD=False):
+        """ Arguments:
+            N: Number of angles
+            mu: vector of angles between -1 and 1
+            w: vector of weights for the angles
+            total: I x 1 vector of the total cross section for each spatial cell
+            scatter: I x L+1 array for the scattering of the spatial cell by moment
+            L: Number of moments
+            external: I x N array for the external sources
+            I: Number of spatial cells
+            delta: width of one spatial cell
+            guess: Initial guess of the scalar flux for a specific energy group (I x L+1)
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iterations and change between iterations, default is False
+        Returns:
+            phi: a I x L+1 array   """
+        import numpy as np        
+        converged = 0
+        count = 1
+        phi = np.zeros((I,L+1))
+        phi_old = guess.copy()
+        while not(converged):
+            phi *= 0
+            for n in range(N):
+                non_weight_scatter = func.scattering_approx(L,mu[n])
+                weight_scatter = w[n]*non_weight_scatter
+                temp_scat = np.sum(non_weight_scatter*scatter*phi_old,axis=1)
+                psi_bottom = 0 # vacuum on LHS
+				# Left to right
+                for ii in range(I):
+                    psi_top = (temp_scat[ii] + external[ii,n] + psi_bottom * func.total_add(total[ii], mu[n], delta,'right'))/(func.total_add(total[ii], mu[n], delta,'left'))
+                    phi[ii,:] = phi[ii,:] + (weight_scatter * func.diamond_diff(psi_top,psi_bottom))
+                    psi_bottom = psi_top
+				# Reflective right to left
+                for ii in range(I-1,-1,-1):
+                    psi_top = psi_bottom
+                    psi_bottom = (temp_scat[ii] + external[ii,n] + psi_top * func.total_add(total[ii], -mu[n], delta,'right'))/(func.total_add(total[ii], -mu[n], delta,'left'))
+                    phi[ii,:] = phi[ii,:] +  (weight_scatter * func.diamond_diff(psi_top,psi_bottom)).flatten()
+            change = np.linalg.norm((phi - phi_old)/phi/(I*(L+1)))
+            converged = (change < tol) or (count >= MAX_ITS) 
+            if LOUD:
+                print('Iteration:',count,' Change:',change)
+            count += 1
+            phi_old = phi.copy()
+        return phi
+    
+    def multi_group(self,G,N,mu,w,total,scatter,L,nuChiFission,I,delta,tol=1e-08,MAX_ITS=100,LOUD=False):
+        """ Arguments:
+            G: number of energy groups
+            N: number of angles
+            mu: vector of angles between -1 and 1
+            w: vector of weights for the angles
+            total: I x G vector of the total cross section for each spatial cell and energy level
+            scatter: I x L+1 x G array for the scattering of the spatial cell by moment and energy
+            L: Number of moments
+            nuChiFission: 
+            I: Number of spatial cells
+            delta: width of one spatial cell
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iteration number and the change between iterations, default is False
+        Returns:
+            phi: a I x L+1 x G array  """
+        import numpy as np
+        phi_old = np.zeros((I,L+1,G))
+        converged = 0
+        count = 1
+        while not (converged):
+            if LOUD:
+                print('New Inner Loop Iteration\n======================================')
+            phi = np.zeros(phi_old.shape)
+            for g in range(G):
+                if (LOUD):
+                    print("Inner Transport Iterations\n===================================")
+                if g == 0:
+                    q_tilde = nuChiFission[:,g].reshape(I,1) + func.update_q(N,L,mu,scatter,phi_old,g+1,G,g)
+                else:
+                    q_tilde = nuChiFission[:,g].reshape(I,1) + func.update_q(N,L,mu,scatter,phi_old,g+1,G,g) + func.update_q(N,L,mu,scatter,phi,0,g,g)
+                phi[:,:,g] = eigen_symm.one_group(N,mu,w,total[:,g],scatter[:,:,g,g],L,q_tilde,I,delta,tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD,guess=phi_old[:,:,g])
+            change = np.linalg.norm((phi - phi_old)/phi/(I*(L+1)))
+            if LOUD:
+                print('Change is',change,count)
+            converged = (change < tol) or (count >= MAX_ITS) 
+            count += 1
+            phi_old = phi.copy()
+        return phi
+
+    def transport(self,tol=1e-12,MAX_ITS=100,LOUD=True):
+        """ Arguments:
+            G: number of energy groups
+            N: number of angles
+            mu: vector of angles between -1 and 1
+            w: vector of weights for the angles
+            total: G x 1 vector of the total cross section for each energy level
+            scatter: G x G array for the scattering of the spatial cell by energy
+            chiNuFission: G x G array of chi x nu x sigma_f
+            L: Number of moments
+            I: Number of spatial cells
+            delta: width of one spatial cell
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iteration number and the change between iterations, default is False
+        Returns:
+            phi: a I x L+1 x G array    """        
+        import numpy as np
+        phi_old = np.random.rand(self.I,self.L+1,self.G)
+        phi_old /= np.linalg.norm(phi_old)
+        converged = 0
+        count = 1            
+        sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old[:,0,:]) 
+        if self.track:
+            if self.track == 'scatter' or self.track == 'both':
+                allmat_sca = np.zeros((1,3,self.G))
+                for kk in self.splits:
+                    length = len(range(*kk.indices(self.I)))
+                    enrichment = np.repeat(self.enrich[kk],self.G).reshape(length,1,self.G)
+                    multiplier = np.einsum('ijk,ik->ij',self.scatter[kk][:,0],phi_old[kk][:,0]) # matrix multiplication
+                    track_temp = np.hstack((enrichment,phi_old[kk],multiplier.reshape(length,1,self.G)))
+                    allmat_sca = np.vstack((allmat_sca,track_temp))
+            if self.track == 'fission' or self.track == 'both':
+                allmat_fis = np.zeros((1,3,self.G))
+                for kk in self.splits:
+                    length = len(range(*kk.indices(self.I)))
+                    enrichment = np.repeat(self.enrich[kk],self.G).reshape(length,1,self.G)
+                    multiplier = np.einsum('ijk,ik->ij',self.chiNuFission[kk],phi_old[kk][:,0]) # matrix multiplication
+                    track_temp = np.hstack((enrichment,phi_old[kk],multiplier.reshape(length,1,self.G)))
+                    allmat_fis = np.vstack((allmat_fis,track_temp))
+        while not (converged):
+            if LOUD:
+                print('Outer Transport Iteration {}\n==================================='.format(count))
+            phi = eigen_symm.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,self.I,self.delta,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+            keff = np.linalg.norm(phi)
+            phi /= np.linalg.norm(phi)
+            change = np.linalg.norm((phi-phi_old)/phi/(self.I*(self.L+1)))
+            if LOUD:
+                print('Change is',change,'Keff is',keff)
+            converged = (change < tol) or (count >= MAX_ITS)
+            count += 1
+            phi_old = phi.copy()
+            sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old[:,0,:]) 
+            if self.track == 'scatter' or self.track == 'both':
+                for kk in self.splits:
+                    length = len(range(*kk.indices(self.I)))
+                    enrichment = np.repeat(self.enrich[kk],self.G).reshape(length,1,self.G)
+                    multiplier = np.einsum('ijk,ik->ij',self.scatter[kk][:,0],phi_old[kk][:,0]) # matrix multiplication
+                    track_temp = np.hstack((enrichment,phi_old[kk],multiplier.reshape(length,1,self.G)))
+                    allmat_sca = np.vstack((allmat_sca,track_temp))
+            if self.track == 'fission' or self.track == 'both':
+                for kk in self.splits:
+                    length = len(range(*kk.indices(self.I)))
+                    enrichment = np.repeat(self.enrich[kk],self.G).reshape(length,1,self.G)
+                    multiplier = np.einsum('ijk,ik->ij',self.chiNuFission[kk],phi_old[kk][:,0]) # matrix multiplication
+                    track_temp = np.hstack((enrichment,phi_old[kk],multiplier.reshape(length,1,self.G)))
+                    allmat_fis = np.vstack((allmat_fis,track_temp))
+            # sources = phi_old[:,0,:] * self.chiNuFission # np.sum(self.chiNuFission,axis=0)
+        if self.track:
+            if self.track == 'both':
+                return phi,keff,allmat_fis[1:],allmat_sca[1:]
+            if self.track == 'scatter':
+                return phi,keff,allmat_sca[1:]
+            if self.track == 'fission':
+                return phi,keff,allmat_fis[1:]
+        return phi,keff
+
 class eigen_djinn:
     def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I):
         self.G = G
