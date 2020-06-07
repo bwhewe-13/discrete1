@@ -174,19 +174,19 @@ class eigen:
         phi_old = np.zeros((I,L+1,G))
         converged = 0
         count = 1
-        if self.track:            
-            mymat = np.zeros((1,3,G))
+        # if self.track:            
+        #     mymat = np.zeros((1,3,G))
         while not (converged):
             if LOUD:
                 print('New Inner Loop Iteration\n======================================')
             phi = np.zeros(phi_old.shape)
-            if self.track == 'scatter' or self.track == 'both':
-                for ii in self.splits:
-                    length = len(range(*ii.indices(I)))
-                    enrichment = np.repeat(self.enrich[ii],G).reshape(length,1,G)
-                    multiplier = np.einsum('ijk,ik->ij',scatter[ii][:,0],phi_old[ii][:,0]) # matrix multiplication
-                    track_temp = np.hstack((enrichment,phi_old[ii],multiplier.reshape(length,1,G)))
-                    mymat = np.vstack((mymat,track_temp))
+            # if self.track == 'scatter' or self.track == 'both':
+            #     for ii in self.splits:
+            #         length = len(range(*ii.indices(I)))
+            #         enrichment = np.repeat(self.enrich[ii],G).reshape(length,1,G)
+            #         multiplier = np.einsum('ijk,ik->ij',scatter[ii][:,0],phi_old[ii][:,0]) # matrix multiplication
+            #         track_temp = np.hstack((enrichment,phi_old[ii],multiplier.reshape(length,1,G)))
+            #         mymat = np.vstack((mymat,track_temp))
             for g in range(G):
                 if (LOUD):
                     print("Inner Transport Iterations\n===================================")
@@ -201,8 +201,8 @@ class eigen:
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
-        if self.track:
-            return phi,mymat[1:]
+        # if self.track:
+        #     return phi,mymat[1:]
         return phi
 
     def transport(self,tol=1e-12,MAX_ITS=100,LOUD=True,dimen=False):
@@ -246,6 +246,12 @@ class eigen:
                 allmat_fis = np.zeros((1,3,self.G))
                 for ii in self.splits:
                     length = len(range(*ii.indices(self.I)))
+                    # Scattering
+                    enrichment = np.repeat(self.enrich[ii],self.G).reshape(length,1,self.G)
+                    multiplier = np.einsum('ijk,ik->ij',self.scatter[ii][:,0],phi_old[ii][:,0]) # matrix multiplication
+                    track_temp = np.hstack((enrichment,phi_old[ii],multiplier.reshape(length,1,self.G)))
+                    allmat_sca = np.vstack((allmat_sca,track_temp))
+                    # Fission
                     enrichment = np.repeat(self.enrich[ii],self.G).reshape(length,1,self.G)
                     multiplier = np.einsum('ijk,ik->ij',self.chiNuFission[ii],phi_old[ii][:,0]) # matrix multiplication
                     track_temp = np.hstack((enrichment,phi_old[ii],multiplier.reshape(length,1,self.G)))
@@ -253,11 +259,11 @@ class eigen:
         while not (converged):
             if LOUD:
                 print('Outer Transport Iteration\n===================================')
-            if self.track == 'scatter' or self.track == 'both':
-                phi,tempmat = eigen.multi_group(self,self.G,self.N,self.mu,self.w,totalSn,scatterSn,self.L,sources,self.I,self.delta,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
-                allmat_sca = np.vstack((allmat_sca,tempmat))
-            else:
-                phi = eigen.multi_group(self,self.G,self.N,self.mu,self.w,totalSn,scatterSn,self.L,sources,self.I,self.delta,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+            # if self.track == 'scatter' or self.track == 'both':
+            #     phi,tempmat = eigen.multi_group(self,self.G,self.N,self.mu,self.w,totalSn,scatterSn,self.L,sources,self.I,self.delta,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+            #     allmat_sca = np.vstack((allmat_sca,tempmat))
+            # else:
+            phi = eigen.multi_group(self,self.G,self.N,self.mu,self.w,totalSn,scatterSn,self.L,sources,self.I,self.delta,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
 
             keff = np.linalg.norm(phi)
             phi /= np.linalg.norm(phi)
@@ -272,6 +278,11 @@ class eigen:
             if self.track == 'fission' or self.track == 'both':
                 for ii in self.splits:
                     length = len(range(*ii.indices(self.I)))
+                    enrichment = np.repeat(self.enrich[ii],self.G).reshape(length,1,self.G)
+                    multiplier = np.einsum('ijk,ik->ij',self.scatter[ii][:,0],phi_old[ii][:,0]) # matrix multiplication
+                    track_temp = np.hstack((enrichment,phi_old[ii],multiplier.reshape(length,1,self.G)))
+                    allmat_sca = np.vstack((allmat_sca,track_temp))
+                    
                     enrichment = np.repeat(self.enrich[ii],self.G).reshape(length,1,self.G)
                     multiplier = np.einsum('ijk,ik->ij',self.chiNuFission[ii],phi_old[ii][:,0]) # matrix multiplication
                     track_temp = np.hstack((enrichment,phi_old[ii],multiplier.reshape(length,1,self.G)))

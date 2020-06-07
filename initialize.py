@@ -14,8 +14,10 @@ class eigen_djinn:
         from discrete1.util import chem,sn_tools
         import numpy as np
         
-        distance = [50,35,40,35,50]
-        delta = 0.2 # original spatial cell width
+        #distance = [50,35,40,35,50]
+        #delta = 0.2 # original spatial cell width
+        distance = [200,75,150,75,200]
+        delta = 1
         if conc is None:
             conc = 0.2
         print('Concentration: ',conc)
@@ -76,8 +78,10 @@ class eigen_djinn:
     def boundaries(conc):
         # import numpy as np
         from discrete1.util import sn_tools
-        distance = [50,35,40,35,50]
-        delta = 0.2
+        #distance = [50,35,40,35,50]
+        #delta = 0.2
+        distance = [200,75,150,75,200]
+        delta = 1
         layers = [int(ii/delta) for ii in distance]
         splits = sn_tools.layer_slice(layers)
         enrichment = sn_tools.enrich_list(sum(layers),conc,[splits[1],splits[2]])
