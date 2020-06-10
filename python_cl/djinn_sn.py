@@ -31,7 +31,7 @@ else:
     djinn_model = '{}_enrich_1d_djinn_model/model_{}'.format(file1,nums)
 
 for ii in range(len(enrich)):
-    enrichment,splits = ex.eigen_djinn.variables(enrich[ii],distance=usr_input.dist,symm=True)
+    enrichment,splits = ex.eigen_djinn.boundaries(enrich[ii],distance=usr_input.dist,symm=True)
     problem = s.eigen_djinn_symm(*ex.eigen_djinn.variables(enrich[ii],distance=usr_input.dist,symm=True),dtype=file1,enrich=enrichment,splits=splits)
     phi,keff = problem.transport(djinn_model,LOUD=True)
     np.save('mydata/djinn_{}_1d/phi_enrich_{:<02}'.format(file1,labels[ii]),phi)
