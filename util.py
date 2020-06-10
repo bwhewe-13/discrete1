@@ -22,17 +22,25 @@ class display:
         return np.array([float(energyGrid[ii]+energyGrid[jj])/2 for ii,jj in 
                          zip(range(len(energyGrid)-1),range(1,len(energyGrid)))])
 
-class sn_tools:
-    ''' Tools for discrete ordinates codes (dimensional purposes/convergence) '''
-    def layer_slice(layers,half=True):
+class sn:
+    """ Tools for discrete ordinates codes (dimensional purposes/convergence) """
+    def cat(lst,splits):
         import numpy as np
-        if half:
-            split = int(len(layers)*0.5)
-            layers[split:split+1] = [int(layers[split]*0.5)]*2
-        bounds = np.cumsum(layers)
-        bounds = np.insert(bounds,0,0)
-        return [slice(bounds[ii],bounds[ii+1]) for ii in range(len(bounds)-1)]
-        
+        return np.concatenate(([lst[ii] for ii in splits]))    
+
+    def djinn_load(model_name,dtype):
+        from djinn import djinn
+        if dtype == 'both':
+            model_scatter = djinn.load(model_name=model_name[0])
+            model_fission = djinn.load(model_name=model_name[1])
+        elif dtype == 'scatter':
+            model_scatter = djinn.load(model_name=model_name)
+            model_fission = None
+        elif dtype == 'fission':
+            model_scatter = None
+            model_fission = djinn.load(model_name=model_name)
+        return model_scatter,model_fission
+
     def enrich_list(length,enrich,splits):
         import numpy as np
         lst = np.zeros((length))
@@ -41,10 +49,62 @@ class sn_tools:
         #     enrich = [enrich]
         if type(splits) != list:
             splits = [splits]
+        if type(enrich) == list:
+            for ii in range(len(splits)):
+                lst[splits[ii]] = enrich[ii]
+            return lst
         for ii in range(len(splits)):
             lst[splits[ii]] = enrich
         return lst
     
+    def enriche(phi,model_sca,model_fis,dtype,splits,enrich=None):
+        import numpy as np
+        # Remove L+1 dimension
+        normed = sn.cat(phi[:,0],splits)
+        if enrich is not None:
+            if dtype == 'scatter' or dtype == 'both':
+                djinn_scatter_ns = model_sca.predict(np.concatenate((np.expand_dims(sn.cat(enrich,splits),axis=1),normed),axis=1)) 
+            if dtype == 'fission' or dtype == 'both':
+                djinn_fission_ns = model_fis.predict(np.concatenate((np.expand_dims(sn.cat(enrich,splits),axis=1),normed),axis=1)) 
+        else:
+            if dtype == 'scatter' or dtype =='both':
+                djinn_scatter_ns = model_sca.predict(normed)
+            if dtype == 'fission' or dtype == 'both':
+                djinn_fission_ns = model_fis.predict(normed)
+        if dtype == 'fission':
+            djinn_scatter_ns = None
+        if dtype == 'scatter':
+            djinn_fission_ns = None
+        return djinn_scatter_ns,djinn_fission_ns
+
+    def enrich_locs(layers,zones):
+        import numpy as np
+        full = np.zeros(np.sum(layers))
+        ind = np.cumsum(layers)
+        for ii in zones:
+            if ii == 0:
+                full[:ind[ii-1]] = 1
+            else:
+                full[ind[ii-2]:ind[ii-1]] = 1
+        return full.astype(int)
+    
+    def layer_slice(layers,half=True):
+        import numpy as np
+        if half:
+            split = int(len(layers)*0.5)
+            layers[split:split+1] = [int(layers[split]*0.5)]*2
+        bounds = np.cumsum(layers)
+        bounds = np.insert(bounds,0,0)
+        return [slice(bounds[ii],bounds[ii+1]) for ii in range(len(bounds)-1)]
+    
+    def layer_slice_dict(layers,half=True):
+        splits = sn.layer_slice(layers,half)
+        splitDic = {}
+        keep = [0]; djinn = [1,2]
+        splitDic['keep'] = [splits[ii] for ii in keep]
+        splitDic['djinn'] = [splits[jj] for jj in djinn]
+        return splitDic
+         
     def propagate(xs=None,G=None,I=None,N=None,L=None,dtype='total'):
         import numpy as np
         if dtype == 'total':
@@ -90,10 +150,10 @@ class sn_tools:
             return scatter
         return 'Incorrect dtype or cross section format'
 
-    def wynnepsilon(sn, r):
+    def wynnepsilon(lst, r):
         '''Perform Wynn Epsilon Convergence Algorithm
         Arguments:
-            sn: list of values for convergence
+            lst: list of values for convergence
             r: rank of system
         Returns:
             2D Array where diagonal is convergence
@@ -104,7 +164,7 @@ class sn_tools:
         e = np.zeros(shape=(n + 1, n + 1))
 
         for i in range(1, n + 1):
-            e[i, 1] = sn[i - 1]
+            e[i, 1] = lst[i - 1]
 
         for i in range(3, n + 2):
             for j in range(3, i + 1):
@@ -113,19 +173,8 @@ class sn_tools:
         er = e[:, 1:n + 1:2]
         return er
     
-    def enrich_locs(layers,zones):
-        import numpy as np
-        full = np.zeros(np.sum(layers))
-        ind = np.cumsum(layers)
-        for ii in zones:
-            if ii == 0:
-                full[:ind[ii-1]] = 1
-            else:
-                full[ind[ii-2]:ind[ii-1]] = 1
-        return full.astype(int)
-
 class nnets:
-    ''' Tools for autoencoders and neural networks '''
+    """ Tools for autoencoders and neural networks """
     def unnormalize(scatter,maxi,mini,ind):
         return scatter*(maxi[ind]-mini[ind])+mini[ind]
     
@@ -150,7 +199,7 @@ class nnets:
             return 0.5*total
         return int(total)
     
-    def djinn_metric(loc,metric='MSE',score=False):
+    def djinn_metric(loc,metric='MSE',score=False,clean=False):
         ''' Gets the Best Metric for DJINN Models - Rough Comparison
         Arguments:
             loc: string location of DJINN model errors
@@ -183,6 +232,9 @@ class nnets:
         tots = np.array(tots)
         if score:
             print(tots[np.argmin(tots)])
+        if clean:
+            import re
+            return ''.join(re.findall('\d{3}',address[np.argmin(tots)]))
         return address[np.argmin(tots)]
 
 class chem:

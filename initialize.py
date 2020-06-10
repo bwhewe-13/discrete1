@@ -10,16 +10,17 @@ class eigen_djinn:
         print('|| model location has to be specified')
         print('=========================================================')
         
-    def variables(conc=None,symm=False):
-        from discrete1.util import chem,sn_tools
+    def variables(conc=None,distance=None,symm=False):
+        from discrete1.util import chem,sn
         import numpy as np
         
         #distance = [50,35,40,35,50]
         #delta = 0.2 # original spatial cell width
-        distance = [200,75,150,75,200]
+        if distance is None:    
+            distance = [200,75,150,75,200]
+            if symm:
+                distance = [200,75,75]
         delta = 1
-        if symm:
-            distance = [200,75,75]
         if conc is None:
             conc = 0.2
         print('Concentration: ',conc)
@@ -75,28 +76,30 @@ class eigen_djinn:
         layers = [int(ii/delta) for ii in distance]
         I = int(sum(layers))
     
-        scatter_ = sn_tools.mixed_propagate(xs_scatter,layers,G=dim,L=L,dtype='scatter')
-        fission_ = sn_tools.mixed_propagate(xs_fission,layers,G=dim,dtype='fission2')
-        total_ = sn_tools.mixed_propagate(xs_total,layers,G=dim)
+        scatter_ = sn.mixed_propagate(xs_scatter,layers,G=dim,L=L,dtype='scatter')
+        fission_ = sn.mixed_propagate(xs_fission,layers,G=dim,dtype='fission2')
+        total_ = sn.mixed_propagate(xs_total,layers,G=dim)
         
         return G,N,mu,w,total_,scatter_,fission_,L,R,I
     
-    def boundaries(conc,symm=False):
+    def boundaries(conc,distance=None,symm=False):
         # import numpy as np
-        from discrete1.util import sn_tools
+        from discrete1.util import sn
         #distance = [50,35,40,35,50]
         #delta = 0.2
-        distance = [200,75,150,75,200]
-        if symm:
-            distance = [200,75,75]
+        if distance is None:
+            distance = [200,75,150,75,200]
+            if symm:
+                distance = [200,75,75]
         delta = 1
         layers = [int(ii/delta) for ii in distance]
         if symm:
-            splits = sn_tools.layer_slice(layers,half=False)
+            splits = sn.layer_slice(layers,half=False)
         else:
-            splits = sn_tools.layer_slice(layers)
-        enrichment = sn_tools.enrich_list(sum(layers),conc,[splits[1],splits[2]])
-        return enrichment,splits
+            splits = sn.layer_slice(layers)
+        # conc is uh3 enrich while 0 is depleted uranium
+        enrichment = sn.enrich_list(sum(layers),[conc,0],[splits[1],splits[2]])
+        return enrichment,sn.layer_slice_dict(layers,half=not symm)
     
 class inf_eigen_djinn:
     ''' Infinite eigenvalue djinn problem '''
