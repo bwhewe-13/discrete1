@@ -419,29 +419,25 @@ class eigen_symm:
         Returns:
             phi: a I x L+1 x G array    """        
         import numpy as np
+        from discrete1.util import sn
         phi_old = np.random.rand(self.I,self.L+1,self.G)
         phi_old /= np.linalg.norm(phi_old)
         converged = 0
         count = 1            
         sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old[:,0,:]) 
-        if self.track:
+        while not (converged):
             if self.track == 'scatter' or self.track == 'both':
                 allmat_sca = np.zeros((1,3,self.G))
-                for kk in self.splits:
-                    length = len(range(*kk.indices(self.I)))
-                    enrichment = np.repeat(self.enrich[kk],self.G).reshape(length,1,self.G)
-                    multiplier = np.einsum('ijk,ik->ij',self.scatter[kk][:,0],phi_old[kk][:,0]) # matrix multiplication
-                    track_temp = np.hstack((enrichment,phi_old[kk],multiplier.reshape(length,1,self.G)))
-                    allmat_sca = np.vstack((allmat_sca,track_temp))
+                enrichment = np.expand_dims(np.tile(np.expand_dims(sn.cat(self.enrich,self.splits),axis=1),(1,self.G)),axis=1)
+                multiplier = np.expand_dims(np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits)[:,0],sn.cat(phi_old,self.splits)[:,0]),axis=1)
+                track_temp = np.hstack((enrichment,sn.cat(phi_old,self.splits),multiplier))
+                allmat_sca = np.vstack((allmat_sca,track_temp))
             if self.track == 'fission' or self.track == 'both':
                 allmat_fis = np.zeros((1,3,self.G))
-                for kk in self.splits:
-                    length = len(range(*kk.indices(self.I)))
-                    enrichment = np.repeat(self.enrich[kk],self.G).reshape(length,1,self.G)
-                    multiplier = np.einsum('ijk,ik->ij',self.chiNuFission[kk],phi_old[kk][:,0]) # matrix multiplication
-                    track_temp = np.hstack((enrichment,phi_old[kk],multiplier.reshape(length,1,self.G)))
-                    allmat_fis = np.vstack((allmat_fis,track_temp))
-        while not (converged):
+                enrichment = np.expand_dims(np.tile(np.expand_dims(sn.cat(self.enrich,self.splits),axis=1),(1,self.G)),axis=1)
+                multiplier = np.expand_dims(np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits),sn.cat(phi_old,self.splits)[:,0]),axis=1)
+                track_temp = np.hstack((enrichment,sn.cat(phi_old,self.splits),multiplier))
+                allmat_fis = np.vstack((allmat_fis,track_temp))
             if LOUD:
                 print('Outer Transport Iteration {}\n==================================='.format(count))
             phi = eigen_symm.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,self.I,self.delta,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
@@ -454,28 +450,13 @@ class eigen_symm:
             count += 1
             phi_old = phi.copy()
             sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old[:,0,:]) 
-            if self.track == 'scatter' or self.track == 'both':
-                for kk in self.splits:
-                    length = len(range(*kk.indices(self.I)))
-                    enrichment = np.repeat(self.enrich[kk],self.G).reshape(length,1,self.G)
-                    multiplier = np.einsum('ijk,ik->ij',self.scatter[kk][:,0],phi_old[kk][:,0]) # matrix multiplication
-                    track_temp = np.hstack((enrichment,phi_old[kk],multiplier.reshape(length,1,self.G)))
-                    allmat_sca = np.vstack((allmat_sca,track_temp))
-            if self.track == 'fission' or self.track == 'both':
-                for kk in self.splits:
-                    length = len(range(*kk.indices(self.I)))
-                    enrichment = np.repeat(self.enrich[kk],self.G).reshape(length,1,self.G)
-                    multiplier = np.einsum('ijk,ik->ij',self.chiNuFission[kk],phi_old[kk][:,0]) # matrix multiplication
-                    track_temp = np.hstack((enrichment,phi_old[kk],multiplier.reshape(length,1,self.G)))
-                    allmat_fis = np.vstack((allmat_fis,track_temp))
             # sources = phi_old[:,0,:] * self.chiNuFission # np.sum(self.chiNuFission,axis=0)
-        if self.track:
-            if self.track == 'both':
-                return phi,keff,allmat_fis[1:],allmat_sca[1:]
-            if self.track == 'scatter':
-                return phi,keff,allmat_sca[1:]
-            if self.track == 'fission':
-                return phi,keff,allmat_fis[1:]
+        if self.track == 'both':
+            return phi,keff,allmat_fis[1:],allmat_sca[1:]
+        if self.track == 'scatter':
+            return phi,keff,allmat_sca[1:]
+        if self.track == 'fission':
+            return phi,keff,allmat_fis[1:]
         return phi,keff
 
 class eigen_djinn:    
