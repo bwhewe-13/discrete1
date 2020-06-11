@@ -17,10 +17,12 @@ class eigen_djinn:
         #distance = [50,35,40,35,50]
         #delta = 0.2 # original spatial cell width
         if distance is None:    
-            distance = [200,75,150,75,200]
+            # distance = [200,75,150,75,200]
+            distance = [45,35,40,35,45]
             if symm:
-                distance = [200,75,75]
-        delta = 1
+                # distance = [200,75,75]
+                distance = [45,35,20]
+        delta = 0.5
         if conc is None:
             conc = 0.2
         print('Concentration: ',conc)
