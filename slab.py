@@ -421,6 +421,7 @@ class eigen_symm:
         import numpy as np
         from discrete1.util import sn
         phi_old = np.random.rand(self.I,self.L+1,self.G)
+        k_old = np.linalg.norm(phi_old)
         phi_old /= np.linalg.norm(phi_old)
         converged = 0
         count = 1
@@ -434,24 +435,26 @@ class eigen_symm:
                 multiplier = np.expand_dims(np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits)[:,0],sn.cat(phi_old,self.splits)[:,0]),axis=1)
                 track_temp = np.hstack((enrichment,sn.cat(phi_old,self.splits),multiplier))
                 allmat_sca = np.vstack((allmat_sca,track_temp))
-                print(allmat_sca.shape)
+                # print(allmat_sca.shape)
             if self.track == 'fission' or self.track == 'both':
                 enrichment = np.expand_dims(np.tile(np.expand_dims(sn.cat(self.enrich,self.splits),axis=1),(1,self.G)),axis=1)
                 multiplier = np.expand_dims(np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits),sn.cat(phi_old,self.splits)[:,0]),axis=1)
                 track_temp = np.hstack((enrichment,sn.cat(phi_old,self.splits),multiplier))
                 allmat_fis = np.vstack((allmat_fis,track_temp))
-                print(allmat_fis.shape)
+                # print(allmat_fis.shape)
             if LOUD:
                 print('Outer Transport Iteration {}\n==================================='.format(count))
             phi = eigen_symm.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,self.I,self.delta,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
             keff = np.linalg.norm(phi)
             phi /= np.linalg.norm(phi)
+            kchange = abs(keff-k_old)
             change = np.linalg.norm((phi-phi_old)/phi/(self.I*(self.L+1)))
             if LOUD:
                 print('Change is',change,'Keff is',keff)
-            converged = (change < tol) or (count >= MAX_ITS)
+            converged = (change < tol) or (count >= MAX_ITS) or (kchange < 1e-10)
             count += 1
             phi_old = phi.copy()
+            k_old = keff
             sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old[:,0,:]) 
             # sources = phi_old[:,0,:] * self.chiNuFission # np.sum(self.chiNuFission,axis=0)
         if self.track == 'both':
