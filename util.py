@@ -105,6 +105,12 @@ class sn:
         splitDic['djinn'] = [splits[jj] for jj in djinn]
         return splitDic
          
+    def length(splits):
+        "Length of the splice function"
+        if type(splits) == slice:
+            return len(range(*splits.indices(1000)))
+        return sum([len(range(*jj.indices(1000))) for jj in splits])
+    
     def propagate(xs=None,G=None,I=None,N=None,L=None,dtype='total'):
         import numpy as np
         if dtype == 'total':

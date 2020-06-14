@@ -342,12 +342,12 @@ class eigen_symm:
                 weight_scatter = w[n]*non_weight_scatter
                 temp_scat = np.sum(non_weight_scatter*scatter*phi_old,axis=1)
                 psi_bottom = 0 # vacuum on LHS
-				# Left to right
+                # Left to right
                 for ii in range(I):
                     psi_top = (temp_scat[ii] + external[ii,n] + psi_bottom * func.total_add(total[ii], mu[n], delta,'right'))/(func.total_add(total[ii], mu[n], delta,'left'))
                     phi[ii,:] = phi[ii,:] + (weight_scatter * func.diamond_diff(psi_top,psi_bottom))
                     psi_bottom = psi_top
-				# Reflective right to left
+                # Reflective right to left
                 for ii in range(I-1,-1,-1):
                     psi_top = psi_bottom
                     psi_bottom = (temp_scat[ii] + external[ii,n] + psi_top * func.total_add(total[ii], -mu[n], delta,'right'))/(func.total_add(total[ii], -mu[n], delta,'left'))
@@ -711,7 +711,9 @@ class eigen_djinn_symm:
         normed = sn.cat(phi_old[:,0],self.splits['djinn'])
         if np.sum(phi_old) == 0:# or self.dtype == 'fission':
             # djinn_scatter = np.zeros((self.I,self.L+1,self.G))
-            return np.zeros((self.I,self.G))
+            # return np.zeros((self.I,self.G))
+            lens = sn.length(self.splits['djinn'])
+            return np.zeros((lens,self.G))
         elif self.dtype == 'scatter':# or self.dtype == 'both':
             return np.einsum('ijk,ik->ij',self.chiNuFission,phi_old[:,0,:]) 
             # scale = np.sum(normed*np.sum(sn.cat(self.scatter[:,0],self.splits['djinn']),axis=1),axis=1)/np.sum(djinn_scatter_ns,axis=1)
@@ -725,14 +727,18 @@ class eigen_djinn_symm:
         elif self.dtype == 'fission' or self.dtype == 'both':
             scale = np.sum(normed*np.sum(sn.cat(self.chiNuFission,self.splits['djinn']),axis=1),axis=1)/np.sum(djinn_fission_ns,axis=1)
             non_scale = sn.cat(np.ones((self.I,self.G)),self.splits['keep'])
+            # print(scale)
             sources = np.concatenate((non_scale,np.expand_dims(scale,axis=1)*djinn_fission_ns)).reshape(self.I,self.G)
+            # sources = np.concatenate((non_scale,djinn_fission_ns)).reshape(self.I,self.G)
         return sources
     
     def multi_scale(self,phi_old,model,scatter,G,I,L):
         import numpy as np
         from discrete1.util import sn
         if(np.sum(phi_old) == 0):
-            dj_pred = np.zeros((I,L+1,G))
+            lens = sn.length(self.splits['djinn'])
+            dj_pred = np.zeros((lens,G))
+            # dj_pred = np.zeros((I,L+1,G))
         else:
             normed = sn.cat(phi_old[:,0],self.splits['djinn'])
             if self.enrich is not None:
@@ -745,7 +751,8 @@ class eigen_djinn_symm:
             # Other I dimensions
             # non_scale = sn.cat(np.ones((I,G)),self.splits['keep'])
             # dj_pred = np.concatenate((non_scale,np.expand_dims(scale,axis=1)*dj_pred_ns)).reshape(I,L+1,G) #I dimensions
-            dj_pred = np.expand_dims(scale,axis=1)*dj_pred_ns
+            dj_pred = np.expand_dims(scale,axis=1)*dj_pred_ns; 
+            # print(scale)
         return dj_pred
         
     def one_group(self,N,mu,w,total,scatter,djinn_1g,L,external,I,delta,guess,tol=1e-08,MAX_ITS=100,LOUD=False):
@@ -778,18 +785,18 @@ class eigen_djinn_symm:
                 weight_scatter = w[n]*non_weight_scatter
                 if self.dtype == 'scatter' or self.dtype == 'both':
                     # djinn_1g should be I'*L+1
-                    multiplier = np.concatenate((sn.cat((scatter*phi_old),self.splits['keep']),djinn_1g))
+                    multiplier = np.concatenate((sn.cat((scatter*phi_old),self.splits['keep']),np.expand_dims(djinn_1g,axis=1)))
                 else:
                     multiplier = scatter * phi_old
                 # temp_scat should be of length I
                 temp_scat = np.sum(non_weight_scatter*multiplier,axis=1)
                 psi_bottom = 0 # vacuum on LHS
-				# Left to right
+                # Left to right
                 for ii in range(I):
                     psi_top = (temp_scat[ii] + external[ii,n] + psi_bottom * func.total_add(total[ii], mu[n], delta,'right'))/(func.total_add(total[ii], mu[n], delta,'left'))
                     phi[ii,:] = phi[ii,:] + (weight_scatter * func.diamond_diff(psi_top,psi_bottom))
                     psi_bottom = psi_top
-				# Reflective right to left
+                # Reflective right to left
                 for ii in range(I-1,-1,-1):
                     psi_top = psi_bottom
                     psi_bottom = (temp_scat[ii] + external[ii,n] + psi_top * func.total_add(total[ii], -mu[n], delta,'right'))/(func.total_add(total[ii], -mu[n], delta,'left'))
@@ -836,7 +843,8 @@ class eigen_djinn_symm:
                     if (LOUD):
                         print("Inner Transport Iterations\n===================================")
                     # print(np.tile(np.expand_dims(nuChiFission[:,g],axis=1),(1,N)).shape)
-                    phi[:,:,g] = eigen_djinn_symm.one_group(self,N,mu,w,total[:,g],scatter[:,:,g,g],dj_pred[:,:,g],L,np.tile(np.expand_dims(chiNuFission[:,g],axis=1),(1,N)),I,delta,phi_old[:,:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
+                    # print(total.shape,scatter.shape,dj_pred.shape,chiNuFission.shape)
+                    phi[:,:,g] = eigen_djinn_symm.one_group(self,N,mu,w,total[:,g],scatter[:,:,g,g],dj_pred[:,g],L,np.tile(np.expand_dims(chiNuFission[:,g],axis=1),(1,N)),I,delta,phi_old[:,:,g],tol=tol,MAX_ITS=MAX_ITS,LOUD=LOUD)
             elif self.dtype == 'fission':
                 for g in range(G):
                     if (LOUD):
