@@ -22,7 +22,7 @@ class eigen_djinn:
             if symm:
                 # distance = [200,75,75]
                 distance = [45,35,20]
-        delta = 0.5
+        delta = 0.1
         if conc is None:
             conc = 0.2
         print('Concentration: ',conc)
@@ -95,7 +95,7 @@ class eigen_djinn:
             if symm:
                 # distance = [200,75,75]
                 distance = [45,35,20]
-        delta = 0.5
+        delta = 0.1
         layers = [int(ii/delta) for ii in distance]
         if symm:
             splits = sn.layer_slice(layers,half=False)
