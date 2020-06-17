@@ -12,8 +12,8 @@ usr_input = parser.parse_args()
 allmat_fis = []
 allmat_sca = []
 enrich1 = [0.0,0.05]
-enrich2 = [0.10,0.15]
-enrich3 = [0.20,0.25]
+enrich2 = [0.15]
+enrich3 = [0.25]
 
 if usr_input.en == 1:
     enrich = enrich1
