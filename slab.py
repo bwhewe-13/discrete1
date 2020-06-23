@@ -422,6 +422,7 @@ class eigen_symm:
         from discrete1.util import sn
         phi_old = np.random.rand(self.I,self.L+1,self.G)
         k_old = np.linalg.norm(phi_old)
+        track_k = [k_old]
         phi_old /= np.linalg.norm(phi_old)
         converged = 0
         count = 1
@@ -448,6 +449,7 @@ class eigen_symm:
             keff = np.linalg.norm(phi)
             phi /= np.linalg.norm(phi)
             kchange = abs(keff-k_old)
+            track_k.append(keff)
             change = np.linalg.norm((phi-phi_old)/phi/(self.I*(self.L+1)))
             if LOUD:
                 print('Change is',change,'Keff is',keff)
@@ -458,7 +460,7 @@ class eigen_symm:
             sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old[:,0,:]) 
             # sources = phi_old[:,0,:] * self.chiNuFission # np.sum(self.chiNuFission,axis=0)
         if self.track == 'both':
-            return phi,keff,allmat_fis[1:],allmat_sca[1:]
+            return phi,track_k,allmat_fis[1:],allmat_sca[1:]
         if self.track == 'scatter':
             return phi,keff,allmat_sca[1:]
         if self.track == 'fission':
