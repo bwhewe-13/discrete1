@@ -338,7 +338,7 @@ class g2_pu239_ex1:
         G = 2; L = 0
         if self.N is None:
             self.N = 8
-        mu,w = np.polynomial.legendre.leggauss(self.N)
+        mu,w = np.polynomial.legendre.leggauss(self.N)        
         w /= np.sum(w)
         # chi = np.array([0.425,0.575])
         chi = np.array([[0.425],[0.575]])
@@ -371,7 +371,59 @@ class g2_pu239_ex1:
         # Initialize problem and run
         problem = s.eigen(*full_args)
         return problem.transport()
+
+class quickieTT:
+    """ Testing rouge discrete1 script """
+    def __init__(self,N=None,R=None,I=None):
+        self.N = N
+        self.R = R
+        self.I = I
+        
+    def variables(self,dim=False):
+        # dim will put cross sections into appropriate dimensions
+        import numpy as np
+        G = 2; L = 0
+        if self.N is None:
+            self.N = 8
+        mu,w = np.polynomial.legendre.leggauss(self.N)        
+        w /= np.sum(w)
+        
+        mu = mu[int(self.N*0.5):]
+        w = w[int(self.N*0.5):]
+        self.N = int(self.N*0.5)
+        
+        # chi = np.array([0.425,0.575])
+        chi = np.array([[0.425],[0.575]])
+        nu = np.array([[2.93,3.1]])
+        fission = np.array([[0.08544,0.0936]])
+        chiNuFission = chi @ (nu * fission)
+        total = np.array([0.3360,0.2208])
+        scatter = np.array([[0.23616,0],
+                            [0.0432,0.0792]])
+        if dim:
+            fission_ = np.tile(chiNuFission,tuple([self.I]+2*[1]))
+            scatter_ = np.tile(scatter.T,tuple([self.I,L+1]+2*[1]))
+            total_ = np.tile(total,(self.I,1))
+            return G,self.N,mu,w,total_,scatter_[:,0],fission_,L
+        return G,self.N,mu,w,total,scatter.T,chiNuFission,L
     
+    def run(self,crit=False,inf=True):
+        import discrete1.rouge as s
+        if inf:
+            problem = s.inf_eigen(*quickieTT.variables(self))
+            return problem.transport()        
+        if crit:
+            rad = 1.795602
+        else:
+            rad = self.R
+        # get first 8 variables 
+        first_args = list(quickieTT.variables(self,dim=True))
+        # Add in R and I
+        full_args = tuple(first_args + [rad,self.I])
+        # Initialize problem and run
+        problem = s.eigen_symm(*full_args)
+        return problem.transport()
+
 class g2_urr_ex1:
     def __init__(self,N=None,R=None,I=None):
         self.N = N
