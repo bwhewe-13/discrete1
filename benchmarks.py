@@ -408,7 +408,7 @@ class quickieTT:
         return G,self.N,mu,w,total,scatter.T,chiNuFission,L
     
     def run(self,crit=False,inf=True):
-        import discrete1.rouge as s
+        import discrete1.rogue as s
         if inf:
             problem = s.inf_eigen(*quickieTT.variables(self))
             return problem.transport()        
