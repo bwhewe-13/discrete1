@@ -265,47 +265,7 @@ class eigen_djinn_symm:
         self.splits = splits
         self.track = track
         self.label = label
-        
-    def check_scale(self,phi_old,djinn_scatter_ns,djinn_fission_ns):
-        import numpy as np
-        from discrete1.util import sn
-        # Used for scaling
-        normed = sn.cat(phi_old[:,0],self.splits['djinn'])
-        if np.sum(phi_old) == 0:# or self.dtype == 'fission':
-            lens = sn.length(self.splits['djinn'])
-            return np.zeros((lens,self.G))
-        elif self.dtype == 'scatter':# or self.dtype == 'both':
-            return np.einsum('ijk,ik->ij',self.chiNuFission,phi_old) 
-        elif self.dtype == 'fission' or self.dtype == 'both':
-            scale = np.sum(normed*np.sum(sn.cat(self.chiNuFission,self.splits['djinn']),axis=1),axis=1)/np.sum(djinn_fission_ns,axis=1)
-            non_scale = sn.cat(np.ones((self.I,self.G)),self.splits['keep'])
-            sources = np.concatenate((non_scale,np.expand_dims(scale,axis=1)*djinn_fission_ns)).reshape(self.I,self.G)
-
-        return sources
-    
-    def multi_scale(self,phi_old,model,scatter,G,I,L):
-        import numpy as np
-        from discrete1.util import sn
-        if(np.sum(phi_old) == 0):
-            lens = sn.length(self.splits['djinn'])
-            dj_pred = np.zeros((lens,G))
-            # dj_pred = np.zeros((I,L+1,G))
-        else:
-            normed = sn.cat(phi_old[:,0],self.splits['djinn'])
-            if self.label is not None:
-                # Not including L+1 dimension
-                dj_pred_ns = model.predict(np.concatenate((np.expand_dims(sn.cat(self.enrich,self.splits['djinn']),axis=1),normed),axis=1)) 
-            else:
-                dj_pred_ns = model.predict(normed)
-            # Should be I'x1 dimensions    
-            scale = np.sum(normed*np.sum(sn.cat(scatter[:,0],self.splits['djinn']),axis=1),axis=1)/np.sum(dj_pred_ns,axis=1)
-            # Other I dimensions
-            # non_scale = sn.cat(np.ones((I,G)),self.splits['keep'])
-            # dj_pred = np.concatenate((non_scale,np.expand_dims(scale,axis=1)*dj_pred_ns)).reshape(I,L+1,G) #I dimensions
-            dj_pred = np.expand_dims(scale,axis=1)*dj_pred_ns; 
-            # print(scale)
-        return dj_pred
-        
+                    
     def one_group(self,total,scatter,djinn_1g,external,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
             total: I x 1 vector of the total cross section for each spatial cell
@@ -344,13 +304,13 @@ class eigen_djinn_symm:
                 for ii in range(self.I-1,-1,-1):
                     psi_top = psi_bottom
                     psi_bottom = (temp_scat[ii] + external[ii] + psi_top * top_mult[ii])*(bottom_mult[ii])
-                    phi[ii,:] = phi[ii] +  (self.w[n]* func.diamond_diff(psi_top,psi_bottom))
+                    phi[ii] = phi[ii] +  (self.w[n]* func.diamond_diff(psi_top,psi_bottom))
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
         return phi
-    
+        
     def multi_group(self,total,scatter,chiNuFission,model,tol=1e-08,MAX_ITS=100):
         # self,self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,model_scatter,djinn_scatter,self.I,self.delta,
         """ Arguments:
@@ -369,89 +329,93 @@ class eigen_djinn_symm:
         while not (converged):
             phi = np.zeros(phi_old.shape)
             if self.dtype == 'scatter' or self.dtype == 'both':
-                # Not going to be of size I'
-                dj_pred = eigen_djinn_symm.multi_scale(self,phi_old,model,scatter,self.G,self.I)
+                djinn_scatter_ns = eigen_djinn_symm.label_model(self,phi_old,model)
+                djinn_scatter = eigen_djinn_symm.scale_scatter(self,phi_old,djinn_scatter_ns)
                 for g in range(self.G):
-                    phi[:,g] = eigen_djinn_symm.one_group(self,total[:,g],scatter[:,g,g],dj_pred[:,g],chiNuFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
+                    phi[:,g] = eigen_djinn_symm.one_group(self,total[:,g],scatter[:,g,g],djinn_scatter[:,g],chiNuFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
             elif self.dtype == 'fission':
                 for g in range(self.G):
                     if g == 0:
                         q_tilde = chiNuFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g)
                     else:
                         q_tilde = chiNuFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g) + func.update_q(scatter,phi,0,g,g)
-                    phi[:,g] = eigen_djinn_symm.one_group(self,total[:,g],scatter[:,g,g],None,q_tilde,tol=tol,MAX_ITS=MAX_ITS,guess=phi_old[:,g])
+                    phi[:,g] = eigen_djinn_symm.one_group(self,total[:,g],scatter[:,g,g],None,q_tilde,phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
         return phi
+    
+    def label_model(self,phi,model_):
+        import numpy as np
+        from discrete1.util import sn
+        if np.sum(phi) == 0:
+            return np.zeros((sn.cat(phi,self.splits['djinn']).shape))
+        phi /= np.linalg.norm(phi,axis=1)[:,None]
+        normed = sn.cat(phi,self.splits['djinn'])
+        if self.label:
+            normed = np.hstack((sn.cat(self.enrich,self.splits['djinn'])[:,None],normed))
+        return model_.predict(normed) 
 
+    def scale_scatter(self,phi,djinn_ns):
+        import numpy as np
+        from discrete1.util import sn
+        if np.sum(phi) == 0:
+            return np.zeros((sn.cat(phi,self.splits['djinn']).shape))
+        interest = sn.cat(phi,self.splits['djinn'])
+        scale = np.sum(interest*np.sum(sn.cat(self.scatter,self.splits['djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
+        return scale[:,None]*djinn_ns
+
+    def scale_fission(self,phi,djinn_ns):
+        import numpy as np
+        from discrete1.util import sn
+        if np.sum(phi) == 0:
+            return np.zeros((sn.cat(phi,self.splits['djinn']).shape))
+        if self.dtype == 'scatter':
+            return np.einsum('ijk,ik->ij',self.chiNuFission,phi) 
+        interest = sn.cat(phi,self.splits['djinn'])
+        scale = np.sum(interest*np.sum(sn.cat(self.chiNuFission,self.splits['djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
+        regular = np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits['keep']),sn.cat(phi,self.splits['keep']))
+        return np.vstack((regular,scale[:,None]*djinn_ns))
+        
     def transport(self,model_name,tol=1e-12,MAX_ITS=100,LOUD=True):
         """ EIGEN DJINN SYMM
         Arguments:
-            G: number of energy groups
-            N: number of angles
-            mu: vector of angles between -1 and 1
-            w: vector of weights for the angles
-            total: G x 1 vector of the total cross section for each energy level
-            scatter: G x G array for the scattering of the spatial cell by energy
-            chiNuFission: G x G array of chi x nu x sigma_f
-            L: Number of moments
-            I: Number of spatial cells
-            delta: width of one spatial cell
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
             LOUD: prints the iteration number and the change between iterations, default is False
         Returns:
-            phi: a I x L+1 x G array    """        
+            phi: a I x G array    """        
         import numpy as np
-        # from djinn import djinn
         from discrete1.util import sn
-        phi_old = np.random.rand(self.I,self.L+1,self.G)
+        phi_old = np.random.rand(self.I,self.G)
         phi_old /= np.linalg.norm(phi_old)
         # Load DJINN model            
         model_scatter,model_fission = sn.djinn_load(model_name,self.dtype)
-        # Check if enriched
-        if self.label is None:
-            djinn_scatter_ns,djinn_fission_ns = sn.enriche(phi_old,model_scatter,model_fission,self.dtype,self.splits['djinn'])
+        # Label and predict the fission data
+        if self.dtype == 'both' or self.dtype == 'fission':
+            djinn_fission_ns = eigen_djinn_symm.label_model(self,phi_old,model_fission)
         else:
-            djinn_scatter_ns,djinn_fission_ns = sn.enriche(phi_old,model_scatter,model_fission,self.dtype,self.splits['djinn'],enrich=self.enrich)
-        # Retrieve only the phi_old from DJINN part
-        sources = eigen_djinn_symm.check_scale(self,phi_old,djinn_scatter_ns,djinn_fission_ns) 
-        if self.track:
-            allmat_fis = np.zeros((0,3,self.G))
-            allmat_sca = np.zeros((0,3,self.G))
+            djinn_fission_ns = 0
+        # Scale DJINN fission or Get original sources
+        sources = eigen_djinn_symm.scale_fission(self,phi_old,djinn_fission_ns)
         converged = 0
         count = 1            
         while not (converged):
-            if self.track == 'scatter' or self.track == 'both':
-                enrichment = np.expand_dims(np.tile(np.expand_dims(sn.cat(self.enrich,self.splits['djinn']),axis=1),(1,self.G)),axis=1)
-                multiplier = np.expand_dims(np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['djinn'])[:,0],sn.cat(phi_old,self.splits['djinn'])[:,0]),axis=1)
-                track_temp = np.hstack((enrichment,sn.cat(phi_old,self.splits['djinn']),multiplier))
-                allmat_sca = np.vstack((allmat_sca,track_temp))
-                # print(allmat_sca.shape)
-            if self.track == 'fission' or self.track == 'both':
-                enrichment = np.expand_dims(np.tile(np.expand_dims(sn.cat(self.enrich,self.splits['djinn']),axis=1),(1,self.G)),axis=1)
-                multiplier = np.expand_dims(np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits['djinn']),sn.cat(phi_old,self.splits['djinn'])[:,0]),axis=1)
-                track_temp = np.hstack((enrichment,sn.cat(phi_old,self.splits['djinn']),multiplier))
-                allmat_fis = np.vstack((allmat_fis,track_temp))
             if LOUD:
                 print('Outer Transport Iteration {}\n==================================='.format(count))
-            phi = eigen_djinn_symm.multi_group(self,self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,model_scatter,self.I,self.delta,tol=1e-08,MAX_ITS=MAX_ITS,LOUD=False)
+            phi = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=MAX_ITS)
             keff = np.linalg.norm(phi)
-            phi /= np.linalg.norm(phi)
-            change = np.linalg.norm((phi-phi_old)/phi/(self.I*(self.L+1)))
+            phi /= keff
+            change = np.linalg.norm((phi-phi_old)/phi/(self.I))
             if LOUD:
                 print('Change is',change,'Keff is',keff)
             converged = (change < tol) or (count >= MAX_ITS)
             count += 1
             phi_old = phi.copy()
             # Update DJINN Models
-            if self.label is None:
-                djinn_scatter_ns,djinn_fission_ns = sn.enriche(phi_old,model_scatter,model_fission,self.dtype,self.splits['djinn'])
-            else:
-                djinn_scatter_ns,djinn_fission_ns = sn.enriche(phi_old,model_scatter,model_fission,self.dtype,self.splits['djinn'],enrich=self.enrich)
-            sources = eigen_djinn_symm.check_scale(self,phi_old,djinn_scatter_ns,djinn_fission_ns)
-        if self.track:
-            return phi,keff,allmat_fis,allmat_sca
+            if self.dtype == 'both' or self.dtype == 'fission':
+                djinn_fission_ns = eigen_djinn_symm.label_model(self,phi_old,model_fission)
+            # Scale DJINN fission or Get original sources
+            sources = eigen_djinn_symm.scale_fission(self,phi_old,djinn_fission_ns)
         return phi,keff    

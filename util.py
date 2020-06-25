@@ -76,7 +76,7 @@ class sn:
         if dtype == 'scatter':
             djinn_fission_ns = None
         return djinn_scatter_ns,djinn_fission_ns
-
+    
     def enrich_locs(layers,zones):
         import numpy as np
         full = np.zeros(np.sum(layers))
