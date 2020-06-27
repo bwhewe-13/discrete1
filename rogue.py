@@ -278,40 +278,53 @@ class eigen_djinn_symm:
             phi: a I x L+1 array   """
         import numpy as np        
         from discrete1.util import sn
+        import ctypes
+        clibrary = ctypes.cdll.LoadLibrary('./discrete1/cfunctions.so')
+        sweep = clibrary.sweep
         converged = 0
         count = 1
-        phi = np.zeros((self.I))
+        phi = np.zeros((self.I),dtype='float64')
         phi_old = guess.copy()
         half_total = 0.5*total.copy()
+        external = external.astype('float64')
         while not(converged):
-            phi *= 0
+            phi = np.zeros((self.I))
             for n in range(self.N):
                 weight = self.mu[n]*self.inv_delta
-                top_mult = weight-half_total
-                bottom_mult = 1/(weight+half_total)
+                top_mult = (weight-half_total).astype('float64')
+                bottom_mult = (1/(weight+half_total)).astype('float64')
                 if self.dtype == 'scatter' or self.dtype == 'both':
                     # djinn_1g should be length I'
-                    temp_scat = np.concatenate([sn.cat(scatter*phi_old,self.splits['keep']),djinn_1g])
+                    temp_scat = np.concatenate([sn.cat(scatter*phi_old,self.splits['keep']),djinn_1g]).astype('float64')
                 else:
-                    temp_scat = scatter * phi_old
-                psi_bottom = 0 # vacuum on LHS
-                # Left to right
-                for ii in range(self.I):
-                    psi_top = (temp_scat[ii] + external[ii] + psi_bottom * top_mult[ii])*(bottom_mult[ii])
-                    phi[ii] = phi[ii] + (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
-                    psi_bottom = psi_top
-                # Reflective right to left
-                for ii in range(self.I-1,-1,-1):
-                    psi_top = psi_bottom
-                    psi_bottom = (temp_scat[ii] + external[ii] + psi_top * top_mult[ii])*(bottom_mult[ii])
-                    phi[ii] = phi[ii] +  (self.w[n]* func.diamond_diff(psi_top,psi_bottom))
+                    temp_scat = (scatter * phi_old).astype('float64')
+                # Set Pointers for C function
+                phi_ptr = ctypes.c_void_p(phi.ctypes.data)
+                ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
+                ext_ptr = ctypes.c_void_p(external.ctypes.data)
+                top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
+                bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
+                # sweep(ctypes.c_void_p(phi.ctypes.data),ctypes.c_void_p(temp_scat.ctypes.data),ctypes.c_void_p(external.ctypes.data),ctypes.c_void_p(top_mult.ctypes.data),ctypes.c_void_p(bottom_mult.ctypes.data),ctypes.c_double(self.w[n]))
+                sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]))
+                # psi_bottom = 0 # vacuum on LHS
+                # # Left to right
+                # for ii in range(self.I):
+                #     psi_top = (temp_scat[ii] + external[ii] + psi_bottom * top_mult[ii])*(bottom_mult[ii])
+                #     phi[ii] = phi[ii] + (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
+                #     psi_bottom = psi_top
+                # # Reflective right to left
+                # for ii in range(self.I-1,-1,-1):
+                #     psi_top = psi_bottom
+                #     psi_bottom = (temp_scat[ii] + external[ii] + psi_top * top_mult[ii])*(bottom_mult[ii])
+                #     phi[ii] = phi[ii] +  (self.w[n]* func.diamond_diff(psi_top,psi_bottom))
+            
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
         return phi
         
-    def multi_group(self,total,scatter,chiNuFission,model,tol=1e-08,MAX_ITS=100):
+    def multi_group(self,total,scatter,chiNuFission,model,tol=1e-08,MAX_ITS=100,initial=None):
         # self,self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,model_scatter,djinn_scatter,self.I,self.delta,
         """ Arguments:
             total: I x G vector of the total cross section for each spatial cell and energy level
@@ -329,8 +342,13 @@ class eigen_djinn_symm:
         while not (converged):
             phi = np.zeros(phi_old.shape)
             if self.dtype == 'scatter' or self.dtype == 'both':
-                djinn_scatter_ns = eigen_djinn_symm.label_model(self,phi_old,model)
-                djinn_scatter = eigen_djinn_symm.scale_scatter(self,phi_old,djinn_scatter_ns)
+                if count == 1 and initial is not None: #initialize 
+                    print('Initializing Scattering DJINN')
+                    djinn_scatter_ns = eigen_djinn_symm.label_model(self,initial,model)
+                    djinn_scatter = eigen_djinn_symm.scale_scatter(self,initial,djinn_scatter_ns)
+                else:
+                    djinn_scatter_ns = eigen_djinn_symm.label_model(self,phi_old,model)
+                    djinn_scatter = eigen_djinn_symm.scale_scatter(self,phi_old,djinn_scatter_ns)
                 for g in range(self.G):
                     phi[:,g] = eigen_djinn_symm.one_group(self,total[:,g],scatter[:,g,g],djinn_scatter[:,g],chiNuFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
             elif self.dtype == 'fission':
@@ -393,18 +411,23 @@ class eigen_djinn_symm:
         # Load DJINN model            
         model_scatter,model_fission = sn.djinn_load(model_name,self.dtype)
         # Label and predict the fission data
+        dj_init = np.load('mydata/djinn_true_1d/phi2_05.npy')
         if self.dtype == 'both' or self.dtype == 'fission':
-            djinn_fission_ns = eigen_djinn_symm.label_model(self,phi_old,model_fission)
+            djinn_fission_ns = eigen_djinn_symm.label_model(self,dj_init,model_fission)
         else:
             djinn_fission_ns = 0
         # Scale DJINN fission or Get original sources
-        sources = eigen_djinn_symm.scale_fission(self,phi_old,djinn_fission_ns)
+        sources = eigen_djinn_symm.scale_fission(self,dj_init,djinn_fission_ns)
         converged = 0
         count = 1            
         while not (converged):
             if LOUD:
                 print('Outer Transport Iteration {}\n==================================='.format(count))
-            phi = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=MAX_ITS)
+            if count == 1:
+                initial = dj_init
+            else:
+                initial = None
+            phi = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=MAX_ITS,initial=initial)
             keff = np.linalg.norm(phi)
             phi /= keff
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))

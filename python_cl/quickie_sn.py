@@ -2,7 +2,6 @@
 
 import numpy as np
 import discrete1.rogue as r
-import discrete1.initialize as ex
 from discrete1.util import nnets
 import argparse
 
