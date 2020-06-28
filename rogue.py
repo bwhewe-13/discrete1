@@ -411,7 +411,7 @@ class eigen_djinn_symm:
         # Load DJINN model            
         model_scatter,model_fission = sn.djinn_load(model_name,self.dtype)
         # Label and predict the fission data
-        dj_init = np.load('mydata/djinn_true_1d/phi2_05.npy')
+        dj_init = np.load('mydata/djinn_true_1d/phi2_15.npy')
         if self.dtype == 'both' or self.dtype == 'fission':
             djinn_fission_ns = eigen_djinn_symm.label_model(self,dj_init,model_fission)
         else:
