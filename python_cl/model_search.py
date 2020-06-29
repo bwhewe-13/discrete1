@@ -19,7 +19,13 @@ if usr_input.xs == 'scatter':
 elif usr_input.xs == 'fission':
     print('Fission')
     file1 = 'fission'
-
+    
+if usr_input.normed == 'norm':
+    file2 = 'normed/'
+elif usr_input.normed == 'small':
+    file2 = 'small/'
+else:
+    file2 = ''
 
 mymat = np.load('mydata/djinn_true_1d/{}_{}_data.npy'.format(usr_input.data,file1))
 if usr_input.label is None:
@@ -28,10 +34,10 @@ if usr_input.label is None:
     if usr_input.normed is not None:
         print('Normed, Non Labeled Data')
         X /= np.linalg.norm(X,axis=1)[:,None]
-        file2 = 'normed/'
+        # file2 = 'normed/'
     else:
         print('Non Labeled Data')
-        file2 = ''
+        # file2 = ''
     Y = mymat[1,:,1:].copy()
     file3 = '_reg/'
 else:
@@ -41,14 +47,14 @@ else:
         tX = mymat[0,:,1:].copy()
         tX /= np.linalg.norm(tX,axis=1)[:,None]
         X = np.hstack((mymat[0,:,0][:,None],tX))
-        file2 = 'normed/'
+        # file2 = 'normed/'
     else:
         print('Labeled Data')
         X = mymat[0].copy()
-        file2 = ''
+        # file2 = ''
     Y = mymat[1,:,1:].copy() # Remove labels
     file3 = '_label/'
-    
+
 num_trees = [1,3,5]
 # num_trees = [1] 
 # num_depth = [2,4] 
@@ -58,7 +64,7 @@ split = 0.2
 try:
     spatial = np.load('{}_1d/{}spatialShuffleMat'.format(file1,file2))
 except FileNotFoundError:
-    spatial = np.arange(len(mymat))
+    spatial = np.arange(len(X))
     np.random.shuffle(spatial)
     np.save('{}_1d/{}spatialShuffleMat'.format(file1,file2),spatial)
 
