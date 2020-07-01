@@ -20,18 +20,16 @@ elif usr_input.xs == 'fission':
     print('Fission')
     file1 = 'fission'
     
-if usr_input.normed == 'norm':
-    file2 = 'normed/'
-elif usr_input.normed == 'small':
-    file2 = 'small/'
-else:
+if usr_input.normed is None:
     file2 = ''
+else:
+    file2 = usr_input.normed+'/'
 
 mymat = np.load('mydata/djinn_true_1d/{}_{}_data.npy'.format(usr_input.data,file1))
 if usr_input.label is None:
     X = mymat[0,:,1:].copy()
     # Normalize
-    if usr_input.normed is not None:
+    if 'norm' in usr_input.normed:
         print('Normed, Non Labeled Data')
         X /= np.linalg.norm(X,axis=1)[:,None]
         # file2 = 'normed/'
@@ -42,7 +40,7 @@ if usr_input.label is None:
     file3 = '_reg/'
 else:
     print('Labeled Data')
-    if usr_input.normed is not None:
+    if 'norm' in usr_input.normed:
         print('Normed, Labeled Data')
         tX = mymat[0,:,1:].copy()
         tX /= np.linalg.norm(tX,axis=1)[:,None]

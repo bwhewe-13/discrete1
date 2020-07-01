@@ -369,11 +369,11 @@ class eigen_djinn_symm:
         from discrete1.util import sn
         if np.sum(phi) == 0:
             return np.zeros((sn.cat(phi,self.splits['djinn']).shape))
-        phi /= np.linalg.norm(phi,axis=1)[:,None]
-        normed = sn.cat(phi,self.splits['djinn'])
+        short_phi = sn.cat(phi,self.splits['djinn'])
+        short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]
         if self.label:
-            normed = np.hstack((sn.cat(self.enrich,self.splits['djinn'])[:,None],normed))
-        return model_.predict(normed) 
+            short_phi = np.hstack((sn.cat(self.enrich,self.splits['djinn'])[:,None],short_phi))
+        return model_.predict(short_phi) 
 
     def scale_scatter(self,phi,djinn_ns):
         import numpy as np
@@ -396,6 +396,25 @@ class eigen_djinn_symm:
         regular = np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits['keep']),sn.cat(phi,self.splits['keep']))
         return np.vstack((regular,scale[:,None]*djinn_ns))
         
+    def tracking_data(self,phi,sources=None):
+        from discrete1.util import sn
+        import numpy as np
+        labels = sn.cat(self.enrich,self.splits['djinn'])
+        short_phi = sn.cat(phi,self.splits['djinn'])
+        labeled_phi = np.hstack((labels[:,None],short_phi))
+        if self.track == 'scatter':
+            multiplier = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits['djinn'])
+            labeled_mult = np.hstack((labels[:,None],multiplier))
+            return None,np.vstack((labeled_phi[None,:,:],labeled_mult[None,:,:]))
+            # print(allmat_sca.shape)
+        elif self.track == 'fission':
+            short_fission = np.hstack((labels[:,None],sn.cat(sources,self.splits['djinn'])))
+            return np.vstack((labeled_phi[None,:,:],short_fission[None,:,:])),None
+        multiplier = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits['djinn'])
+        labeled_mult = np.hstack((labels[:,None],multiplier))
+        short_fission = np.hstack((labels[:,None],sn.cat(sources,self.splits['djinn'])))
+        return np.vstack((labeled_phi[None,:,:],short_fission[None,:,:])),np.vstack((labeled_phi[None,:,:],labeled_mult[None,:,:]))
+        
     def transport(self,model_name,tol=1e-12,MAX_ITS=100,LOUD=True):
         """ EIGEN DJINN SYMM
         Arguments:
@@ -412,22 +431,30 @@ class eigen_djinn_symm:
         model_scatter,model_fission = sn.djinn_load(model_name,self.dtype)
         # Label and predict the fission data
         dj_init = np.load('mydata/djinn_true_1d/phi2_15.npy')
+        # dj_init /= np.linalg.norm(dj_init,axis=1)[:,None]
         if self.dtype == 'both' or self.dtype == 'fission':
             djinn_fission_ns = eigen_djinn_symm.label_model(self,dj_init,model_fission)
         else:
             djinn_fission_ns = 0
         # Scale DJINN fission or Get original sources
+        if self.track:
+            allmat_sca = np.zeros((2,0,self.G+1))
+            allmat_fis = np.zeros((2,0,self.G+1))        
         sources = eigen_djinn_symm.scale_fission(self,dj_init,djinn_fission_ns)
         converged = 0
         count = 1            
         while not (converged):
+            if self.track:
+                temp_fission,temp_scatter = eigen_djinn_symm.tracking_data(self,phi_old,sources)
+                allmat_sca = np.hstack((allmat_sca,temp_scatter))
+                allmat_fis = np.hstack((allmat_fis,temp_fission))
             if LOUD:
                 print('Outer Transport Iteration {}\n==================================='.format(count))
             if count == 1:
                 initial = dj_init
             else:
                 initial = None
-            phi = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=MAX_ITS,initial=initial)
+            phi = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=100,initial=initial)
             keff = np.linalg.norm(phi)
             phi /= keff
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))
@@ -441,4 +468,6 @@ class eigen_djinn_symm:
                 djinn_fission_ns = eigen_djinn_symm.label_model(self,phi_old,model_fission)
             # Scale DJINN fission or Get original sources
             sources = eigen_djinn_symm.scale_fission(self,phi_old,djinn_fission_ns)
+        if self.track:
+            return phi,keff,allmat_fis,allmat_sca
         return phi,keff    

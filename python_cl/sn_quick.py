@@ -21,24 +21,15 @@ file1 = usr_input.xs
 # label = str(enrich).split('.')[1]
 labels = [str(jj).split('.')[1] for jj in enrich]
 
-if usr_input.normed == 'norm':
-    file2 = 'normed/'
-elif usr_input.normed == 'small':
-    file2 = 'small/'
-else:
+if usr_input.normed is None:
     file2 = ''
+else:
+    file2 = usr_input.normed+'/'
     
 if usr_input.label is None:
-    file3 = '_reg/'
+    file3 = '_reg'
 else:
-    file3 = '_label/'
-
-# if usr_input.label is None:
-    # file2 = ''
-    # file3 = '_reg' # Does not include labeled data
-# else:
-    # file2 = '_enrich'
-    # file3 = '_enrich'
+    file3 = '_label'
 
 if file1 == 'both':
     djinn_model = []    
@@ -53,12 +44,12 @@ print('DJINN Model',djinn_model)
 for ii in range(len(enrich)):
     enrichment,splits = r.eigen_djinn.boundaries(enrich[ii],distance=usr_input.dist,symm=True)
     problem = r.eigen_djinn_symm(*r.eigen_djinn.variables(enrich[ii],distance=usr_input.dist,symm=True),dtype=file1,enrich=enrichment,splits=splits,track=usr_input.track,label=usr_input.label)
-    phi,keff = problem.transport(djinn_model,LOUD=True)
-    # if usr_input.track is None:
-    #     phi,keff = problem.transport(djinn_model,LOUD=True)
-    # else:
-    #     phi,keff,fission,scatter = problem.transport(djinn_model,LOUD=True)
-    #     np.save('mydata/djinn_{}_1d/{}_{:<02}'.format(file1,labels[ii]),fission)
-    #     np.save('mydata/djinn_{}_1d/{}_{:<02}'.format(file1,labels[ii]),scatter)
-    np.save('mydata/djinn_{}_1d/phi_{}{}_{:<02}'.format(file1,file2[:len(file2)-1],file3[:len(file3)-1],labels[ii]),phi)
-    np.save('mydata/djinn_{}_1d/keff_{}{}_{:<02}'.format(file1,file2[:len(file2)-1],file3[:len(file3)-1],labels[ii]),keff)   
+    # phi,keff = problem.transport(djinn_model,LOUD=True,MAX_ITS=1)
+    if usr_input.track is None:
+        phi,keff = problem.transport(djinn_model,LOUD=True)
+    else:
+        phi,keff,track_fission,track_scatter = problem.transport(djinn_model,LOUD=True)
+        np.save('mydata/djinn_{}_1d/{}_{}{}_{:<02}'.format(file1,file1,usr_input.normed,file3,labels[ii]),track_fission)
+        np.save('mydata/djinn_{}_1d/{}_{}{}_{:<02}'.format(file1,file1,usr_input.normed,file3,labels[ii]),track_scatter)
+    np.save('mydata/djinn_{}_1d/phi_{}{}_{:<02}'.format(file1,usr_input.normed,file3,labels[ii]),phi)
+    np.save('mydata/djinn_{}_1d/keff_{}{}_{:<02}'.format(file1,usr_input.normed,file3,labels[ii]),keff)   
