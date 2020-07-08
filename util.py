@@ -104,6 +104,14 @@ class sn:
         splitDic['keep'] = [splits[ii] for ii in keep]
         splitDic['djinn'] = [splits[jj] for jj in djinn]
         return splitDic
+    
+    def layer_slice_dict_mixed(layers,half=True):
+        splits = sn.layer_slice(layers,half)
+        splitDic = {}
+        keep = [0]; djinn = [1,2,3,4]
+        splitDic['keep'] = [splits[ii] for ii in keep]
+        splitDic['djinn'] = [splits[jj] for jj in djinn]
+        return splitDic
          
     def length(splits):
         "Length of the splice function"

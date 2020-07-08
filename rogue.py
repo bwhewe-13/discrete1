@@ -94,6 +94,7 @@ class eigen_djinn:
         #     if symm:
         #         # distance = [200,75,75]
         distance = [45,35,20]
+        # distance = [45,5,25,5,20]
         delta = 0.1
         layers = [int(ii/delta) for ii in distance]
         if symm:
@@ -103,7 +104,179 @@ class eigen_djinn:
         # conc is uh3 enrich while 0 is depleted uranium
         enrichment = sn.enrich_list(sum(layers),[conc,0],[splits[1],splits[2]])
         return enrichment,sn.layer_slice_dict(layers,half=not symm)
+    
+    def boundaries_blur(conc,distance=None,symm=False):
+        from discrete1.util import sn
+        distance = [47,33,20]
+        delta = 0.1
+        layers = [int(ii/delta) for ii in distance]
+        if symm:
+            splits = sn.layer_slice(layers,half=False)
+        else:
+            splits = sn.layer_slice(layers)
+        # conc is uh3 enrich while 0 is depleted uranium
+        enrichment = sn.enrich_list(sum(layers),[conc,0],[splits[1],splits[2]])
+        return enrichment,sn.layer_slice_dict(layers,half=not symm)
+    
+    def variables_mixed(conc=None,distance=None,symm=False):
+        """ Mixed Enriched Uranium Zone """
+        from discrete1.util import chem,sn
+        import numpy as np
         
+        distance = [45,5,25,5,20]
+        delta = 0.1
+        if conc is None:
+            conc = [0.12,0.27]
+        print('Concentration: ',conc)
+        # Layer densities
+        density_uh3 = 10.95; density_ch3 = 0.97
+        uh3_density_low = chem.density_list('UH3',density_uh3,conc[0])
+        uh3_density_high = chem.density_list('UH3',density_uh3,conc[1])
+        hdpe_density = chem.density_list('CH3',density_ch3)
+        uh3_238_density = chem.density_list('U^238H3',density_uh3)
+    
+        # Loading Cross Section Data
+        dim = 87; spec_temp = '00'
+        # Scattering Cross Section
+        u235scatter = np.load('mydata/u235/scatter_0{}.npy'.format(spec_temp))[0]
+        u238scatter = np.load('mydata/u238/scatter_0{}.npy'.format(spec_temp))[0]
+        h1scatter = np.load('mydata/h1/scatter_0{}.npy'.format(spec_temp))[0]
+        c12scatter = np.load('mydata/cnat/scatter_0{}.npy'.format(spec_temp))[0]
+    
+        uh3_scatter_low = uh3_density_low[0]*u235scatter + uh3_density_low[1]*u238scatter + uh3_density_low[2]*h1scatter
+        uh3_scatter_high = uh3_density_high[0]*u235scatter + uh3_density_high[1]*u238scatter + uh3_density_high[2]*h1scatter
+        hdpe_scatter = hdpe_density[0]*c12scatter + hdpe_density[1]*h1scatter
+        uh3_238_scatter = uh3_238_density[0]*u238scatter + uh3_238_density[1]*h1scatter
+    
+        # Total Cross Section
+        u235total = np.load('mydata/u235/vecTotal.npy')[eval(spec_temp)]
+        u238total = np.load('mydata/u238/vecTotal.npy')[eval(spec_temp)]
+        h1total = np.load('mydata/h1/vecTotal.npy')[eval(spec_temp)]
+        c12total = np.load('mydata/cnat/vecTotal.npy')[eval(spec_temp)]
+    
+        uh3_total_low = uh3_density_low[0]*u235total + uh3_density_low[1]*u238total + uh3_density_low[2]*h1total
+        uh3_total_high = uh3_density_high[0]*u235total + uh3_density_high[1]*u238total + uh3_density_high[2]*h1total
+        hdpe_total = hdpe_density[0]*c12total + hdpe_density[1]*h1total
+        uh3_238_total = uh3_238_density[0]*u238total + uh3_238_density[1]*h1total
+    
+        # Fission Cross Section
+        u235fission = np.load('mydata/u235/nufission_0{}.npy'.format(spec_temp))[0]
+        u238fission = np.load('mydata/u238/nufission_0{}.npy'.format(spec_temp))[0]
+    
+        uh3_fission_low = uh3_density_low[0]*u235fission + uh3_density_low[1]*u238fission
+        uh3_fission_high = uh3_density_high[0]*u235fission + uh3_density_high[1]*u238fission
+        uh3_238_fission = uh3_238_density[0]*u238fission
+        hdpe_fission = np.zeros((dim,dim))
+    
+        # Cross section layers
+        xs_scatter = [hdpe_scatter.T,uh3_scatter_low.T,uh3_scatter_high.T,uh3_scatter_low.T,uh3_238_scatter.T]
+        xs_total = [hdpe_total,uh3_total_low,uh3_total_high,uh3_total_low,uh3_238_total]
+        xs_fission = [hdpe_fission.T,uh3_fission_low.T,uh3_fission_high.T,uh3_fission_low.T,uh3_238_fission.T]
+    
+        # Setting up eigenvalue equation
+        N = 8; L = 0; R = sum(distance); G = dim
+        mu,w = np.polynomial.legendre.leggauss(N)
+        w /= np.sum(w)
+        if symm:
+            mu = mu[int(N*0.5):]
+            w = w[int(N*0.5):]
+            N = int(N*0.5) 
+        layers = [int(ii/delta) for ii in distance]
+        I = int(sum(layers))
+    
+        scatter_ = sn.mixed_propagate(xs_scatter,layers,G=dim,L=L,dtype='scatter')
+        fission_ = sn.mixed_propagate(xs_fission,layers,G=dim,dtype='fission2')
+        total_ = sn.mixed_propagate(xs_total,layers,G=dim)
+        
+        return G,N,mu,w,total_,scatter_[:,0],fission_,L,R,I
+        
+    def boundaries_mixed(conc,distance=None,symm=False):
+        # import numpy as np
+        from discrete1.util import sn
+        distance = [45,5,25,5,20]
+        delta = 0.1
+        layers = [int(ii/delta) for ii in distance]
+        splits = sn.layer_slice(layers,half=False)
+        # conc is uh3 enrich while 0 is depleted uranium
+        enrichment = sn.enrich_list(sum(layers),[0.12,0.27,0.12,0],[splits[1],splits[2],splits[3],splits[4]])
+        return enrichment,sn.layer_slice_dict_mixed(layers,half=not symm)
+        
+    def variables_noplastic(conc=None,distance=None,symm=False):
+        """ Mixed Enriched Uranium Zone """
+        from discrete1.util import chem,sn
+        import numpy as np
+        
+        distance = [35,20]
+        delta = 0.1
+        if conc is None:
+            conc = 0.15
+        print('Concentration: ',conc)
+        # Layer densities
+        density_uh3 = 10.95; density_ch3 = 0.97
+        uh3_density = chem.density_list('UH3',density_uh3,conc)
+        uh3_238_density = chem.density_list('U^238H3',density_uh3)
+    
+        # Loading Cross Section Data
+        dim = 87; spec_temp = '00'
+        # Scattering Cross Section
+        u235scatter = np.load('mydata/u235/scatter_0{}.npy'.format(spec_temp))[0]
+        u238scatter = np.load('mydata/u238/scatter_0{}.npy'.format(spec_temp))[0]
+        h1scatter = np.load('mydata/h1/scatter_0{}.npy'.format(spec_temp))[0]
+        
+    
+        uh3_scatter = uh3_density[0]*u235scatter + uh3_density[1]*u238scatter + uh3_density[2]*h1scatter
+        uh3_238_scatter = uh3_238_density[0]*u238scatter + uh3_238_density[1]*h1scatter
+    
+        # Total Cross Section
+        u235total = np.load('mydata/u235/vecTotal.npy')[eval(spec_temp)]
+        u238total = np.load('mydata/u238/vecTotal.npy')[eval(spec_temp)]
+        h1total = np.load('mydata/h1/vecTotal.npy')[eval(spec_temp)]
+    
+        uh3_total = uh3_density[0]*u235total + uh3_density[1]*u238total + uh3_density[2]*h1total
+        uh3_238_total = uh3_238_density[0]*u238total + uh3_238_density[1]*h1total
+    
+        # Fission Cross Section
+        u235fission = np.load('mydata/u235/nufission_0{}.npy'.format(spec_temp))[0]
+        u238fission = np.load('mydata/u238/nufission_0{}.npy'.format(spec_temp))[0]
+    
+        uh3_fission = uh3_density[0]*u235fission + uh3_density[1]*u238fission
+        uh3_238_fission = uh3_238_density[0]*u238fission
+            
+        # Cross section layers
+        xs_scatter = [uh3_scatter.T,uh3_238_scatter.T]
+        xs_total = [uh3_total,uh3_238_total]
+        xs_fission = [uh3_fission.T,uh3_238_fission.T]
+    
+        # Setting up eigenvalue equation
+        N = 8; L = 0; R = sum(distance); G = dim
+        mu,w = np.polynomial.legendre.leggauss(N)
+        w /= np.sum(w)
+        if symm:
+            mu = mu[int(N*0.5):]
+            w = w[int(N*0.5):]
+            N = int(N*0.5) 
+        layers = [int(ii/delta) for ii in distance]
+        I = int(sum(layers))
+    
+        scatter_ = sn.mixed_propagate(xs_scatter,layers,G=dim,L=L,dtype='scatter')
+        fission_ = sn.mixed_propagate(xs_fission,layers,G=dim,dtype='fission2')
+        total_ = sn.mixed_propagate(xs_total,layers,G=dim)
+        
+        return G,N,mu,w,total_,scatter_[:,0],fission_,L,R,I
+    
+    def boundaries_noplastic(conc,distance=None,symm=False):
+        # import numpy as np
+        from discrete1.util import sn
+        distance = [35,20]
+        delta = 0.1
+        layers = [int(ii/delta) for ii in distance]
+        splits = sn.layer_slice(layers,half=False)
+        # conc is uh3 enrich while 0 is depleted uranium
+        mydict = {}
+        mydict['djinn'] = splits
+        enrichment = sn.enrich_list(sum(layers),[conc,0],splits)
+        return enrichment,mydict
+    
 class eigen_symm:
     def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,track=False,enrich=None,splits=None):
         self.G = G
@@ -130,27 +303,42 @@ class eigen_symm:
         Returns:
             phi: a I array  """
         import numpy as np
+        import ctypes
+        clibrary = ctypes.cdll.LoadLibrary('./discrete1/cfunctions.so')
+        sweep = clibrary.sweep
         converged = 0
         count = 1        
-        phi = np.zeros((self.I))
+        phi = np.zeros((self.I),dtype='float64')
         phi_old = guess.copy()
         half_total = 0.5*total.copy()
+        external = external.astype('float64')
         while not(converged):
-            phi *= 0
+            # phi *= 0
+            phi = np.zeros((self.I))
             for n in range(self.N):
-                temp_scat = scatter*phi_old
                 weight = self.mu[n]*self.inv_delta
-                psi_bottom = 0 # vacuum on LHS
-                # Left to right
-                for ii in range(self.I):
-                    psi_top = (temp_scat[ii] + external[ii] + psi_bottom * (weight-half_total[ii]))/(weight+half_total[ii])
-                    phi[ii] = phi[ii] + (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
-                    psi_bottom = psi_top
-                # Reflective right to left
-                for ii in range(self.I-1,-1,-1):
-                    psi_top = psi_bottom
-                    psi_bottom = (temp_scat[ii] + external[ii] + psi_top * (weight-half_total[ii]))/(weight+half_total[ii])
-                    phi[ii] = phi[ii] +  (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
+                top_mult = (weight-half_total).astype('float64')
+                bottom_mult = (1/(weight+half_total)).astype('float64')
+                temp_scat = (scatter * phi_old).astype('float64')
+                # Set Pointers for C function
+                phi_ptr = ctypes.c_void_p(phi.ctypes.data)
+                ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
+                ext_ptr = ctypes.c_void_p(external.ctypes.data)
+                top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
+                bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
+                # sweep(ctypes.c_void_p(phi.ctypes.data),ctypes.c_void_p(temp_scat.ctypes.data),ctypes.c_void_p(external.ctypes.data),ctypes.c_void_p(top_mult.ctypes.data),ctypes.c_void_p(bottom_mult.ctypes.data),ctypes.c_double(self.w[n]))
+                sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]))
+                # psi_bottom = 0 # vacuum on LHS
+                # # Left to right
+                # for ii in range(self.I):
+                    # psi_top = (temp_scat[ii] + external[ii] + psi_bottom * (weight-half_total[ii]))/(weight+half_total[ii])
+                    # phi[ii] = phi[ii] + (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
+                    # psi_bottom = psi_top
+                # # Reflective right to left
+                # for ii in range(self.I-1,-1,-1):
+                    # psi_top = psi_bottom
+                    # psi_bottom = (temp_scat[ii] + external[ii] + psi_top * (weight-half_total[ii]))/(weight+half_total[ii])
+                    # phi[ii] = phi[ii] +  (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
@@ -370,7 +558,8 @@ class eigen_djinn_symm:
         if np.sum(phi) == 0:
             return np.zeros((sn.cat(phi,self.splits['djinn']).shape))
         short_phi = sn.cat(phi,self.splits['djinn'])
-        short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]
+        if self.process == 'norm':
+            short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]
         if self.label:
             short_phi = np.hstack((sn.cat(self.enrich,self.splits['djinn'])[:,None],short_phi))
         return model_.predict(short_phi) 
@@ -415,9 +604,11 @@ class eigen_djinn_symm:
         short_fission = np.hstack((labels[:,None],sn.cat(sources,self.splits['djinn'])))
         return np.vstack((labeled_phi[None,:,:],short_fission[None,:,:])),np.vstack((labeled_phi[None,:,:],labeled_mult[None,:,:]))
         
-    def transport(self,model_name,tol=1e-12,MAX_ITS=100,LOUD=True):
+    def transport(self,model_name,process,tol=1e-12,MAX_ITS=100,LOUD=True):
         """ EIGEN DJINN SYMM
         Arguments:
+            model_name: File location of DJINN model
+            process: should be 'norm' to normalize data
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
             LOUD: prints the iteration number and the change between iterations, default is False
@@ -425,6 +616,7 @@ class eigen_djinn_symm:
             phi: a I x G array    """        
         import numpy as np
         from discrete1.util import sn
+        self.process = process
         phi_old = np.random.rand(self.I,self.G)
         phi_old /= np.linalg.norm(phi_old)
         # Load DJINN model            
@@ -454,6 +646,7 @@ class eigen_djinn_symm:
                 initial = dj_init
             else:
                 initial = None
+            # initial = dj_init
             phi = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=100,initial=initial)
             keff = np.linalg.norm(phi)
             phi /= keff
