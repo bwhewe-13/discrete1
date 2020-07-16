@@ -87,12 +87,6 @@ class eigen_djinn:
         # import numpy as np
         from discrete1.util import sn
         #distance = [50,35,40,35,50]
-        #delta = 0.2
-        # if distance is None:
-        #     # distance = [200,75,150,75,200]
-        #     distance = [45,35,40,35,45]
-        #     if symm:
-        #         # distance = [200,75,75]
         distance = [45,35,20]
         # distance = [45,5,25,5,20]
         delta = 0.1
@@ -212,7 +206,7 @@ class eigen_djinn:
             conc = 0.15
         print('Concentration: ',conc)
         # Layer densities
-        density_uh3 = 10.95; density_ch3 = 0.97
+        density_uh3 = 10.95; 
         uh3_density = chem.density_list('UH3',density_uh3,conc)
         uh3_238_density = chem.density_list('U^238H3',density_uh3)
     
@@ -358,6 +352,8 @@ class eigen_symm:
         phi_old = np.zeros((self.I,self.G))
         converged = 0
         count = 1
+        if self.track == 'scatter':
+            allmat_sca = np.zeros((2,0,self.G+1))
         while not (converged):
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
@@ -366,10 +362,15 @@ class eigen_symm:
                 else:
                     q_tilde = nuChiFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g) + func.update_q(scatter,phi,0,g,g)
                 phi[:,g] = eigen_symm.one_group(self,total[:,g],scatter[:,g,g],q_tilde,tol=tol,MAX_ITS=MAX_ITS,guess=phi_old[:,g])
+            if self.track == "scatter":
+                temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi,None)
+                allmat_sca = np.hstack((allmat_sca,temp_scatter))
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
+        if self.track == 'scatter':
+            return phi, allmat_sca
         return phi
             
     def tracking_data(self,phi,sources=None):
@@ -411,13 +412,23 @@ class eigen_symm:
             allmat_sca = np.zeros((2,0,self.G+1))
             allmat_fis = np.zeros((2,0,self.G+1))
         sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old) 
+        if self.track == 'scatter':
+            temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi_old)
+            enrich = str(np.amax(self.enrich)).split('.')[1]
+            np.save('mydata/track_plastic/enrich_{:<02}_count_000'.format(enrich),temp_scatter)
         while not (converged):
-            if self.track:
-                temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi_old,sources)
-                allmat_sca = np.hstack((allmat_sca,temp_scatter))
-                allmat_fis = np.hstack((allmat_fis,temp_fission))
+            # if self.track:
+            #     temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi_old,sources)
+            #     allmat_sca = np.hstack((allmat_sca,temp_scatter))
+            #     allmat_fis = np.hstack((allmat_fis,temp_fission))
             print('Outer Transport Iteration {}\n==================================='.format(count))
-            phi = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
+            if self.track == 'scatter':
+                phi,temp_scatter = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
+                enrich = str(np.amax(self.enrich)).split('.')[1]
+                np.save('mydata/track_plastic/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter)
+                # allmat_sca = np.hstack((allmat_sca,temp_scatter))
+            else:
+                phi = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
             keff = np.linalg.norm(phi)
             phi /= keff
             kchange = abs(keff-k_old)
@@ -431,7 +442,7 @@ class eigen_symm:
             k_old = keff
             sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old) 
         if self.track:
-            return phi,track_k,allmat_fis,allmat_sca
+            return phi,track_k#,allmat_fis,allmat_sca
         return phi,keff
     
 class eigen_djinn_symm:
@@ -454,7 +465,7 @@ class eigen_djinn_symm:
         self.track = track
         self.label = label
                     
-    def one_group(self,total,scatter,djinn_1g,external,guess,tol=1e-08,MAX_ITS=100):
+    def one_group(self,total,scatter,djinn_1g,model,group,totalPhi,external,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
             total: I x 1 vector of the total cross section for each spatial cell
             scatter: I x 1 array for the scattering of the spatial cell by moment
@@ -482,6 +493,9 @@ class eigen_djinn_symm:
                 top_mult = (weight-half_total).astype('float64')
                 bottom_mult = (1/(weight+half_total)).astype('float64')
                 if self.dtype == 'scatter' or self.dtype == 'both':
+                    # djinn_scatter_ns = eigen_djinn_symm.label_model(self,phi_old,model)
+                    # djinn_scatter = eigen_djinn_symm.scale_scatter(self,phi_old,djinn_scatter_ns)
+                    # temp_scat = np.concatenate([sn.cat(scatter*phi_old,self.splits['keep']),djinn_scatter]).astype('float64')
                     # djinn_1g should be length I'
                     temp_scat = np.concatenate([sn.cat(scatter*phi_old,self.splits['keep']),djinn_1g]).astype('float64')
                 else:
@@ -505,13 +519,21 @@ class eigen_djinn_symm:
                 #     psi_top = psi_bottom
                 #     psi_bottom = (temp_scat[ii] + external[ii] + psi_top * top_mult[ii])*(bottom_mult[ii])
                 #     phi[ii] = phi[ii] +  (self.w[n]* func.diamond_diff(psi_top,psi_bottom))
-            
+            if self.dtype == 'scatter':
+                # print('Update {} {}'.format(count,group))
+                djinn_1g = eigen_djinn_symm.update_phi(self,totalPhi,phi,group,model)
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
         return phi
         
+    def update_phi(self,CompletePhi,phi,g,model):
+        CompletePhi[:,g] = phi.copy()
+        djinn_scatter_ns = eigen_djinn_symm.label_model(self,CompletePhi,model)
+        djinn_scatter = eigen_djinn_symm.scale_scatter(self,CompletePhi,djinn_scatter_ns)
+        return djinn_scatter[:,g]
+    
     def multi_group(self,total,scatter,chiNuFission,model,tol=1e-08,MAX_ITS=100,initial=None):
         # self,self.G,self.N,self.mu,self.w,self.total,self.scatter,self.L,sources,model_scatter,djinn_scatter,self.I,self.delta,
         """ Arguments:
@@ -523,22 +545,31 @@ class eigen_djinn_symm:
         Returns:
             phi: a I x G array  """
         import numpy as np
-        # from discrete1.util import sn
+        # from discrete1.util import sn 
         phi_old = np.zeros((self.I,self.G))
         converged = 0
         count = 1
+        if self.track == 'scatter':
+            allmat_sca = np.zeros((2,0,self.G+1))
         while not (converged):
             phi = np.zeros(phi_old.shape)
             if self.dtype == 'scatter' or self.dtype == 'both':
-                if count == 1 and initial is not None: #initialize 
-                    print('Initializing Scattering DJINN')
+                if count == 1: # and initial is not None: #initialize 
+                    # print('Initializing Scattering DJINN')
                     djinn_scatter_ns = eigen_djinn_symm.label_model(self,initial,model)
                     djinn_scatter = eigen_djinn_symm.scale_scatter(self,initial,djinn_scatter_ns)
+                    complete_phi = initial.copy()
+                    print('Got Here')
                 else:
                     djinn_scatter_ns = eigen_djinn_symm.label_model(self,phi_old,model)
                     djinn_scatter = eigen_djinn_symm.scale_scatter(self,phi_old,djinn_scatter_ns)
+                    complete_phi = phi_old.copy()
                 for g in range(self.G):
-                    phi[:,g] = eigen_djinn_symm.one_group(self,total[:,g],scatter[:,g,g],djinn_scatter[:,g],chiNuFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
+                    phi[:,g] = eigen_djinn_symm.one_group(self,total[:,g],scatter[:,g,g],djinn_scatter[:,g],model,g,complete_phi,chiNuFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
+                    complete_phi[:,g] = phi[:,g].copy()
+                if self.track == 'scatter':
+                    temp_fission,temp_scatter = eigen_djinn_symm.tracking_data(self,phi,None)
+                    allmat_sca = np.hstack((allmat_sca,temp_scatter))
             elif self.dtype == 'fission':
                 for g in range(self.G):
                     if g == 0:
@@ -550,6 +581,8 @@ class eigen_djinn_symm:
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
+        if self.track == 'scatter':
+            return phi, allmat_sca
         return phi
     
     def label_model(self,phi,model_):
@@ -617,13 +650,18 @@ class eigen_djinn_symm:
         import numpy as np
         from discrete1.util import sn
         self.process = process
-        phi_old = np.random.rand(self.I,self.G)
-        phi_old /= np.linalg.norm(phi_old)
+        # phi_old = np.random.rand(self.I,self.G)
+        # phi_old /= np.linalg.norm(phi_old)
         # Load DJINN model            
         model_scatter,model_fission = sn.djinn_load(model_name,self.dtype)
         # Label and predict the fission data
-        dj_init = np.load('mydata/djinn_true_1d/phi2_15.npy')
-        # dj_init /= np.linalg.norm(dj_init,axis=1)[:,None]
+        dj_init = np.load('mydata/djinn_true_1d/phi2_15.npy')*5
+        phi_old = dj_init.copy() 
+        # dj_init = np.vstack((np.zeros((450,87)),np.load('mydata/track_scatter/enrich_15_count_001.npy')[0,23100:,1:]))
+        # print(dj_init.shape)
+        # phi_old = np.load('mydata/djinn_true_1d/phi2_15.npy')
+        if self.process == 'norm':
+            dj_init /= np.linalg.norm(dj_init,axis=1)[:,None]
         if self.dtype == 'both' or self.dtype == 'fission':
             djinn_fission_ns = eigen_djinn_symm.label_model(self,dj_init,model_fission)
         else:
@@ -634,20 +672,25 @@ class eigen_djinn_symm:
             allmat_fis = np.zeros((2,0,self.G+1))        
         sources = eigen_djinn_symm.scale_fission(self,dj_init,djinn_fission_ns)
         converged = 0
-        count = 1            
+        count = 1         
         while not (converged):
-            if self.track:
-                temp_fission,temp_scatter = eigen_djinn_symm.tracking_data(self,phi_old,sources)
-                allmat_sca = np.hstack((allmat_sca,temp_scatter))
-                allmat_fis = np.hstack((allmat_fis,temp_fission))
+            # if self.track:
+                # temp_fission,temp_scatter = eigen_djinn_symm.tracking_data(self,phi_old,sources)
+                # allmat_sca = np.hstack((allmat_sca,temp_scatter))
+                # allmat_fis = np.hstack((allmat_fis,temp_fission))                
             if LOUD:
                 print('Outer Transport Iteration {}\n==================================='.format(count))
             if count == 1:
                 initial = dj_init
             else:
-                initial = None
-            # initial = dj_init
-            phi = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=100,initial=initial)
+                initial = phi_old.copy()
+                # initial = np.load('mydata/djinn_true_1d/phi2_15.npy')
+            if self.track == 'scatter':
+                phi,temp_scatter = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=MAX_ITS,initial=initial)
+                enrich = str(np.amax(self.enrich)).split('.')[1]
+                np.save('mydata/track_scatter_reg_std2/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter)
+            else:    
+                phi = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=100,initial=initial)
             keff = np.linalg.norm(phi)
             phi /= keff
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))
@@ -661,6 +704,6 @@ class eigen_djinn_symm:
                 djinn_fission_ns = eigen_djinn_symm.label_model(self,phi_old,model_fission)
             # Scale DJINN fission or Get original sources
             sources = eigen_djinn_symm.scale_fission(self,phi_old,djinn_fission_ns)
-        if self.track:
-            return phi,keff,allmat_fis,allmat_sca
+        # if self.track:
+            # return phi,keff,allmat_fis,allmat_sca
         return phi,keff    

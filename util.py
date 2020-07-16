@@ -187,6 +187,14 @@ class sn:
         er = e[:, 1:n + 1:2]
         return er
     
+    def totalFissionRate(fission,phi,splits=None):
+        import numpy as np
+        if splits is not None:
+            from discrete1.util import sn
+            phi = sn.cat(phi,splits['djinn'])
+            fission = sn.cat(fission,splits['djinn'])
+        return np.sum(phi*np.sum(fission,axis=1),axis=1)
+    
 class nnets:
     """ Tools for autoencoders and neural networks """
     def unnormalize(scatter,maxi,mini,ind):

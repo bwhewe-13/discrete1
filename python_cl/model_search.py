@@ -4,6 +4,7 @@ import numpy as np
 from djinn import djinn
 import sklearn
 import argparse
+import glob
 
 parser = argparse.ArgumentParser(description='Which Search')
 parser.add_argument('-xs',action='store',dest='xs')
@@ -25,7 +26,12 @@ if usr_input.normed is None:
 else:
     file2 = usr_input.normed+'/'
 
-mymat = np.load('mydata/djinn_true_1d/{}_{}_data.npy'.format(usr_input.data,file1))
+# mymat = np.load('mydata/djinn_true_1d/{}_{}_data.npy'.format(usr_input.data,file1))
+# first = np.load('mydata/track_scatter/enrich_15_test.npy')
+first = np.load('mydata/djinn_true_1d/scatter2_15.npy')
+second = np.load('mydata/track_plastic/enrich_15_top5.npy')
+mymat = np.hstack((second,first))
+print(mymat.shape)
 if usr_input.label is None:
     X = mymat[0,:,1:].copy()
     # Normalize
@@ -53,10 +59,10 @@ else:
     Y = mymat[1,:,1:].copy() # Remove labels
     file3 = '_label/'
 
-num_trees = [1,3,5]
-# num_trees = [1] 
-# num_depth = [2,4] 
-num_depth = [2,4,6] 
+# num_trees = [1,3,5]
+num_trees = [3] 
+num_depth = [2,4] 
+# num_depth = [2,4,6] 
 
 split = 0.2
 try:
