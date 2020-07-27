@@ -15,19 +15,32 @@ class func:
         import numpy as np
         return np.sum(scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
     
-class eigen_djinn:        
-    def variables(conc=None,distance=None,symm=False):
+class problem:        
+    def variables(conc=None,ptype=None,distance=None,symm=False):
         from discrete1.util import chem,sn
         import numpy as np
-        
-        distance = [45,35,20]
+        if ptype is None or ptype == 'ss440' or ptype == 'carbon_full':
+            distance = [45,35,20]
+        elif ptype == 'multiplastic':
+            distance = [10]*8; distance.append(20)
+        elif ptype == 'mixed1':
+            distance = [45,5,25,5,20]
+            conc = [0.12,0.27]
+        elif ptype == 'noplastic':
+            distance = [35,20]
+        elif ptype == 'ss440_flip':
+            distance = [20,35,45]
         delta = 0.1
         if conc is None:
             conc = 0.2
         print('Concentration: ',conc)
         # Layer densities
         density_uh3 = 10.95; density_ch3 = 0.97
-        uh3_density = chem.density_list('UH3',density_uh3,conc)
+        if ptype == 'mixed1':
+            uh3_density_low = chem.density_list('UH3',density_uh3,conc[0])
+            uh3_density = chem.density_list('UH3',density_uh3,conc[1])
+        else:
+            uh3_density = chem.density_list('UH3',density_uh3,conc)
         hdpe_density = chem.density_list('CH3',density_ch3)
         uh3_238_density = chem.density_list('U^238H3',density_uh3)
     
@@ -40,6 +53,8 @@ class eigen_djinn:
         c12scatter = np.load('mydata/cnat/scatter_0{}.npy'.format(spec_temp))[0]
     
         uh3_scatter = uh3_density[0]*u235scatter + uh3_density[1]*u238scatter + uh3_density[2]*h1scatter
+        if ptype == 'mixed1':
+            uh3_scatter_low = uh3_density_low[0]*u235scatter + uh3_density_low[1]*u238scatter + uh3_density_low[2]*h1scatter
         hdpe_scatter = hdpe_density[0]*c12scatter + hdpe_density[1]*h1scatter
         uh3_238_scatter = uh3_238_density[0]*u238scatter + uh3_238_density[1]*h1scatter
     
@@ -50,6 +65,8 @@ class eigen_djinn:
         c12total = np.load('mydata/cnat/vecTotal.npy')[eval(spec_temp)]
     
         uh3_total = uh3_density[0]*u235total + uh3_density[1]*u238total + uh3_density[2]*h1total
+        if ptype == 'mixed1':
+            uh3_total_low = uh3_density_low[0]*u235total + uh3_density_low[1]*u238total + uh3_density_low[2]*h1total
         hdpe_total = hdpe_density[0]*c12total + hdpe_density[1]*h1total
         uh3_238_total = uh3_238_density[0]*u238total + uh3_238_density[1]*h1total
     
@@ -58,14 +75,45 @@ class eigen_djinn:
         u238fission = np.load('mydata/u238/nufission_0{}.npy'.format(spec_temp))[0]
     
         uh3_fission = uh3_density[0]*u235fission + uh3_density[1]*u238fission
+        if ptype == 'mixed1':
+            uh3_fission_low = uh3_density_low[0]*u235fission + uh3_density_low[1]*u238fission
         uh3_238_fission = uh3_238_density[0]*u238fission
         hdpe_fission = np.zeros((dim,dim))
     
         # Cross section layers
-        xs_scatter = [hdpe_scatter.T,uh3_scatter.T,uh3_238_scatter.T,uh3_scatter.T,hdpe_scatter.T]
-        xs_total = [hdpe_total,uh3_total,uh3_238_total,uh3_total,hdpe_total]
-        xs_fission = [hdpe_fission.T,uh3_fission.T,uh3_238_fission.T,uh3_fission.T,hdpe_fission.T]
-    
+        if ptype is None or ptype == 'blur' or ptype == 'carbon_full':
+            xs_scatter = [hdpe_scatter.T,uh3_scatter.T,uh3_238_scatter.T]
+            xs_total = [hdpe_total,uh3_total,uh3_238_total]
+            xs_fission = [hdpe_fission.T,uh3_fission.T,uh3_238_fission.T]
+        elif ptype == 'mixed1':
+            xs_scatter = [hdpe_scatter.T,uh3_scatter_low.T,uh3_scatter.T,uh3_scatter_low.T,uh3_238_scatter.T]
+            xs_total = [hdpe_total,uh3_total_low,uh3_total,uh3_total_low,uh3_238_total]
+            xs_fission = [hdpe_fission.T,uh3_fission_low.T,uh3_fission.T,uh3_fission_low.T,uh3_238_fission.T]
+        elif ptype == 'multiplastic':
+            xs_scatter = []; xs_total = []; xs_fission = []
+            for ii in range(4):
+                xs_scatter.append(hdpe_scatter.T); xs_scatter.append(uh3_scatter.T)
+                xs_total.append(hdpe_total); xs_total.append(uh3_total)
+                xs_fission.append(hdpe_fission.T); xs_fission.append(uh3_fission.T)
+            xs_scatter.append(uh3_238_scatter.T)
+            xs_total.append(uh3_238_total)
+            xs_fission.append(uh3_238_fission.T)
+        elif ptype == 'ss440':
+            print('Using Stainless Steel')
+            ss_total,ss_scatter = chem.xs_ss440(dim, spec_temp)
+            xs_scatter = [ss_scatter.T,uh3_scatter.T,uh3_238_scatter.T]
+            xs_total = [ss_total,uh3_total,uh3_238_total]
+            xs_fission = [hdpe_fission.T,uh3_fission.T,uh3_238_fission.T]
+        elif ptype == 'ss440_flip':
+            print('Using FLIPPED Stainless Steel')
+            ss_total,ss_scatter = chem.xs_ss440(dim, spec_temp)
+            xs_scatter = [uh3_238_scatter.T,uh3_scatter.T,ss_scatter.T]
+            xs_total = [uh3_238_total,uh3_total,ss_total]
+            xs_fission = [uh3_238_fission.T,uh3_fission.T,hdpe_fission.T]
+        elif ptype == 'noplastic':
+            xs_scatter = [uh3_scatter.T,uh3_238_scatter.T]
+            xs_total = [uh3_total,uh3_238_total]
+            xs_fission = [uh3_fission.T,uh3_238_fission.T]
         # Setting up eigenvalue equation
         N = 8; L = 0; R = sum(distance); G = dim
         mu,w = np.polynomial.legendre.leggauss(N)
@@ -83,194 +131,44 @@ class eigen_djinn:
         
         return G,N,mu,w,total_,scatter_[:,0],fission_,L,R,I
     
-    def boundaries(conc,distance=None,symm=False):
-        # import numpy as np
-        from discrete1.util import sn
-        #distance = [50,35,40,35,50]
-        distance = [45,35,20]
-        # distance = [45,5,25,5,20]
-        delta = 0.1
-        layers = [int(ii/delta) for ii in distance]
-        if symm:
-            splits = sn.layer_slice(layers,half=False)
-        else:
-            splits = sn.layer_slice(layers)
-        # conc is uh3 enrich while 0 is depleted uranium
-        enrichment = sn.enrich_list(sum(layers),[conc,0],[splits[1],splits[2]])
-        return enrichment,sn.layer_slice_dict(layers,half=not symm)
-    
-    def boundaries_blur(conc,distance=None,symm=False):
-        from discrete1.util import sn
-        distance = [47,33,20]
-        delta = 0.1
-        layers = [int(ii/delta) for ii in distance]
-        if symm:
-            splits = sn.layer_slice(layers,half=False)
-        else:
-            splits = sn.layer_slice(layers)
-        # conc is uh3 enrich while 0 is depleted uranium
-        enrichment = sn.enrich_list(sum(layers),[conc,0],[splits[1],splits[2]])
-        return enrichment,sn.layer_slice_dict(layers,half=not symm)
-    
-    def variables_mixed(conc=None,distance=None,symm=False):
-        """ Mixed Enriched Uranium Zone """
-        from discrete1.util import chem,sn
+    def boundaries(conc,ptype=None,distance=None,symm=False):
         import numpy as np
-        
-        distance = [45,5,25,5,20]
-        delta = 0.1
-        if conc is None:
-            conc = [0.12,0.27]
-        print('Concentration: ',conc)
-        # Layer densities
-        density_uh3 = 10.95; density_ch3 = 0.97
-        uh3_density_low = chem.density_list('UH3',density_uh3,conc[0])
-        uh3_density_high = chem.density_list('UH3',density_uh3,conc[1])
-        hdpe_density = chem.density_list('CH3',density_ch3)
-        uh3_238_density = chem.density_list('U^238H3',density_uh3)
-    
-        # Loading Cross Section Data
-        dim = 87; spec_temp = '00'
-        # Scattering Cross Section
-        u235scatter = np.load('mydata/u235/scatter_0{}.npy'.format(spec_temp))[0]
-        u238scatter = np.load('mydata/u238/scatter_0{}.npy'.format(spec_temp))[0]
-        h1scatter = np.load('mydata/h1/scatter_0{}.npy'.format(spec_temp))[0]
-        c12scatter = np.load('mydata/cnat/scatter_0{}.npy'.format(spec_temp))[0]
-    
-        uh3_scatter_low = uh3_density_low[0]*u235scatter + uh3_density_low[1]*u238scatter + uh3_density_low[2]*h1scatter
-        uh3_scatter_high = uh3_density_high[0]*u235scatter + uh3_density_high[1]*u238scatter + uh3_density_high[2]*h1scatter
-        hdpe_scatter = hdpe_density[0]*c12scatter + hdpe_density[1]*h1scatter
-        uh3_238_scatter = uh3_238_density[0]*u238scatter + uh3_238_density[1]*h1scatter
-    
-        # Total Cross Section
-        u235total = np.load('mydata/u235/vecTotal.npy')[eval(spec_temp)]
-        u238total = np.load('mydata/u238/vecTotal.npy')[eval(spec_temp)]
-        h1total = np.load('mydata/h1/vecTotal.npy')[eval(spec_temp)]
-        c12total = np.load('mydata/cnat/vecTotal.npy')[eval(spec_temp)]
-    
-        uh3_total_low = uh3_density_low[0]*u235total + uh3_density_low[1]*u238total + uh3_density_low[2]*h1total
-        uh3_total_high = uh3_density_high[0]*u235total + uh3_density_high[1]*u238total + uh3_density_high[2]*h1total
-        hdpe_total = hdpe_density[0]*c12total + hdpe_density[1]*h1total
-        uh3_238_total = uh3_238_density[0]*u238total + uh3_238_density[1]*h1total
-    
-        # Fission Cross Section
-        u235fission = np.load('mydata/u235/nufission_0{}.npy'.format(spec_temp))[0]
-        u238fission = np.load('mydata/u238/nufission_0{}.npy'.format(spec_temp))[0]
-    
-        uh3_fission_low = uh3_density_low[0]*u235fission + uh3_density_low[1]*u238fission
-        uh3_fission_high = uh3_density_high[0]*u235fission + uh3_density_high[1]*u238fission
-        uh3_238_fission = uh3_238_density[0]*u238fission
-        hdpe_fission = np.zeros((dim,dim))
-    
-        # Cross section layers
-        xs_scatter = [hdpe_scatter.T,uh3_scatter_low.T,uh3_scatter_high.T,uh3_scatter_low.T,uh3_238_scatter.T]
-        xs_total = [hdpe_total,uh3_total_low,uh3_total_high,uh3_total_low,uh3_238_total]
-        xs_fission = [hdpe_fission.T,uh3_fission_low.T,uh3_fission_high.T,uh3_fission_low.T,uh3_238_fission.T]
-    
-        # Setting up eigenvalue equation
-        N = 8; L = 0; R = sum(distance); G = dim
-        mu,w = np.polynomial.legendre.leggauss(N)
-        w /= np.sum(w)
-        if symm:
-            mu = mu[int(N*0.5):]
-            w = w[int(N*0.5):]
-            N = int(N*0.5) 
-        layers = [int(ii/delta) for ii in distance]
-        I = int(sum(layers))
-    
-        scatter_ = sn.mixed_propagate(xs_scatter,layers,G=dim,L=L,dtype='scatter')
-        fission_ = sn.mixed_propagate(xs_fission,layers,G=dim,dtype='fission2')
-        total_ = sn.mixed_propagate(xs_total,layers,G=dim)
-        
-        return G,N,mu,w,total_,scatter_[:,0],fission_,L,R,I
-        
-    def boundaries_mixed(conc,distance=None,symm=False):
-        # import numpy as np
         from discrete1.util import sn
-        distance = [45,5,25,5,20]
+        if ptype is None or ptype == 'ss440':
+            distance = [45,35,20]
+            ment = [conc,0]
+            where = [1,2]
+        elif ptype == 'multiplastic':
+            distance = [10]*8; distance.append(20)
+            ment = [conc]*4; ment.append(0)
+            where = [1,3,5,7,8]
+        elif ptype ==  'mixed1':
+            distance = [45,5,25,5,20]
+            ment = [0.12,0.27,0.12,0]
+            where = [1,2,3,4]
+        elif ptype == 'blur':
+            distance = [47,33,20]
+            ment = [conc,0]
+            where = [1,2]
+        elif ptype == 'noplastic':
+            distance = [35,20]
+            ment = [conc,0]
+            where = [0,1]
+        elif ptype == 'ss440_flip':
+            distance = [20,35,45]
+            ment = [0,conc]
+            where = [0,1]
+        elif ptype == 'carbon_full':
+            distance = [45,35,20]
+            ment = [0,conc,0]
+            where = [0,1,2]
         delta = 0.1
         layers = [int(ii/delta) for ii in distance]
-        splits = sn.layer_slice(layers,half=False)
+        splits = np.array(sn.layer_slice(layers))
         # conc is uh3 enrich while 0 is depleted uranium
-        enrichment = sn.enrich_list(sum(layers),[0.12,0.27,0.12,0],[splits[1],splits[2],splits[3],splits[4]])
-        return enrichment,sn.layer_slice_dict_mixed(layers,half=not symm)
-        
-    def variables_noplastic(conc=None,distance=None,symm=False):
-        """ Mixed Enriched Uranium Zone """
-        from discrete1.util import chem,sn
-        import numpy as np
-        
-        distance = [35,20]
-        delta = 0.1
-        if conc is None:
-            conc = 0.15
-        print('Concentration: ',conc)
-        # Layer densities
-        density_uh3 = 10.95; 
-        uh3_density = chem.density_list('UH3',density_uh3,conc)
-        uh3_238_density = chem.density_list('U^238H3',density_uh3)
-    
-        # Loading Cross Section Data
-        dim = 87; spec_temp = '00'
-        # Scattering Cross Section
-        u235scatter = np.load('mydata/u235/scatter_0{}.npy'.format(spec_temp))[0]
-        u238scatter = np.load('mydata/u238/scatter_0{}.npy'.format(spec_temp))[0]
-        h1scatter = np.load('mydata/h1/scatter_0{}.npy'.format(spec_temp))[0]
-        
-    
-        uh3_scatter = uh3_density[0]*u235scatter + uh3_density[1]*u238scatter + uh3_density[2]*h1scatter
-        uh3_238_scatter = uh3_238_density[0]*u238scatter + uh3_238_density[1]*h1scatter
-    
-        # Total Cross Section
-        u235total = np.load('mydata/u235/vecTotal.npy')[eval(spec_temp)]
-        u238total = np.load('mydata/u238/vecTotal.npy')[eval(spec_temp)]
-        h1total = np.load('mydata/h1/vecTotal.npy')[eval(spec_temp)]
-    
-        uh3_total = uh3_density[0]*u235total + uh3_density[1]*u238total + uh3_density[2]*h1total
-        uh3_238_total = uh3_238_density[0]*u238total + uh3_238_density[1]*h1total
-    
-        # Fission Cross Section
-        u235fission = np.load('mydata/u235/nufission_0{}.npy'.format(spec_temp))[0]
-        u238fission = np.load('mydata/u238/nufission_0{}.npy'.format(spec_temp))[0]
-    
-        uh3_fission = uh3_density[0]*u235fission + uh3_density[1]*u238fission
-        uh3_238_fission = uh3_238_density[0]*u238fission
-            
-        # Cross section layers
-        xs_scatter = [uh3_scatter.T,uh3_238_scatter.T]
-        xs_total = [uh3_total,uh3_238_total]
-        xs_fission = [uh3_fission.T,uh3_238_fission.T]
-    
-        # Setting up eigenvalue equation
-        N = 8; L = 0; R = sum(distance); G = dim
-        mu,w = np.polynomial.legendre.leggauss(N)
-        w /= np.sum(w)
-        if symm:
-            mu = mu[int(N*0.5):]
-            w = w[int(N*0.5):]
-            N = int(N*0.5) 
-        layers = [int(ii/delta) for ii in distance]
-        I = int(sum(layers))
-    
-        scatter_ = sn.mixed_propagate(xs_scatter,layers,G=dim,L=L,dtype='scatter')
-        fission_ = sn.mixed_propagate(xs_fission,layers,G=dim,dtype='fission2')
-        total_ = sn.mixed_propagate(xs_total,layers,G=dim)
-        
-        return G,N,mu,w,total_,scatter_[:,0],fission_,L,R,I
-    
-    def boundaries_noplastic(conc,distance=None,symm=False):
-        # import numpy as np
-        from discrete1.util import sn
-        distance = [35,20]
-        delta = 0.1
-        layers = [int(ii/delta) for ii in distance]
-        splits = sn.layer_slice(layers,half=False)
-        # conc is uh3 enrich while 0 is depleted uranium
-        mydict = {}
-        mydict['djinn'] = splits
-        enrichment = sn.enrich_list(sum(layers),[conc,0],splits)
-        return enrichment,mydict
-    
+        enrichment = sn.enrich_list(sum(layers),ment,splits[where].tolist())
+        return enrichment,sn.layer_slice_dict(layers,where)
+     
 class eigen_symm:
     def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,track=False,enrich=None,splits=None):
         self.G = G
@@ -363,32 +261,35 @@ class eigen_symm:
                     q_tilde = nuChiFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g) + func.update_q(scatter,phi,0,g,g)
                 phi[:,g] = eigen_symm.one_group(self,total[:,g],scatter[:,g,g],q_tilde,tol=tol,MAX_ITS=MAX_ITS,guess=phi_old[:,g])
             if self.track == "scatter":
-                temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi,None)
+                temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi,np.empty((1000,87)))
                 allmat_sca = np.hstack((allmat_sca,temp_scatter))
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
         if self.track == 'scatter':
-            return phi, allmat_sca
+            return phi,allmat_sca
         return phi
             
     def tracking_data(self,phi,sources=None):
         from discrete1.util import sn
         import numpy as np
         labels = sn.cat(self.enrich,self.splits)
+        # print(labels.shape)
         short_phi = sn.cat(phi,self.splits)
         labeled_phi = np.hstack((labels[:,None],short_phi))
-        if self.track == 'scatter':
-            multiplier = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits)
-            labeled_mult = np.hstack((labels[:,None],multiplier))
-            return None,np.vstack((labeled_phi[None,:,:],labeled_mult[None,:,:]))
-            # print(allmat_sca.shape)
-        elif self.track == 'fission':
-            short_fission = np.hstack((labels[:,None],sn.cat(sources,self.splits)))
-            return np.vstack((labeled_phi[None,:,:],short_fission[None,:,:])),None
+        # if self.track == 'scatter':
+        #     multiplier = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits)
+        #     labeled_mult = np.hstack((labels[:,None],multiplier))
+        #     return None,np.vstack((labeled_phi[None,:,:],labeled_mult[None,:,:]))
+        #     # print(allmat_sca.shape)
+        # elif self.track == 'fission':
+        #     short_fission = np.hstack((labels[:,None],sn.cat(sources,self.splits)))
+        #     return np.vstack((labeled_phi[None,:,:],short_fission[None,:,:])),None
         multiplier = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits)
         labeled_mult = np.hstack((labels[:,None],multiplier))
+        # print(sources.shape,self.splits)
+        # print(labels.shape)
         short_fission = np.hstack((labels[:,None],sn.cat(sources,self.splits)))
         return np.vstack((labeled_phi[None,:,:],short_fission[None,:,:])),np.vstack((labeled_phi[None,:,:],labeled_mult[None,:,:]))
             
@@ -413,19 +314,20 @@ class eigen_symm:
             allmat_fis = np.zeros((2,0,self.G+1))
         sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old) 
         if self.track == 'scatter':
-            temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi_old)
+            temp_fission2,temp_scatter2 = eigen_symm.tracking_data(self,phi_old,sources)
             enrich = str(np.amax(self.enrich)).split('.')[1]
-            np.save('mydata/track_plastic/enrich_{:<02}_count_000'.format(enrich),temp_scatter)
+            np.save('mydata/track_stainless/enrich_{:<02}_count_000'.format(enrich),temp_scatter2)
         while not (converged):
-            # if self.track:
-            #     temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi_old,sources)
-            #     allmat_sca = np.hstack((allmat_sca,temp_scatter))
-            #     allmat_fis = np.hstack((allmat_fis,temp_fission))
+            if self.track:
+                temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi_old,sources)
+                # print(temp_fission.shape,temp_scatter.shape)
+                allmat_sca = np.hstack((allmat_sca,temp_scatter))
+                allmat_fis = np.hstack((allmat_fis,temp_fission))
             print('Outer Transport Iteration {}\n==================================='.format(count))
             if self.track == 'scatter':
-                phi,temp_scatter = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
+                phi,temp_scatter2 = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
                 enrich = str(np.amax(self.enrich)).split('.')[1]
-                np.save('mydata/track_plastic/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter)
+                np.save('mydata/track_stainless/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter2)
                 # allmat_sca = np.hstack((allmat_sca,temp_scatter))
             else:
                 phi = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
@@ -442,7 +344,7 @@ class eigen_symm:
             k_old = keff
             sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old) 
         if self.track:
-            return phi,track_k#,allmat_fis,allmat_sca
+            return phi,track_k,allmat_fis,allmat_sca
         return phi,keff
     
 class eigen_djinn_symm:
@@ -492,12 +394,13 @@ class eigen_djinn_symm:
                 weight = self.mu[n]*self.inv_delta
                 top_mult = (weight-half_total).astype('float64')
                 bottom_mult = (1/(weight+half_total)).astype('float64')
-                if self.dtype == 'scatter' or self.dtype == 'both':
+                if (self.dtype == 'scatter' or self.dtype == 'both'):
                     # djinn_scatter_ns = eigen_djinn_symm.label_model(self,phi_old,model)
                     # djinn_scatter = eigen_djinn_symm.scale_scatter(self,phi_old,djinn_scatter_ns)
                     # temp_scat = np.concatenate([sn.cat(scatter*phi_old,self.splits['keep']),djinn_scatter]).astype('float64')
                     # djinn_1g should be length I'
-                    temp_scat = np.concatenate([sn.cat(scatter*phi_old,self.splits['keep']),djinn_1g]).astype('float64')
+                    temp_scat = sn.pops_robust((self.I,),sn.cat(scatter*phi_old,self.splits['keep']),djinn_1g,self.splits).astype('float64')
+                    # temp_scat = np.concatenate([sn.cat(scatter*phi_old,self.splits['keep']),djinn_1g]).astype('float64')
                 else:
                     temp_scat = (scatter * phi_old).astype('float64')
                 # Set Pointers for C function
@@ -519,9 +422,9 @@ class eigen_djinn_symm:
                 #     psi_top = psi_bottom
                 #     psi_bottom = (temp_scat[ii] + external[ii] + psi_top * top_mult[ii])*(bottom_mult[ii])
                 #     phi[ii] = phi[ii] +  (self.w[n]* func.diamond_diff(psi_top,psi_bottom))
-            if self.dtype == 'scatter':
-                # print('Update {} {}'.format(count,group))
-                djinn_1g = eigen_djinn_symm.update_phi(self,totalPhi,phi,group,model)
+            # if self.dtype == 'scatter' and count > 30:
+                # # print('Update {} {}'.format(count,group))
+                # djinn_1g = eigen_djinn_symm.update_phi(self,totalPhi,phi,group,model)                
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
@@ -554,19 +457,24 @@ class eigen_djinn_symm:
         while not (converged):
             phi = np.zeros(phi_old.shape)
             if self.dtype == 'scatter' or self.dtype == 'both':
-                if count == 1: # and initial is not None: #initialize 
-                    # print('Initializing Scattering DJINN')
-                    djinn_scatter_ns = eigen_djinn_symm.label_model(self,initial,model)
-                    djinn_scatter = eigen_djinn_symm.scale_scatter(self,initial,djinn_scatter_ns)
-                    complete_phi = initial.copy()
-                    print('Got Here')
+                if (np.sum(phi_old) == 0):
+                    djinn_scatter = np.zeros(phi_old.shape)
                 else:
                     djinn_scatter_ns = eigen_djinn_symm.label_model(self,phi_old,model)
                     djinn_scatter = eigen_djinn_symm.scale_scatter(self,phi_old,djinn_scatter_ns)
-                    complete_phi = phi_old.copy()
+                # if count == 1: # and initial is not None: #initialize 
+                #     # print('Initializing Scattering DJINN')
+                #     djinn_scatter_ns = eigen_djinn_symm.label_model(self,initial,model)
+                #     djinn_scatter = eigen_djinn_symm.scale_scatter(self,initial,djinn_scatter_ns)
+                #     # complete_phi = initial.copy()
+                #     # print('Got Here')
+                # else:
+                #     djinn_scatter_ns = eigen_djinn_symm.label_model(self,phi_old,model)
+                #     djinn_scatter = eigen_djinn_symm.scale_scatter(self,phi_old,djinn_scatter_ns)
+                    # complete_phi = phi_old.copy()                
                 for g in range(self.G):
-                    phi[:,g] = eigen_djinn_symm.one_group(self,total[:,g],scatter[:,g,g],djinn_scatter[:,g],model,g,complete_phi,chiNuFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
-                    complete_phi[:,g] = phi[:,g].copy()
+                    phi[:,g] = eigen_djinn_symm.one_group(self,total[:,g],scatter[:,g,g],djinn_scatter[:,g],model,g,None,chiNuFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
+                    # complete_phi[:,g] = phi[:,g].copy()
                 if self.track == 'scatter':
                     temp_fission,temp_scatter = eigen_djinn_symm.tracking_data(self,phi,None)
                     allmat_sca = np.hstack((allmat_sca,temp_scatter))
@@ -576,7 +484,7 @@ class eigen_djinn_symm:
                         q_tilde = chiNuFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g)
                     else:
                         q_tilde = chiNuFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g) + func.update_q(scatter,phi,0,g,g)
-                    phi[:,g] = eigen_djinn_symm.one_group(self,total[:,g],scatter[:,g,g],None,q_tilde,phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
+                    phi[:,g] = eigen_djinn_symm.one_group(self,total[:,g],scatter[:,g,g],None,None,None,None,q_tilde,phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
@@ -591,8 +499,8 @@ class eigen_djinn_symm:
         if np.sum(phi) == 0:
             return np.zeros((sn.cat(phi,self.splits['djinn']).shape))
         short_phi = sn.cat(phi,self.splits['djinn'])
-        if self.process == 'norm':
-            short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]
+        # if self.process == 'norm':
+        #     short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]
         if self.label:
             short_phi = np.hstack((sn.cat(self.enrich,self.splits['djinn'])[:,None],short_phi))
         return model_.predict(short_phi) 
@@ -616,7 +524,7 @@ class eigen_djinn_symm:
         interest = sn.cat(phi,self.splits['djinn'])
         scale = np.sum(interest*np.sum(sn.cat(self.chiNuFission,self.splits['djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
         regular = np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits['keep']),sn.cat(phi,self.splits['keep']))
-        return np.vstack((regular,scale[:,None]*djinn_ns))
+        return sn.pops_robust(phi.shape,regular,scale[:,None]*djinn_ns,self.splits)
         
     def tracking_data(self,phi,sources=None):
         from discrete1.util import sn
@@ -637,7 +545,7 @@ class eigen_djinn_symm:
         short_fission = np.hstack((labels[:,None],sn.cat(sources,self.splits['djinn'])))
         return np.vstack((labeled_phi[None,:,:],short_fission[None,:,:])),np.vstack((labeled_phi[None,:,:],labeled_mult[None,:,:]))
         
-    def transport(self,model_name,process,tol=1e-12,MAX_ITS=100,LOUD=True):
+    def transport(self,model_name,process,ptype=None,tol=1e-12,MAX_ITS=100,LOUD=True):
         """ EIGEN DJINN SYMM
         Arguments:
             model_name: File location of DJINN model
@@ -655,11 +563,15 @@ class eigen_djinn_symm:
         # Load DJINN model            
         model_scatter,model_fission = sn.djinn_load(model_name,self.dtype)
         # Label and predict the fission data
-        dj_init = np.load('mydata/djinn_true_1d/phi2_15.npy')*5
+        if ptype is None or ptype == 'carbon_full':
+            dj_init = np.load('discrete1/data/phi_orig_15.npy')
+        elif ptype == 'ss440':
+            dj_init = np.load('discrete1/data/phi_ss_15.npy')
+        elif ptype == 'ss440_flip':
+            dj_init = np.load('discrete1/data/phi_ss_flip_15.npy')
+        elif ptype == 'multiplastic':
+            dj_init = np.load('discrete1/data/phi_mp_15.npy')
         phi_old = dj_init.copy() 
-        # dj_init = np.vstack((np.zeros((450,87)),np.load('mydata/track_scatter/enrich_15_count_001.npy')[0,23100:,1:]))
-        # print(dj_init.shape)
-        # phi_old = np.load('mydata/djinn_true_1d/phi2_15.npy')
         if self.process == 'norm':
             dj_init /= np.linalg.norm(dj_init,axis=1)[:,None]
         if self.dtype == 'both' or self.dtype == 'fission':
@@ -667,9 +579,9 @@ class eigen_djinn_symm:
         else:
             djinn_fission_ns = 0
         # Scale DJINN fission or Get original sources
-        if self.track:
-            allmat_sca = np.zeros((2,0,self.G+1))
-            allmat_fis = np.zeros((2,0,self.G+1))        
+        # if self.track:
+        #     allmat_sca = np.zeros((2,0,self.G+1))
+        #     allmat_fis = np.zeros((2,0,self.G+1))        
         sources = eigen_djinn_symm.scale_fission(self,dj_init,djinn_fission_ns)
         converged = 0
         count = 1         
@@ -688,7 +600,7 @@ class eigen_djinn_symm:
             if self.track == 'scatter':
                 phi,temp_scatter = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=MAX_ITS,initial=initial)
                 enrich = str(np.amax(self.enrich)).split('.')[1]
-                np.save('mydata/track_scatter_reg_std2/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter)
+                np.save('mydata/track_scatter_reg_std/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter)
             else:    
                 phi = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=100,initial=initial)
             keff = np.linalg.norm(phi)
