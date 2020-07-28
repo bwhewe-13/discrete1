@@ -19,7 +19,7 @@ class problem:
     def variables(conc=None,ptype=None,distance=None,symm=False):
         from discrete1.util import chem,sn
         import numpy as np
-        if ptype is None or ptype == 'ss440' or ptype == 'carbon_full':
+        if ptype is None or ptype == 'ss440' or ptype == 'carbon_full' or ptype == 'carbon':
             distance = [45,35,20]
         elif ptype == 'multiplastic':
             distance = [10]*8; distance.append(20)
@@ -81,7 +81,7 @@ class problem:
         hdpe_fission = np.zeros((dim,dim))
     
         # Cross section layers
-        if ptype is None or ptype == 'blur' or ptype == 'carbon_full':
+        if ptype is None or ptype == 'blur' or ptype == 'carbon_full' or ptype == 'carbon':
             xs_scatter = [hdpe_scatter.T,uh3_scatter.T,uh3_238_scatter.T]
             xs_total = [hdpe_total,uh3_total,uh3_238_total]
             xs_fission = [hdpe_fission.T,uh3_fission.T,uh3_238_fission.T]
@@ -131,10 +131,10 @@ class problem:
         
         return G,N,mu,w,total_,scatter_[:,0],fission_,L,R,I
     
-    def boundaries(conc,ptype=None,distance=None,symm=False):
+    def boundaries_aux(conc,ptype=None,distance=None,symm=False):
         import numpy as np
         from discrete1.util import sn
-        if ptype is None or ptype == 'ss440':
+        if ptype == 'carbon' or ptype == 'ss440':
             distance = [45,35,20]
             ment = [conc,0]
             where = [1,2]
@@ -158,7 +158,7 @@ class problem:
             distance = [20,35,45]
             ment = [0,conc]
             where = [0,1]
-        elif ptype == 'carbon_full':
+        elif ptype == 'carbon_full' or ptype == 'ss440_full':
             distance = [45,35,20]
             ment = [15.04,conc,0]
             where = [0,1,2]
@@ -172,6 +172,15 @@ class problem:
         # conc is uh3 enrich while 0 is depleted uranium
         enrichment = sn.enrich_list(sum(layers),ment,splits[where].tolist())
         return enrichment,sn.layer_slice_dict(layers,where)
+    
+    def boundaries(conc,ptype1=None,ptype2=None,distance=None,symm=False):
+        """ ptype1 is fission model, ptype2 is scatter model """
+        enrichment,splits = problem.boundaries_aux(conc,ptype1,distance,symm)
+        fission_splits = {f'fission_{kk}': vv for kk, vv in splits.items()}
+        enrichment,splits = problem.boundaries_aux(conc,ptype2,distance,symm)
+        scatter_splits = {f'scatter_{kk}': vv for kk, vv in splits.items()}
+        combo_splits = {**scatter_splits, **fission_splits}
+        return enrichment,combo_splits
      
 class eigen_symm:
     def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,track=False,enrich=None,splits=None):
@@ -403,7 +412,7 @@ class eigen_djinn_symm:
                     # djinn_scatter = eigen_djinn_symm.scale_scatter(self,phi_old,djinn_scatter_ns)
                     # temp_scat = np.concatenate([sn.cat(scatter*phi_old,self.splits['keep']),djinn_scatter]).astype('float64')
                     # djinn_1g should be length I'
-                    temp_scat = sn.pops_robust((self.I,),sn.cat(scatter*phi_old,self.splits['keep']),djinn_1g,self.splits).astype('float64')
+                    temp_scat = sn.pops_robust('scatter',(self.I,),sn.cat(scatter*phi_old,self.splits['scatter_keep']),djinn_1g,self.splits).astype('float64')
                     # temp_scat = np.concatenate([sn.cat(scatter*phi_old,self.splits['keep']),djinn_1g]).astype('float64')
                 else:
                     temp_scat = (scatter * phi_old).astype('float64')
@@ -464,7 +473,7 @@ class eigen_djinn_symm:
                 if (np.sum(phi_old) == 0):
                     djinn_scatter = np.zeros(phi_old.shape)
                 else:
-                    djinn_scatter_ns = eigen_djinn_symm.label_model(self,phi_old,model)
+                    djinn_scatter_ns = eigen_djinn_symm.label_model(self,'scatter',phi_old,model)
                     djinn_scatter = eigen_djinn_symm.scale_scatter(self,phi_old,djinn_scatter_ns)
                 # if count == 1: # and initial is not None: #initialize 
                 #     # print('Initializing Scattering DJINN')
@@ -497,38 +506,39 @@ class eigen_djinn_symm:
             return phi, allmat_sca
         return phi
     
-    def label_model(self,phi,model_):
+    def label_model(self,xs,phi,model_):
         import numpy as np
         from discrete1.util import sn
         if np.sum(phi) == 0:
-            return np.zeros((sn.cat(phi,self.splits['djinn']).shape))
-        short_phi = sn.cat(phi,self.splits['djinn'])
+            return np.zeros((sn.cat(phi,self.splits['{}_djinn'.format(xs)]).shape))
+        short_phi = sn.cat(phi,self.splits['{}_djinn'.format(xs)])
         # if self.process == 'norm':
         #     short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]
         if self.label:
-            short_phi = np.hstack((sn.cat(self.enrich,self.splits['djinn'])[:,None],short_phi))
+            short_phi = np.hstack((sn.cat(self.enrich,self.splits['{}_djinn'.format(xs)])[:,None],short_phi))
         return model_.predict(short_phi) 
 
     def scale_scatter(self,phi,djinn_ns):
         import numpy as np
         from discrete1.util import sn
         if np.sum(phi) == 0:
-            return np.zeros((sn.cat(phi,self.splits['djinn']).shape))
-        interest = sn.cat(phi,self.splits['djinn'])
-        scale = np.sum(interest*np.sum(sn.cat(self.scatter,self.splits['djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
+            return np.zeros((sn.cat(phi,self.splits['scatter_djinn']).shape))
+        interest = sn.cat(phi,self.splits['scatter_djinn'])
+        scale = np.sum(interest*np.sum(sn.cat(self.scatter,self.splits['scatter_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
         return scale[:,None]*djinn_ns
 
     def scale_fission(self,phi,djinn_ns):
         import numpy as np
         from discrete1.util import sn
         if np.sum(phi) == 0:
-            return np.zeros((sn.cat(phi,self.splits['djinn']).shape))
+            return np.zeros((sn.cat(phi,self.splits['fission_djinn']).shape))
         if self.dtype == 'scatter':
             return np.einsum('ijk,ik->ij',self.chiNuFission,phi) 
-        interest = sn.cat(phi,self.splits['djinn'])
-        scale = np.sum(interest*np.sum(sn.cat(self.chiNuFission,self.splits['djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
-        regular = np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits['keep']),sn.cat(phi,self.splits['keep']))
-        return sn.pops_robust(phi.shape,regular,scale[:,None]*djinn_ns,self.splits)
+        interest = sn.cat(phi,self.splits['fission_djinn'])
+        scale = np.sum(interest*np.sum(sn.cat(self.chiNuFission,self.splits['fission_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
+        # All of the sigma*phi terms not calculated by DJINN
+        regular = np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits['fission_keep']),sn.cat(phi,self.splits['fission_keep']))
+        return sn.pops_robust('fission',phi.shape,regular,scale[:,None]*djinn_ns,self.splits)
         
     def tracking_data(self,phi,sources=None):
         from discrete1.util import sn
@@ -567,7 +577,7 @@ class eigen_djinn_symm:
         # Load DJINN model            
         model_scatter,model_fission = sn.djinn_load(model_name,self.dtype)
         # Label and predict the fission data
-        if ptype is None or ptype == 'carbon_full':
+        if ptype is None or ptype == 'carbon_full' or ptype == 'carbon':
             dj_init = np.load('discrete1/data/phi_orig_15.npy')
         elif ptype == 'ss440':
             dj_init = np.load('discrete1/data/phi_ss_15.npy')
@@ -579,7 +589,7 @@ class eigen_djinn_symm:
         if self.process == 'norm':
             dj_init /= np.linalg.norm(dj_init,axis=1)[:,None]
         if self.dtype == 'both' or self.dtype == 'fission':
-            djinn_fission_ns = eigen_djinn_symm.label_model(self,dj_init,model_fission)
+            djinn_fission_ns = eigen_djinn_symm.label_model(self,'fission',dj_init,model_fission)
         else:
             djinn_fission_ns = 0
         # Scale DJINN fission or Get original sources
@@ -596,17 +606,17 @@ class eigen_djinn_symm:
                 # allmat_fis = np.hstack((allmat_fis,temp_fission))                
             if LOUD:
                 print('Outer Transport Iteration {}\n==================================='.format(count))
-            if count == 1:
-                initial = dj_init
-            else:
-                initial = phi_old.copy()
+            # if count == 1:
+            #     initial = dj_init
+            # else:
+            #     initial = phi_old.copy()
                 # initial = np.load('mydata/djinn_true_1d/phi2_15.npy')
             if self.track == 'scatter':
-                phi,temp_scatter = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=MAX_ITS,initial=initial)
+                phi,temp_scatter = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=MAX_ITS,initial=phi_old)
                 enrich = str(np.amax(self.enrich)).split('.')[1]
                 np.save('mydata/track_scatter_reg_std/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter)
             else:    
-                phi = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=100,initial=initial)
+                phi = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=100,initial=phi_old)
             keff = np.linalg.norm(phi)
             phi /= keff
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))
@@ -617,7 +627,7 @@ class eigen_djinn_symm:
             phi_old = phi.copy()
             # Update DJINN Models
             if self.dtype == 'both' or self.dtype == 'fission':
-                djinn_fission_ns = eigen_djinn_symm.label_model(self,phi_old,model_fission)
+                djinn_fission_ns = eigen_djinn_symm.label_model(self,'fission',phi_old,model_fission)
             # Scale DJINN fission or Get original sources
             sources = eigen_djinn_symm.scale_fission(self,phi_old,djinn_fission_ns)
         # if self.track:

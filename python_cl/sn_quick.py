@@ -14,6 +14,7 @@ parser.add_argument('-label',action='store',dest='label') # If the DJINN model i
 parser.add_argument('-track',action='store',dest='track') # Tracking the fission and scattering data for DJINN iterations
 parser.add_argument('-problem',action='store',dest='problem') # Problem set up
 parser.add_argument('-model',action='store',dest='model')
+
 usr_input = parser.parse_args()
 
 enrich = [float(jj) for jj in usr_input.en]
@@ -24,13 +25,13 @@ file1 = usr_input.xs
 labels = [str(jj).split('.')[1] for jj in enrich]
 
 process = None
-if usr_input.model is None:
-    file2 = ''
-else:
-    if 'norm' in usr_input.model:
-        process = 'norm'
-        print('Norm Process')
-    file2 = usr_input.model+'/'
+# if usr_input.model is None:
+#     file2 = 'carbon/'
+# else:
+if 'norm' in usr_input.model:
+    process = 'norm'
+    print('Norm Process')
+file2 = usr_input.model+'/'
         
 if usr_input.label is None:
     file3 = '_reg'
@@ -41,17 +42,19 @@ if file1 == 'both':
     djinn_model = []    
     nums = nnets.djinn_metric('{}_1d/{}djinn{}/error/model*'.format('scatter',file2,file3),clean=True)
     djinn_model.append('{}_1d/{}djinn{}/model_{}'.format('scatter',file2,file3,nums))
-    nums = nnets.djinn_metric('{}_1d/{}djinn{}/error/model*'.format('fission',file2,file3),clean=True)
+    nums = nnets.djinn_metric('{}_1d/{}djinn{}/error/model*'.format('fission',file2,file3),clean=True) #space should be file2
     djinn_model.append('{}_1d/{}djinn{}/model_{}'.format('fission',file2,file3,nums))
 else:
     nums = nnets.djinn_metric('{}_1d/{}djinn{}/error/model*'.format(file1,file2,file3),clean=True)
-    # nums = '003004'
-    # print(nums)
     djinn_model = '{}_1d/{}djinn{}/model_{}'.format(file1,file2,file3,nums)
 print('DJINN Model',djinn_model)
 
+if usr_input.model == 'carbon' or usr_input.model == 'stainless':
+    sprob = '{}_full'.format(usr_input.model)
+# print(usr_input.model,sprob)
+
 for ii in range(len(enrich)):
-    enrichment,splits = r.problem.boundaries(enrich[ii],distance=usr_input.dist,ptype=usr_input.problem,symm=True)
+    enrichment,splits = r.problem.boundaries(enrich[ii],distance=usr_input.dist,ptype1=usr_input.model,ptype2=sprob,symm=True)
     print(splits)
     problem = r.eigen_djinn_symm(*r.problem.variables(enrich[ii],ptype=usr_input.problem,distance=usr_input.dist,symm=True),dtype=file1,enrich=enrichment,splits=splits,track=usr_input.track,label=usr_input.label)
     # phi,keff = problem.transport(djinn_model,LOUD=True,MAX_ITS=1)
