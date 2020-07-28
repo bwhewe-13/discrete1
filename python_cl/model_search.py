@@ -9,7 +9,7 @@ import glob
 parser = argparse.ArgumentParser(description='Which Search')
 parser.add_argument('-xs',action='store',dest='xs')
 parser.add_argument('-label',action='store',dest='label')
-parser.add_argument('-norm',action='store',dest='normed')
+parser.add_argument('-model',action='store',dest='model')
 parser.add_argument('-data',action='store',dest='data')
 # data can be orig, red, inter
 usr_input = parser.parse_args()
@@ -21,21 +21,17 @@ elif usr_input.xs == 'fission':
     print('Fission')
     file1 = 'fission'
     
-if usr_input.normed is None:
+if usr_input.model is None:
     file2 = ''
 else:
-    file2 = usr_input.normed+'/'
+    file2 = usr_input.model+'/'
 
-# mymat = np.load('mydata/djinn_true_1d/{}_{}_data.npy'.format(usr_input.data,file1))
-# first = np.load('mydata/track_scatter/enrich_15_test.npy')
-first = np.load('mydata/djinn_true_1d/scatter2_15.npy')
-second = np.load('mydata/track_plastic/enrich_15_top5.npy')
-mymat = np.hstack((second,first))
-print(mymat.shape)
+mymat = np.load('mydata/model_data/{}_{}_data.npy'.format(usr_input.data,file1))
+
 if usr_input.label is None:
     X = mymat[0,:,1:].copy()
     # Normalize
-    if 'norm' in usr_input.normed:
+    if 'norm' in usr_input.model:
         print('Normed, Non Labeled Data')
         X /= np.linalg.norm(X,axis=1)[:,None]
         # file2 = 'normed/'
@@ -46,7 +42,7 @@ if usr_input.label is None:
     file3 = '_reg/'
 else:
     print('Labeled Data')
-    if 'norm' in usr_input.normed:
+    if 'norm' in usr_input.model:
         print('Normed, Labeled Data')
         tX = mymat[0,:,1:].copy()
         tX /= np.linalg.norm(tX,axis=1)[:,None]
@@ -60,8 +56,8 @@ else:
     file3 = '_label/'
 
 # num_trees = [1,3,5]
-num_trees = [3] 
-num_depth = [2,4] 
+num_trees = [5] 
+num_depth = [2,6] 
 # num_depth = [2,4,6] 
 
 split = 0.2

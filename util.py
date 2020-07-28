@@ -138,7 +138,7 @@ class sn:
             full[splits[which][ii]] = reduce[splits['{}_short'.format(which)][ii]]
         return full
 
-    def pops_robust(shape,keep,djinn,splits):
+    def pops_robust(xs,shape,keep,djinn,splits):
         """ Repopulating Phi Matrix 
         Shape: shape of phi
         keep: reduced non-DJINN predicted matrix
@@ -146,10 +146,10 @@ class sn:
         splits: dictionary of splits    """
         import numpy as np
         full = np.zeros((shape))
-        for ii in range(len(splits['keep'])):
-            full[splits['keep'][ii]] = keep[splits['keep_short'][ii]]
-        for jj in range(len(splits['djinn'])):
-            full[splits['djinn'][jj]] = djinn[splits['djinn_short'][jj]]
+        for ii in range(len(splits['{}_keep'.format(xs)])):
+            full[splits['{}_keep'.format(xs)][ii]] = keep[splits['{}_keep_short'.format(xs)][ii]]
+        for jj in range(len(splits['{}_djinn'.format(xs)])):
+            full[splits['{}_djinn'.format(xs)][jj]] = djinn[splits['{}_djinn_short'.format(xs)][jj]]
         return full
     
     def propagate(xs=None,G=None,I=None,N=None,L=None,dtype='total'):
