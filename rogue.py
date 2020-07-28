@@ -160,7 +160,11 @@ class problem:
             where = [0,1]
         elif ptype == 'carbon_full':
             distance = [45,35,20]
-            ment = [0,conc,0]
+            ment = [15.04,conc,0]
+            where = [0,1,2]
+        elif ptype == 'ss440_full':
+            distance = [45,35,20]
+            ment = [52.68,conc,0]
             where = [0,1,2]
         delta = 0.1
         layers = [int(ii/delta) for ii in distance]
