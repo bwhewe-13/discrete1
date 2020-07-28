@@ -19,7 +19,7 @@ class problem:
     def variables(conc=None,ptype=None,distance=None,symm=False):
         from discrete1.util import chem,sn
         import numpy as np
-        if ptype is None or ptype == 'ss440' or ptype == 'carbon_full' or ptype == 'carbon':
+        if ptype is None or ptype == 'stainless' or ptype == 'carbon_full' or ptype == 'carbon':
             distance = [45,35,20]
         elif ptype == 'multiplastic':
             distance = [10]*8; distance.append(20)
@@ -28,7 +28,7 @@ class problem:
             conc = [0.12,0.27]
         elif ptype == 'noplastic':
             distance = [35,20]
-        elif ptype == 'ss440_flip':
+        elif ptype == 'stainless_flip':
             distance = [20,35,45]
         delta = 0.1
         if conc is None:
@@ -98,13 +98,13 @@ class problem:
             xs_scatter.append(uh3_238_scatter.T)
             xs_total.append(uh3_238_total)
             xs_fission.append(uh3_238_fission.T)
-        elif ptype == 'ss440':
+        elif ptype == 'stainless':
             print('Using Stainless Steel')
             ss_total,ss_scatter = chem.xs_ss440(dim, spec_temp)
             xs_scatter = [ss_scatter.T,uh3_scatter.T,uh3_238_scatter.T]
             xs_total = [ss_total,uh3_total,uh3_238_total]
             xs_fission = [hdpe_fission.T,uh3_fission.T,uh3_238_fission.T]
-        elif ptype == 'ss440_flip':
+        elif ptype == 'stainless_flip':
             print('Using FLIPPED Stainless Steel')
             ss_total,ss_scatter = chem.xs_ss440(dim, spec_temp)
             xs_scatter = [uh3_238_scatter.T,uh3_scatter.T,ss_scatter.T]
@@ -134,7 +134,7 @@ class problem:
     def boundaries_aux(conc,ptype=None,distance=None,symm=False):
         import numpy as np
         from discrete1.util import sn
-        if ptype == 'carbon' or ptype == 'ss440':
+        if ptype == 'carbon' or ptype == 'stainless':
             distance = [45,35,20]
             ment = [conc,0]
             where = [1,2]
@@ -154,15 +154,15 @@ class problem:
             distance = [35,20]
             ment = [conc,0]
             where = [0,1]
-        elif ptype == 'ss440_flip':
+        elif ptype == 'stainless_flip':
             distance = [20,35,45]
             ment = [0,conc]
             where = [0,1]
-        elif ptype == 'carbon_full' or ptype == 'ss440_full':
+        elif ptype == 'carbon_full' or ptype == 'stainless_full':
             distance = [45,35,20]
             ment = [15.04,conc,0]
             where = [0,1,2]
-        elif ptype == 'ss440_full':
+        elif ptype == 'stainless_full':
             distance = [45,35,20]
             ment = [52.68,conc,0]
             where = [0,1,2]
@@ -579,9 +579,9 @@ class eigen_djinn_symm:
         # Label and predict the fission data
         if ptype is None or ptype == 'carbon_full' or ptype == 'carbon':
             dj_init = np.load('discrete1/data/phi_orig_15.npy')
-        elif ptype == 'ss440':
+        elif ptype == 'stainless':
             dj_init = np.load('discrete1/data/phi_ss_15.npy')
-        elif ptype == 'ss440_flip':
+        elif ptype == 'stainless_flip':
             dj_init = np.load('discrete1/data/phi_ss_flip_15.npy')
         elif ptype == 'multiplastic':
             dj_init = np.load('discrete1/data/phi_mp_15.npy')
