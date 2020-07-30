@@ -150,6 +150,10 @@ class problem:
             distance = [45,5,25,5,20]
             ment = [0.12,0.27,0.12,0]
             where = [1,2,3,4]
+        elif ptype == 'mixed1_full':
+            distance = [45,5,25,5,20]
+            ment = [15.04,0.12,0.27,0.12,0]
+            where = [0,1,2,3,4]
         elif ptype == 'blur':
             distance = [47,33,20]
             ment = [conc,0]
@@ -170,6 +174,7 @@ class problem:
             distance = [45,35,20]
             ment = [52.68,conc,0]
             where = [0,1,2]
+        
         delta = 0.1
         layers = [int(ii/delta) for ii in distance]
         splits = np.array(sn.layer_slice(layers))
@@ -588,6 +593,8 @@ class eigen_djinn_symm:
             dj_init = np.load('discrete1/data/phi_ss_flip_15.npy')
         elif ptype == 'multiplastic':
             dj_init = np.load('discrete1/data/phi_mp_15.npy')
+        elif ptype == 'mixed1':
+            dj_init = np.load('discrete1/data/phi_mixed1.npy')
         phi_old = dj_init.copy() 
         if self.process == 'norm':
             dj_init /= np.linalg.norm(dj_init,axis=1)[:,None]
