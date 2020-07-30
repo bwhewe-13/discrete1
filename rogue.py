@@ -104,12 +104,12 @@ class problem:
             xs_scatter = [ss_scatter.T,uh3_scatter.T,uh3_238_scatter.T]
             xs_total = [ss_total,uh3_total,uh3_238_total]
             xs_fission = [hdpe_fission.T,uh3_fission.T,uh3_238_fission.T]
-        elif ptype == 'stainless_flip':
-            print('Using FLIPPED Stainless Steel')
-            ss_total,ss_scatter = chem.xs_ss440(dim, spec_temp)
-            xs_scatter = [uh3_238_scatter.T,uh3_scatter.T,ss_scatter.T]
-            xs_total = [uh3_238_total,uh3_total,ss_total]
-            xs_fission = [uh3_238_fission.T,uh3_fission.T,hdpe_fission.T]
+        # elif ptype == 'stainless_flip':
+        #     print('Using FLIPPED Stainless Steel')
+        #     ss_total,ss_scatter = chem.xs_ss440(dim, spec_temp)
+        #     xs_scatter = [uh3_238_scatter.T,uh3_scatter.T,ss_scatter.T]
+        #     xs_total = [uh3_238_total,uh3_total,ss_total]
+        #     xs_fission = [uh3_238_fission.T,uh3_fission.T,hdpe_fission.T]
         elif ptype == 'noplastic':
             xs_scatter = [uh3_scatter.T,uh3_238_scatter.T]
             xs_total = [uh3_total,uh3_238_total]
@@ -142,6 +142,10 @@ class problem:
             distance = [10]*8; distance.append(20)
             ment = [conc]*4; ment.append(0)
             where = [1,3,5,7,8]
+        elif ptype == 'multiplastic_full':
+            distance = [10]*8; distance.append(20)
+            ment = [15.04,conc]*4; ment.append(0)
+            where = [0,1,2,3,4,5,6,7,8]
         elif ptype ==  'mixed1':
             distance = [45,5,25,5,20]
             ment = [0.12,0.27,0.12,0]
@@ -273,38 +277,37 @@ class eigen_symm:
                 else:
                     q_tilde = nuChiFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g) + func.update_q(scatter,phi,0,g,g)
                 phi[:,g] = eigen_symm.one_group(self,total[:,g],scatter[:,g,g],q_tilde,tol=tol,MAX_ITS=MAX_ITS,guess=phi_old[:,g])
-            if self.track == "scatter":
-                temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi,np.empty((1000,87)))
-                allmat_sca = np.hstack((allmat_sca,temp_scatter))
+            # if self.track == "scatter":
+            #     temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi,np.empty((1000,87)))
+            #     allmat_sca = np.hstack((allmat_sca,temp_scatter))
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
-        if self.track == 'scatter':
-            return phi,allmat_sca
+        # if self.track == 'scatter':
+        #     return phi,allmat_sca
         return phi
             
     def tracking_data(self,phi,sources=None):
         from discrete1.util import sn
         import numpy as np
-        labels = sn.cat(self.enrich,self.splits)
-        # print(labels.shape)
-        short_phi = sn.cat(phi,self.splits)
-        labeled_phi = np.hstack((labels[:,None],short_phi))
-        # if self.track == 'scatter':
-        #     multiplier = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits)
-        #     labeled_mult = np.hstack((labels[:,None],multiplier))
-        #     return None,np.vstack((labeled_phi[None,:,:],labeled_mult[None,:,:]))
-        #     # print(allmat_sca.shape)
-        # elif self.track == 'fission':
-        #     short_fission = np.hstack((labels[:,None],sn.cat(sources,self.splits)))
-        #     return np.vstack((labeled_phi[None,:,:],short_fission[None,:,:])),None
-        multiplier = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits)
-        labeled_mult = np.hstack((labels[:,None],multiplier))
-        # print(sources.shape,self.splits)
-        # print(labels.shape)
-        short_fission = np.hstack((labels[:,None],sn.cat(sources,self.splits)))
-        return np.vstack((labeled_phi[None,:,:],short_fission[None,:,:])),np.vstack((labeled_phi[None,:,:],labeled_mult[None,:,:]))
+        # Scatter Tracking - separate phi and add label
+        label_scatter = sn.cat(self.enrich,self.splits['scatter_djinn'])
+        phi_scatter = sn.cat(phi,self.splits['scatter_djinn'])
+        phi_full_scatter = np.hstack((label_scatter[:,None],phi_scatter))
+        # Separate scatter multiplier and add label
+        multiplier_scatter = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits['scatter_djinn'])
+        multiplier_full_scatter = np.hstack((label_scatter[:,None],multiplier_scatter))
+        scatter_data = np.vstack((phi_full_scatter[None,:,:],multiplier_full_scatter[None,:,:]))
+        # Fission Tracking - Separate phi and add label
+        label_fission = sn.cat(self.enrich,self.splits['fission_djinn'])
+        phi_fission = sn.cat(phi,self.splits['fission_djinn'])
+        phi_full_fission = np.hstack((label_fission[:,None],phi_fission))
+        # Separate fission multiplier and add label
+        multiplier_fission = sn.cat(sources,self.splits['fission_djinn'])
+        multiplier_full_fission = np.hstack((label_fission[:,None],multiplier_fission))
+        fission_data = np.vstack((phi_full_fission[None,:,:],multiplier_full_fission[None,:,:]))
+        return fission_data, scatter_data
             
 
     def transport(self,tol=1e-12,MAX_ITS=100,LOUD=True):
@@ -326,10 +329,10 @@ class eigen_symm:
             allmat_sca = np.zeros((2,0,self.G+1))
             allmat_fis = np.zeros((2,0,self.G+1))
         sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old) 
-        if self.track == 'scatter':
-            temp_fission2,temp_scatter2 = eigen_symm.tracking_data(self,phi_old,sources)
-            enrich = str(np.amax(self.enrich)).split('.')[1]
-            np.save('mydata/track_stainless/enrich_{:<02}_count_000'.format(enrich),temp_scatter2)
+        # if self.track == 'scatter':
+        #     temp_fission2,temp_scatter2 = eigen_symm.tracking_data(self,phi_old,sources)
+        #     enrich = str(np.amax(self.enrich)).split('.')[1]
+        #     np.save('mydata/track_stainless/enrich_{:<02}_count_000'.format(enrich),temp_scatter2)
         while not (converged):
             if self.track:
                 temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi_old,sources)
@@ -337,13 +340,13 @@ class eigen_symm:
                 allmat_sca = np.hstack((allmat_sca,temp_scatter))
                 allmat_fis = np.hstack((allmat_fis,temp_fission))
             print('Outer Transport Iteration {}\n==================================='.format(count))
-            if self.track == 'scatter':
-                phi,temp_scatter2 = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
-                enrich = str(np.amax(self.enrich)).split('.')[1]
-                np.save('mydata/track_stainless/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter2)
+            # if self.track == 'scatter':
+            #     phi,temp_scatter2 = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
+            #     enrich = str(np.amax(self.enrich)).split('.')[1]
+            #     np.save('mydata/track_stainless/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter2)
                 # allmat_sca = np.hstack((allmat_sca,temp_scatter))
-            else:
-                phi = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
+            # else:
+            phi = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
             keff = np.linalg.norm(phi)
             phi /= keff
             kchange = abs(keff-k_old)

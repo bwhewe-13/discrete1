@@ -5,14 +5,22 @@ from djinn import djinn
 import sklearn
 import argparse
 import glob
+import os
 
 parser = argparse.ArgumentParser(description='Which Search')
 parser.add_argument('-xs',action='store',dest='xs')
 parser.add_argument('-label',action='store',dest='label')
 parser.add_argument('-model',action='store',dest='model')
 parser.add_argument('-data',action='store',dest='data')
+parser.add_argument('-gpu',action='store',dest='gpu')
 # data can be orig, red, inter
 usr_input = parser.parse_args()
+
+if usr_input.gpu is None:
+    print('No GPU')
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+else:
+    print('Using GPU')
 
 if usr_input.xs == 'scatter':
     print('Scattering')
@@ -27,7 +35,7 @@ else:
     file2 = usr_input.model+'/'
 
 mymat = np.load('mydata/model_data/{}_{}_data.npy'.format(usr_input.data,file1))
-
+print(mymat.shape,'shape')
 if usr_input.label is None:
     X = mymat[0,:,1:].copy()
     # Normalize
@@ -56,7 +64,7 @@ else:
     file3 = '_label/'
 
 # num_trees = [1,3,5]
-num_trees = [5] 
+num_trees = [3,5] 
 num_depth = [2,6] 
 # num_depth = [2,4,6] 
 
