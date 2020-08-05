@@ -282,15 +282,15 @@ class eigen_symm:
                 else:
                     q_tilde = nuChiFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g) + func.update_q(scatter,phi,0,g,g)
                 phi[:,g] = eigen_symm.one_group(self,total[:,g],scatter[:,g,g],q_tilde,tol=tol,MAX_ITS=MAX_ITS,guess=phi_old[:,g])
-            # if self.track == "scatter":
-            #     temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi,np.empty((1000,87)))
-            #     allmat_sca = np.hstack((allmat_sca,temp_scatter))
+            if self.track == "scatter":
+                temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi,np.empty((1000,87)))
+                allmat_sca = np.hstack((allmat_sca,temp_scatter))
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
-        # if self.track == 'scatter':
-        #     return phi,allmat_sca
+        if self.track == 'scatter':
+            return phi,allmat_sca
         return phi
             
     def tracking_data(self,phi,sources=None):
@@ -299,9 +299,10 @@ class eigen_symm:
         # Scatter Tracking - separate phi and add label
         label_scatter = sn.cat(self.enrich,self.splits['scatter_djinn'])
         phi_scatter = sn.cat(phi,self.splits['scatter_djinn'])
+        phi_scatter /= np.linalg.norm(phi_scatter)
         phi_full_scatter = np.hstack((label_scatter[:,None],phi_scatter))
         # Separate scatter multiplier and add label
-        multiplier_scatter = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits['scatter_djinn'])
+        multiplier_scatter = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_djinn']),phi_scatter)
         multiplier_full_scatter = np.hstack((label_scatter[:,None],multiplier_scatter))
         scatter_data = np.vstack((phi_full_scatter[None,:,:],multiplier_full_scatter[None,:,:]))
         # Fission Tracking - Separate phi and add label
@@ -315,7 +316,7 @@ class eigen_symm:
         return fission_data, scatter_data
             
 
-    def transport(self,tol=1e-12,MAX_ITS=100,LOUD=True):
+    def transport(self,enrich,tol=1e-12,MAX_ITS=100,LOUD=True):
         """ Arguments:
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
@@ -334,10 +335,10 @@ class eigen_symm:
             allmat_sca = np.zeros((2,0,self.G+1))
             allmat_fis = np.zeros((2,0,self.G+1))
         sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old) 
-        # if self.track == 'scatter':
-        #     temp_fission2,temp_scatter2 = eigen_symm.tracking_data(self,phi_old,sources)
-        #     enrich = str(np.amax(self.enrich)).split('.')[1]
-        #     np.save('mydata/track_stainless/enrich_{:<02}_count_000'.format(enrich),temp_scatter2)
+        if self.track == 'scatter':
+            temp_fission2,temp_scatter2 = eigen_symm.tracking_data(self,phi_old,sources)
+            #enrich = str(np.amax(self.enrich)).split('.')[1]
+            np.save('mydata/track_stainless/enrich_{:<02}_count_000'.format(enrich),temp_scatter2)
         while not (converged):
             if self.track:
                 temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi_old,sources)
@@ -345,13 +346,13 @@ class eigen_symm:
                 allmat_sca = np.hstack((allmat_sca,temp_scatter))
                 allmat_fis = np.hstack((allmat_fis,temp_fission))
             print('Outer Transport Iteration {}\n==================================='.format(count))
-            # if self.track == 'scatter':
-            #     phi,temp_scatter2 = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
-            #     enrich = str(np.amax(self.enrich)).split('.')[1]
-            #     np.save('mydata/track_stainless/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter2)
+            if self.track == 'scatter':
+                phi,temp_scatter2 = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
+            #    enrich = str(np.amax(self.enrich)).split('.')[1]
+                np.save('mydata/track_stainless/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter2)
                 # allmat_sca = np.hstack((allmat_sca,temp_scatter))
-            # else:
-            phi = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
+            else:
+                phi = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
             keff = np.linalg.norm(phi)
             phi /= keff
             kchange = abs(keff-k_old)
@@ -470,7 +471,9 @@ class eigen_djinn_symm:
             phi: a I x G array  """
         import numpy as np
         # from discrete1.util import sn 
-        phi_old = np.zeros((self.I,self.G))
+        # phi_old = np.zeros((self.I,self.G))
+        dj_init = np.load('discrete1/data/phi_mp_15.npy')
+        phi_old = dj_init.copy()
         converged = 0
         count = 1
         if self.track == 'scatter':
@@ -497,7 +500,7 @@ class eigen_djinn_symm:
                     phi[:,g] = eigen_djinn_symm.one_group(self,total[:,g],scatter[:,g,g],djinn_scatter[:,g],model,g,None,chiNuFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
                     # complete_phi[:,g] = phi[:,g].copy()
                 if self.track == 'scatter':
-                    temp_fission,temp_scatter = eigen_djinn_symm.tracking_data(self,phi,None)
+                    temp_fission,temp_scatter = eigen_djinn_symm.tracking_data(self,phi,chiNuFission)
                     allmat_sca = np.hstack((allmat_sca,temp_scatter))
             elif self.dtype == 'fission':
                 for g in range(self.G):
@@ -548,25 +551,46 @@ class eigen_djinn_symm:
         regular = np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits['fission_keep']),sn.cat(phi,self.splits['fission_keep']))
         return sn.pops_robust('fission',phi.shape,regular,scale[:,None]*djinn_ns,self.splits)
         
+    # def tracking_data(self,phi,sources=None):
+    #     from discrete1.util import sn
+    #     import numpy as np
+    #     labels = sn.cat(self.enrich,self.splits['djinn'])
+    #     short_phi = sn.cat(phi,self.splits['djinn'])
+    #     labeled_phi = np.hstack((labels[:,None],short_phi))
+    #     if self.track == 'scatter':
+    #         multiplier = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits['djinn'])
+    #         labeled_mult = np.hstack((labels[:,None],multiplier))
+    #         return None,np.vstack((labeled_phi[None,:,:],labeled_mult[None,:,:]))
+    #         # print(allmat_sca.shape)
+    #     elif self.track == 'fission':
+    #         short_fission = np.hstack((labels[:,None],sn.cat(sources,self.splits['djinn'])))
+    #         return np.vstack((labeled_phi[None,:,:],short_fission[None,:,:])),None
+    #     multiplier = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits['djinn'])
+    #     labeled_mult = np.hstack((labels[:,None],multiplier))
+    #     short_fission = np.hstack((labels[:,None],sn.cat(sources,self.splits['djinn'])))
+    #     return np.vstack((labeled_phi[None,:,:],short_fission[None,:,:])),np.vstack((labeled_phi[None,:,:],labeled_mult[None,:,:]))
+        
     def tracking_data(self,phi,sources=None):
         from discrete1.util import sn
         import numpy as np
-        labels = sn.cat(self.enrich,self.splits['djinn'])
-        short_phi = sn.cat(phi,self.splits['djinn'])
-        labeled_phi = np.hstack((labels[:,None],short_phi))
-        if self.track == 'scatter':
-            multiplier = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits['djinn'])
-            labeled_mult = np.hstack((labels[:,None],multiplier))
-            return None,np.vstack((labeled_phi[None,:,:],labeled_mult[None,:,:]))
-            # print(allmat_sca.shape)
-        elif self.track == 'fission':
-            short_fission = np.hstack((labels[:,None],sn.cat(sources,self.splits['djinn'])))
-            return np.vstack((labeled_phi[None,:,:],short_fission[None,:,:])),None
-        multiplier = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits['djinn'])
-        labeled_mult = np.hstack((labels[:,None],multiplier))
-        short_fission = np.hstack((labels[:,None],sn.cat(sources,self.splits['djinn'])))
-        return np.vstack((labeled_phi[None,:,:],short_fission[None,:,:])),np.vstack((labeled_phi[None,:,:],labeled_mult[None,:,:]))
-        
+        # Scatter Tracking - separate phi and add label
+        label_scatter = sn.cat(self.enrich,self.splits['scatter_djinn'])
+        phi_scatter = sn.cat(phi,self.splits['scatter_djinn'])
+        phi_full_scatter = np.hstack((label_scatter[:,None],phi_scatter))
+        # Separate scatter multiplier and add label
+        multiplier_scatter = sn.cat(np.einsum('ijk,ik->ij',self.scatter,phi),self.splits['scatter_djinn'])
+        multiplier_full_scatter = np.hstack((label_scatter[:,None],multiplier_scatter))
+        scatter_data = np.vstack((phi_full_scatter[None,:,:],multiplier_full_scatter[None,:,:]))
+        # Fission Tracking - Separate phi and add label
+        label_fission = sn.cat(self.enrich,self.splits['fission_djinn'])
+        phi_fission = sn.cat(phi,self.splits['fission_djinn'])
+        phi_full_fission = np.hstack((label_fission[:,None],phi_fission))
+        # Separate fission multiplier and add label
+        multiplier_fission = sn.cat(sources,self.splits['fission_djinn'])
+        multiplier_full_fission = np.hstack((label_fission[:,None],multiplier_fission))
+        fission_data = np.vstack((phi_full_fission[None,:,:],multiplier_full_fission[None,:,:]))
+        return fission_data, scatter_data
+
     def transport(self,model_name,process,ptype=None,tol=1e-12,MAX_ITS=100,LOUD=True):
         """ EIGEN DJINN SYMM
         Arguments:
@@ -624,7 +648,7 @@ class eigen_djinn_symm:
             if self.track == 'scatter':
                 phi,temp_scatter = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=MAX_ITS,initial=phi_old)
                 enrich = str(np.amax(self.enrich)).split('.')[1]
-                np.save('mydata/track_scatter_reg_std/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter)
+                np.save('mydata/track_multi/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter)
             else:    
                 phi = eigen_djinn_symm.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=100,initial=phi_old)
             keff = np.linalg.norm(phi)

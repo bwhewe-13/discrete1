@@ -23,11 +23,13 @@ for ii in range(len(enrich)):
         phi,keff = problem.transport(LOUD=True)
     else:
         # phi,keff = problem.transport(LOUD=True)
-        phi,keff,fis_track,sca_track = problem.transport(LOUD=True)
-        np.save('mydata/model_data/fission_mp_trackFull_{:<02}'.format(labels[ii]),fis_track)
-        np.save('mydata/model_data/scatter_mp_trackFull_{:<02}'.format(labels[ii]),sca_track)
-    np.save('mydata/djinn_true_1d/phi_mp_{:<02}'.format(labels[ii]),phi)
-    np.save('mydata/djinn_true_1d/keff_mp_{:<02}'.format(labels[ii]),keff)
+        phi,keff,fis_track,sca_track = problem.transport(enrich=labels[ii],LOUD=True)
+        #np.save('mydata/model_data/fission_mp_trackFull_{:<02}'.format(labels[ii]),fis_track)
+        #np.save('mydata/model_data/scatter_mp_trackFull_{:<02}'.format(labels[ii]),sca_track)
+    np.save('mydata/track_stainless/phi_ss_{:<02}'.format(labels[ii]),phi)
+    np.save('mydata/track_stainless/keff_ss_{:<02}'.format(labels[ii]),keff)
+    #np.save('mydata/djinn_true_1d/phi_mp_{:<02}'.format(labels[ii]),phi)
+    #np.save('mydata/djinn_true_1d/keff_mp_{:<02}'.format(labels[ii]),keff)
 
 
 # enrichment,splits = r.eigen_djinn.boundaries_noplastic(0.15,symm=True)
