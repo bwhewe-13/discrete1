@@ -11,14 +11,19 @@ class func:
     def diamond_diff(top,bottom):
         return 0.5*(top + bottom)
 
-    def update_q(scatter,phi,start,stop,g):
+    def update_q(encoder,decoder,scatter,phi):
         import numpy as np
-        return np.sum(scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
+        # from discrete1.util import nnets
+        phi_full = decoder.predict(phi)
+        product = encoder.predict(np.einsum('ijk,ik->ij',scatter,phi_full))
+        # return np.sum(scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
+        return product
 
     def initial_flux(problem):
+        import numpy as np
         if problem == 'carbon':
             return np.load('discrete1/data/phi_orig_15.npy')
-        elif probem == 'stainless':
+        elif problem == 'stainless':
             return np.load('discrete1/data/phi_ss_15.npy')
         elif problem == 'stainless_flip':
             return np.load('discrete1/data/phi_ss_flip_15.npy')
@@ -26,13 +31,25 @@ class func:
             return np.load('discrete1/data/phi_mp_15.npy')
         elif problem == 'mixed1':
             return np.load('discrete1/data/phi_mixed1.npy')
-        
+    
+    def normalize(data,verbose=False):
+        import numpy as np
+        maxi = np.amax(data,axis=1)
+        mini = np.amin(data,axis=1)
+        norm = (data-mini[:,None])/(maxi-mini)[:,None]
+        if verbose:
+            return norm,maxi,mini
+        return norm
+    
+    def unnormalize(data,maxi,mini):
+        return data*(maxi-mini)[:,None]+mini[:,None]
+
     def load_coder(coder):
         """ Coder is the string path to the autoencoder, encoder, and decoder """
         from tensorflow import keras
         autoencoder = keras.models.load_model('{}_autoencoder.h5'.format(coder))
-        encoder = keras.models.load_model('{}_encoder.h5'.format(coder))
-        decoder = keras.models.load_model('{}_decoder.h5'.format(coder))
+        encoder = keras.models.load_model('{}_encoder.h5'.format(coder),compile=False)
+        decoder = keras.models.load_model('{}_decoder.h5'.format(coder),compile=False)
         return autoencoder,encoder,decoder
 
     def find_gprime(coder):
@@ -229,7 +246,6 @@ class eigen_auto:
         self.I = I
         self.inv_delta = float(I)/R
         self.track = track
-
         
     def one_group(self,total,scatter,external,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
@@ -266,14 +282,24 @@ class eigen_auto:
                 top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
                 bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
                 sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]))
-
+                # psi_bottom = 0 # vacuum on LHS
+                # # Left to right
+                # for ii in range(self.I):
+                    # psi_top = (temp_scat[ii] + external[ii] + psi_bottom * (weight-half_total[ii]))/(weight+half_total[ii])
+                    # phi[ii] = phi[ii] + (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
+                    # psi_bottom = psi_top
+                # # Reflective right to left
+                # for ii in range(self.I-1,-1,-1):
+                    # psi_top = psi_bottom
+                    # psi_bottom = (temp_scat[ii] + external[ii] + psi_top * (weight-half_total[ii]))/(weight+half_total[ii])
+                    # phi[ii] = phi[ii] +  (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
         return phi
-    
-    def multi_group(self,total,scatter,nuChiFission,tol=1e-08,MAX_ITS=100):
+
+    def multi_group(self,total,scatter,nuChiFission,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
             total: I x G vector of the total cross section for each spatial cell and energy level
             scatter: I x G array for the scattering of the spatial cell by moment and energy
@@ -283,23 +309,72 @@ class eigen_auto:
         Returns:
             phi: a I x G array  """
         import numpy as np
-        phi_old = np.zeros((self.I,self.G))
+        from discrete1.util import nnets
+
+        phi_old = guess.copy()
+        # print(phi_old.shape)
         converged = 0
         count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
-            for g in range(self.G):
-                if g == 0:
-                    q_tilde = nuChiFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g)
-                else:
-                    q_tilde = nuChiFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g) + func.update_q(scatter,phi,0,g,g)
-                phi[:,g] = eigen_symm.one_group(self,total[:,g],scatter[:,g,g],q_tilde,tol=tol,MAX_ITS=MAX_ITS,guess=phi_old[:,g])
+            # smult = eigen_auto.update_q(self,scatter,phi_old)
+
+            phi_old_full,self.pmaxi,self.pmini = nnets.normalize(phi_old,verbose=True)
+            # print(phi_old.shape,phi_old_full.shape)
+            phi_old_full = self.decoder.predict(phi_old_full)
+            # print(phi_old.shape,phi_old_full.shape)
+            phi_old_full = nnets.unnormalize(phi_old_full,self.pmaxi,self.pmini)
+            
+            smult = np.einsum('ijk,ik->ij',scatter,phi_old_full)
+
+            smult,smaxi,smini = nnets.normalize(smult,verbose=True)
+            smult[np.isnan(smult)] = 0
+            smaxi[np.isnan(smaxi)] = 0; smini[np.isnan(smini)] = 0
+            smult = self.encoder.predict(smult)
+            smult = nnets.unnormalize(smult,smaxi,smini)
+
+            for g in range(self.gprime):
+                phi[:,g] = eigen_auto.one_group(self,total[:,g],smult[:,g],nuChiFission[:,g],tol=tol,MAX_ITS=MAX_ITS,guess=phi_old[:,g])
+            # print(phi.shape,phi_old.shape,phi_old_full.shape)
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
         return phi
             
+    # def shrink(self,phi):
+    #     from discrete1.util import nnets
+    #     # Normalize, save maxi and mini
+    #     norm_phi,maxi,mini = nnets.normalize(phi,verbose=True)
+    #     self.maxi = maxi; self.mini = mini
+    #     # Encode to G'
+    #     return self.encoder.predict(norm_phi)
+
+    # def grow(self,phi,norm=False):
+    #     from discrete1.util import nnets
+    #     # Decode out to G 
+    #     phi_full = self.decoder.predict(phi)
+    #     # Unnormalize
+    #     phi_full = nnets.unnormalize(phi_full,self.maxi,self.mini)
+    #     # Multiply by XS
+    #     if norm:
+    #         import numpy as np
+    #         keff = np.linalg.norm(phi_full)
+    #         phi_full /= keff
+    #         return phi_full,keff
+    #     return phi_full
+
+    # def update_q(self,xs,phi,small=True):
+    #     import numpy as np
+    #     from discrete1.util import nnets
+    #     if small:
+    #         phi_full = eigen_auto.grow(self,phi)
+    #     else:
+    #         phi_full = phi.copy()
+    #     product = np.einsum('ijk,ik->ij',xs,phi_full)
+    #     return eigen_auto.shrink(self,product)
+        
+
     def transport(self,coder,problem='carbon',tol=1e-12,MAX_ITS=100,LOUD=True):
         """ Arguments:
             tol: tolerance of convergence, default is 1e-08
@@ -308,34 +383,317 @@ class eigen_auto:
         Returns:
             phi: a I x G array    """        
         import numpy as np
+        from discrete1.util import nnets
         # from discrete1.util import sn
         autoencoder,encoder,decoder = func.load_coder(coder)
         self.gprime = func.find_gprime(coder)
+        self.encoder = encoder; self.decoder = decoder
 
         phi_old = func.initial_flux(problem)
+        phi_old_full = phi_old.copy()
         k_old = np.linalg.norm(phi_old)
-        track_k = [k_old]
+        
+        converged = 0
+        count = 1
 
+        # Calculate sources with original phi
+        # sources = eigen_auto.update_q(self,self.chiNuFission,phi_old,small=False)
+        # phi_old_small = eigen_auto.shrink(self,phi_old) 
+        sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
+
+        phi_old,self.pmaxi,self.pmini = nnets.normalize(phi_old,verbose=True)
+        phi_old = self.encoder.predict(phi_old)
+        phi_old = nnets.unnormalize(phi_old,self.pmaxi,self.pmini)
+        
+        sources,fmaxi,fmini = nnets.normalize(sources,verbose=True)
+        sources[np.isnan(sources)] = 0;
+        fmaxi[np.isnan(fmaxi)] = 0; fmini[np.isnan(fmini)] = 0
+        sources = self.encoder.predict(sources)
+        sources = nnets.unnormalize(sources,fmaxi,fmini)
+        # print(phi_old.shape)
+        while not (converged):
+            print('Outer Transport Iteration {}\n==================================='.format(count))
+            # Calculate phi G'
+            phi = eigen_auto.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
+            # Convert to phi G, normalized
+            # phi,keff = eigen_auto.grow(self,phi,norm=True)
+            # Convert to phi G
+            phi,self.pmaxi,self.pmini = nnets.normalize(phi,verbose=True)
+            phi = self.decoder.predict(phi)
+            phi = nnets.unnormalize(phi,self.pmaxi,self.pmini)
+            
+            keff = np.linalg.norm(phi)
+            phi /= keff
+
+            # Check for convergence with original phi sizes            
+            change = np.linalg.norm((phi-phi_old_full)/phi/(self.I))
+            if LOUD:
+                print('Change is',change,'Keff is',keff)
+            converged = (change < tol) or (count >= MAX_ITS)
+            count += 1
+
+            # Update to phi G
+            phi_old_full = phi.copy()
+
+            sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old_full)
+
+            phi_old_full,self.pmaxi,self.pmini = nnets.normalize(phi_old_full,verbose=True)
+            phi_old = self.encoder.predict(phi_old_full)
+            phi_old = nnets.unnormalize(phi_old,self.pmaxi,self.pmini)
+
+            sources,fmaxi,fmini = nnets.normalize(sources,verbose=True)
+            sources[np.isnan(sources)] = 0;
+            fmaxi[np.isnan(fmaxi)] = 0; fmini[np.isnan(fmini)] = 0
+            sources = self.encoder.predict(sources)
+            sources = nnets.unnormalize(sources,fmaxi,fmini)
+
+            # Update Sources and phi G'
+            # sources = eigen_auto.update_q(self,self.chiNuFission,phi_old,small=False)
+            # phi_old_small = eigen_auto.shrink(self,phi_old) 
+        return phi,keff
+
+class test:
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,track=False):
+        self.G = G
+        self.N = N
+        self.mu = mu
+        self.w = w
+        self.total = total
+        self.scatter = scatter
+        self.chiNuFission = chiNuFission
+        self.I = I
+        self.inv_delta = float(I)/R
+        self.track = track
+        
+    def one_group(self,total,scatter,external,guess,tol=1e-08,MAX_ITS=100):
+        """ Arguments:
+            total: I x 1 vector of the total cross section for each spatial cell
+            scatter: I x L+1 array for the scattering of the spatial cell by moment
+            external: I array for the external sources
+            guess: Initial guess of the scalar flux for a specific energy group (I x L+1)
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+        Returns:
+            phi: a I array  """
+        import numpy as np
+        import ctypes
+        clibrary = ctypes.cdll.LoadLibrary('./discrete1/cfunctions.so')
+        sweep = clibrary.sweep
+        converged = 0
+        count = 1        
+        phi = np.zeros((self.I),dtype='float64')
+        phi_old = guess.copy()
+        half_total = 0.5*total.copy()
+        external = external.astype('float64')
+        while not(converged):
+            # phi *= 0
+            phi = np.zeros((self.I))
+            for n in range(self.N):
+                weight = self.mu[n]*self.inv_delta
+                top_mult = (weight-half_total).astype('float64')
+                bottom_mult = (1/(weight+half_total)).astype('float64')
+                temp_scat = (scatter * phi_old).astype('float64')
+                # Set Pointers for C function
+                phi_ptr = ctypes.c_void_p(phi.ctypes.data)
+                ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
+                ext_ptr = ctypes.c_void_p(external.ctypes.data)
+                top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
+                bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
+                sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]))
+                # psi_bottom = 0 # vacuum on LHS
+                # # Left to right
+                # for ii in range(self.I):
+                    # psi_top = (temp_scat[ii] + external[ii] + psi_bottom * (weight-half_total[ii]))/(weight+half_total[ii])
+                    # phi[ii] = phi[ii] + (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
+                    # psi_bottom = psi_top
+                # # Reflective right to left
+                # for ii in range(self.I-1,-1,-1):
+                    # psi_top = psi_bottom
+                    # psi_bottom = (temp_scat[ii] + external[ii] + psi_top * (weight-half_total[ii]))/(weight+half_total[ii])
+                    # phi[ii] = phi[ii] +  (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
+            change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            converged = (change < tol) or (count >= MAX_ITS) 
+            count += 1
+            phi_old = phi.copy()
+        return phi
+
+    def multi_group(self,total,scatter,nuChiFission,guess,tol=1e-08,MAX_ITS=100):
+        """ Arguments:
+            total: I x G vector of the total cross section for each spatial cell and energy level
+            scatter: I x G array for the scattering of the spatial cell by moment and energy
+            nuChiFission: 
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+        Returns:
+            phi: a I x G array  """
+        import numpy as np
+        from discrete1.util import nnets
+        phi_old = guess.copy()
+        converged = 0
+        count = 1
+        while not (converged):
+            phi = np.zeros(phi_old.shape)
+            # smult = test.update_q(self,scatter,phi_old,xstype='scatter') # update scattering term
+            # smult[np.isnan(smult)] = 0 # Normalizing Zero leads to NaN
+            phi_old,self.pmaxi,self.pmini = nnets.normalize(phi_old,verbose=True)
+            phi_old = self.autoencoder.predict(phi_old)
+            phi_old = nnets.unnormalize(phi_old,self.pmaxi,self.pmini)
+            
+            smult = np.einsum('ijk,ik->ij',scatter,phi_old)
+
+            smult,smaxi,smini = nnets.normalize(smult,verbose=True)
+            smult[np.isnan(smult)] = 0
+            smaxi[np.isnan(smaxi)] = 0; smini[np.isnan(smini)] = 0
+            smult = self.autoencoder.predict(smult)
+            smult = nnets.unnormalize(smult,smaxi,smini)
+            
+            # phi_old,self.pmaxi,self.pmini = nnets.normalize(phi_old,verbose=True)
+            # phi_old = self.autoencoder.predict(phi_old)
+            # phi_old = nnets.unnormalize(phi_old,self.pmaxi,self.pmini)
+            
+            for g in range(self.gprime):
+                phi[:,g] = test.one_group(self,total[:,g],smult[:,g],nuChiFission[:,g],tol=tol,MAX_ITS=MAX_ITS,guess=phi_old[:,g])
+            change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            converged = (change < tol) or (count >= MAX_ITS) 
+            count += 1
+            phi_old = phi.copy()
+            # print(np.sum(phi),np.sum(np.isnan(phi_old)))
+        return phi
+            
+    def shrink(self,phi,xstype='scatter'):
+        import numpy as np
+        from discrete1.util import nnets
+        # Normalize, save maxi and mini
+        # norm_phi,maxi,mini = nnets.normalize(phi,verbose=True)
+        # if xstype == 'scatter':
+        #     self.smaxi = maxi; self.smaxi[np.isnan(self.smaxi)] = 0
+        #     self.smini = mini; self.smini[np.isnan(self.smini)] = 0
+        # else: # fission Norms
+        #     self.fmaxi = maxi; self.fmaxi[np.isnan(self.fmaxi)] = 0
+        #     self.fmini = mini; self.fmini[np.isnan(self.fmini)] = 0
+        # Encode to G'
+        return self.autoencoder.predict(phi)
+
+    def grow(self,phi,norm=False,xstype='scatter'):
+        from discrete1.util import nnets
+        # Decode out to G 
+        phi_full = self.autoencoder.predict(phi)
+        # Unnormalize
+        # if xstype == 'scatter':
+        #     phi_full = nnets.unnormalize(phi_full,self.smaxi,self.smini)
+        # else: 
+        #     phi_full = nnets.unnormalize(phi_full,self.fmaxi,self.fmini)
+        # Multiply by XS
+        if norm:
+            import numpy as np
+            keff = np.linalg.norm(phi_full)
+            phi_full /= keff
+            return phi_full,keff
+        return phi_full
+
+    def update_q(self,xs,phi,small=True,xstype='scatter'):
+        import numpy as np
+        from discrete1.util import nnets
+        if small:
+            phi_full = test.grow(self,phi,xstype=xstype)
+        else:
+            phi_full = phi.copy()
+        product = np.einsum('ijk,ik->ij',xs,phi_full)
+        return test.shrink(self,product,xstype=xstype)
+
+    def transport(self,coder,problem='carbon',tol=1e-12,MAX_ITS=100,LOUD=True):
+        """ Arguments:
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iteration number and the change between iterations, default is False
+        Returns:
+            phi: a I x G array    """        
+        import numpy as np
+        from discrete1.util import nnets
+        # from discrete1.util import sn
+        autoencoder,encoder,decoder = func.load_coder(coder)
+        self.gprime = 87
+        self.encoder = encoder; self.decoder = decoder
+        self.autoencoder = autoencoder
+
+        phi_old = func.initial_flux(problem)
+        started = phi_old.copy()
+        k_old = np.linalg.norm(phi_old)
 
         converged = 0
         count = 1
-        sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old) 
-        sources = encoder.predict(sources) # reduce down to G'
+
+        phi_old,self.pmaxi,self.pmini = nnets.normalize(phi_old,verbose=True)
+        phi_old = self.autoencoder.predict(phi_old)
+        phi_old = nnets.unnormalize(phi_old,self.pmaxi,self.pmini)
+        
+        sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
+
+        sources,fmaxi,fmini = nnets.normalize(sources,verbose=True)
+        sources[np.isnan(sources)] = 0;
+        fmaxi[np.isnan(fmaxi)] = 0; fmini[np.isnan(fmini)] = 0
+        sources = self.autoencoder.predict(sources)
+        sources = nnets.unnormalize(sources,fmaxi,fmini)
+
+        # sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
+        
+        # sources = self.autoencoder.predict(sources)
+        # sources = nnets.unnormalize(sources,fmaxi,fmini)
+        
+        # phi_old,pmaxi,pmini = nnets.normalize(phi_old,verbose=True)
+        # phi_old = self.autoencoder.predict(phi_old)
+        # self.pmaxi = pmaxi; self.pmini = pmini
+        # phi_old = nnets.unnormalize(phi_old,pmaxi,pmini)
+
+        # sources = test.update_q(self,self.chiNuFission,phi_old,small=False,xstype='fission')
+        # sources[np.isnan(sources)] = 0 # Normalizing Zero leads to NaN
+        # phi_old_small = test.shrink(self,phi_old,xstype='fission') 
+        # Initialize Scatter max and min
+        # _ = test.update_q(self,self.scatter,phi_old,small=False,xstype='scatter')
         while not (converged):
             print('Outer Transport Iteration {}\n==================================='.format(count))
-            phi = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
+            phi = test.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
+            # Convert to phi G, normalized
+            # phi,keff = test.grow(self,phi,norm=True)
+
+            phi,self.pmaxi,self.pmini = nnets.normalize(phi,verbose=True)
+            phi = self.autoencoder.predict(phi)
+            phi = nnets.unnormalize(phi,self.pmaxi,self.pmini)
+            
+            # phi_full,pmaxi,pmini = nnets.normalize(phi,verbose=True)
+            # phi_full = self.autoencoder.predict(phi_full)
+            # phi_full = nnets.unnormalize(phi_full,pmaxi,pmini)
+
             keff = np.linalg.norm(phi)
             phi /= keff
-            kchange = abs(keff-k_old)
-            track_k.append(keff)
+
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))
             if LOUD:
                 print('Change is',change,'Keff is',keff)
-            converged = (change < tol) or (count >= MAX_ITS) or (kchange < tol)
+            converged = (change < tol) or (count >= MAX_ITS) #or (kchange < tol)
             count += 1
+
+            # started = phi_full.copy()
             phi_old = phi.copy()
-            k_old = keff
-            sources = np.einsum('ijk,ik->ij',self.chiNuFission,decoder.predict(phi_old)) 
-            sources = encoder.predict(sources)
+
+            sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
+
+            sources,fmaxi,fmini = nnets.normalize(sources,verbose=True)
+            sources[np.isnan(sources)] = 0;
+            fmaxi[np.isnan(fmaxi)] = 0; fmini[np.isnan(fmini)] = 0
+            sources = self.autoencoder.predict(sources)
+            sources = nnets.unnormalize(sources,fmaxi,fmini)
+
+            # sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_full)
+            # sources,fmaxi,fmini = nnets.normalize(sources,verbose=True)
+            # sources[np.isnan(sources)] = 0;
+            # fmaxi[np.isnan(fmaxi)] = 0; fmini[np.isnan(fmini)] = 0
+            # sources = self.autoencoder.predict(sources)
+            # sources = nnets.unnormalize(sources,fmaxi,fmini)
+
+            # Update Sources and phi G'
+            # sources = test.update_q(self,self.chiNuFission,phi_old,small=False,xstype='fission')
+            # # sources[np.isnan(sources)] = 0 # Normalizing Zero leads to NaN
+            # phi_old_small = test.shrink(self,phi_old,xstype='fission') 
+            
         return phi,keff
-    

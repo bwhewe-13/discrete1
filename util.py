@@ -230,11 +230,33 @@ class sn:
             fission = sn.cat(fission,splits['djinn'])
         return np.sum(phi*np.sum(fission,axis=1),axis=1)
     
+    def djinnFissionRate(model,phi,fission,label=None):
+        import numpy as np
+        if label is not None:
+            phi2 = np.hstack((label[:,None],phi))
+        else:
+            phi2 = phi.copy()
+        temp1 = np.sum(model.predict(phi2),axis=1)
+        scale = np.sum(phi*np.sum(fission,axis=1),axis=1)/temp1
+        return scale*temp1
+    
 class nnets:
     """ Tools for autoencoders and neural networks """
-    def unnormalize(scatter,maxi,mini,ind):
-        return scatter*(maxi[ind]-mini[ind])+mini[ind]
+    def normalize(data,verbose=False):
+        import numpy as np
+        maxi = np.amax(data,axis=1)
+        mini = np.amin(data,axis=1)
+        norm = (data-mini[:,None])/(maxi-mini)[:,None]
+        if verbose:
+            return norm,maxi,mini
+        return norm
     
+    def unnormalize(data,maxi,mini):
+        return data*(maxi-mini)[:,None]+mini[:,None]
+
+    # def unnormalize(scatter,maxi,mini,ind):
+    #     return scatter*(maxi[ind]-mini[ind])+mini[ind]
+        
     def sizer(dim,original=87**2,half=True):
         ''' Calculates the trainable parametes for autoencoder
         Arguments:
