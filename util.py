@@ -1,7 +1,7 @@
 class display:
     ''' Tools for graphing current problems '''
     def error_calc(original,predicted):
-        return (abs(original-predicted)/original)*100
+        return (abs(original-predicted)/original)
 
     def split_graph(array):
         import numpy as np
@@ -244,8 +244,8 @@ class nnets:
     """ Tools for autoencoders and neural networks """
     def normalize(data,verbose=False):
         import numpy as np
-        maxi = np.amax(data,axis=1)
-        mini = np.amin(data,axis=1)
+        maxi = np.max(data,axis=1)
+        mini = np.min(data,axis=1)
         norm = (data-mini[:,None])/(maxi-mini)[:,None]
         if verbose:
             return norm,maxi,mini
