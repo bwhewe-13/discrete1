@@ -166,7 +166,7 @@ class problem:
             distance = [20,35,45]
             ment = [0,conc]
             where = [0,1]
-        elif ptype == 'carbon_full' or ptype == 'stainless_full':
+        elif ptype == 'carbon_full':
             distance = [45,35,20]
             ment = [15.04,conc,0]
             where = [0,1,2]
@@ -316,7 +316,7 @@ class eigen_symm:
         return fission_data, scatter_data
             
 
-    def transport(self,enrich,tol=1e-12,MAX_ITS=100,LOUD=True):
+    def transport(self,problem,enrich,tol=1e-12,MAX_ITS=100,LOUD=True):
         """ Arguments:
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
@@ -338,7 +338,7 @@ class eigen_symm:
         if self.track == 'scatter':
             temp_fission2,temp_scatter2 = eigen_symm.tracking_data(self,phi_old,sources)
             #enrich = str(np.amax(self.enrich)).split('.')[1]
-            np.save('mydata/track_stainless/enrich_{:<02}_count_000'.format(enrich),temp_scatter2)
+            np.save('mydata/{}_djinn/enrich_{:<02}_count_000'.format(problem,enrich),temp_scatter2)
         while not (converged):
             if self.track:
                 temp_fission,temp_scatter = eigen_symm.tracking_data(self,phi_old,sources)
@@ -349,7 +349,7 @@ class eigen_symm:
             if self.track == 'scatter':
                 phi,temp_scatter2 = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
             #    enrich = str(np.amax(self.enrich)).split('.')[1]
-                np.save('mydata/track_stainless/enrich_{:<02}_count_{}'.format(enrich,str(count).zfill(3)),temp_scatter2)
+                np.save('mydata/{}_djinn/enrich_{:<02}_count_{}'.format(problem,enrich,str(count).zfill(3)),temp_scatter2)
                 # allmat_sca = np.hstack((allmat_sca,temp_scatter))
             else:
                 phi = eigen_symm.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)

@@ -64,13 +64,13 @@ else:
     file3 = '_label/'
 
 # num_trees = [1,3,5]
-num_trees = [3,5] 
+num_trees = [5] 
 num_depth = [2,6] 
 # num_depth = [2,4,6] 
 
 split = 0.2
 try:
-    spatial = np.load('{}_1d/{}spatialShuffleMat'.format(file1,file2))
+    spatial = np.load('{}_1d/{}spatialShuffleMat.npy'.format(file1,file2))
 except FileNotFoundError:
     spatial = np.arange(len(X))
     np.random.shuffle(spatial)
