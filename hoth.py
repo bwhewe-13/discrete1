@@ -856,7 +856,7 @@ class source_auto:
         source[0,g] = 1
         return source
 
-    def transport(self,coder,problem='carbon',tol=1e-08,MAX_ITS=10000,normal=True):
+    def transport(self,coder,problem='carbon',tol=1e-08,MAX_ITS=1000,LOUD=True,normal=True):
         """ Arguments:
             total: I x G vector of the total cross section for each spatial cell and energy level
             scatter: I x G array for the scattering of the spatial cell by moment and energy
@@ -929,7 +929,7 @@ class source_collect:
         self.w = w
         self.total = total
         self.scatter = scatter
-        # self.chiNuFission = chiNuFission
+        self.chiNuFission = chiNuFission
         self.I = I
         self.inv_delta = float(I)/R
         self.track = track
@@ -981,7 +981,7 @@ class source_collect:
         source[0,g] = 1
         return source
 
-    def transport(self,coder,problem='carbon',tol=1e-08,MAX_ITS=10000,normal=True):
+    def transport(self,coder,problem='carbon',tol=1e-08,MAX_ITS=1500,normal=True):
         """ Arguments:
             total: I x G vector of the total cross section for each spatial cell and energy level
             scatter: I x G array for the scattering of the spatial cell by moment and energy
@@ -995,8 +995,8 @@ class source_collect:
         
         phi_old = func.initial_flux(problem)
 
-        smult = np.einsum('ijk,ik->ij',self.scatter,phi_old)
-        source = source_auto.source1(self)
+        smult = np.einsum('ijk,ik->ij',self.scatter,phi_old) + np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
+        external = source_auto.source1(self)
 
         converged = 0
         count = 1
@@ -1006,7 +1006,7 @@ class source_collect:
             print('Source Iteration {}'.format(count))
             phi = np.zeros(phi_old.shape)  
             for g in range(self.G):
-                phi[:,g] = source_auto.one_group(self,self.total[:,g],smult[:,g],source,phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
+                phi[:,g] = source_auto.one_group(self,self.total[:,g],smult[:,g],external,phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
             if self.track == 'source':
                 allmat_phi.append(phi)
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
@@ -1017,7 +1017,7 @@ class source_collect:
 
             phi_old = phi.copy()
 
-            smult = np.einsum('ijk,ik->ij',self.scatter,phi)
+            smult = np.einsum('ijk,ik->ij',self.scatter,phi) + np.einsum('ijk,ik->ij',self.chiNuFission,phi)
         if self.track == 'source':
             return phi,np.concatenate((allmat_phi))
         return phi
