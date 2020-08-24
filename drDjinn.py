@@ -1,16 +1,16 @@
 class tools:
     def djinn_load(model_name,dtype):
-    from djinn import djinn
-    if dtype == 'both':
-        model_scatter = djinn.load(model_name=model_name[0])
-        model_fission = djinn.load(model_name=model_name[1])
-    elif dtype == 'scatter':
-        model_scatter = djinn.load(model_name=model_name)
-        model_fission = None
-    elif dtype == 'fission':
-        model_scatter = None
-        model_fission = djinn.load(model_name=model_name)
-    return model_scatter,model_fission
+        from djinn import djinn
+        if dtype == 'both':
+            model_scatter = djinn.load(model_name=model_name[0])
+            model_fission = djinn.load(model_name=model_name[1])
+        elif dtype == 'scatter':
+            model_scatter = djinn.load(model_name=model_name)
+            model_fission = None
+        elif dtype == 'fission':
+            model_scatter = None
+            model_fission = djinn.load(model_name=model_name)
+        return model_scatter,model_fission
      
 
 class eigen_djinn:
@@ -57,7 +57,7 @@ class eigen_djinn:
         import numpy as np
         if (np.sum(flux) == 0):
             return np.zeros(flux.shape)
-        djinn_scatter_ns = eigen_djinn.label_model(self,'scatter',flux,self.scatter_model)
+        djinn_scatter_ns = eigen_djinn.label_model(self,'scatter',flux,self.model_scatter)
         return eigen_djinn.scale_scatter(self,flux,djinn_scatter_ns)
 
     def scale_fission(self,phi,djinn_ns):
@@ -135,7 +135,8 @@ class eigen_djinn:
         import numpy as np
         from discrete1.theProcess import func
 
-        phi_old = func.initial_flux(problem)
+        # phi_old = func.initial_flux(problem)
+        phi_old = problem.copy()
 
         converged = 0
         count = 1
@@ -189,11 +190,11 @@ class eigen_djinn:
             sources = eigen_djinn.create_fmult(self,phi_old)
             print('Outer Transport Iteration {}\n==================================='.format(count))
             if self.track == 'source':
-                phi,temp_scatter = eigen_djinn.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=MAX_ITS,initial=phi_old)
+                phi,temp_scatter = eigen_djinn.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
                 enrich = str(np.amax(self.enrich)).split('.')[1]
                 np.save('mydata/track_{}_djinn/enrich_{:<02}_count_{}'.format(problem,enrich,str(count).zfill(3)),temp_scatter)
             else:    
-                phi = eigen_djinn.multi_group(self,self.total,self.scatter,sources,model_scatter,tol=1e-08,MAX_ITS=100,initial=phi_old)
+                phi = eigen_djinn.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=100)
             keff = np.linalg.norm(phi)
             phi /= keff
             # Check for convergence
