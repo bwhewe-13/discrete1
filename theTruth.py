@@ -289,7 +289,7 @@ class eigen_collect:
         return phi,keff
 
 class source:
-    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,track=False):
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,track=False,enrich=None,splits=None):
         self.G = G
         self.N = N
         self.mu = mu
@@ -300,6 +300,9 @@ class source:
         self.I = I
         self.inv_delta = float(I)/R
         self.track = track
+        self.enrich = enrich
+        self.splits = splits
+        
         
     def one_group(self,total,scatter,external,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
@@ -354,8 +357,8 @@ class source:
         phi_old = func.initial_flux(problem)
 
         if self.track == 'source':
-            allmat_phi = []
-            allmat_smult = []; allmat_fmult = []
+            allmat_sca = np.zeros((2,0,self.G+1))
+            allmat_fis = np.zeros((2,0,self.G+1))
 
         smult = np.einsum('ijk,ik->ij',self.scatter,phi_old)
         fmult = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
@@ -365,16 +368,15 @@ class source:
         converged = 0
         count = 1
         if self.track == 'source':
-            allmat_phi.append(phi_old)
-            allmat_fmult.append(fmult)
-            allmat_smult.append(smult)
+            temp_fission,temp_scatter = source.tracking_data(self,phi_old,fmult)
+            allmat_sca = np.hstack((allmat_sca,temp_scatter))
+            allmat_fis = np.hstack((allmat_fis,temp_fission))
         while not (converged):
             print('Source Iteration {}'.format(count))
             phi = np.zeros(phi_old.shape)  
             for g in range(self.G):
                 phi[:,g] = source.one_group(self,self.total[:,g],mult[:,g],external,phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
-            if self.track == 'source':
-                allmat_phi.append(phi)
+
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             print('Change is',change,'\n===================================')
                 
@@ -386,10 +388,33 @@ class source:
             smult = np.einsum('ijk,ik->ij',self.scatter,phi)
             fmult = np.einsum('ijk,ik->ij',self.chiNuFission,phi)
             if self.track == 'source':
-                allmat_fmult.append(fmult)
-                allmat_smult.append(smult)
+                temp_fission,temp_scatter = source.tracking_data(self,phi_old,fmult)
+                allmat_sca = np.hstack((allmat_sca,temp_scatter))
+                allmat_fis = np.hstack((allmat_fis,temp_fission))
             mult = smult + fmult
         if self.track == 'source':
-            return phi,np.concatenate((allmat_phi)),np.concatenate((allmat_smult)),np.concatenate((allmat_fmult))
+            return phi,allmat_fis,allmat_sca
         return phi
+
+    def tracking_data(self,phi,sources=None):
+        from discrete1.util import sn
+        import numpy as np
+        # Scatter Tracking - separate phi and add label
+        label_scatter = sn.cat(self.enrich,self.splits['scatter_djinn'])
+        phi_scatter = sn.cat(phi,self.splits['scatter_djinn'])
+        # phi_scatter /= np.linalg.norm(phi_scatter)
+        phi_full_scatter = np.hstack((label_scatter[:,None],phi_scatter))
+        # Separate scatter multiplier and add label
+        multiplier_scatter = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_djinn']),phi_scatter)
+        multiplier_full_scatter = np.hstack((label_scatter[:,None],multiplier_scatter))
+        scatter_data = np.vstack((phi_full_scatter[None,:,:],multiplier_full_scatter[None,:,:]))
+        # Fission Tracking - Separate phi and add label
+        label_fission = sn.cat(self.enrich,self.splits['fission_djinn'])
+        phi_fission = sn.cat(phi,self.splits['fission_djinn'])
+        phi_full_fission = np.hstack((label_fission[:,None],phi_fission))
+        # Separate fission multiplier and add label
+        multiplier_fission = sn.cat(sources,self.splits['fission_djinn'])
+        multiplier_full_fission = np.hstack((label_fission[:,None],multiplier_fission))
+        fission_data = np.vstack((phi_full_fission[None,:,:],multiplier_full_fission[None,:,:]))
+        return fission_data, scatter_data
  

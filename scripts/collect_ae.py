@@ -30,10 +30,9 @@ for ii in range(len(enrich)):
         np.save('mydata/ae_true_1d/keff_{}_{:<02}'.format(usr_input.problem,labels[ii]),keff)
     else:
         print('Source Problem')
-        problem = truth.source(*pro.problem.variables(enrich[ii],ptype=usr_input.problem,symm=True),track=usr_input.track)
+        problem = truth.source(*pro.problem.variables(enrich[ii],ptype=usr_input.problem,symm=True),track=usr_input.track,enrich=enrichment,splits=splits)
         if usr_input.track == 'source':
-            phi,track_phi,track_smult,track_fmult = problem.transport(enrich[ii],problem=usr_input.problem) 
-            np.save('mydata/ae_source_model_data/phi_{}{:<02}'.format(usr_input.problem,labels[ii]),track_phi)
+            phi,track_smult,track_fmult = problem.transport(enrich[ii],problem=usr_input.problem) 
             np.save('mydata/ae_source_model_data/smult_{}{:<02}'.format(usr_input.problem,labels[ii]),track_smult)
             np.save('mydata/ae_source_model_data/fmult_{}{:<02}'.format(usr_input.problem,labels[ii]),track_fmult)
         else:

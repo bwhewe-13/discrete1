@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-from discrete1.drDjinn import eigen_djinn
+from discrete1.drDjinn import eigen_djinn,source_djinn
 from discrete1.util import nnets
 import discrete1.theProcess as pro
 import argparse, os, json
@@ -17,7 +17,7 @@ parser.add_argument('-problem',action='store',dest='problem') # Problem set up
 parser.add_argument('-fmodel',action='store',dest='fmodel')
 parser.add_argument('-smodel',action='store',dest='smodel')
 parser.add_argument('-gpu',action='store',dest='gpu')
-# parser.add_argument('-scatter',action='store',dest='scatter')
+parser.add_argument('-source',action='store',dest='source')
 usr_input = parser.parse_args()
 
 if usr_input.gpu is None:
@@ -32,7 +32,14 @@ labels = [str(jj).split('.')[1] for jj in enrich]
 if usr_input.dist is None:
     print('Using Default Dimensions')
 
-file1 = usr_input.xs
+if 'src' in usr_input.xs:
+    file1 = usr_input.xs.split('src_')[1]
+    added = 'src_'
+else:
+    file1 = usr_input.xs
+    added = ''
+
+# file1 = usr_input.xs
 model = usr_input.smodel
 
 # process = None
@@ -66,13 +73,13 @@ else:
 
 if file1 == 'both':
     djinn_model = []    
-    nums = nnets.djinn_metric('{}_1d/{}djinn{}/error/model*'.format('scatter',sfile2,file3),clean=True)
-    djinn_model.append('{}_1d/{}djinn{}/model_{}'.format('scatter',sfile2,file3,nums))
-    nums = nnets.djinn_metric('{}_1d/{}djinn{}/error/model*'.format('fission',ffile2,file3),clean=True) #space should be file2
-    djinn_model.append('{}_1d/{}djinn{}/model_{}'.format('fission',ffile2,file3,nums))
+    nums = nnets.djinn_metric('{}_1d/{}djinn{}/error/model*'.format('{}scatter'.format(added),sfile2,file3),clean=True)
+    djinn_model.append('{}_1d/{}djinn{}/model_{}'.format('{}scatter'.format(added),sfile2,file3,nums))
+    nums = nnets.djinn_metric('{}_1d/{}djinn{}/error/model*'.format('{}fission'.format(added),ffile2,file3),clean=True) #space should be file2
+    djinn_model.append('{}_1d/{}djinn{}/model_{}'.format('{}fission'.format(added),ffile2,file3,nums))
 else:
-    nums = nnets.djinn_metric('{}_1d/{}djinn{}/error/model*'.format(file1,file2,file3),clean=True)
-    djinn_model = '{}_1d/{}djinn{}/model_{}'.format(file1,file2,file3,nums)
+    nums = nnets.djinn_metric('{}_1d/{}djinn{}/error/model*'.format(usr_input.xs,file2,file3),clean=True)
+    djinn_model = '{}_1d/{}djinn{}/model_{}'.format(usr_input.xs,file2,file3,nums)
 
 
 print('DJINN Model',djinn_model)
@@ -82,7 +89,11 @@ sprob = '{}_full'.format(usr_input.problem)
 for ii in range(len(enrich)):
     enrichment,splits = pro.problem.boundaries(enrich[ii],distance=usr_input.dist,ptype1=usr_input.problem,ptype2=sprob,symm=True)
     print(splits)
-    problem = eigen_djinn(*pro.problem.variables(enrich[ii],ptype=usr_input.problem,distance=usr_input.dist,symm=True),enrich=enrichment,splits=splits,track=usr_input.track,label=usr_input.label)
+    if usr_input.source is None:
+        problem = eigen_djinn(*pro.problem.variables(enrich[ii],ptype=usr_input.problem,distance=usr_input.dist,symm=True),enrich=enrichment,splits=splits,track=usr_input.track,label=usr_input.label)
+    else:
+        print('Source Problem')
+        problem = source_djinn(*pro.problem.variables(enrich[ii],ptype=usr_input.problem,distance=usr_input.dist,symm=True),enrich=enrichment,splits=splits,label=False)
     # phi,keff = problem.transport(djinn_model,LOUD=True,MAX_ITS=1)
     # if usr_input.track is None:
         # phi,keff = problem.transport(djinn_model,process=process,LOUD=True)
