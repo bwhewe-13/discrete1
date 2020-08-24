@@ -398,7 +398,7 @@ class chem:
         '''
         if type(element) == str:
             import json
-            library = json.load(open('discrete1/element_dictionary.json'))
+            library = json.load(open('discrete1/data/element_dictionary.json'))
             info = library[element]
         else:
             info = element.copy()
@@ -448,7 +448,7 @@ class chem:
         import numpy as np
         if library is None:
             import json
-            library = json.load(open('discrete1/element_dictionary.json'))
+            library = json.load(open('discrete1/data/element_dictionary.json'))
 
         # Formatting (compounds and count of each)
         compound,counter = chem.cleaning_compound(compound)

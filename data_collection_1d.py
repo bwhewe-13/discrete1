@@ -15,26 +15,19 @@ labels = [str(jj).split('.')[1] for jj in enrich]
 
 prob_scat = usr_input.problem + '_full'
 
-# if usr_input.problem == 'multiplastic':
-#     locs = 'mp_'
-# elif usr_input.problem == "stainless":
-#     locs = 'ss_'
-# else:
-#     locs = ''
-
 for ii in range(len(enrich)):
     enrichment,splits = r.problem.boundaries(enrich[ii],ptype1=usr_input.problem,ptype2=prob_scat,symm=True)
     print(splits)
     problem = r.eigen_symm(*r.problem.variables(enrich[ii],ptype=usr_input.problem,symm=True),track=usr_input.track,enrich=enrichment,splits=splits)
     if usr_input.track is None:
-        phi,keff = problem.transport(problem=usr_input.problem,enrich=labels[ii],LOUD=True)
+        phi,keff = problem.transport(LOUD=True)
     else:
         # phi,keff = problem.transport(LOUD=True)
-        phi,keff,fis_track,sca_track = problem.transport(problem=usr_input.problem,enrich=labels[ii],LOUD=True)
-        np.save('mydata/model_data_djinn/fission_{}_full_{:<02}'.format(usr_input.problem,labels[ii]),fis_track)
-        np.save('mydata/model_data_djinn/scatter_{}_full_{:<02}'.format(usr_input.problem,labels[ii]),sca_track)
-    np.save('mydata/{}_djinn/true_phi_{:<02}'.format(usr_input.problem,labels[ii]),phi)
-    np.save('mydata/{}_djinn/true_keff_{:<02}'.format(usr_input.problem,labels[ii]),keff)
+        phi,keff,fis_track,sca_track = problem.transport(enrich=labels[ii],LOUD=True)
+        #np.save('mydata/model_data/fission_mp_trackFull_{:<02}'.format(labels[ii]),fis_track)
+        #np.save('mydata/model_data/scatter_mp_trackFull_{:<02}'.format(labels[ii]),sca_track)
+    np.save('mydata/track_stainless/phi_ss_{:<02}'.format(labels[ii]),phi)
+    np.save('mydata/track_stainless/keff_ss_{:<02}'.format(labels[ii]),keff)
     #np.save('mydata/djinn_true_1d/phi_mp_{:<02}'.format(labels[ii]),phi)
     #np.save('mydata/djinn_true_1d/keff_mp_{:<02}'.format(labels[ii]),keff)
 

@@ -8,8 +8,8 @@ from discrete1.util import nnets
 from tensorflow.keras.layers import Input,Dense
 from tensorflow.keras.models import Model
 from tensorflow.keras import regularizers
-import argparse
-import os
+import argparse, os
+from sklearn import model_selection
 
 parser = argparse.ArgumentParser(description='Data Input')
 parser.add_argument('-nodes',action='store',dest='en',nargs='+') #Enrichment looking into
@@ -32,7 +32,7 @@ if usr_input.source is None:
     label1 = ''
 else:
     label1 = '_source'
-mymat = np.load('mydata/ae{}_model_data/{}.npy'.format(label1,usr_input.data))
+mymat = np.load('mydata/ae{}_model_data/{}_{}.npy'.format(label1,usr_input.data,usr_input.model))
 
 split = 0.2
 try:
@@ -45,8 +45,9 @@ except FileNotFoundError:
 mymat,maxi,mini = nnets.normalize(mymat,verbose=True)
 mymat[np.isnan(mymat)] = 0
 
-index = int(len(spatial)*split)
-train = mymat[spatial[index:]]; test = mymat[spatial[:index]]
+# index = int(len(spatial)*split)
+# train = mymat[spatial[index:]]; test = mymat[spatial[:index]]
+train,test = model_selection.train_test_split(mymat,test_size=0.2,random_state=47)
 
 dim = 87
 ddims = nodes[:len(nodes)-1][::-1]
@@ -77,12 +78,13 @@ decoder = Model(encoded_input,decoded)
 # Compile Autoencoder
 autoencoder.compile(optimizer='adam',loss='mse')
 autoencoder.summary()
-history = autoencoder.fit(train,train,epochs=1000,validation_data=(test,test))
+history = autoencoder.fit(train,train,epochs=200,validation_data=(test,test))
 
-autoencoder.save('autoencoder/{}{}/model{}_autoencoder.h5'.format(usr_input.model,label1,file1))
-encoder.save('autoencoder/{}{}/model{}_encoder.h5'.format(usr_input.model,label1,file1))
-decoder.save('autoencoder/{}{}/model{}_decoder.h5'.format(usr_input.model,label1,file1))
-np.save('autoencoder/{}{}/loss_{}'.format(usr_input.model,label1,file1),history.history['loss'])
+autoencoder.save('autoencoder/{}{}/model{}_{}_autoencoder.h5'.format(usr_input.model,label1,file1,usr_input.data))
+encoder.save('autoencoder/{}{}/model{}_{}_encoder.h5'.format(usr_input.model,label1,file1,usr_input.data))
+decoder.save('autoencoder/{}{}/model{}_{}_decoder.h5'.format(usr_input.model,label1,file1,usr_input.data))
+np.save('autoencoder/{}{}/loss_{}_{}'.format(usr_input.model,label1,usr_input.data,file1),history.history['loss'])
+np.save('autoencoder/{}{}/val_loss_{}_{}'.format(usr_input.model,label1,usr_input.data,file1),history.history['val_loss'])
 
 # dnn = keras.Sequential()
 # dnn.add(keras.layers.Dense(nodes[0],input_shape=(dim,),activation='relu',kernel_regularizer=regularizers.l2(0.05)))
