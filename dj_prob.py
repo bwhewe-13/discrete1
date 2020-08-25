@@ -135,8 +135,8 @@ class eigen_djinn:
         import numpy as np
         from discrete1.setup import func
 
-        # phi_old = func.initial_flux(problem)
-        phi_old = problem.copy()
+        phi_old = func.initial_flux(problem)
+        # phi_old = problem.copy()
 
         converged = 0
         count = 1
@@ -190,11 +190,11 @@ class eigen_djinn:
             sources = eigen_djinn.create_fmult(self,phi_old)
             print('Outer Transport Iteration {}\n==================================='.format(count))
             if self.track == 'source':
-                phi,temp_scatter = eigen_djinn.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
+                phi,temp_scatter = eigen_djinn.multi_group(self,self.total,self.scatter,sources,problem,tol=1e-08,MAX_ITS=MAX_ITS)
                 enrich = str(np.amax(self.enrich)).split('.')[1]
                 np.save('mydata/track_{}_djinn/enrich_{:<02}_count_{}'.format(problem,enrich,str(count).zfill(3)),temp_scatter)
             else:    
-                phi = eigen_djinn.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=100)
+                phi = eigen_djinn.multi_group(self,self.total,self.scatter,sources,problem,tol=1e-08,MAX_ITS=100)
             keff = np.linalg.norm(phi)
             phi /= keff
             # Check for convergence
@@ -355,6 +355,9 @@ class source_djinn:
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
                 phi[:,g] = source_djinn.one_group(self,self.total[:,g],mult[:,g],source)
+
+            phi /= np.linalg.norm(phi)
+            
             # Check for convergence
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             print('Change is',change,'\n===================================')

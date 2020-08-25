@@ -25,7 +25,7 @@ for ii in range(len(enrich)):
             phi,keff,track_phi = setup.transport(enrich[ii],problem=usr_input.problem,LOUD=True)  
             np.save('mydata/ae_model_data/{}_{:<02}'.format(usr_input.problem,labels[ii]),track_phi)
         else:
-            phi,keff = problem.transport(enrich[ii],problem=usr_input.problem,LOUD=True)
+            phi,keff = setup.transport(enrich[ii],problem=usr_input.problem,LOUD=True)
         np.save('mydata/ae_true_1d/phi_{}_{:<02}'.format(usr_input.problem,labels[ii]),phi)
         np.save('mydata/ae_true_1d/keff_{}_{:<02}'.format(usr_input.problem,labels[ii]),keff)
     else:
@@ -36,6 +36,6 @@ for ii in range(len(enrich)):
             np.save('mydata/ae_source_model_data/smult_{}{:<02}'.format(usr_input.problem,labels[ii]),track_smult)
             np.save('mydata/ae_source_model_data/fmult_{}{:<02}'.format(usr_input.problem,labels[ii]),track_fmult)
         else:
-            phi = problem.transport(enrich[ii],problem=usr_input.problem)   
+            phi = setup.transport(enrich[ii],problem=usr_input.problem)   
         np.save('mydata/ae_source_true_1d/phi_{}_{:<02}'.format(usr_input.problem,labels[ii]),phi)
         
