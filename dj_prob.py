@@ -133,7 +133,7 @@ class eigen_djinn:
         Returns:
             phi: a I x G array  """
         import numpy as np
-        from discrete1.theProcess import func
+        from discrete1.setup import func
 
         # phi_old = func.initial_flux(problem)
         phi_old = problem.copy()
@@ -177,7 +177,7 @@ class eigen_djinn:
         Returns:
             phi: a I x G array    """        
         import numpy as np
-        from discrete1.theProcess import func
+        from discrete1.setup import func
 
         phi_old = func.initial_flux(problem)
 
@@ -337,7 +337,7 @@ class source_djinn:
         Returns:
             phi: a I x G array  """
         import numpy as np
-        from discrete1.theProcess import func,ex_sources
+        from discrete1.setup import func,ex_sources
         
         phi_old = func.initial_flux(problem)
 
@@ -354,7 +354,7 @@ class source_djinn:
             print('Source Iteration {}'.format(count))
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
-                phi[:,g] = source_djinn.one_group(self,total[:,g],mult[:,g],source)
+                phi[:,g] = source_djinn.one_group(self,self.total[:,g],mult[:,g],source)
             # Check for convergence
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             print('Change is',change,'\n===================================')

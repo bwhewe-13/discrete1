@@ -2,8 +2,8 @@
 
 import numpy as np
 import os, argparse
-import discrete1.theTruth as truth
-import discrete1.theProcess as pro
+import discrete1.correct as c
+import discrete1.setup as s
 
 parser = argparse.ArgumentParser(description='Enrichment')
 parser.add_argument('-enrich',action='store',dest='en',nargs='+') #Enrichment looking into
@@ -18,10 +18,10 @@ labels = [str(jj).split('.')[1] for jj in enrich]
 sprob = '{}_full'.format(usr_input.problem)
 
 for ii in range(len(enrich)):
-    enrichment,splits = pro.problem.boundaries(enrich[ii],ptype1=usr_input.problem,ptype2=sprob,symm=True)
+    enrichment,splits = s.problem.boundaries(enrich[ii],ptype1=usr_input.problem,ptype2=sprob,symm=True)
     print(splits)
     if usr_input.source is None:
-        problem = truth.eigen_collect(*pro.problem.variables(enrich[ii],ptype=usr_input.problem,symm=True),track=usr_input.track)
+        problem = c.eigen_collect(*s.problem.variables(enrich[ii],ptype=usr_input.problem,symm=True),track=usr_input.track)
         if usr_input.track == 'power':
             phi,keff,track_phi = problem.transport(enrich[ii],problem=usr_input.problem,LOUD=True)  
             np.save('mydata/ae_model_data/{}_{:<02}'.format(usr_input.problem,labels[ii]),track_phi)
@@ -31,7 +31,7 @@ for ii in range(len(enrich)):
         np.save('mydata/ae_true_1d/keff_{}_{:<02}'.format(usr_input.problem,labels[ii]),keff)
     else:
         print('Source Problem')
-        problem = truth.source(*pro.problem.variables(enrich[ii],ptype=usr_input.problem,symm=True),track=usr_input.track,enrich=enrichment,splits=splits)
+        problem = c.source(*s.problem.variables(enrich[ii],ptype=usr_input.problem,symm=True),track=usr_input.track,enrich=enrichment,splits=splits)
         if usr_input.track == 'source':
             phi,track_fmult,track_smult = problem.transport(enrich[ii],problem=usr_input.problem) 
             np.save('mydata/ae_source_model_data/smult_{}{:<02}'.format(usr_input.problem,labels[ii]),track_smult)

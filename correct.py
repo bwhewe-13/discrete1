@@ -62,7 +62,7 @@ class eigen:
         Returns:
             phi: a I x G array  """
         import numpy as np
-        from discrete1.theProcess import func
+        from discrete1.setup import func
 
         phi_old = np.zeros((self.I,self.G))
         converged = 0
@@ -250,7 +250,7 @@ class eigen_collect:
             phi: a I x G array    """        
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.theProcess import func
+        from discrete1.setup import func
 
         phi_old = func.initial_flux(problem)
         keff = np.linalg.norm(phi_old)
@@ -352,7 +352,7 @@ class source:
             phi: a I x G array  """
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.theProcess import func,ex_sources
+        from discrete1.setup import func,ex_sources
 
         phi_old = func.initial_flux(problem)
 
@@ -377,9 +377,10 @@ class source:
             for g in range(self.G):
                 phi[:,g] = source.one_group(self,self.total[:,g],mult[:,g],external,phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
 
+            # phi /= np.linalg.norm(phi)
+            
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             print('Change is',change,'\n===================================')
-                
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
 

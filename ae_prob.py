@@ -449,7 +449,7 @@ class source_auto:
         # Combine Source terms and return
         return smult + fmult
 
-    def transport(self,coder,problem='carbon',tol=1e-08,MAX_ITS=1000,LOUD=True,multAE=False):
+    def transport(self,coder,problem='carbon',tol=1e-08,MAX_ITS=1000,multAE=False):
         """ Arguments:
             total: I x G vector of the total cross section for each spatial cell and energy level
             scatter: I x G array for the scattering of the spatial cell by moment and energy
