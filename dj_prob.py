@@ -32,16 +32,22 @@ class eigen_djinn:
         self.track = track
         self.label = label
     
-    def label_model(self,xs,phi,model_):
+    def label_model(self,xs,flux,model_):
         import numpy as np
         from discrete1.util import sn
+        phi = flux.copy()
         if np.sum(phi) == 0:
             return np.zeros((sn.cat(phi,self.splits['{}_djinn'.format(xs)]).shape))
+        # if xs == 'scatter':
+        #     nphi = np.linalg.norm(phi)
+        #     phi /= nphi
         short_phi = sn.cat(phi,self.splits['{}_djinn'.format(xs)])
         # if self.process == 'norm':
         #     short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]
         if self.label:
             short_phi = np.hstack((sn.cat(self.enrich,self.splits['{}_djinn'.format(xs)])[:,None],short_phi))
+        # if xs == 'scatter':
+            # return model_.predict(short_phi),nphi
         return model_.predict(short_phi) 
 
     def scale_scatter(self,phi,djinn_ns):
@@ -244,15 +250,19 @@ class source_djinn:
         self.splits = splits
         self.label = label
                         
-    def label_model(self,xs,phi,model_):
+    def label_model(self,xs,flux,model_):
         import numpy as np
         from discrete1.util import sn
+        phi = flux.copy()
         if np.sum(phi) == 0:
             return np.zeros((sn.cat(phi,self.splits['{}_djinn'.format(xs)]).shape))
+        # Norm and save original norm
+        nphi = np.linalg.norm(phi)
+        phi /= nphi
         short_phi = sn.cat(phi,self.splits['{}_djinn'.format(xs)])
         if self.label:
             short_phi = np.hstack((sn.cat(self.enrich,self.splits['{}_djinn'.format(xs)])[:,None],short_phi))
-        return model_.predict(short_phi) 
+        return model_.predict(short_phi),nphi
 
     def scale_scatter(self,phi,djinn_ns):
         import numpy as np
@@ -281,18 +291,22 @@ class source_djinn:
         if np.sum(flux) == 0:
             return np.zeros(flux.shape)
         if self.multDJ == 'fission':
-            djinn_fission_ns = source_djinn.label_model(self,'fission',flux,self.model_fission)
+            djinn_fission_ns,fnorm = source_djinn.label_model(self,'fission',flux,self.model_fission)
             fmult = source_djinn.scale_fission(self,flux,djinn_fission_ns)
+            fmult *= fnorm
             smult = np.einsum('ijk,ik->ij',self.scatter,flux)
         elif self.multDJ == 'scatter':
             fmult = np.einsum('ijk,ik->ij',self.chiNuFission,flux)
-            djinn_scatter_ns = source_djinn.label_model(self,'scatter',flux,self.model_scatter)
+            djinn_scatter_ns,snorm = source_djinn.label_model(self,'scatter',flux,self.model_scatter)
             smult = source_djinn.scale_scatter(self,flux,djinn_scatter_ns)
+            smult *= snorm
         elif self.multDJ == 'both':
-            djinn_fission_ns = source_djinn.label_model(self,'fission',flux,self.model_fission)
+            djinn_fission_ns,fnorm = source_djinn.label_model(self,'fission',flux,self.model_fission)
             fmult = source_djinn.scale_fission(self,flux,djinn_fission_ns)
-            djinn_scatter_ns = source_djinn.label_model(self,'scatter',flux,self.model_scatter)
+            fmult *= fnorm
+            djinn_scatter_ns,snorm = source_djinn.label_model(self,'scatter',flux,self.model_scatter)
             smult = source_djinn.scale_scatter(self,flux,djinn_scatter_ns)
+            smult *= snorm
         return fmult + smult 
 
     def one_group(self,total,scatter,external):
