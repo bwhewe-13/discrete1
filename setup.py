@@ -82,7 +82,7 @@ class func:
             import numpy as np
             return array + (0.001*np.random.normal(0,1,array.shape[0]))[:,None]
 
-class problem:        
+class problem1:        
     def variables(conc=None,problem=None):
         from discrete1.util import chem,sn
         import numpy as np
@@ -230,16 +230,16 @@ class problem:
     def boundaries(conc=0.2,problem=None):
         problem_scatter = problem + '_full'
         # Set Fission Splits
-        enrichment,splits = problem.boundaries_aux(conc,problem)
+        enrichment,splits = problem1.boundaries_aux(conc,problem)
         fission_splits = {f'fission_{kk}': vv for kk, vv in splits.items()}
         # Set Scatter Splits
-        enrichment,splits = problem.boundaries_aux(conc,problem_scatter)
+        enrichment,splits = problem1.boundaries_aux(conc,problem_scatter)
         scatter_splits = {f'scatter_{kk}': vv for kk, vv in splits.items()}
         combo_splits = {**scatter_splits, **fission_splits}
         return enrichment,combo_splits
 
     def scatter_fission(conc,problem):
-        _,_,_,_,_,scatter,fission,_,_,_ = problem.variables(conc,problem)
+        _,_,_,_,_,scatter,fission,_,_,_ = problem1.variables(conc,problem)
         return scatter,fission
 
 

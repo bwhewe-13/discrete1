@@ -15,15 +15,14 @@ usr_input = parser.parse_args()
 enrich = [float(jj) for jj in usr_input.en]
 labels = [str(jj).split('.')[1] for jj in enrich]
 
-sprob = '{}_full'.format(usr_input.problem)
 
 for ii in range(len(enrich)):
-    enrichment,splits = s.problem.boundaries(enrich[ii],ptype1=usr_input.problem,ptype2=sprob,symm=True)
+    enrichment,splits = s.problem1.boundaries(enrich[ii],problem=usr_input.problem)
     print(splits)
     if usr_input.source is None:
-        problem = c.eigen_collect(*s.problem.variables(enrich[ii],ptype=usr_input.problem,symm=True),track=usr_input.track)
+        setup = c.eigen_collect(*s.problem1.variables(enrich[ii],probelm=usr_input.problem),track=usr_input.track)
         if usr_input.track == 'power':
-            phi,keff,track_phi = problem.transport(enrich[ii],problem=usr_input.problem,LOUD=True)  
+            phi,keff,track_phi = setup.transport(enrich[ii],problem=usr_input.problem,LOUD=True)  
             np.save('mydata/ae_model_data/{}_{:<02}'.format(usr_input.problem,labels[ii]),track_phi)
         else:
             phi,keff = problem.transport(enrich[ii],problem=usr_input.problem,LOUD=True)
@@ -31,9 +30,9 @@ for ii in range(len(enrich)):
         np.save('mydata/ae_true_1d/keff_{}_{:<02}'.format(usr_input.problem,labels[ii]),keff)
     else:
         print('Source Problem')
-        problem = c.source(*s.problem.variables(enrich[ii],ptype=usr_input.problem,symm=True),track=usr_input.track,enrich=enrichment,splits=splits)
+        setup = c.source(*s.problem1.variables(enrich[ii],problem=usr_input.problem),track=usr_input.track,enrich=enrichment,splits=splits)
         if usr_input.track == 'source':
-            phi,track_fmult,track_smult = problem.transport(enrich[ii],problem=usr_input.problem) 
+            phi,track_fmult,track_smult = setup.transport(enrich[ii],problem=usr_input.problem) 
             np.save('mydata/ae_source_model_data/smult_{}{:<02}'.format(usr_input.problem,labels[ii]),track_smult)
             np.save('mydata/ae_source_model_data/fmult_{}{:<02}'.format(usr_input.problem,labels[ii]),track_fmult)
         else:

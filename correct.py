@@ -377,7 +377,7 @@ class source:
             for g in range(self.G):
                 phi[:,g] = source.one_group(self,self.total[:,g],mult[:,g],external,phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
 
-            # phi /= np.linalg.norm(phi)
+            phi /= np.linalg.norm(phi)
             
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             print('Change is',change,'\n===================================')
