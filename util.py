@@ -250,9 +250,22 @@ class nnets:
         if verbose:
             return norm,maxi,mini
         return norm
+
+    def normalize_single(data,verbose=False):
+        import numpy as np
+        maxi = np.max(data); mini = np.min(data)
+        norm = (data-mini)/(maxi-mini)
+        if verbose:
+            return norm,maxi,mini
+        return norm
     
     def unnormalize(data,maxi,mini):
+        # if maxi.shape == ():
+        #     return data*(maxi-mini)+mini
         return data*(maxi-mini)[:,None]+mini[:,None]
+
+    def unnormalize_single(data,maxi,mini):
+        return data*(maxi-mini)+mini
 
     # def unnormalize(scatter,maxi,mini,ind):
     #     return scatter*(maxi[ind]-mini[ind])+mini[ind]

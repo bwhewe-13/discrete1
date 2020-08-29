@@ -47,7 +47,7 @@ class eigen_djinn:
         if self.label:
             short_phi = np.hstack((sn.cat(self.enrich,self.splits['{}_djinn'.format(xs)])[:,None],short_phi))
         # if xs == 'scatter':
-            # return model_.predict(short_phi),nphi
+        #     return model_.predict(short_phi),nphi
         return model_.predict(short_phi) 
 
     def scale_scatter(self,phi,djinn_ns):
@@ -168,6 +168,7 @@ class eigen_djinn:
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
+            # phi_old = func.initial_flux(problem)
         if self.track == 'source':
             return phi, allmat_sca
         return phi

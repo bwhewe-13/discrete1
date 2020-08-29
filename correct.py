@@ -13,7 +13,7 @@ class eigen:
         self.enrich = enrich
         self.splits = splits
         
-    def one_group(self,total,scatter,external,guess,tol=1e-08,MAX_ITS=100):
+    def one_group(self,total,scatter,smult,external,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
             total: I x 1 vector of the total cross section for each spatial cell
             scatter: I x L+1 array for the scattering of the spatial cell by moment
@@ -38,7 +38,10 @@ class eigen:
                 weight = self.mu[n]*self.inv_delta
                 top_mult = (weight-half_total).astype('float64')
                 bottom_mult = (1/(weight+half_total)).astype('float64')
-                temp_scat = (scatter * phi_old).astype('float64')
+                if self.track:
+                    temp_scat = smult.astype('float64')
+                else:                    
+                    temp_scat = (scatter * phi_old).astype('float64')
                 # Set Pointers for C function
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
                 ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
@@ -52,7 +55,7 @@ class eigen:
             phi_old = phi.copy()
         return phi
     
-    def multi_group(self,total,scatter,nuChiFission,tol=1e-08,MAX_ITS=100):
+    def multi_group(self,total,scatter,nuChiFission,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
             total: I x G vector of the total cross section for each spatial cell and energy level
             scatter: I x G array for the scattering of the spatial cell by moment and energy
@@ -63,20 +66,25 @@ class eigen:
             phi: a I x G array  """
         import numpy as np
         from discrete1.setup import func
+        # smult = None
+        # phi_old = np.zeros((self.I,self.G))
+        phi_old = guess.copy()
 
-        phi_old = np.zeros((self.I,self.G))
         converged = 0
         count = 1
         if self.track == 'source':
             allmat_sca = np.zeros((2,0,self.G+1))
         while not (converged):
             phi = np.zeros(phi_old.shape)
+            smult = np.einsum('ijk,ik->ij',scatter,phi_old)
             for g in range(self.G):
                 if g == 0:
                     q_tilde = nuChiFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g)
                 else:
                     q_tilde = nuChiFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g) + func.update_q(scatter,phi,0,g,g)
-                phi[:,g] = eigen.one_group(self,total[:,g],scatter[:,g,g],q_tilde,tol=tol,MAX_ITS=MAX_ITS,guess=phi_old[:,g])
+                if self.track:
+                    q_tilde = nuChiFission[:,g].copy()
+                phi[:,g] = eigen.one_group(self,total[:,g],scatter[:,g,g],smult[:,g],q_tilde,tol=tol,MAX_ITS=MAX_ITS,guess=phi_old[:,g])
             if self.track == "source":
                 temp_fission,temp_scatter = eigen.tracking_data(self,phi,np.empty((1000,87)))
                 allmat_sca = np.hstack((allmat_sca,temp_scatter))
@@ -96,9 +104,11 @@ class eigen:
         Returns:
             phi: a I x G array    """        
         import numpy as np
+        from discrete1.setup import func
 
         phi_old = np.random.rand(self.I,self.G)
         phi_old /= np.linalg.norm(phi_old)
+        # phi_old = func.initial_flux(problem)
         converged = 0
         count = 1
         if self.track == 'power':
@@ -115,10 +125,10 @@ class eigen:
                 allmat_fis = np.hstack((allmat_fis,temp_fission))
             print('Outer Transport Iteration {}\n==================================='.format(count))
             if self.track == 'source':
-                phi,temp_scatter2 = eigen.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
+                phi,temp_scatter2 = eigen.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
                 np.save('mydata/track_{}_djinn/enrich_{:<02}_count_{}'.format(problem,enrich,str(count).zfill(3)),temp_scatter2)
             else:
-                phi = eigen.multi_group(self,self.total,self.scatter,sources,tol=1e-08,MAX_ITS=MAX_ITS)
+                phi = eigen.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
             keff = np.linalg.norm(phi)
             phi /= keff
                         
