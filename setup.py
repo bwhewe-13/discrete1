@@ -49,11 +49,11 @@ class func:
         """ Coder is the string path to the autoencoder, encoder, and decoder """
         from tensorflow import keras
         if coder == 'dummy1':
-            return func.load_dummy1(),None,None
+            return func.load_dummy1(),func.load_dummy1(),func.load_dummy1()
         elif coder == 'dummy2':
-            return func.load_dummy2(),None,None
+            return func.load_dummy2(),func.load_dummy2(),func.load_dummy2()
         elif coder == 'dummy3':
-            return func.load_dummy3(),None,None
+            return func.load_dummy3(),func.load_dummy3(),func.load_dummy3()
         
         autoencoder = keras.models.load_model('{}_{}_autoencoder.h5'.format(coder,ptype))
         encoder = keras.models.load_model('{}_{}_encoder.h5'.format(coder,ptype),compile=False)
