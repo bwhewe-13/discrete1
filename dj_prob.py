@@ -370,7 +370,7 @@ class source_djinn:
             for g in range(self.G):
                 phi[:,g] = source_djinn.one_group(self,self.total[:,g],mult[:,g],source)
 
-            phi /= np.linalg.norm(phi)
+            # phi /= np.linalg.norm(phi)
             
             # Check for convergence
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))

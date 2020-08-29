@@ -306,7 +306,7 @@ class eigen_auto:
             phi: a I x G array    """        
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.theProcess import func
+        from discrete1.setup import func
         # from discrete1.util import sn
         phi_autoencoder,phi_encoder,phi_decoder = func.load_coder(coder)
         self.phi_autoencoder = phi_autoencoder
@@ -460,7 +460,7 @@ class source_auto:
             phi: a I x G array  """
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.theProcess import ex_sources,func
+        from discrete1.setup import ex_sources,func
         phi_autoencoder,phi_encoder,phi_decoder = func.load_coder(coder)
         self.phi_autoencoder = phi_autoencoder
 
