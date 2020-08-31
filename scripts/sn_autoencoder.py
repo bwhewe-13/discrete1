@@ -66,9 +66,10 @@ for ii in range(len(enrich)):
         enrichment,splits = s.problem1.boundaries(enrich[ii],problem=usr_input.problem)
         if usr_input.autoencoder is None:
             problem = ae.eigen_eNDe(*s.problem1.variables(enrich[ii],problem=usr_input.problem))
+            phi,keff = problem.transport(ae_model,problem=usr_input.problem)
         else:
             problem = ae.eigen_auto(*s.problem1.variables(enrich[ii],ptype=usr_input.problem,symm=True))
-        phi,keff = problem.transport(ae_model,problem=usr_input.problem,LOUD=True,multAE=usr_input.mult)
+            phi,keff = problem.transport(ae_model,problem=usr_input.problem,LOUD=True,multAE=usr_input.mult)
         np.save('{}/phi{}{:<02}'.format(folder,file,labels[ii]),phi)
         np.save('{}/keff{}{:<02}'.format(folder,file,labels[ii]),keff)
     else:
@@ -76,7 +77,7 @@ for ii in range(len(enrich)):
             problem = ae.source_eNDe(*s.problem1.variables(enrich[ii],problem=usr_input.problem))
         else:
             problem = ae.source_auto(*s.problem1.variables(enrich[ii],problem=usr_input.problem))
-        phi = problem.transport(ae_model,problem=usr_input.problem)
+        phi = problem.transport(ae_model,problem=usr_input.problem+'_source')
         np.save('{}/phi{}{:<02}'.format(folder,file,labels[ii]),phi)
         
 

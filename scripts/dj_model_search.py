@@ -12,6 +12,7 @@ parser.add_argument('-label',action='store',dest='label')
 parser.add_argument('-model',action='store',dest='model')
 parser.add_argument('-data',action='store',dest='data')
 parser.add_argument('-gpu',action='store',dest='gpu')
+parser.add_argument('-source',action='store',dest='source')
 # data can be orig, red, inter
 usr_input = parser.parse_args()
 

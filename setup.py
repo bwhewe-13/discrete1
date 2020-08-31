@@ -32,6 +32,8 @@ class func:
             return np.load('discrete1/data/phi_mp_15.npy')
         elif problem == 'mixed1':
             return np.load('discrete1/data/phi_mixed1.npy')
+        elif problem == 'carbon_source':
+            return np.load('discrete1/data/phi_carbon_source.npy')
     
     def normalize(data,verbose=False):
         import numpy as np

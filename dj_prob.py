@@ -38,16 +38,16 @@ class eigen_djinn:
         phi = flux.copy()
         if np.sum(phi) == 0:
             return np.zeros((sn.cat(phi,self.splits['{}_djinn'.format(xs)]).shape))
-        # if xs == 'scatter':
-        #     nphi = np.linalg.norm(phi)
-        #     phi /= nphi
+        if xs == 'scatter':
+            nphi = np.linalg.norm(phi)
+            phi /= nphi
         short_phi = sn.cat(phi,self.splits['{}_djinn'.format(xs)])
         # if self.process == 'norm':
         #     short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]
         if self.label:
             short_phi = np.hstack((sn.cat(self.enrich,self.splits['{}_djinn'.format(xs)])[:,None],short_phi))
-        # if xs == 'scatter':
-        #     return model_.predict(short_phi),nphi
+        if xs == 'scatter':
+            return model_.predict(short_phi),nphi
         return model_.predict(short_phi) 
 
     def scale_scatter(self,phi,djinn_ns):
@@ -63,8 +63,8 @@ class eigen_djinn:
         import numpy as np
         if (np.sum(flux) == 0):
             return np.zeros(flux.shape)
-        djinn_scatter_ns = eigen_djinn.label_model(self,'scatter',flux,self.model_scatter)
-        return eigen_djinn.scale_scatter(self,flux,djinn_scatter_ns)
+        djinn_scatter_ns,nphi = eigen_djinn.label_model(self,'scatter',flux,self.model_scatter)
+        return eigen_djinn.scale_scatter(self,flux,djinn_scatter_ns)*nphi
 
     def scale_fission(self,phi,djinn_ns):
         import numpy as np
@@ -141,8 +141,8 @@ class eigen_djinn:
         import numpy as np
         from discrete1.setup import func
 
-        phi_old = func.initial_flux(problem)
-        # phi_old = problem.copy()
+        # phi_old = func.initial_flux(problem)
+        phi_old = problem.copy()
 
         converged = 0
         count = 1
@@ -201,7 +201,7 @@ class eigen_djinn:
                 enrich = str(np.amax(self.enrich)).split('.')[1]
                 np.save('mydata/track_{}_djinn/enrich_{:<02}_count_{}'.format(problem,enrich,str(count).zfill(3)),temp_scatter)
             else:    
-                phi = eigen_djinn.multi_group(self,self.total,self.scatter,sources,problem,tol=1e-08,MAX_ITS=100)
+                phi = eigen_djinn.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=100)
             keff = np.linalg.norm(phi)
             phi /= keff
             # Check for convergence
@@ -258,12 +258,15 @@ class source_djinn:
         if np.sum(phi) == 0:
             return np.zeros((sn.cat(phi,self.splits['{}_djinn'.format(xs)]).shape))
         # Norm and save original norm
-        nphi = np.linalg.norm(phi)
-        phi /= nphi
+        # nphi = np.linalg.norm(phi)
+        # if self.multDJ == 'scatter':
+            # phi /= nphi
         short_phi = sn.cat(phi,self.splits['{}_djinn'.format(xs)])
         if self.label:
             short_phi = np.hstack((sn.cat(self.enrich,self.splits['{}_djinn'.format(xs)])[:,None],short_phi))
-        return model_.predict(short_phi),nphi
+        # if self.multDJ == 'scatter':
+        #     return model_.predict(short_phi),nphi    
+        return model_.predict(short_phi)
 
     def scale_scatter(self,phi,djinn_ns):
         import numpy as np
@@ -292,22 +295,22 @@ class source_djinn:
         if np.sum(flux) == 0:
             return np.zeros(flux.shape)
         if self.multDJ == 'fission':
-            djinn_fission_ns,fnorm = source_djinn.label_model(self,'fission',flux,self.model_fission)
+            djinn_fission_ns = source_djinn.label_model(self,'fission',flux,self.model_fission)
             fmult = source_djinn.scale_fission(self,flux,djinn_fission_ns)
-            fmult *= fnorm
+            # fmult *= fnorm
             smult = np.einsum('ijk,ik->ij',self.scatter,flux)
         elif self.multDJ == 'scatter':
             fmult = np.einsum('ijk,ik->ij',self.chiNuFission,flux)
-            djinn_scatter_ns,snorm = source_djinn.label_model(self,'scatter',flux,self.model_scatter)
+            djinn_scatter_ns = source_djinn.label_model(self,'scatter',flux,self.model_scatter)
             smult = source_djinn.scale_scatter(self,flux,djinn_scatter_ns)
-            smult *= snorm
+            # smult *= snorm
         elif self.multDJ == 'both':
-            djinn_fission_ns,fnorm = source_djinn.label_model(self,'fission',flux,self.model_fission)
+            djinn_fission_ns = source_djinn.label_model(self,'fission',flux,self.model_fission)
             fmult = source_djinn.scale_fission(self,flux,djinn_fission_ns)
-            fmult *= fnorm
-            djinn_scatter_ns,snorm = source_djinn.label_model(self,'scatter',flux,self.model_scatter)
+            # fmult *= fnorm
+            djinn_scatter_ns = source_djinn.label_model(self,'scatter',flux,self.model_scatter)
             smult = source_djinn.scale_scatter(self,flux,djinn_scatter_ns)
-            smult *= snorm
+            # smult *= snorm
         return fmult + smult 
 
     def one_group(self,total,scatter,external):
@@ -366,11 +369,13 @@ class source_djinn:
         count = 1
         while not (converged):
             mult = source_djinn.creating_mult(self,phi_old)
+            # print(np.sum(mult))
             print('Source Iteration {}'.format(count))
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
                 phi[:,g] = source_djinn.one_group(self,self.total[:,g],mult[:,g],source)
-
+            # phi[np.isnan(phi)] = 0
+            # print(np.isnan(phi).sum())
             # phi /= np.linalg.norm(phi)
             
             # Check for convergence
@@ -379,4 +384,5 @@ class source_djinn:
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
+        # phi[np.isnan(phi)] = 0
         return phi      
