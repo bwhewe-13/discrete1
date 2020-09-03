@@ -68,7 +68,7 @@ for ii in range(len(enrich)):
         np.save('{}_keff_{}_{:<02}'.format(save_folder,save_file,labels[ii]),keff)
     else:
         print('Source Problem')
-        problem = source_djinn(*s.problem1.variables(enrich[ii],problem=usr_input.problem),enrich=enrichment,splits=splits,label=labeled)
+        problem = source_djinn(*s.problem1.variables(enrich[ii],problem=usr_input.problem),enrich=enrichment,splits=splits,label=labeled,track=usr_input.track)
         phi = problem.transport(djinn_model,problem=usr_input.problem,multDJ=multDJ)    
     np.save('{}_phi_{}_{:<02}'.format(save_folder,save_file,labels[ii]),phi)
     
