@@ -63,7 +63,7 @@ else:
     file3 = '_label/'
 
 # num_trees = [1,3,5]
-num_trees = [5] 
+num_trees = [3] 
 num_depth = [2] 
 # num_depth = [2,4,6] 
 

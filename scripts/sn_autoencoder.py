@@ -65,6 +65,7 @@ for ii in range(len(enrich)):
     if usr_input.source is None:
         enrichment,splits = s.problem1.boundaries(enrich[ii],problem=usr_input.problem)
         if usr_input.autoencoder is None:
+            # print("Here")
             problem = ae.eigen_eNDe(*s.problem1.variables(enrich[ii],problem=usr_input.problem))
             phi,keff = problem.transport(ae_model,problem=usr_input.problem)
         else:

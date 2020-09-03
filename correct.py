@@ -364,7 +364,8 @@ class source:
         from discrete1.util import nnets
         from discrete1.setup import func,ex_sources
 
-        phi_old = func.initial_flux(problem)
+        phi_old = func.initial_flux('carbon_source')
+        # phi_old = np.random.rand(self.I,self.G)
 
         if self.track == 'source':
             allmat_sca = np.zeros((2,0,self.G+1))
@@ -408,7 +409,7 @@ class source:
         import numpy as np
         # Normalize phi
         phi = flux.copy()
-        phi /= np.linalg.norm(phi)
+        # phi /= np.linalg.norm(phi)
         # Scatter Tracking - separate phi and add label
         label_scatter = sn.cat(self.enrich,self.splits['scatter_djinn'])
         phi_scatter = sn.cat(phi,self.splits['scatter_djinn'])

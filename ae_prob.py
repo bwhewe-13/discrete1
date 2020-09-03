@@ -27,15 +27,16 @@ class eigen_eNDe:
         from discrete1.setup import func
         import ctypes
 
-        # clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/clibrary.so')
-        # ae_sweep = clibrary.ae_sweep
+        # clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/clibrary_ae.so')
+        # ae_sweep = clibrary.sweep_ae
+        # print('Here in function')
+        # guess = guess.astype('float64')
         
-        guess = guess.astype('float64')
         # sources = (smult + external).astype('float64')
-        total_xs = self.total.astype('float64')
+        # total_xs = self.total.astype('float64')
         # maxi = (self.pmaxi).astype('float64')
         # mini = (self.pmini).astype('float64')
-        half_total = 0.5*self.total.copy()
+        # half_total = 0.5*self.total.copy()
         phi = np.zeros((self.I,self.gprime),dtype='float64')
         for n in range(self.N):
             weight = (self.mu[n]*self.inv_delta).astype('float64')
@@ -48,33 +49,52 @@ class eigen_eNDe:
             # maxi_ptr = ctypes.c_void_p(maxi.ctypes.data)
             # mini_ptr = ctypes.c_void_p(mini.ctypes.data)
             # ae_sweep(phi_ptr,guess_ptr,total_ptr,source_ptr,maxi_ptr,mini.ptr,ctypes.c_double(weight))
-            top_mult = (weight-half_total).astype('float64')
-            bottom_mult = (1/(weight+half_total)).astype('float64')
+            # top_mult = (weight-half_total).astype('float64')
+            # bottom_mult = (1/(weight+half_total)).astype('float64')
             # Left to right
             for ii in range(self.I):
                 psi_top = eigen_eNDe.source_iteration(self,smult[ii],external[ii],psi_bottom,weight,guess[ii],ii)
+                # psi_top[psi_top < 0] = 0
                 phi[ii] = phi[ii] + (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
                 psi_bottom = psi_top.copy()
             for ii in range(self.I-1,-1,-1):
                 psi_top = psi_bottom.copy()
                 psi_bottom = eigen_eNDe.source_iteration(self,smult[ii],external[ii],psi_top,weight,guess[ii],ii)
+                # psi_bottom[psi_bottom < 0] = 0
                 phi[ii] = phi[ii] +  (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
         return phi
 
     def source_iteration(self,mult,source,psi_bottom,weight,guess,cell):
         import numpy as np
-        old = guess[None,:].copy()
+        # old = guess[None,:].copy()
+        psi_bottom = psi_bottom.flatten()
+        old = psi_bottom.copy()
+        # old = np.random.rand(1,87)
+        # old /= np.linalg.norm(old)
+        old = old.flatten()
+        # old *= 0.25
         converged = 0; count = 1
+        alpha_bottom = eigen_eNDe.decode_angular_encode(self,psi_bottom,cell)
+        new = np.zeros((self.G))
         while not (converged):
-            alpha_top = eigen_eNDe.decode_angular_encode(self,old,cell)
-            alpha_bottom = eigen_eNDe.decode_angular_encode(self,psi_bottom,cell)
-            alpha_top = ((mult + source + weight*psi_bottom + 0.5*alpha_bottom))/(weight*old)
-            new = 2*alpha_top/self.total[cell]
+            # alpha_top = eigen_eNDe.decode_angular_encode(self,old,cell)
+            # alpha_top = 2*((mult + source + weight*psi_bottom - 0.5*alpha_bottom)/(weight*old))
+
+            # new = 2*(mult + source + weight*psi_bottom - 0.5*alpha_bottom - weight*old)/self.total[cell]
+            # new = (mult + source + weight*psi_bottom - 0.5*alpha_bottom)*old/(weight*old- 0.5*alpha_top)
+            # print(new[gg].shape,mult[gg].shape,source[gg].shape)
+            # print(psi_bottom[:,gg].shape,self.total[cell,gg].shape,old[:,gg].shape)
+            new = (mult + source + weight*psi_bottom - 0.5*self.total[cell]*psi_bottom - 0.5*old*self.total[cell])/weight
+            
+            # new = alpha_top/self.total[cell]
+            new[new < 0] = 0
             new[np.isnan(new)] = 0
-            change = np.linalg.norm((new-old)/new)
+            # change = np.linalg.norm((new-old)/new)
+            change = np.linalg.norm((new-old)/new/self.G)
             # print('Change',change,'count',count)
-            converged = (change < 1e-8) or (count >= 100)
+            converged = (change < 1e-5) or (count >= 100)
             old = new.copy(); count += 1
+        # print(np.sum((mult + source + weight*psi_bottom - 0.5*alpha_bottom)-(weight*old+0.5*alpha_top)))
         return new # of size (1 x G_hat)
 
 
@@ -104,12 +124,12 @@ class eigen_eNDe:
             #     matrix,self.pmaxi[cell],self.pmini[cell] = nnets.normalize(matrix,verbose=True)
             # else:
             #     matrix,self.pmaxi,self.pmini = nnets.normalize(matrix,verbose=True)
-        matrix[np.isnan(matrix)] = 0; 
+        # matrix[np.isnan(matrix)] = 0; 
         # Scaling
-        scale = np.sum(matrix,axis=1)
+        # scale = np.sum(matrix,axis=1)
         matrix = model.predict(matrix)
-        matrix = (scale/np.sum(matrix,axis=1))[:,None]*matrix
-        matrix[np.isnan(matrix)] = 0;
+        # matrix = (scale/np.sum(matrix,axis=1))[:,None]*matrix
+        # matrix[np.isnan(matrix)] = 0;
         # Unnormalize Here?
         # if atype == 'fmult':
         #     matrix = nnets.unnormalize(matrix,self.fmaxi,self.fmini)
@@ -139,12 +159,12 @@ class eigen_eNDe:
             # else:
             #     matrix = nnets.unnormalize(matrix,self.pmaxi,self.pmini)
             # matrix,self.pmaxi,self.pmini = nnets.normalize(matrix_full,verbose=True)
-        matrix[np.isnan(matrix)] = 0; 
+        # matrix[np.isnan(matrix)] = 0; 
         # Scaling
-        scale = np.sum(matrix,axis=1)
+        # scale = np.sum(matrix,axis=1)
         matrix = model.predict(matrix)
-        matrix = (scale/np.sum(matrix,axis=1))[:,None]*matrix
-        matrix[np.isnan(matrix)] = 0;
+        # matrix = (scale/np.sum(matrix,axis=1))[:,None]*matrix
+        # matrix[np.isnan(matrix)] = 0;
         # Normalize
         # if atype == 'fmult':
         #     matrix = nnets.unnormalize(matrix,self.fmaxi,self.fmini)
@@ -159,7 +179,7 @@ class eigen_eNDe:
         # matrix[np.isnan(matrix)] = 0;
         return matrix
             
-    def transport(self,coder,problem='carbon',tol=1e-12,MAX_ITS=10):
+    def transport(self,coder,problem='carbon',tol=1e-12,MAX_ITS=100):
         """ Arguments:
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
@@ -186,6 +206,7 @@ class eigen_eNDe:
         self.gprime = 87
 
         phi_old_full = func.initial_flux(problem)
+        guess = phi_old_full.copy()
         
         # Initialize source
         sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old_full)
@@ -202,10 +223,10 @@ class eigen_eNDe:
             smult_full = np.einsum('ijk,ik->ij',self.scatter,phi_old_full)
             smult = eigen_eNDe.encoding(self,smult_full,atype='smult')
             # Calculate phi G'
-            phi = eigen_eNDe.multi_group(self,smult,sources,phi_old)
+            phi = eigen_eNDe.multi_group(self,smult,sources,guess)
             # Convert to phi G, normalized
             phi_full = eigen_eNDe.decoding(self,phi,atype='phi')
-            
+            # print(np.array_equal(phi,phi_full))
             keff = np.linalg.norm(phi_full)
             phi_full /= keff
 
@@ -221,9 +242,10 @@ class eigen_eNDe:
             sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old_full)
             # Encode back down
             phi_old = eigen_eNDe.encoding(self,phi_old_full,atype='phi')
+            assert np.array_equal(phi_full,phi_old)
             sources = eigen_eNDe.encoding(self,sources_full,atype='fmult')
 
-        return phi,keff
+        return phi_full,keff
 
 class eigen_auto:
     def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,track=False):

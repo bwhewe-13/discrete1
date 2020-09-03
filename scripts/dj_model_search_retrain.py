@@ -41,7 +41,7 @@ start = int(usr_input.start)
 # address = np.sort(glob.glob('mydata/scatter_parts/ss*'))[start]
 # print(address)
 
-address = np.sort(glob.glob('mydata/scatter_parts/carbon*'))[start]
+address = np.sort(glob.glob('mydata/scatter_carbon_parts/part_all*'))[start]
 print(address)
 mymat = np.load(address)
 
