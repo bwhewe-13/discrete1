@@ -34,7 +34,7 @@ else:
     file2 = usr_input.model+'/'
 
 # mymat = np.load('mydata/model_data/{}_{}_data.npy'.format(usr_input.data,file1))
-address = np.sort(glob.glob('mydata/scatter_carbon_parts/part_all*'))
+address = np.sort(glob.glob('mydata/scatter_stainless_parts/part_all*'))
 print(address[0])
 mymat = np.load(address[0])
 print(address[0])

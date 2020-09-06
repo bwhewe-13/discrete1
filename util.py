@@ -133,6 +133,13 @@ class sn:
         if type(splits) == slice:
             return len(range(*splits.indices(1000)))
         return sum([len(range(*jj.indices(1000))) for jj in splits])
+
+    def keff_correct(lst):
+        for ii in range(len(lst)):
+            if lst[ii].shape != ():
+                lst[ii] = lst[ii][-1]
+        return lst
+
     
     def pops(full,reduce,splits,which):
         # Repopulating matrix from reduced
