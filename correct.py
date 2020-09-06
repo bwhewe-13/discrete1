@@ -150,7 +150,7 @@ class eigen:
         # Scatter Tracking - separate phi and add label
         label_scatter = sn.cat(self.enrich,self.splits['scatter_djinn'])
         phi_scatter = sn.cat(phi,self.splits['scatter_djinn'])
-        phi_scatter /= np.linalg.norm(phi_scatter)
+        # phi_scatter /= np.linalg.norm(phi_scatter)
         phi_full_scatter = np.hstack((label_scatter[:,None],phi_scatter))
         # Separate scatter multiplier and add label
         multiplier_scatter = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_djinn']),phi_scatter)
@@ -364,8 +364,8 @@ class source:
         from discrete1.util import nnets
         from discrete1.setup import func,ex_sources
 
-        phi_old = func.initial_flux('carbon_source')
-        # phi_old = np.random.rand(self.I,self.G)
+        # phi_old = func.initial_flux('carbon_source')
+        phi_old = np.random.rand(self.I,self.G)
 
         if self.track == 'source':
             allmat_sca = np.zeros((2,0,self.G+1))
