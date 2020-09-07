@@ -41,47 +41,48 @@ class eigen_eNDe:
         # left_psis = np.load('discrete1/data/left_psis.npy')
         # right_psis = np.load('discrete1/data/right_psis.npy')
 
-        phi = np.zeros((self.I,self.gprime),dtype='float64')
-        for n in range(self.N):
-            weight = (self.mu[n]*self.inv_delta).astype('float64')
-            psi_bottom = np.zeros((1,self.gprime))
-            # psi_bottom = np.zeros((1,self.gprime)) # vacuum on LHS
-            # phi_ptr = ctypes.c_void_p(phi.ctypes.data)
-            # guess_ptr = ctypes.c_void_p(guess.ctypes.data)
-            # total_ptr = ctypes.c_void_p(total_xs.ctypes.data)
-            # source_ptr = ctypes.c_void_p(soures.ctypes.data)
-            # maxi_ptr = ctypes.c_void_p(maxi.ctypes.data)
-            # mini_ptr = ctypes.c_void_p(mini.ctypes.data)
-            # ae_sweep(phi_ptr,guess_ptr,total_ptr,source_ptr,maxi_ptr,mini.ptr,ctypes.c_double(weight))
-            # top_mult = (weight-half_total).astype('float64')
-            # bottom_mult = (1/(weight+half_total)).astype('float64')
-            # Left to right
-            for ii in range(self.I):
-                # psi_top = eigen_eNDe.source_iteration(self,smult[ii],external[ii],psi_bottom,weight,guess[ii],ii)
-                # psi_top[psi_top < 0] = 0
-                Q = smult[ii]+external[ii] + weight*psi_bottom - 0.5*self.total[ii]*psi_bottom
-                xs = self.total[ii].copy()
-                moo = weight.copy()
-                psi_top = op.fixed_point(eigen_eNDe.function,np.zeros((87)),args=(Q,xs,moo),xtol=1e-10,maxiter=100000)
-                # print('Here {}'.format(ii))
-                phi[ii] = phi[ii] + (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
-                psi_bottom = psi_top.copy()
-            for ii in range(self.I-1,-1,-1):
-                psi_top = psi_bottom.copy()
-                # psi_bottom = eigen_eNDe.source_iteration(self,smult[ii],external[ii],psi_top,weight,guess[ii],ii)
-                # print('Here {}'.format(ii))
-                # psi_bottom[psi_bottom < 0] = 0
-                Q = smult[ii]+external[ii] + weight*psi_top - 0.5*self.total[ii]*psi_top
-                xs = self.total[ii].copy()
-                moo = weight.copy()
-                psi_bottom = op.fixed_point(eigen_eNDe.function,np.zeros((87)),args=(Q,xs,moo),xtol=1e-10,maxiter=100000)
-                phi[ii] = phi[ii] +  (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
-            # print('finished angle')
+        phi_old = guess.copy()
+        converged = 0; count = 1
+        while not converged:
+            phi = np.zeros((self.I,self.gprime),dtype='float64')
+            for n in range(self.N):
+                weight = (self.mu[n]*self.inv_delta).astype('float64')
+                psi_bottom = np.zeros((1,self.gprime))
+                # psi_bottom = np.zeros((1,self.gprime)) # vacuum on LHS
+                # phi_ptr = ctypes.c_void_p(phi.ctypes.data)
+                # guess_ptr = ctypes.c_void_p(guess.ctypes.data)
+                # total_ptr = ctypes.c_void_p(total_xs.ctypes.data)
+                # source_ptr = ctypes.c_void_p(soures.ctypes.data)
+                # maxi_ptr = ctypes.c_void_p(maxi.ctypes.data)
+                # mini_ptr = ctypes.c_void_p(mini.ctypes.data)
+                # ae_sweep(phi_ptr,guess_ptr,total_ptr,source_ptr,maxi_ptr,mini.ptr,ctypes.c_double(weight))
+                # top_mult = (weight-half_total).astype('float64')
+                # bottom_mult = (1/(weight+half_total)).astype('float64')
+                # Left to right
+                for ii in range(self.I):
+                    psi_top = eigen_eNDe.source_iteration(self,smult[ii],external[ii],psi_bottom,weight,guess[ii],ii)
+                    psi_top[psi_top < 0] = 0
+                    
+                    phi[ii] = phi[ii] + (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
+                    psi_bottom = psi_top.copy()
+                for ii in range(self.I-1,-1,-1):
+                    psi_top = psi_bottom.copy()
+
+                    psi_bottom = eigen_eNDe.source_iteration(self,smult[ii],external[ii],psi_top,weight,guess[ii],ii)
+                    psi_bottom[psi_bottom < 0] = 0
+
+                    phi[ii] = phi[ii] +  (self.w[n] * func.diamond_diff(psi_top,psi_bottom))
+            change = np.linalg.norm((phi-phi_old)/phi/(self.I))
+            converged = (change < 1e-8) or (count >= 100)
+            count += 1
+            # Calculate Sigma_s * phi
+            phi_full = eigen_eNDe.decoding(self,phi,atype='phi')
+            smult_full = np.einsum('ijk,ik->ij',self.scatter,phi_full)
+            smult = eigen_eNDe.encoding(self,smult_full,atype='smult')
+            # Update to phi G
+            phi_old = phi.copy()   
         return phi
 
-    def function(x,Q,total,weight):
-        return (Q - 0.5*x*total)/weight
-        # return (Q)/(x*(1/weight+0.5*total))
 
     def source_iteration(self,mult,source,psi_bottom,weight,guess,cell):
         import numpy as np
@@ -116,7 +117,7 @@ class eigen_eNDe:
             # change = np.linalg.norm((new-old)/new)
             # change = np.linalg.norm((new-old)/new/self.G)
             # print('Change',change,'count',count)
-            converged = (len(change) == 87) or (count >= 500)
+            converged = (len(change) == 87) or (count >= 100)
             # print(len(change))
             # converged = (change < 1e-8)# or (count >= 100)
             old = new.copy(); count += 1
@@ -232,7 +233,6 @@ class eigen_eNDe:
         self.gprime = 87
 
         phi_old_full = func.initial_flux(problem)
-        keffs = np.load('mydata/djinn_carbon/keff_15.npy')
         
         # Initialize source
         sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old_full)
