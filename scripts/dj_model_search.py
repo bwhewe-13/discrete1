@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import numpy as np
-from djinn import djinn
+from dj2.djinn import djinn
 import sklearn
+from sklearn import model_selection
 import argparse
 import glob, os
 
@@ -63,8 +64,8 @@ else:
     file3 = '_label/'
 
 # num_trees = [1,3,5]
-num_trees = [3] 
-num_depth = [2] 
+num_trees = [5] 
+num_depth = [6] 
 # num_depth = [2,4,6] 
 
 split = 0.2
@@ -79,7 +80,7 @@ except FileNotFoundError:
 # x_train = X[spatial[index:]]; y_train = Y[spatial[index:]]
 # x_test = X[spatial[:index]]; y_test = Y[spatial[:index]]
 print(sklearn.__version__)
-x_train,x_test,y_train,y_test = sklearn.model_selection.train_test_split(X,Y,test_size=0.2,random_state=47)
+x_train,x_test,y_train,y_test = model_selection.train_test_split(X,Y,test_size=0.2,random_state=47)
 
 for jj in num_trees:
     for ii in num_depth:
