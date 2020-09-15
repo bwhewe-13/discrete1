@@ -1,6 +1,7 @@
 class tools:
     def djinn_load(model_name,dtype):
-        from djinn import djinn
+        # from djinn import djinn
+        from dj2.djinn import djinn
         if dtype == 'both':
             model_scatter = djinn.load(model_name=model_name[0])
             model_fission = djinn.load(model_name=model_name[1])
@@ -38,9 +39,9 @@ class eigen_djinn:
         phi = flux.copy()
         if np.sum(phi) == 0:
             return np.zeros((sn.cat(phi,self.splits['{}_djinn'.format(xs)]).shape))
-        # if xs == 'scatter':
-        #     nphi = np.linalg.norm(phi)
-            # phi /= nphi
+        if xs == 'scatter':
+            nphi = np.linalg.norm(phi)
+            phi /= nphi
         short_phi = sn.cat(phi,self.splits['{}_djinn'.format(xs)])
         # if self.process == 'norm':
         #     short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]

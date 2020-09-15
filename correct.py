@@ -150,7 +150,7 @@ class eigen:
         # Scatter Tracking - separate phi and add label
         label_scatter = sn.cat(self.enrich,self.splits['scatter_djinn'])
         phi_scatter = sn.cat(phi,self.splits['scatter_djinn'])
-        # phi_scatter /= np.linalg.norm(phi_scatter)
+        phi_scatter /= np.linalg.norm(phi_scatter)
         phi_full_scatter = np.hstack((label_scatter[:,None],phi_scatter))
         # Separate scatter multiplier and add label
         multiplier_scatter = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_djinn']),phi_scatter)
