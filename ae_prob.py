@@ -402,13 +402,16 @@ class eigen_auto:
             model = self.smult_autoencoder
         elif atype == 'phi':
             model = self.phi_autoencoder
-        matrix,maxi,mini = nnets.normalize(matrix_full,verbose=True)
-        matrix[np.isnan(matrix)] = 0; maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
+        # matrix,maxi,mini = nnets.normalize(matrix_full,verbose=True)
+        norms = np.linalg.norm(matrix_full,axis=1)
+        matrix = matrix_full/norms[:,None]
+        # matrix[np.isnan(matrix)] = 0; maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
         scale = np.sum(matrix,axis=1)
         matrix = model.predict(matrix)
         matrix = (scale/np.sum(matrix,axis=1))[:,None]*matrix
         matrix[np.isnan(matrix)] = 0;
-        matrix = nnets.unnormalize(matrix,maxi,mini)
+        # matrix = nnets.unnormalize(matrix,maxi,mini)
+        matrix *= norms[:,None]
         return matrix
 
     def transport(self,coder,problem='carbon',tol=1e-12,MAX_ITS=100,LOUD=True,multAE=False):
