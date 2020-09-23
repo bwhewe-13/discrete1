@@ -249,33 +249,104 @@ class sn:
     
 class nnets:
     """ Tools for autoencoders and neural networks """
-    def normalize(data,verbose=False):
+    def phi_normalize(matrix,maxi,mini):
+        data = matrix.copy()
+        import numpy as np
+        if np.argwhere(maxi == 0).shape[0] > 0:
+            ind = np.argwhere(maxi != 0).flatten()
+            norm = np.zeros((data.shape))
+            norm[ind] = (data[ind] - mini[ind][:,None])/(maxi[ind]-mini[ind])[:,None]
+        else:
+            norm = (data - mini[:,None])/(maxi-mini)[:,None]
+        return norm
+
+    def phi_normalize_single(matrix,maxi,mini):
+        data = matrix.copy()
+        import numpy as np
+        if maxi == 0:
+            norm = data
+        else:
+            norm = (data-mini)/(maxi-mini)
+        return norm
+
+
+    def normalize(matrix,verbose=False,angle=False):
+        data = matrix.copy()
         import numpy as np
         maxi = np.max(data,axis=1)
         mini = np.min(data,axis=1)
-        norm = (data-mini[:,None])/(maxi-mini)[:,None]
+        # if angle:
+        #     mini += 1e-20
+        if np.argwhere(maxi == 0).shape[0] > 0:
+            ind = np.argwhere(maxi != 0).flatten()
+            norm = np.zeros((data.shape))
+            norm[ind] = (data[ind] - mini[ind][:,None])/(maxi[ind]-mini[ind])[:,None]
+        else:
+            norm = (data - mini[:,None])/(maxi-mini)[:,None]
+        norm[np.isnan(norm)] = 0
+        mini[np.isnan(mini)] = 0; mini[np.isnan(mini)] = 0
         if verbose:
             return norm,maxi,mini
         return norm
+        # norm = (data-mini[:,None])/(maxi-mini)[:,None]
+        # if verbose:
+        #     return norm,maxi,mini
+        # return norm
+    
+    # def l2normalize(data,verbose=False):
+    #     import numpy as np
+    #     normed = np.linalg.norm(data,axis=1)
+    #     if np.argwhere(normed == 0).shape[0] > 0:
+    #         ind = np.argwhere(normed != 0).flatten()
+    #         final = np.zeros((data.shape))
+    #         final[ind] = data[ind]/normed[ind][:,None]
+    #     else:
+    #         final = data / normed[:,None]
+    #     if verbose:
+    #         return final, normed
+    #     return final
 
-    def normalize_single(data,verbose=False):
+
+    def scale_back(scale,data):
+        import numpy as np
+        if np.argwhere(scale == 0).shape[0] > 0:
+            ind = np.argwhere(scale != 0).flatten()
+            scale_data = np.zeros((data.shape))
+            scale_data[ind] = (scale[ind]/np.sum(data[ind],axis=1))[:,None] * data[ind]
+            return scale_data
+        return (scale/np.sum(data,axis=1))[:,None]*data
+
+
+    def normalize_single(data,verbose=False,angle=False):
         import numpy as np
         maxi = np.max(data); mini = np.min(data)
-        norm = (data-mini)/(maxi-mini)
+        # if angle:
+        #     mini += 1e-20
+        if maxi == 0:
+            norm = data
+        else:
+            norm = (data-mini)/(maxi-mini)
         if verbose:
             return norm,maxi,mini
         return norm
     
     def unnormalize(data,maxi,mini):
-        # if maxi.shape == ():
-        #     return data*(maxi-mini)+mini
-        return data*(maxi-mini)[:,None]+mini[:,None]
+        import numpy as np
+        if np.argwhere(maxi == 0).shape[0] > 0:
+            ind = np.argwhere(maxi != 0).flatten()
+            unnorm = np.zeros((data.shape))
+            unnorm[ind] = data[ind]*(maxi-mini)[ind][:,None]+mini[ind][:,None]
+        else:
+            unnorm = data*(maxi-mini)[:,None]+mini[:,None]
+        return unnorm
+
+    # def unnormalize_single(data,maxi,mini):
+    #     return data*(maxi-mini)+mini
 
     def unnormalize_single(data,maxi,mini):
+        if maxi <= 1e-10:
+            return data
         return data*(maxi-mini)+mini
-
-    # def unnormalize(scatter,maxi,mini,ind):
-    #     return scatter*(maxi[ind]-mini[ind])+mini[ind]
         
     def sizer(dim,original=87**2,half=True):
         ''' Calculates the trainable parametes for autoencoder
