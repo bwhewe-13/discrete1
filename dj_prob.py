@@ -1,7 +1,7 @@
 class tools:
     def djinn_load(model_name,dtype):
-        # from djinn import djinn
-        from dj2.djinn import djinn
+        from djinn import djinn
+        # from dj2.djinn import djinn
         if dtype == 'both':
             model_scatter = djinn.load(model_name=model_name[0])
             model_fission = djinn.load(model_name=model_name[1])
