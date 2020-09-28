@@ -116,14 +116,16 @@ class eigen_eNDe:
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))
             phi -= 1e-25
             print('Change is',change,'count is',count)
-            converged = (change < 1e-10) or (count >= 25) 
+            converged = (change < 1e-10) or (count >= 50) 
             count += 1
             # Calculate Sigma_s * phi
             phi[np.isnan(phi)] = 0
             phi_full = eigen_eNDe.decoding(self,phi,atype='phi')
             # _,self.pmaxi,self.pmini = nnets.normalize(phi_full,verbose=True)
+            # nphi,_,_ = nnets.normalize(phi_full,verbose=True)
             # phi_full = phi.copy()
             smult_full = np.einsum('ijk,ik->ij',self.scatter,phi_full)
+            # smult_full = np.einsum('ijk,ik->ij',self.scatter,phi_full)
             smult = eigen_eNDe.encoding(self,smult_full,atype='smult')
             # Update to phi G
             phi_old = phi.copy()   
@@ -222,7 +224,7 @@ class eigen_eNDe:
                 new = old * ((sources + beta_top - alpha_bottom)/denominator)
             new[np.isnan(new)] = 0; #new[np.isinf(new)] = 10
             change = np.argwhere(abs(old-new) < 1e-14)
-            converged = (len(change) == self.gprime) or (count >= 5000)
+            converged = (len(change) == self.gprime) or (count >= 2500)
             old = new.copy(); count += 1
 
         return new 
@@ -254,16 +256,20 @@ class eigen_eNDe:
             model = self.phi_encoder
 
         if normalize:
-            if atype == 'test_fmult':
-                if cell is not None:
-                    matrix = nnets.phi_normalize_single(matrix,self.fmaxi[cell],self.fmini[cell])
-                else:
-                    matrix = nnets.phi_normalize(matrix,self.fmaxi,self.fmini)
+            if cell is not None:
+                matrix = nnets.phi_normalize_single(matrix,self.pmaxi[cell],self.pmini[cell])
             else:
-                if cell is not None:
-                    matrix = nnets.phi_normalize_single(matrix,self.pmaxi[cell],self.pmini[cell])
-                else:
-                    matrix = nnets.phi_normalize(matrix,self.pmaxi,self.pmini)
+                matrix = nnets.phi_normalize(matrix,self.pmaxi,self.pmini)
+            # if atype == 'test_fmult':
+            #     if cell is not None:
+            #         matrix = nnets.phi_normalize_single(matrix,self.fmaxi[cell],self.fmini[cell])
+            #     else:
+            #         matrix = nnets.phi_normalize(matrix,self.fmaxi,self.fmini)
+            # else:
+            #     if cell is not None:
+            #         matrix = nnets.phi_normalize_single(matrix,self.pmaxi[cell],self.pmini[cell])
+            #     else:
+            #         matrix = nnets.phi_normalize(matrix,self.pmaxi,self.pmini)
             matrix[np.isnan(matrix)] = 0; 
 
             # if cell is not None:
@@ -319,16 +325,20 @@ class eigen_eNDe:
         matrix[np.isnan(matrix)] = 0;
 
         if normalize:
-            if atype == 'test_fmult':
-                if cell is not None:
-                    matrix = nnets.unnormalize_single(matrix,self.fmaxi[cell],self.fmini[cell])
-                else:
-                    matrix = nnets.unnormalize(matrix,self.fmaxi,self.fmini)
+            if cell is not None:
+                matrix = nnets.unnormalize_single(matrix,self.pmaxi[cell],self.pmini[cell])
             else:
-                if cell is not None:
-                    matrix = nnets.unnormalize_single(matrix,self.pmaxi[cell],self.pmini[cell])
-                else:
-                    matrix = nnets.unnormalize(matrix,self.pmaxi,self.pmini)
+                matrix = nnets.unnormalize(matrix,self.pmaxi,self.pmini)
+            # if atype == 'test_fmult':
+            #     if cell is not None:
+            #         matrix = nnets.unnormalize_single(matrix,self.fmaxi[cell],self.fmini[cell])
+            #     else:
+            #         matrix = nnets.unnormalize(matrix,self.fmaxi,self.fmini)
+            # else:
+            #     if cell is not None:
+            #         matrix = nnets.unnormalize_single(matrix,self.pmaxi[cell],self.pmini[cell])
+            #     else:
+            #         matrix = nnets.unnormalize(matrix,self.pmaxi,self.pmini)
             matrix[np.isnan(matrix)] = 0; 
 
         # # Unnormalize
@@ -353,7 +363,7 @@ class eigen_eNDe:
 
         return matrix
             
-    def transport(self,coder,problem='carbon',tol=1e-12,MAX_ITS=15):
+    def transport(self,coder,problem='carbon',tol=1e-12,MAX_ITS=100):
         """ Arguments:
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
@@ -430,7 +440,7 @@ class eigen_eNDe:
             # Recalculate Sources
             sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old_full)
             # _,self.fmaxi,self.fmini = nnets.normalize(sources_full,verbose=True)
-            smult_full = np.einsum('ijk,ik->ij',self.scatter,phi_old_full)
+            smult_full = np.einsum('ijk,ik->ij',self.scatter,phi_old_full) #phi_old_full
             # _,self.smaxi,self.smini = nnets.normalize(smult_full,verbose=True)
             # Encode back down
             phi_old = eigen_eNDe.encoding(self,phi_old_full,atype='phi')
@@ -544,13 +554,14 @@ class eigen_auto:
             model = self.smult_autoencoder
         elif atype == 'phi':
             model = self.phi_autoencoder
-        matrix,maxi,mini = nnets.normalize(matrix_full,verbose=True)
+        # matrix,maxi,mini = nnets.normalize(matrix_full,verbose=True)
+        matrix = nnets.phi_normalize(matrix_full,self.pmaxi,self.pmini)
         matrix[np.isnan(matrix)] = 0; maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
         scale = np.sum(matrix,axis=1)
         matrix = model.predict(matrix)
         matrix = (scale/np.sum(matrix,axis=1))[:,None]*matrix
         matrix[np.isnan(matrix)] = 0;
-        matrix = nnets.unnormalize(matrix,maxi,mini)
+        matrix = nnets.unnormalize(matrix,self.pmaxi,self.pmini)
         return matrix
 
     def transport(self,coder,problem='carbon',tol=1e-12,MAX_ITS=100,LOUD=True,multAE=False):
@@ -566,7 +577,7 @@ class eigen_auto:
         # from discrete1.util import sn
         phi_autoencoder,phi_encoder,phi_decoder = func.load_coder(coder)
         self.phi_autoencoder = phi_autoencoder
-        
+
         self.multAE = multAE
         self.gprime = 87
 
@@ -578,6 +589,7 @@ class eigen_auto:
             self.fmult_autoencoder = fmult_autoencoder
 
         phi_old_full = func.initial_flux(problem)
+        _,self.pmaxi,self.pmini = nnets.normalize(phi_old_full,verbose=True)
         keff = np.linalg.norm(phi_old_full)
 
         sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old_full)
@@ -612,6 +624,7 @@ class eigen_auto:
 
             phi_old_full = phi_full.copy()
             phi_old = phi.copy()
+            _,self.pmaxi,self.pmini = nnets.normalize(phi_old_full,verbose=True)
 
             sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old_full)
             if self.multAE == 'fission' or self.multAE == 'both':
