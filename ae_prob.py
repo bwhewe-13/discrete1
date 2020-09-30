@@ -116,7 +116,7 @@ class eigen_eNDe:
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))
             phi -= 1e-25
             print('Change is',change,'count is',count)
-            converged = (change < 1e-10) or (count >= 50) 
+            converged = (change < 1e-10) or (count >= 100) 
             count += 1
             # Calculate Sigma_s * phi
             phi[np.isnan(phi)] = 0
@@ -224,7 +224,7 @@ class eigen_eNDe:
                 new = old * ((sources + beta_top - alpha_bottom)/denominator)
             new[np.isnan(new)] = 0; #new[np.isinf(new)] = 10
             change = np.argwhere(abs(old-new) < 1e-14)
-            converged = (len(change) == self.gprime) or (count >= 2500)
+            converged = (len(change) == self.gprime) or (count >= 5000)
             old = new.copy(); count += 1
 
         return new 

@@ -341,7 +341,7 @@ class source_djinn:
             sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]))
         return phi
 
-    def transport(self,model_name,problem='carbon',multDJ='both',tol=1e-08,MAX_ITS=500):
+    def transport(self,model_name,problem='carbon',multDJ='both',tol=1e-08,MAX_ITS=1000):
         """ Arguments:
             model_name: File location of DJINN model
             problem: to initialize phi
