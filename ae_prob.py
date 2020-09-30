@@ -555,24 +555,13 @@ class eigen_auto:
         elif atype == 'phi':
             model = self.phi_autoencoder
         # matrix,maxi,mini = nnets.normalize(matrix_full,verbose=True)
-<<<<<<< HEAD
-        norms = np.linalg.norm(matrix_full,axis=1)
-        matrix = matrix_full/norms[:,None]
-        # matrix[np.isnan(matrix)] = 0; maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
-=======
         matrix = nnets.phi_normalize(matrix_full,self.pmaxi,self.pmini)
         matrix[np.isnan(matrix)] = 0; maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
->>>>>>> 67559d4c3e6e5566802d7a417e2c2dd7279d45e0
         scale = np.sum(matrix,axis=1)
         matrix = model.predict(matrix)
         matrix = (scale/np.sum(matrix,axis=1))[:,None]*matrix
         matrix[np.isnan(matrix)] = 0;
-<<<<<<< HEAD
-        # matrix = nnets.unnormalize(matrix,maxi,mini)
-        matrix *= norms[:,None]
-=======
         matrix = nnets.unnormalize(matrix,self.pmaxi,self.pmini)
->>>>>>> 67559d4c3e6e5566802d7a417e2c2dd7279d45e0
         return matrix
 
     def transport(self,coder,problem='carbon',tol=1e-12,MAX_ITS=100,LOUD=True,multAE=False):
