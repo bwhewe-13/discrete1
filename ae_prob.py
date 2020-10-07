@@ -516,7 +516,7 @@ class eigen_auto:
 
         smult_full = np.einsum('ijk,ik->ij',scatter,phi_old_full)
         # Encode Scatter * Phi
-        if self.multAE == 'scatter' or self.multAE == 'both':
+        if self.multAE == 'smult' or self.multAE == 'both':
             smult = eigen_auto.scale_autoencode(self,smult_full,atype='smult')
         else:
             smult = smult_full.copy()
@@ -535,10 +535,11 @@ class eigen_auto:
             converged = (change < tol) or (count >= MAX_ITS) 
             
             phi_old_full = phi_full.copy()
+            _,self.pmaxi,self.pmini = nnets.normalize(phi_old_full,verbose=True)
             phi_old = phi.copy()
             # Encode Scatter * Phi
             smult_full = np.einsum('ijk,ik->ij',scatter,phi_full)
-            if self.multAE == 'scatter' or self.multAE == 'both':
+            if self.multAE == 'smult' or self.multAE == 'both':
                 smult = eigen_auto.scale_autoencode(self,smult_full,atype='smult')
             else:
                 smult = smult_full.copy()
@@ -555,8 +556,9 @@ class eigen_auto:
         elif atype == 'phi':
             model = self.phi_autoencoder
         # matrix,maxi,mini = nnets.normalize(matrix_full,verbose=True)
+        # _,pmaxi,pmini = nnets.normalize(phi,verbose=True)
         matrix = nnets.phi_normalize(matrix_full,self.pmaxi,self.pmini)
-        matrix[np.isnan(matrix)] = 0; maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
+        matrix[np.isnan(matrix)] = 0; self.pmaxi[np.isnan(self.pmaxi)] = 0; self.pmini[np.isnan(self.pmini)] = 0
         scale = np.sum(matrix,axis=1)
         matrix = model.predict(matrix)
         matrix = (scale/np.sum(matrix,axis=1))[:,None]*matrix
@@ -579,6 +581,9 @@ class eigen_auto:
         self.phi_autoencoder = phi_autoencoder
 
         self.multAE = multAE
+        # print('========================')
+        # print(multAE)
+        # print('========================')
         self.gprime = 87
 
         if self.multAE == 'smult' or self.multAE == 'both':
@@ -598,7 +603,7 @@ class eigen_auto:
         # Unnormalized Method
         # phi_old = self.phi_autoencoder.predict(phi_old_full)
         # phi_old = (np.sum(phi_old_full,axis=1)/np.sum(phi_old,axis=1))[:,None]*phi_old
-        if self.multAE == 'fission' or self.multAE == 'both':
+        if self.multAE == 'fmult' or self.multAE == 'both':
             sources = eigen_auto.scale_autoencode(self,sources_full,atype='fmult')
         else:
             sources = sources_full.copy()
@@ -627,7 +632,7 @@ class eigen_auto:
             _,self.pmaxi,self.pmini = nnets.normalize(phi_old_full,verbose=True)
 
             sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old_full)
-            if self.multAE == 'fission' or self.multAE == 'both':
+            if self.multAE == 'fmult' or self.multAE == 'both':
                 sources = eigen_auto.scale_autoencode(self,sources_full,atype='fmult')
             else:
                 sources = sources_full.copy()

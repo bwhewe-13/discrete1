@@ -206,6 +206,18 @@ class sn:
             return scatter
         return 'Incorrect dtype or cross section format'
 
+    def svd(A,r=None,full=True):
+        import numpy as np
+        u,s,v = np.linalg.svd(A)
+        if full:
+            sigma = np.zeros((A.shape[0],A.shape[1]))
+            sigma[:s.shape[0],:s.shape[0]] = np.diag(s)
+        else:
+            sigma = s.copy()
+        if r is not None:
+            return u[:,:r],sigma[:r,:r],v[:r]
+        return u,sigma,v
+
     def wynnepsilon(lst, r):
         '''Perform Wynn Epsilon Convergence Algorithm
         Arguments:

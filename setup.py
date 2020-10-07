@@ -34,18 +34,50 @@ class func:
             return np.load('discrete1/data/phi_mixed1.npy')
         elif problem == 'carbon_source':
             return np.load('discrete1/data/phi_carbon_source.npy')
-    
-    def normalize(data,verbose=False):
+
+    def low_rank_svd(phi,scatter,fission,problem,rank):
         import numpy as np
-        maxi = np.amax(data,axis=1)
-        mini = np.amin(data,axis=1)
-        norm = (data-mini[:,None])/(maxi-mini)[:,None]
-        if verbose:
-            return norm,maxi,mini
-        return norm
+        from discrete1.util import sn
+        from discrete1.setup import problem1
+        # List of the material splits
+        mat_split = problem1.boundaries_mat(problem)
+        # New Matrices to put scatter and fission matrices
+        r_scatter = np.empty(scatter.shape)
+        r_fission = np.empty(fission.shape)
+
+        for mat in mat_split:
+            # SVD of Phi
+            phi_ = phi[mat].T.copy()
+            u_p,_,_ = sn.svd(phi_,rank)
+            # SVD of Scatter
+            smult_ = scatter[mat][0] @ phi_
+            u_s,_,_ = sn.svd(smult_,rank)
+            # SVD of Fission
+            fmult_ = fission[mat][0] @ phi_    
+            u_f,_,_ = sn.svd(smult_,rank)
+            # Reduce and resize Scatter
+            s_tilde = u_s.T @ scatter[mat][0] @ u_p
+            ys_tilde = u_s @ s_tilde @ u_p.T
+            # Reduce and resize Fission
+            f_tilde = u_f.T @ fission[mat][0] @ u_p
+            yf_tilde = u_f @ f_tilde @ u_p.T
+            # Repopulate Scatter and Fission
+            r_scatter[mat] = np.tile(ys_tilde,(sn.length(mat),1,1))
+            r_fission[mat] = np.tile(yf_tilde,(sn.length(mat),1,1))
+
+        return r_scatter,r_fission
     
-    def unnormalize(data,maxi,mini):
-        return data*(maxi-mini)[:,None]+mini[:,None]
+    # def normalize(data,verbose=False):
+    #     import numpy as np
+    #     maxi = np.amax(data,axis=1)
+    #     mini = np.amin(data,axis=1)
+    #     norm = (data-mini[:,None])/(maxi-mini)[:,None]
+    #     if verbose:
+    #         return norm,maxi,mini
+    #     return norm
+    
+    # def unnormalize(data,maxi,mini):
+    #     return data*(maxi-mini)[:,None]+mini[:,None]
 
     def load_coder(coder,ptype='phi'):
         """ Coder is the string path to the autoencoder, encoder, and decoder """
@@ -228,6 +260,21 @@ class problem1:
         # conc is uh3 enrich while 0 is depleted uranium
         enrichment = sn.enrich_list(sum(layers),ment,splits[where].tolist())
         return enrichment,sn.layer_slice_dict(layers,where)
+
+    def boundaries_mat(problem):
+        import numpy as np
+        from discrete1.util import sn
+        distance = [45,35,20]
+        if problem ==  'mixed1':
+            distance = [45,5,25,5,20]
+        elif problem == 'multiplastic':
+            distance = [10]*8; distance.append(20)
+        delta = 0.1
+        layers = [int(ii/delta) for ii in distance]
+        return np.sort(np.array(sn.layer_slice(layers)))
+
+
+
     
     def boundaries(conc=0.2,problem=None):
         problem_scatter = problem + '_full'
