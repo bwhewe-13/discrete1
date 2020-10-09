@@ -83,7 +83,7 @@ class eigen:
 
         return phi
             
-    def transport(self,problem,rank,tol=1e-12,MAX_ITS=100):
+    def transport(self,problem,rank,solution=None,tol=1e-12,MAX_ITS=100):
         """ Arguments:
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
@@ -94,7 +94,9 @@ class eigen:
         from discrete1.setup import func
 
         phi_old = func.initial_flux(problem)
-        self.scatter,self.chiNuFission = func.low_rank_svd(phi_old,self.full_scatter,self.full_chiNuFission,problem,rank)
+        if solution is None:
+            solution = phi_old.copy()
+        self.scatter,self.chiNuFission = func.low_rank_svd(solution,self.full_scatter,self.full_chiNuFission,problem,rank)
 
         sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old) 
         converged = 0; count = 1
