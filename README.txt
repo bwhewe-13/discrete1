@@ -1,8 +1,9 @@
-theProcess.py sets up the problems for solving
-    also houses the func functions (used for functions on all scripts)
+correct.py is the correct Sn code for 1D sweeps
 
-theSpider.py is the autoencoder python work
+dj_prob.py incorporates DJINN into the Sn code for Sigma_s * phi amd Sigma_f * phi calculations
 
-theTruth.py is the original Sn code (source and eigen)
+ae_prob.py incorporates an Autoencoder into the Sn code for phi, Sigma_s * phi, and Sigma_f * phi 
+    (compress energy dimension)
+    
+svd_prob.py incorporates an SVD into the Sn code for the Sigma_s and Sigma_f matrices
 
-drDjinn.py is the djinn python work
