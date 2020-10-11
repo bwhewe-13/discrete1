@@ -76,11 +76,11 @@ except FileNotFoundError:
     np.random.shuffle(spatial)
     np.save('{}_1d/{}spatialShuffleMat'.format(file1,file2),spatial)
 
-# index = int(len(spatial)*split)
-# x_train = X[spatial[index:]]; y_train = Y[spatial[index:]]
-# x_test = X[spatial[:index]]; y_test = Y[spatial[:index]]
-print(sklearn.__version__)
-x_train,x_test,y_train,y_test = model_selection.train_test_split(X,Y,test_size=0.2,random_state=47)
+index = int(len(spatial)*split)
+x_train = X[spatial[index:]]; y_train = Y[spatial[index:]]
+x_test = X[spatial[:index]]; y_test = Y[spatial[:index]]
+# print(sklearn.__version__)
+# x_train,x_test,y_train,y_test = model_selection.train_test_split(X,Y,test_size=0.2,random_state=47)
 
 for jj in num_trees:
     for ii in num_depth:

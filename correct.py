@@ -38,10 +38,11 @@ class eigen:
                 weight = self.mu[n]*self.inv_delta
                 top_mult = (weight-half_total).astype('float64')
                 bottom_mult = (1/(weight+half_total)).astype('float64')
-                if self.track:
-                    temp_scat = smult.astype('float64')
-                else:                    
-                    temp_scat = (scatter * phi_old).astype('float64')
+                # if self.track:
+                    # temp_scat = smult.astype('float64')
+                # else:                    
+                    # temp_scat = (scatter * phi_old).astype('float64')
+                temp_scat = (scatter * phi_old).astype('float64')
                 # Set Pointers for C function
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
                 ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
@@ -72,8 +73,8 @@ class eigen:
 
         converged = 0
         count = 1
-        if self.track == 'source':
-            allmat_sca = np.zeros((2,0,self.G+1))
+        if self.track == 'source' or self.track == 'both':
+            scatter_mg = np.zeros((2,0,self.G+1))
         while not (converged):
             phi = np.zeros(phi_old.shape)
             smult = np.einsum('ijk,ik->ij',scatter,phi_old)
@@ -82,18 +83,18 @@ class eigen:
                     q_tilde = nuChiFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g)
                 else:
                     q_tilde = nuChiFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g) + func.update_q(scatter,phi,0,g,g)
-                if self.track:
-                    q_tilde = nuChiFission[:,g].copy()
+                # if self.track:
+                #     q_tilde = nuChiFission[:,g].copy()
                 phi[:,g] = eigen.one_group(self,total[:,g],scatter[:,g,g],smult[:,g],q_tilde,tol=tol,MAX_ITS=MAX_ITS,guess=phi_old[:,g])
-            if self.track == "source":
-                temp_fission,temp_scatter = eigen.tracking_data(self,phi,np.empty((1000,87)))
-                allmat_sca = np.hstack((allmat_sca,temp_scatter))
+            if self.track == 'source' or self.track == 'both':
+                _,temp_track_mg = eigen.tracking_data(self,phi,np.empty((1000,87)))
+                scatter_mg = np.hstack((scatter_mg,temp_track_mg))
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
-        if self.track == 'source':
-            return phi,allmat_sca
+        if self.track == 'source' or self.track == 'both':
+            return phi,scatter_mg
         return phi
             
     def transport(self,problem,enrich,tol=1e-12,MAX_ITS=100,LOUD=True):
@@ -111,24 +112,26 @@ class eigen:
         # phi_old = func.initial_flux(problem)
         converged = 0
         count = 1
-        if self.track == 'power':
-            allmat_sca = np.zeros((2,0,self.G+1))
-            allmat_fis = np.zeros((2,0,self.G+1))
+        if self.track == 'power' or self.track == 'both':
+            scatter_pw = np.zeros((2,0,self.G+1))
+            fission_pw = np.zeros((2,0,self.G+1))
         sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old) 
-        if self.track == 'source':
+        if self.track == 'source' or self.track == 'both':
             temp_fission2,temp_scatter2 = eigen.tracking_data(self,phi_old,sources)
             np.save('mydata/track_{}_djinn/enrich_{:<02}_count_000'.format(problem,enrich),temp_scatter2)
         while not (converged):
-            if self.track == 'power':
-                temp_fission,temp_scatter = eigen.tracking_data(self,phi_old,sources)
-                allmat_sca = np.hstack((allmat_sca,temp_scatter))
-                allmat_fis = np.hstack((allmat_fis,temp_fission))
+            if self.track == 'power' or self.track == 'both':
+                temp_track_fpw,temp_track_spw = eigen.tracking_data(self,phi_old,sources)
+                scatter_pw = np.hstack((scatter_pw,temp_track_spw))
+                fission_pw = np.hstack((fission_pw,temp_track_fpw))
             print('Outer Transport Iteration {}\n==================================='.format(count))
-            if self.track == 'source':
+            if self.track == 'source' or self.track == 'both':
                 phi,temp_scatter2 = eigen.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
                 np.save('mydata/track_{}_djinn/enrich_{:<02}_count_{}'.format(problem,enrich,str(count).zfill(3)),temp_scatter2)
             else:
                 phi = eigen.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
+            # phi = eigen.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
+
             keff = np.linalg.norm(phi)
             phi /= keff
                         
@@ -140,13 +143,14 @@ class eigen:
 
             phi_old = phi.copy()
             sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old) 
-        if self.track == 'power':
-            return phi,keff,allmat_fis,allmat_sca
+        if self.track == 'power' or self.track == 'both':
+            return phi,keff,fission_pw,scatter_pw
         return phi,keff
 
-    def tracking_data(self,phi,sources=None):
+    def tracking_data(self,flux,sources=None):
         from discrete1.util import sn
         import numpy as np
+        phi = flux.copy()
         # Scatter Tracking - separate phi and add label
         label_scatter = sn.cat(self.enrich,self.splits['scatter_djinn'])
         phi_scatter = sn.cat(phi,self.splits['scatter_djinn'])

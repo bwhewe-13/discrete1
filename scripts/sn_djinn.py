@@ -58,6 +58,7 @@ elif usr_input.fmodel:
 
 print('DJINN Model',djinn_model)
 multDJ = save_folder.split('/')[2]
+print(save_folder)
 
 for ii in range(len(enrich)):
     enrichment,splits = s.problem1.boundaries(enrich[ii],problem=usr_input.problem)
