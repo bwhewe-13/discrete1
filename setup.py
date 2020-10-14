@@ -36,12 +36,12 @@ class func:
 #        elif problem == 'carbon_source':
 #            return np.load('discrete1/data/phi_carbon_source.npy')
 
-    def low_rank_svd(phi,scatter,fission,problem,rank):
+    def low_rank_svd(phi,scatter,fission,problem,rank,distance):
         import numpy as np
         from discrete1.util import sn
         from discrete1.setup import problem1
         # List of the material splits
-        mat_split = problem1.boundaries_mat(problem)
+        mat_split = problem1.boundaries_mat(problem,distance=distance)
         # New Matrices to put scatter and fission matrices
         r_scatter = np.empty(scatter.shape)
         r_fission = np.empty(fission.shape)
@@ -118,11 +118,13 @@ class func:
             return array + (0.001*np.random.normal(0,1,array.shape[0]))[:,None]
 
 class problem1:        
-    def variables(conc=None,problem=None):
+    def variables(conc=None,problem=None,distance=[45,35,20]):
         from discrete1.util import chem,sn
         import numpy as np
         if problem == 'stainless' or problem == 'carbon':
-            distance = [45,35,20]
+            pass
+            # distance = [45,35,20]
+            # distance = [40,40,20]
         elif problem == 'multiplastic':
             distance = [10]*8; distance.append(20)
         elif problem == 'mixed1':
@@ -228,12 +230,13 @@ class problem1:
         
         return G,N,mu,w,total_,scatter_[:,0],fission_,L,R,I
     
-    def boundaries_aux(conc,problem=None):
+    def boundaries_aux(conc,problem=None,distance=[45,35,20]):
         import numpy as np
         from discrete1.util import sn
         # Fission Models
         if problem == 'carbon' or problem == 'stainless':
-            distance = [45,35,20]; ment = [conc,0]; where = [1,2]
+            # distance = [45,35,20]; 
+            ment = [conc,0]; where = [1,2]
         elif problem ==  'mixed1':
             distance = [45,5,25,5,20]; ment = [0.12,0.27,0.12,0]; where = [1,2,3,4]
         elif problem == 'multiplastic':
@@ -248,13 +251,15 @@ class problem1:
 
         # Scatter Models
         elif problem == 'carbon_full':
-            distance = [45,35,20]; ment = [15.04,conc,0]; where = [0,1,2]
+            # distance = [45,35,20]; 
+            ment = [15.04,conc,0]; where = [0,1,2]
         elif problem == 'mixed1_full':
             distance = [45,5,25,5,20]; ment = [15.04,0.12,0.27,0.12,0]; where = [0,1,2,3,4]
         elif problem == 'multiplastic_full':
             distance = [10]*8; distance.append(20); ment = [15.04,conc]*4; ment.append(0); where = [0,1,2,3,4,5,6,7,8]
         elif problem == 'stainless_full':
-            distance = [45,35,20]; ment = [52.68,conc,0]; where = [0,1,2]
+            # distance = [45,35,20]; 
+            ment = [52.68,conc,0]; where = [0,1,2]
         delta = 0.1
         layers = [int(ii/delta) for ii in distance]
         splits = np.array(sn.layer_slice(layers))
@@ -262,10 +267,10 @@ class problem1:
         enrichment = sn.enrich_list(sum(layers),ment,splits[where].tolist())
         return enrichment,sn.layer_slice_dict(layers,where)
 
-    def boundaries_mat(problem):
+    def boundaries_mat(problem,distance=[45,35,20]):
         import numpy as np
         from discrete1.util import sn
-        distance = [45,35,20]
+        # distance = [45,35,20]
         if problem ==  'mixed1':
             distance = [45,5,25,5,20]
         elif problem == 'multiplastic':
@@ -273,23 +278,20 @@ class problem1:
         delta = 0.1
         layers = [int(ii/delta) for ii in distance]
         return np.sort(np.array(sn.layer_slice(layers)))
-
-
-
     
-    def boundaries(conc=0.2,problem=None):
+    def boundaries(conc=0.2,problem=None,distance=[45,35,20]):
         problem_scatter = problem + '_full'
         # Set Fission Splits
-        enrichment,splits = problem1.boundaries_aux(conc,problem)
+        enrichment,splits = problem1.boundaries_aux(conc,problem,distance)
         fission_splits = {f'fission_{kk}': vv for kk, vv in splits.items()}
         # Set Scatter Splits
-        enrichment,splits = problem1.boundaries_aux(conc,problem_scatter)
+        enrichment,splits = problem1.boundaries_aux(conc,problem_scatter,distance)
         scatter_splits = {f'scatter_{kk}': vv for kk, vv in splits.items()}
         combo_splits = {**scatter_splits, **fission_splits}
         return enrichment,combo_splits
 
-    def scatter_fission(conc,problem):
-        _,_,_,_,_,scatter,fission,_,_,_ = problem1.variables(conc,problem)
+    def scatter_fission(conc,problem,distance=[45,35,20]):
+        _,_,_,_,_,scatter,fission,_,_,_ = problem1.variables(conc,problem,distance)
         return scatter,fission
 
 
