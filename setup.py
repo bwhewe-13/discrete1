@@ -89,7 +89,7 @@ class func:
             return func.load_dummy2(),func.load_dummy2(),func.load_dummy2()
         elif coder == 'dummy3':
             return func.load_dummy3(),func.load_dummy3(),func.load_dummy3()
-        
+        print('Loading {} autoencoder...'.format(ptype))
         autoencoder = keras.models.load_model('{}_{}_autoencoder.h5'.format(coder,ptype))
         encoder = keras.models.load_model('{}_{}_encoder.h5'.format(coder,ptype),compile=False)
         decoder = keras.models.load_model('{}_{}_decoder.h5'.format(coder,ptype),compile=False)
