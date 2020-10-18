@@ -1,17 +1,17 @@
-class tools:
-    def djinn_load(model_name,dtype):
-        from djinn import djinn
-        # from dj2.djinn import djinn
-        if dtype == 'both':
-            model_scatter = djinn.load(model_name=model_name[0])
-            model_fission = djinn.load(model_name=model_name[1])
-        elif dtype == 'scatter':
-            model_scatter = djinn.load(model_name=model_name)
-            model_fission = None
-        elif dtype == 'fission':
-            model_scatter = None
-            model_fission = djinn.load(model_name=model_name)
-        return model_scatter,model_fission
+# class tools:
+#     def djinn_load(model_name,dtype):
+#         from djinn import djinn
+#         # from dj2.djinn import djinn
+#         if dtype == 'both':
+#             model_scatter = djinn.load(model_name=model_name[0])
+#             model_fission = djinn.load(model_name=model_name[1])
+#         elif dtype == 'scatter':
+#             model_scatter = djinn.load(model_name=model_name)
+#             model_fission = None
+#         elif dtype == 'fission':
+#             model_scatter = None
+#             model_fission = djinn.load(model_name=model_name)
+#         return model_scatter,model_fission
      
 
 class eigen_djinn:
@@ -191,7 +191,7 @@ class eigen_djinn:
         phi_old = func.initial_flux(problem)
 
         self.multDJ = multDJ            
-        model_scatter,model_fission = tools.djinn_load(model_name,self.multDJ)
+        model_scatter,model_fission = func.djinn_load(model_name,self.multDJ)
         self.model_scatter = model_scatter; self.model_fission = model_fission
         converged = 0
         count = 1         

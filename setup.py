@@ -22,6 +22,8 @@ class func:
 
     def initial_flux(problem):
         import numpy as np
+        if problem == 'mixed1':
+            problem = 'carbon'
         return np.load('discrete1/data/phi_{}_15.npy'.format(problem))
 #        if problem == 'carbon':
 #            return np.load('discrete1/data/phi_orig_15.npy')
@@ -79,6 +81,20 @@ class func:
     
     # def unnormalize(data,maxi,mini):
     #     return data*(maxi-mini)[:,None]+mini[:,None]
+
+    def djinn_load(model_name,dtype):
+        from djinn import djinn
+        # from dj2.djinn import djinn
+        if dtype == 'both':
+            model_scatter = djinn.load(model_name=model_name[0])
+            model_fission = djinn.load(model_name=model_name[1])
+        elif dtype == 'scatter':
+            model_scatter = djinn.load(model_name=model_name)
+            model_fission = None
+        elif dtype == 'fission':
+            model_scatter = None
+            model_fission = djinn.load(model_name=model_name)
+        return model_scatter,model_fission
 
     def load_coder(coder,ptype='phi'):
         """ Coder is the string path to the autoencoder, encoder, and decoder """
