@@ -658,6 +658,239 @@ class eigen_auto:
 
         return phi_full,keff
 
+class eigen_auto_djinn:
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,enrich=None,splits=None,track=None,label=None):
+        self.G = G
+        self.N = N
+        self.mu = mu
+        self.w = w
+        self.total = total
+        self.scatter = scatter
+        self.chiNuFission = chiNuFission
+        self.I = I
+        self.inv_delta = float(I)/R
+        self.enrich = enrich
+        self.splits = splits
+        self.track = track
+        self.label = label
+        
+    def one_group(self,total,scatter,djinn_1g,external,guess,tol=1e-08,MAX_ITS=100):
+        """ Arguments:
+            total: I x 1 vector of the total cross section for each spatial cell
+            scatter: I x L+1 array for the scattering of the spatial cell by moment
+            external: I array for the external sources
+            guess: Initial guess of the scalar flux for a specific energy group (I x L+1)
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+        Returns:
+            phi: a I array  """
+        import numpy as np
+        from discrete1.util import sn
+        import ctypes
+        clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cfunctions.so')
+        sweep = clibrary.sweep
+        # converged = 0
+        # count = 1        
+        phi = np.zeros((self.I),dtype='float64')
+        phi_old = guess.copy()
+        half_total = 0.5*total.copy()
+        external = external.astype('float64')
+        for n in range(self.N):
+            weight = self.mu[n]*self.inv_delta
+            top_mult = (weight-half_total).astype('float64')
+            bottom_mult = (1/(weight+half_total)).astype('float64')
+            if (self.multAE == 'scatter' or self.multAE == 'both'):
+                temp_scat = sn.pops_robust('scatter',(self.I,),sn.cat(scatter*phi_old,self.splits['scatter_keep']),djinn_1g,self.splits).astype('float64')
+            else:
+                temp_scat = (scatter * phi_old).astype('float64')
+            # Set Pointers for C function
+            phi_ptr = ctypes.c_void_p(phi.ctypes.data)
+            ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
+            ext_ptr = ctypes.c_void_p(external.ctypes.data)
+            top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
+            bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
+            sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]))
+
+        return phi
+
+    def multi_group(self,total,scatter,nuChiFission,guess,tol=1e-08,MAX_ITS=10000):
+        """ Arguments:
+            total: I x G vector of the total cross section for each spatial cell and energy level
+            scatter: I x G array for the scattering of the spatial cell by moment and energy
+            nuChiFission: 
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+        Returns:
+            phi: a I x G array  """
+        import numpy as np
+        from discrete1.util import nnets
+        from discrete1.setup import func
+        
+        phi_old = guess.copy()
+        
+        converged = 0; count = 1
+        while not (converged):
+            phi = np.zeros(phi_old.shape)
+            if self.multAE == 'scatter' or self.multAE == 'both':
+                smult = eigen_auto_djinn.scale_autoencode(self,phi_old,atype='smult')
+                for g in range(self.G):
+                    phi[:,g] = eigen_auto_djinn.one_group(self,total[:,g],scatter[:,g,g],smult[:,g],nuChiFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
+            elif self.multAE == 'fission':
+                for g in range(self.G):
+                    if g == 0:
+                        q_tilde = nuChiFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g)
+                    else:
+                        q_tilde = nuChiFission[:,g] + func.update_q(scatter,phi_old,g+1,self.G,g) + func.update_q(scatter,phi,0,g,g)
+                    phi[:,g] = eigen_auto_djinn.one_group(self,total[:,g],scatter[:,g,g],None,q_tilde,phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
+
+            change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            count += 1
+            converged = (change < tol) or (count >= MAX_ITS) 
+            phi_old = phi.copy()
+
+        return phi
+    
+    def scale_autoencode(self,flux,atype):
+        import numpy as np
+        from discrete1.util import nnets
+
+        matrix,maxi,mini = nnets.normalize(flux,verbose=True)
+
+        matrix[np.isnan(matrix)] = 0; maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
+        scale = np.sum(matrix,axis=1)
+
+        encoded_flux = self.phi_encoder.predict(matrix)
+        encoded_flux = (scale/np.sum(encoded_flux,axis=1))[:,None]*encoded_flux
+
+        if atype == 'fmult':
+            sources = eigen_auto_djinn.create_fmult(self,encoded_flux)
+            fmult_scale = np.sum(sources,axis=1)
+            decoded_source = self.fmult_decoder.predict(sources)
+            decoded_source = (fmult_scale/np.sum(decoded_source,axis=1))[:,None]*decoded_source
+            decoded_source[np.isnan(decode_source)] = 0;
+            return nnets.unnormalize(decoded_source,maxi,mini)
+
+        elif atype == 'smult':
+            smult = eigen_auto_djinn.create_smult(self,encoded_flux)
+            smult_scale = np.sum(smult,axis=1)
+            decoded_smult = self.smult_decoder.predict(smult)
+            decoded_smult = (smult_scale/np.sum(decoded_smult,axis=1))[:,None]*decoded_smult
+            decoded_smult[np.isnan(decode_smult)] = 0;
+            return nnets.unnormalize(decoded_smult,maxi,mini)
+
+        else:
+            return "Do not understand data type"
+
+    def label_model(self,xs,flux,model_):
+        import numpy as np
+        from discrete1.util import sn
+        phi = flux.copy()
+        if np.sum(phi) == 0:
+            return np.zeros((sn.cat(phi,self.splits['{}_djinn'.format(xs)]).shape))
+        if xs == 'scatter':
+            nphi = np.linalg.norm(phi)
+            phi /= nphi
+        short_phi = sn.cat(phi,self.splits['{}_djinn'.format(xs)])
+        # if self.process == 'norm':
+        #     short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]
+        if self.label:
+            short_phi = np.hstack((sn.cat(self.enrich,self.splits['{}_djinn'.format(xs)])[:,None],short_phi))
+        # if xs == 'scatter':
+        #     return model_.predict(short_phi),nphi
+        return model_.predict(short_phi) 
+
+    def scale_scatter(self,phi,djinn_ns):
+        import numpy as np
+        from discrete1.util import sn
+        if np.sum(phi) == 0:
+            return np.zeros((sn.cat(phi,self.splits['scatter_djinn']).shape))
+        interest = sn.cat(phi,self.splits['scatter_djinn'])
+        scale = np.sum(interest*np.sum(sn.cat(self.scatter,self.splits['scatter_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
+        return scale[:,None]*djinn_ns
+
+    def create_smult(self,flux):
+        import numpy as np
+        if (np.sum(flux) == 0):
+            return np.zeros(flux.shape)
+        djinn_scatter_ns = eigen_djinn.label_model(self,'scatter',flux,self.dj_scatter)
+        return eigen_djinn.scale_scatter(self,flux,djinn_scatter_ns)#*nphi
+
+    def scale_fission(self,phi,djinn_ns):
+        import numpy as np
+        from discrete1.util import sn
+        if np.sum(phi) == 0:
+            return np.zeros((sn.cat(phi,self.splits['fission_djinn']).shape))
+        if self.multAE == 'scatter':
+            return np.einsum('ijk,ik->ij',self.chiNuFission,phi) 
+        interest = sn.cat(phi,self.splits['fission_djinn'])
+        scale = np.sum(interest*np.sum(sn.cat(self.chiNuFission,self.splits['fission_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
+        # All of the sigma*phi terms not calculated by DJINN
+        regular = np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits['fission_keep']),sn.cat(phi,self.splits['fission_keep']))
+        return sn.pops_robust('fission',phi.shape,regular,scale[:,None]*djinn_ns,self.splits)
+        
+    def create_fmult(self,flux):
+        djinn_fission_ns = 0
+        if self.multAE == 'both' or self.multAE == 'fission':
+            djinn_fission_ns = eigen_djinn.label_model(self,'fission',flux,self.model_fission)
+        return eigen_djinn.scale_fission(self,flux,djinn_fission_ns)
+
+    def transport(self,ae_name,dj_name,problem='carbon',tol=1e-12,MAX_ITS=100,LOUD=True,multAE=False):
+        """ Arguments:
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+            LOUD: prints the iteration number and the change between iterations, default is False
+        Returns:
+            phi: a I x G array    """        
+        import numpy as np
+        from discrete1.util import nnets
+        from discrete1.setup import func
+        # from discrete1.util import sn
+        phi_autoencoder,phi_encoder,phi_decoder = func.load_coder(ae_name)
+        self.phi_encoder = phi_encoder
+        self.multAE = multAE
+
+        self.dj_scatter,self.dj_fission = func.djinn_load(dj_name,self.multAE)
+        if self.multAE == 'scatter' or self.multAE == 'both':
+            smult_autoencoder,smult_encoder,smult_decoder = func.load_coder(ae_name,ptype='smult')
+            self.smult_decoder = smult_decoder
+        if self.multAE == 'fission' or self.multAE == 'both':
+            fmult_autoencoder,fmult_encoder,fmult_decoder = func.load_coder(ae_name,ptype='fmult')
+            self.fmult_decoder = fmult_decoder
+
+        phi_old = func.initial_flux(problem)
+
+        if self.multAE == 'fission' or self.multAE == 'both':
+            sources = eigen_auto_djinn.scale_autoencode(self,phi_old,atype='fmult')
+        else:
+            sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
+
+        converged = 0
+        count = 1
+        while not (converged):
+            print('Outer Transport Iteration {}'.format(count))
+            phi = eigen_auto_djinn.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
+            
+            keff = np.linalg.norm(phi)
+            phi /= keff
+
+            change = np.linalg.norm((phi-phi_old)/phi/(self.I))
+            # change = np.linalg.norm((phi-phi_old)/phi/(self.I))
+            if LOUD:
+                print('Change is',change,'Keff is',keff)
+                print('===================================')
+            converged = (change < tol) or (count >= MAX_ITS) #or (kchange < tol)
+            count += 1
+
+            phi_old = phi.copy()
+        
+            if self.multAE == 'fission' or self.multAE == 'both':
+                sources = eigen_auto_djinn.scale_autoencode(self,phi_old,atype='fmult')
+            else:
+                sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
+
+        return phi,keff
+
+
 class source_auto:
     def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,track=False):
         self.G = G
