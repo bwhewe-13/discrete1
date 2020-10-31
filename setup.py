@@ -23,6 +23,7 @@ class func:
     def initial_flux(problem):
         import numpy as np
         if problem == 'mixed1':
+            # np.load('discrete1/data/phi_{}_15.npy'.format(problem))
             problem = 'carbon'
         return np.load('discrete1/data/phi_{}_15.npy'.format(problem))
 #        if problem == 'carbon':

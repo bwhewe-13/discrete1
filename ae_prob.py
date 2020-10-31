@@ -761,17 +761,17 @@ class eigen_auto_djinn:
 
         encoded_flux = self.phi_encoder.predict(matrix)
         encoded_flux = (scale/np.sum(encoded_flux,axis=1))[:,None]*encoded_flux
-
+        # print(encoded_flux.shape)
         if atype == 'fmult':
-            sources = eigen_auto_djinn.create_fmult(self,encoded_flux)
+            sources = eigen_auto_djinn.create_fmult(self,encoded_flux,flux)
             fmult_scale = np.sum(sources,axis=1)
             decoded_source = self.fmult_decoder.predict(sources)
             decoded_source = (fmult_scale/np.sum(decoded_source,axis=1))[:,None]*decoded_source
-            decoded_source[np.isnan(decode_source)] = 0;
+            decoded_source[np.isnan(decoded_source)] = 0;
             return nnets.unnormalize(decoded_source,maxi,mini)
 
         elif atype == 'smult':
-            smult = eigen_auto_djinn.create_smult(self,encoded_flux)
+            smult = eigen_auto_djinn.create_smult(self,encoded_flux,flux)
             smult_scale = np.sum(smult,axis=1)
             decoded_smult = self.smult_decoder.predict(smult)
             decoded_smult = (smult_scale/np.sum(decoded_smult,axis=1))[:,None]*decoded_smult
@@ -799,40 +799,43 @@ class eigen_auto_djinn:
         #     return model_.predict(short_phi),nphi
         return model_.predict(short_phi) 
 
-    def scale_scatter(self,phi,djinn_ns):
+    def scale_scatter(self,phi,phi_full,djinn_ns):
         import numpy as np
         from discrete1.util import sn
         if np.sum(phi) == 0:
             return np.zeros((sn.cat(phi,self.splits['scatter_djinn']).shape))
-        interest = sn.cat(phi,self.splits['scatter_djinn'])
+        interest = sn.cat(phi_full,self.splits['scatter_djinn'])
         scale = np.sum(interest*np.sum(sn.cat(self.scatter,self.splits['scatter_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
         return scale[:,None]*djinn_ns
 
-    def create_smult(self,flux):
+    def create_smult(self,flux,flux_full):
         import numpy as np
         if (np.sum(flux) == 0):
             return np.zeros(flux.shape)
-        djinn_scatter_ns = eigen_djinn.label_model(self,'scatter',flux,self.dj_scatter)
-        return eigen_djinn.scale_scatter(self,flux,djinn_scatter_ns)#*nphi
+        djinn_scatter_ns = eigen_auto_djinn.label_model(self,'scatter',flux,self.dj_scatter)
+        return eigen_auto_djinn.scale_scatter(self,flux,flux_full,djinn_scatter_ns)#*nphi
 
-    def scale_fission(self,phi,djinn_ns):
+    def scale_fission(self,phi,phi_full,djinn_ns):
         import numpy as np
         from discrete1.util import sn
         if np.sum(phi) == 0:
             return np.zeros((sn.cat(phi,self.splits['fission_djinn']).shape))
         if self.multAE == 'scatter':
             return np.einsum('ijk,ik->ij',self.chiNuFission,phi) 
-        interest = sn.cat(phi,self.splits['fission_djinn'])
+        interest = sn.cat(phi_full,self.splits['fission_djinn'])
         scale = np.sum(interest*np.sum(sn.cat(self.chiNuFission,self.splits['fission_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
         # All of the sigma*phi terms not calculated by DJINN
-        regular = np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits['fission_keep']),sn.cat(phi,self.splits['fission_keep']))
+        regular = np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits['fission_keep']),sn.cat(phi_full,self.splits['fission_keep']))
+        # print('regular shape',regular.shape)
+        # print(phi.shape,regular[:,20])
+        regular = regular[:,:20].copy()
         return sn.pops_robust('fission',phi.shape,regular,scale[:,None]*djinn_ns,self.splits)
         
-    def create_fmult(self,flux):
+    def create_fmult(self,flux,flux_full):
         djinn_fission_ns = 0
         if self.multAE == 'both' or self.multAE == 'fission':
-            djinn_fission_ns = eigen_djinn.label_model(self,'fission',flux,self.model_fission)
-        return eigen_djinn.scale_fission(self,flux,djinn_fission_ns)
+            djinn_fission_ns = eigen_auto_djinn.label_model(self,'fission',flux,self.dj_fission)
+        return eigen_auto_djinn.scale_fission(self,flux,flux_full,djinn_fission_ns)
 
     def transport(self,ae_name,dj_name,problem='carbon',tol=1e-12,MAX_ITS=100,LOUD=True,multAE=False):
         """ Arguments:
@@ -864,8 +867,7 @@ class eigen_auto_djinn:
         else:
             sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
 
-        converged = 0
-        count = 1
+        converged = 0; count = 1
         while not (converged):
             print('Outer Transport Iteration {}'.format(count))
             phi = eigen_auto_djinn.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
