@@ -528,7 +528,8 @@ class eigen_auto:
             for g in range(self.gprime):
                 phi[:,g] = eigen_auto.one_group(self,total[:,g],smult[:,g],nuChiFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
             # Decode out phi
-            phi_full = eigen_auto.scale_autoencode(self,phi,atype='phi')
+            # phi_full = eigen_auto.scale_autoencode(self,phi,atype='phi')
+            phi_full = phi.copy()
 
             change = np.linalg.norm((phi_full - phi_old_full)/phi_full/(self.I))
             count += 1
@@ -536,8 +537,8 @@ class eigen_auto:
             
             phi_old_full = phi_full.copy()
             # _,self.pmaxi,self.pmini = nnets.normalize(phi_old_full,verbose=True)
-            phi_old = eigen_auto.scale_autoencode(self,phi_old_full,atype='phi')
-            # phi_old = phi.copy()
+            # phi_old = eigen_auto.scale_autoencode(self,phi_old_full,atype='phi')
+            phi_old = phi.copy()
             # Encode Scatter * Phi
             smult_full = np.einsum('ijk,ik->ij',scatter,phi_full)
             if self.multAE == 'smult' or self.multAE == 'both':
@@ -557,10 +558,12 @@ class eigen_auto:
         elif atype == 'phi':
             model = self.phi_autoencoder
             # models = [self.phi_autoencoder1,self.phi_autoencoder2,self.phi_autoencoder3]
-        matrix,self.pmaxi,self.pmini = nnets.normalize(matrix_full,verbose=True)
+        # matrix,self.pmaxi,self.pmini = nnets.normalize(matrix_full,verbose=True)
+        matrix,maxi,mini = nnets.normalize(matrix_full,verbose=True)
 
         # matrix = nnets.phi_normalize(matrix_full,self.pmaxi,self.pmini)
-        matrix[np.isnan(matrix)] = 0; self.pmaxi[np.isnan(self.pmaxi)] = 0; self.pmini[np.isnan(self.pmini)] = 0
+        # matrix[np.isnan(matrix)] = 0; self.pmaxi[np.isnan(self.pmaxi)] = 0; self.pmini[np.isnan(self.pmini)] = 0
+        matrix[np.isnan(matrix)] = 0; maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
         scale = np.sum(matrix,axis=1)
 
         # parts = matrix.copy()
@@ -571,7 +574,8 @@ class eigen_auto:
         matrix = model.predict(matrix)
         matrix = (scale/np.sum(matrix,axis=1))[:,None]*matrix
         matrix[np.isnan(matrix)] = 0;
-        matrix = nnets.unnormalize(matrix,self.pmaxi,self.pmini)
+        # matrix = nnets.unnormalize(matrix,self.pmaxi,self.pmini)
+        matrix = nnets.unnormalize(matrix,maxi,mini)
     
         return matrix
 
@@ -617,7 +621,8 @@ class eigen_auto:
 
         sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old_full)
         # Encode-Decode Phi
-        phi_old = eigen_auto.scale_autoencode(self,phi_old_full,atype='phi')
+        # phi_old = eigen_auto.scale_autoencode(self,phi_old_full,atype='phi')
+        phi_old = phi_old_full.copy()
         # Unnormalized Method
         # phi_old = self.phi_autoencoder.predict(phi_old_full)
         # phi_old = (np.sum(phi_old_full,axis=1)/np.sum(phi_old,axis=1))[:,None]*phi_old
@@ -632,7 +637,8 @@ class eigen_auto:
             print('Outer Transport Iteration {}'.format(count))
             phi = eigen_auto.multi_group(self,self.total,self.scatter,sources,phi_old,phi_old_full,tol=1e-08,MAX_ITS=MAX_ITS)
             # Expand to correct size
-            phi_full = eigen_auto.scale_autoencode(self,phi,atype='phi')
+            # phi_full = eigen_auto.scale_autoencode(self,phi,atype='phi')
+            phi_full = phi.copy()
             
             keff = np.linalg.norm(phi_full)
             phi_full /= keff
@@ -646,7 +652,7 @@ class eigen_auto:
             count += 1
 
             phi_old_full = phi_full.copy()
-            # phi_old = phi.copy()
+            phi_old = phi.copy()
             # _,self.pmaxi,self.pmini = nnets.normalize(phi_old_full,verbose=True)
 
             sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old_full)
@@ -654,7 +660,7 @@ class eigen_auto:
                 sources = eigen_auto.scale_autoencode(self,sources_full,atype='fmult')
             else:
                 sources = sources_full.copy()
-            phi_old = eigen_auto.scale_autoencode(self,phi_old_full,atype='phi')
+            # phi_old = eigen_auto.scale_autoencode(self,phi_old_full,atype='phi')
 
         return phi_full,keff
 

@@ -134,6 +134,70 @@ class func:
             import numpy as np
             return array + (0.001*np.random.normal(0,1,array.shape[0]))[:,None]
 
+class problem2:
+    def variables(dim=70,distance=[5,5,10,5,5]):
+        import numpy as np
+        from discrete1.util import sn
+        I = 1000
+        delta = sum(distance)/I
+        # Scattering
+        pu240_scatter = np.load('mydata/pu240/scatter_{}.npy'.format(str(dim).zfill(3)))
+        puc240_scatter = np.load('mydata/puc240/scatter_{}.npy'.format(str(dim).zfill(3)))
+        # Fission
+        pu240_fission = np.load('mydata/pu240/nu_fission_{}.npy'.format(str(dim).zfill(3)))
+        puc240_fission = np.load('mydata/puc240/nu_fission_{}.npy'.format(str(dim).zfill(3)))
+        # Total
+        pu240_total = np.load('mydata/pu240/total_{}.npy'.format(str(dim).zfill(3)))
+        puc240_total = np.load('mydata/puc240/total_{}.npy'.format(str(dim).zfill(3)))
+        # Ordering
+        xs_scatter = [puc240_scatter,pu240_scatter,puc240_scatter,pu240_scatter,puc240_scatter]
+        # xs_scatter = [puc240_scatter.T,pu240_scatter.T,puc240_scatter.T,pu240_scatter.T,puc240_scatter.T]
+        xs_total = [puc240_total,pu240_total,puc240_total,pu240_total,puc240_total]
+        xs_fission = [puc240_fission,pu240_fission,puc240_fission,pu240_fission,puc240_fission]
+        # xs_fission = [puc240_fission.T,pu240_fission.T,puc240_fission.T,pu240_fission.T,puc240_fission.T]
+        
+        # Setting up eigenvalue equation
+        N = 8; L = 0; R = sum(distance); G = dim
+        mu,w = np.polynomial.legendre.leggauss(N)
+        w /= np.sum(w)
+        # Half because symmetry
+        mu = mu[int(N*0.5):]
+        w = w[int(N*0.5):]
+        N = int(N*0.5) 
+
+        layers = [int(ii/delta) for ii in distance]
+        # Use for layer correction
+        if sum(layers) != sum(distance):
+            change = I - sum(layers)
+            if change % 2 != 0:
+                layers[2] = layers[2] + 1
+                change -= 1
+            layers[0] = layers[0] + int(0.5*change)
+            layers[-1] = layers[-1] + int(0.5*change)
+        # I = int(sum(layers))
+    
+        scatter_ = sn.mixed_propagate(xs_scatter,layers,G=dim,L=L,dtype='scatter')
+        fission_ = sn.mixed_propagate(xs_fission,layers,G=dim,dtype='fission2')
+        total_ = sn.mixed_propagate(xs_total,layers,G=dim)
+        
+        return G,N,mu,w,total_,scatter_[:,0],fission_,L,R,I
+
+    # def boundaries(dim=70,distance=[5,5,10,5,5]):
+    #     problem_scatter = problem + '_full'
+    #     # Set Fission Splits
+    #     enrichment,splits = problem1.boundaries_aux(conc,problem,distance)
+    #     fission_splits = {f'fission_{kk}': vv for kk, vv in splits.items()}
+    #     # Set Scatter Splits
+    #     enrichment,splits = problem1.boundaries_aux(conc,problem_scatter,distance)
+    #     scatter_splits = {f'scatter_{kk}': vv for kk, vv in splits.items()}
+    #     combo_splits = {**scatter_splits, **fission_splits}
+    #     return enrichment,combo_splits
+
+    def scatter_fission(dim=70,distance=[5,5,10,5,5]):
+        _,_,_,_,_,scatter,fission,_,_,_ = problem2.variables(dim,distance)
+        return scatter,fission
+
+
 class problem1:        
     def variables(conc=None,problem=None,distance=[45,35,20]):
         from discrete1.util import chem,sn

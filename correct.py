@@ -25,6 +25,7 @@ class eigen:
             phi: a I array  """
         import numpy as np
         import ctypes
+        np.seterr(all='raise')
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cfunctions.so')
         sweep = clibrary.sweep
         converged = 0
@@ -50,6 +51,8 @@ class eigen:
                 top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
                 bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
                 sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]))
+            if np.sum(np.isnan(phi)) > 0:
+                print(np.sum(np.isnan(phi)))
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
@@ -86,8 +89,9 @@ class eigen:
                 # if self.track:
                 #     q_tilde = nuChiFission[:,g].copy()
                 phi[:,g] = eigen.one_group(self,total[:,g],scatter[:,g,g],smult[:,g],q_tilde,tol=tol,MAX_ITS=MAX_ITS,guess=phi_old[:,g])
+                # print(g,np.sum(phi[:,g]))
             if self.track == 'source' or self.track == 'both':
-                _,temp_track_mg = eigen.tracking_data(self,phi,np.empty((1000,87)))
+                _,temp_track_mg = eigen.tracking_data(self,phi,np.empty((1000,self.G)))
                 scatter_mg = np.hstack((scatter_mg,temp_track_mg))
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
@@ -131,7 +135,6 @@ class eigen:
             else:
                 phi = eigen.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
             # phi = eigen.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
-
             keff = np.linalg.norm(phi)
             phi /= keff
                         
