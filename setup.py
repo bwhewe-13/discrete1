@@ -20,11 +20,14 @@ class func:
         import numpy as np
         return np.sum(scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
 
-    def initial_flux(problem):
+    def initial_flux(problem,group=70):
         import numpy as np
         if problem == 'mixed1':
             # np.load('discrete1/data/phi_{}_15.npy'.format(problem))
             problem = 'carbon'
+        elif problem == 'pu':
+            print('Pluto')
+            return np.load('discrete1/data/phi_group_{}.npy'.format(str(group).zfill(3)))
         return np.load('discrete1/data/phi_{}_15.npy'.format(problem))
 #        if problem == 'carbon':
 #            return np.load('discrete1/data/phi_orig_15.npy')
@@ -42,9 +45,12 @@ class func:
     def low_rank_svd(phi,scatter,fission,problem,rank,distance):
         import numpy as np
         from discrete1.util import sn
-        from discrete1.setup import problem1
+        from discrete1.setup import problem1,problem2
         # List of the material splits
-        mat_split = problem1.boundaries_mat(problem,distance=distance)
+        if problem == 'pu':
+            mat_split = problem2.boundaries_mat(distance=distance)
+        else:
+            mat_split = problem1.boundaries_mat(problem,distance=distance)
         # New Matrices to put scatter and fission matrices
         r_scatter = np.empty(scatter.shape)
         r_fission = np.empty(fission.shape)
@@ -69,6 +75,50 @@ class func:
             r_scatter[mat] = np.tile(ys_tilde,(sn.length(mat),1,1))
             r_fission[mat] = np.tile(yf_tilde,(sn.length(mat),1,1))
 
+        return r_scatter,r_fission
+
+    def low_rank_svd_squeeze(big,small,rank,distance):
+        import numpy as np
+        from discrete1.util import sn
+        from discrete1.setup import problem2,func
+
+        phi_big = func.initial_flux('pu',big)
+        phi_small = func.initial_flux('pu',small)
+        scatter_big,fission_big = problem2.scatter_fission(big,distance)
+        scatter_small,fission_small = problem2.scatter_fission(small,distance)
+        # %%
+
+        mat_split = problem2.boundaries_mat(distance)
+        r_scatter = np.empty(scatter_small.shape)
+        r_fission = np.empty(fission_small.shape)
+
+        for mat in mat_split:
+            # Big Phi
+            phi_ = phi_big[mat].T.copy()
+            u_p_big,_,_ = sn.svd(phi_,rank)
+            smult_ = scatter_big[mat][0] @ phi_
+            u_s_big,_,_ = sn.svd(smult_,rank)
+            fmult_ = fission_big[mat][0] @ phi_
+            u_f_big,_,_ = sn.svd(fmult_,rank)
+            del phi_, fmult_, smult_
+            # Creating scatter and fission tilde
+            s_tilde = u_s_big.T @ scatter_big[mat][0] @ u_p_big
+            f_tilde = u_f_big.T @ fission_big[mat][0] @ u_p_big
+            
+            # Small Phi
+            phi_ = phi_small[mat].T.copy()
+            u_p_small,_,_ = sn.svd(phi_,rank)
+            smult_ = scatter_small[mat][0] @ phi_
+            u_s_small,_,_ = sn.svd(smult_,rank)
+            fmult_ = fission_small[mat][0] @ phi_
+            u_f_small,_,_ = sn.svd(fmult_,rank)
+            del phi_, fmult_, smult_
+            # Creating scatter and fission tilde
+            ys_tilde = u_s_small.T @ s_tilde @ u_p_small
+            yf_tilde = u_f_small.T @ f_tilde @ u_p_small
+
+            r_scatter[mat] = np.tile(ys_tilde,(sn.length(mat),1,1))
+            r_fission[mat] = np.tile(yf_tilde,(sn.length(mat),1,1))
         return r_scatter,r_fission
     
     # def normalize(data,verbose=False):
@@ -196,6 +246,22 @@ class problem2:
     def scatter_fission(dim=70,distance=[5,5,10,5,5]):
         _,_,_,_,_,scatter,fission,_,_,_ = problem2.variables(dim,distance)
         return scatter,fission
+
+
+    def boundaries_mat(distance=[2,1,2]):
+        import numpy as np
+        from discrete1.util import sn
+        I = 1000; delta = sum(distance)/I
+        layers = [int(ii/delta) for ii in distance]
+        # Use for layer correction
+        if sum(layers) != sum(distance):
+            change = I - sum(layers)
+            if change % 2 != 0:
+                layers[2] = layers[2] + 1
+                change -= 1
+            layers[0] = layers[0] + int(0.5*change)
+            layers[-1] = layers[-1] + int(0.5*change)
+        return np.sort(np.array(sn.layer_slice(layers)))
 
 
 class problem1:        

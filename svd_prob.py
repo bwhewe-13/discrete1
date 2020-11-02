@@ -83,7 +83,7 @@ class eigen:
 
         return phi
             
-    def transport(self,problem,rank,solution=None,distance=[45,35,20],tol=1e-12,MAX_ITS=100):
+    def transport(self,problem,rank,solution=None,distance=[45,35,20],group=70,tol=1e-12,MAX_ITS=100):
         """ Arguments:
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
@@ -91,15 +91,18 @@ class eigen:
         Returns:
             phi: a I x G array    """        
         import numpy as np
-        from discrete1.setup import func
+        from discrete1.setup import func,problem2
 
         print(distance)
         
-        phi_old = func.initial_flux(problem)
+        phi_old = func.initial_flux(problem,group)
         if solution is None:
             solution = phi_old.copy()
         self.scatter,self.chiNuFission = func.low_rank_svd(solution,self.full_scatter,self.full_chiNuFission,problem,rank,distance)
+        # self.scatter,self.chiNuFission = func.low_rank_svd_squeeze(618,70,70,distance=distance)
 
+        print('scatter',self.scatter.shape)
+        
         sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old) 
         converged = 0; count = 1
         while not (converged):

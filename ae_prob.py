@@ -511,10 +511,10 @@ class eigen_auto:
             phi: a I x G array  """
         import numpy as np
         from discrete1.util import nnets
-        phi_old_full = guess_full.copy()
+        # phi_old_full = guess_full.copy()
         phi_old = guess.copy()
 
-        smult_full = np.einsum('ijk,ik->ij',scatter,phi_old_full)
+        smult_full = np.einsum('ijk,ik->ij',scatter,phi_old)
         # Encode Scatter * Phi
         if self.multAE == 'smult' or self.multAE == 'both':
             smult = eigen_auto.scale_autoencode(self,smult_full,atype='smult')
@@ -528,25 +528,27 @@ class eigen_auto:
             for g in range(self.gprime):
                 phi[:,g] = eigen_auto.one_group(self,total[:,g],smult[:,g],nuChiFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
             # Decode out phi
-            # phi_full = eigen_auto.scale_autoencode(self,phi,atype='phi')
-            phi_full = phi.copy()
+            # if self.multAE == 'phi' or self.multAE == 'both':
+            #     phi = eigen_auto.scale_autoencode(self,phi,atype='phi')
+            # else:
+                # phi_full = phi.copy()
 
-            change = np.linalg.norm((phi_full - phi_old_full)/phi_full/(self.I))
+            change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
             
-            phi_old_full = phi_full.copy()
+            # phi_old_full = phi_full.copy()
             # _,self.pmaxi,self.pmini = nnets.normalize(phi_old_full,verbose=True)
             # phi_old = eigen_auto.scale_autoencode(self,phi_old_full,atype='phi')
             phi_old = phi.copy()
             # Encode Scatter * Phi
-            smult_full = np.einsum('ijk,ik->ij',scatter,phi_full)
+            smult_full = np.einsum('ijk,ik->ij',scatter,phi)
             if self.multAE == 'smult' or self.multAE == 'both':
                 smult = eigen_auto.scale_autoencode(self,smult_full,atype='smult')
             else:
                 smult = smult_full.copy()
 
-        return phi_full
+        return phi
     
     def scale_autoencode(self,matrix_full,atype):
         import numpy as np
@@ -590,8 +592,12 @@ class eigen_auto:
         from discrete1.util import nnets
         from discrete1.setup import func
         # from discrete1.util import sn
-        phi_autoencoder,phi_encoder,phi_decoder = func.load_coder(coder)
-        self.phi_autoencoder = phi_autoencoder
+
+        self.multAE = multAE; self.gprime = 87
+
+        if self.multAE == 'phi' or self.multAE == 'both':
+            phi_autoencoder,phi_encoder,phi_decoder = func.load_coder(coder)
+            self.phi_autoencoder = phi_autoencoder
 
         # ae_model1 = 'eigen_nn/epochs_250/model40-20_hdpe'
         # ae_model2 = 'eigen_nn/epochs_250/model40-20_u235'
@@ -602,12 +608,6 @@ class eigen_auto:
         # self.phi_autoencoder3,_,_ = func.load_coder(ae_model3)
         # self.splits = [slice(0,450),slice(450,800),slice(800,1000)]
 
-        self.multAE = multAE
-        # print('========================')
-        # print(multAE)
-        # print('========================')
-        self.gprime = 87
-
         if self.multAE == 'smult' or self.multAE == 'both':
             smult_autoencoder,smult_encoder,smult_decoder = func.load_coder(coder,ptype='smult')
             self.smult_autoencoder = smult_autoencoder
@@ -615,14 +615,15 @@ class eigen_auto:
             fmult_autoencoder,fmult_encoder,fmult_decoder = func.load_coder(coder,ptype='fmult')
             self.fmult_autoencoder = fmult_autoencoder
 
-        phi_old_full = func.initial_flux(problem)
+        phi_old = func.initial_flux(problem)
         # _,self.pmaxi,self.pmini = nnets.normalize(phi_old_full,verbose=True)
-        keff = np.linalg.norm(phi_old_full)
+        keff = np.linalg.norm(phi_old)
 
-        sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old_full)
+        sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
         # Encode-Decode Phi
-        # phi_old = eigen_auto.scale_autoencode(self,phi_old_full,atype='phi')
-        phi_old = phi_old_full.copy()
+        if self.multAE == 'phi' or self.multAE == 'both':
+            phi_old = eigen_auto.scale_autoencode(self,phi_old,atype='phi')
+        # phi_old = phi_old_full.copy()
         # Unnormalized Method
         # phi_old = self.phi_autoencoder.predict(phi_old_full)
         # phi_old = (np.sum(phi_old_full,axis=1)/np.sum(phi_old,axis=1))[:,None]*phi_old
@@ -635,15 +636,16 @@ class eigen_auto:
         count = 1
         while not (converged):
             print('Outer Transport Iteration {}'.format(count))
-            phi = eigen_auto.multi_group(self,self.total,self.scatter,sources,phi_old,phi_old_full,tol=1e-08,MAX_ITS=MAX_ITS)
+            phi = eigen_auto.multi_group(self,self.total,self.scatter,sources,phi_old,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
             # Expand to correct size
-            # phi_full = eigen_auto.scale_autoencode(self,phi,atype='phi')
-            phi_full = phi.copy()
+            if self.multAE == 'phi' or self.multAE == 'both':
+                phi = eigen_auto.scale_autoencode(self,phi,atype='phi')
+            # phi_full = phi.copy()
             
-            keff = np.linalg.norm(phi_full)
-            phi_full /= keff
+            keff = np.linalg.norm(phi)
+            phi /= keff
 
-            change = np.linalg.norm((phi_full-phi_old_full)/phi_full/(self.I))
+            change = np.linalg.norm((phi-phi_old)/phi/(self.I))
             # change = np.linalg.norm((phi-phi_old)/phi/(self.I))
             if LOUD:
                 print('Change is',change,'Keff is',keff)
@@ -651,18 +653,18 @@ class eigen_auto:
             converged = (change < tol) or (count >= MAX_ITS) #or (kchange < tol)
             count += 1
 
-            phi_old_full = phi_full.copy()
+            # phi_old_full = phi_full.copy()
             phi_old = phi.copy()
             # _,self.pmaxi,self.pmini = nnets.normalize(phi_old_full,verbose=True)
 
-            sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old_full)
+            sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
             if self.multAE == 'fmult' or self.multAE == 'both':
                 sources = eigen_auto.scale_autoencode(self,sources_full,atype='fmult')
             else:
                 sources = sources_full.copy()
             # phi_old = eigen_auto.scale_autoencode(self,phi_old_full,atype='phi')
 
-        return phi_full,keff
+        return phi,keff
 
 class eigen_auto_djinn:
     def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,enrich=None,splits=None,track=None,label=None):
