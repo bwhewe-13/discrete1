@@ -185,7 +185,7 @@ class func:
             return array + (0.001*np.random.normal(0,1,array.shape[0]))[:,None]
 
 class problem2:
-    def variables(dim=70,distance=[5,5,10,5,5]):
+    def variables(dim=70,distance=[2,1,2]):
         import numpy as np
         from discrete1.util import sn
         I = 1000
@@ -243,7 +243,7 @@ class problem2:
     #     combo_splits = {**scatter_splits, **fission_splits}
     #     return enrichment,combo_splits
 
-    def scatter_fission(dim=70,distance=[5,5,10,5,5]):
+    def scatter_fission(dim=70,distance=[2,1,2]):
         _,_,_,_,_,scatter,fission,_,_,_ = problem2.variables(dim,distance)
         return scatter,fission
 
