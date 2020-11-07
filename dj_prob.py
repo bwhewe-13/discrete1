@@ -41,7 +41,7 @@ class eigen_djinn:
             return np.zeros((sn.cat(phi,self.splits['{}_djinn'.format(xs)]).shape))
         if xs == 'scatter':
             nphi = np.linalg.norm(phi)
-            phi /= nphi
+            # phi /= nphi
         short_phi = sn.cat(phi,self.splits['{}_djinn'.format(xs)])
         # if self.process == 'norm':
         #     short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]

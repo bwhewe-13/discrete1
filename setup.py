@@ -147,6 +147,19 @@ class func:
             model_fission = djinn.load(model_name=model_name)
         return model_scatter,model_fission
 
+    def auto_load(model_name,dtype):
+        from tensorflow import keras
+        print('Loading phi encoder...')
+        phi_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(model_name),compile=False)
+        fmult_decoder = None; smult_decoder = None
+        if dtype in ['fmult','fission','both']:
+            print('Loading fmult decoder...')
+            fmult_decoder = keras.models.load_model('{}_fmult_decoder.h5'.format(model_name),compile=False)    
+        if dtype in ['smult','scatter','both']:
+            print('Loading smult decoder...')
+            smult_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(model_name),compile=False)    
+        return phi_encoder,fmult_decoder,smult_decoder
+
     def load_coder(coder,ptype='phi'):
         """ Coder is the string path to the autoencoder, encoder, and decoder """
         from tensorflow import keras
@@ -185,7 +198,7 @@ class func:
             return array + (0.001*np.random.normal(0,1,array.shape[0]))[:,None]
 
 class problem2:
-    def variables(dim=70,distance=[2,1,2]):
+    def variables(dim=70,distance=[2,1,2]): #
         import numpy as np
         from discrete1.util import sn
         I = 1000
@@ -194,8 +207,8 @@ class problem2:
         pu240_scatter = np.load('mydata/pu240/scatter_{}.npy'.format(str(dim).zfill(3)))
         puc240_scatter = np.load('mydata/puc240/scatter_{}.npy'.format(str(dim).zfill(3)))
         # Fission
-        pu240_fission = np.load('mydata/pu240/nu_fission_{}.npy'.format(str(dim).zfill(3)))
-        puc240_fission = np.load('mydata/puc240/nu_fission_{}.npy'.format(str(dim).zfill(3)))
+        pu240_fission = np.load('mydata/pu240/nu_fission2_{}.npy'.format(str(dim).zfill(3)))
+        puc240_fission = np.load('mydata/puc240/nu_fission2_{}.npy'.format(str(dim).zfill(3)))
         # Total
         pu240_total = np.load('mydata/pu240/total_{}.npy'.format(str(dim).zfill(3)))
         puc240_total = np.load('mydata/puc240/total_{}.npy'.format(str(dim).zfill(3)))

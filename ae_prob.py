@@ -739,8 +739,8 @@ class eigen_auto_djinn:
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
-            if self.multAE == 'scatter' or self.multAE == 'both':
-                smult = eigen_auto_djinn.scale_autoencode(self,phi_old,atype='smult')
+            if self.multAE in ['scatter','both']:
+                smult = eigen_auto_djinn.construct_scatter(self,phi_old)
                 for g in range(self.G):
                     phi[:,g] = eigen_auto_djinn.one_group(self,total[:,g],scatter[:,g,g],smult[:,g],nuChiFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
             elif self.multAE == 'fission':
@@ -758,94 +758,197 @@ class eigen_auto_djinn:
 
         return phi
     
-    def scale_autoencode(self,flux,atype):
+    # def scale_autoencode(self,flux,atype):
+    #     import numpy as np
+    #     from discrete1.util import nnets
+
+    #     matrix,maxi,mini = nnets.normalize(flux,verbose=True)
+
+    #     matrix[np.isnan(matrix)] = 0; maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
+    #     scale = np.sum(matrix,axis=1)
+
+    #     encoded_flux = self.phi_encoder.predict(matrix)
+    #     encoded_flux = (scale/np.sum(encoded_flux,axis=1))[:,None]*encoded_flux
+    #     # print(encoded_flux.shape)
+    #     if atype == 'fmult':
+    #         sources = eigen_auto_djinn.create_fmult(self,encoded_flux,flux)
+    #         fmult_scale = np.sum(sources,axis=1)
+    #         decoded_source = self.fmult_decoder.predict(sources)
+    #         decoded_source = (fmult_scale/np.sum(decoded_source,axis=1))[:,None]*decoded_source
+    #         decoded_source[np.isnan(decoded_source)] = 0;
+    #         return nnets.unnormalize(decoded_source,maxi,mini)
+
+    #     elif atype == 'smult':
+    #         smult = eigen_auto_djinn.create_smult(self,encoded_flux,flux)
+    #         smult_scale = np.sum(smult,axis=1)
+    #         decoded_smult = self.smult_decoder.predict(smult)
+    #         decoded_smult = (smult_scale/np.sum(decoded_smult,axis=1))[:,None]*decoded_smult
+    #         decoded_smult[np.isnan(decode_smult)] = 0;
+    #         return nnets.unnormalize(decoded_smult,maxi,mini)
+
+    #     else:
+    #         return "Do not understand data type"
+
+
+
+    # def label_model(self,xs,flux,model_):
+    #     import numpy as np
+    #     from discrete1.util import sn
+    #     phi = flux.copy()
+    #     if np.sum(phi) == 0:
+    #         return np.zeros((sn.cat(phi,self.splits['{}_djinn'.format(xs)]).shape))
+    #     if xs == 'scatter':
+    #         nphi = np.linalg.norm(phi)
+    #         phi /= nphi
+    #     short_phi = sn.cat(phi,self.splits['{}_djinn'.format(xs)])
+    #     # if self.process == 'norm':
+    #     #     short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]
+    #     if self.label:
+    #         short_phi = np.hstack((sn.cat(self.enrich,self.splits['{}_djinn'.format(xs)])[:,None],short_phi))
+    #     # if xs == 'scatter':
+    #     #     return model_.predict(short_phi),nphi
+    #     return model_.predict(short_phi) 
+
+    # def scale_scatter(self,phi,phi_full,djinn_ns):
+    #     import numpy as np
+    #     from discrete1.util import sn
+    #     if np.sum(phi) == 0:
+    #         return np.zeros((sn.cat(phi,self.splits['scatter_djinn']).shape))
+    #     interest = sn.cat(phi_full,self.splits['scatter_djinn'])
+    #     scale = np.sum(interest*np.sum(sn.cat(self.scatter,self.splits['scatter_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
+    #     return scale[:,None]*djinn_ns
+
+    # def create_smult(self,flux,flux_full):
+    #     import numpy as np
+    #     if (np.sum(flux) == 0):
+    #         return np.zeros(flux.shape)
+    #     djinn_scatter_ns = eigen_auto_djinn.label_model(self,'scatter',flux,self.dj_scatter)
+    #     return eigen_auto_djinn.scale_scatter(self,flux,flux_full,djinn_scatter_ns)#*nphi
+
+
+        
+    # def create_fmult(self,flux,flux_full):
+    #     djinn_fission_ns = 0
+    #     if self.multAE == 'both' or self.multAE == 'fission':
+    #         djinn_fission_ns = eigen_auto_djinn.label_model(self,'fission',flux,self.dj_fission)
+    #     return eigen_auto_djinn.scale_fission(self,flux,flux_full,djinn_fission_ns)
+
+    def construct_scatter(self,flux):
+        import numpy as np
+        # Return original fission * phi matrix
+        if self.multAE in ['fission']:
+            return np.einsum('ijk,ik->ij',self.scatter,flux) 
+        # Send through the Phi encoder
+        reduced_flux = eigen_auto_djinn.scale_encoder(self,flux)
+        # Send through DJINN
+        djinn_reduced_flux = eigen_auto_djinn.create_djinn_scatter(self,reduced_flux)
+        # Send through the decoder
+        combo = np.einsum('ijk,ik->ij',self.scatter,flux)
+        maxi = np.max(combo,axis=1); mini = np.min(combo,axis=1)
+        mult_flux = eigen_auto_djinn.scale_decoder(self,djinn_reduced_flux,'scatter',maxi,mini)
+        return mult_flux
+
+    def create_djinn_scatter(self,flux):
+        import numpy as np
+        from discrete1.util import sn
+        if np.sum(flux) == 0:
+            return np.zeros((sn.cat(flux,self.splits['scatter_djinn']).shape))
+        # Take only the part that is dependent on fission
+        short_phi = sn.cat(flux,self.splits['scatter_djinn'])
+        # Check for labeling
+        if self.label:
+            short_phi = np.hstack((sn.cat(self.enrich,self.splits['scatter_djinn'])[:,None],short_phi))
+        # Predict DJINN model
+        djinn_scatter_ns = self.dj_scatter.predict(short_phi)
+        # Scale and recombine
+        djinn_scatter = eigen_auto_djinn.scale_fission(self,flux,short_phi,djinn_scatter_ns)
+
+        return djinn_scatter
+
+    def scale_encoder(self,flux):
+        """ Takes the flux of size G and compresses it to the latent space """
         import numpy as np
         from discrete1.util import nnets
-
+        import warnings
+        warnings.filterwarnings("ignore")
+        # Normalize the Data
         matrix,maxi,mini = nnets.normalize(flux,verbose=True)
-
         matrix[np.isnan(matrix)] = 0; maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
+        # matrix = flux.copy()
+        # Take the sum of each row
         scale = np.sum(matrix,axis=1)
-
+        # Predict
         encoded_flux = self.phi_encoder.predict(matrix)
+        # Use the scaling factor
         encoded_flux = (scale/np.sum(encoded_flux,axis=1))[:,None]*encoded_flux
-        # print(encoded_flux.shape)
-        if atype == 'fmult':
-            sources = eigen_auto_djinn.create_fmult(self,encoded_flux,flux)
-            fmult_scale = np.sum(sources,axis=1)
-            decoded_source = self.fmult_decoder.predict(sources)
-            decoded_source = (fmult_scale/np.sum(decoded_source,axis=1))[:,None]*decoded_source
-            decoded_source[np.isnan(decoded_source)] = 0;
-            return nnets.unnormalize(decoded_source,maxi,mini)
+        return encoded_flux # return reduced flux
 
-        elif atype == 'smult':
-            smult = eigen_auto_djinn.create_smult(self,encoded_flux,flux)
-            smult_scale = np.sum(smult,axis=1)
-            decoded_smult = self.smult_decoder.predict(smult)
-            decoded_smult = (smult_scale/np.sum(decoded_smult,axis=1))[:,None]*decoded_smult
-            decoded_smult[np.isnan(decode_smult)] = 0;
-            return nnets.unnormalize(decoded_smult,maxi,mini)
-
-        else:
-            return "Do not understand data type"
-
-    def label_model(self,xs,flux,model_):
+    def create_djinn_fission(self,flux):
+        """ Takes the  Latent Space Phi Matrix and Calculate the 
+        Latent space Fission x Phi matrix """
         import numpy as np
         from discrete1.util import sn
-        phi = flux.copy()
-        if np.sum(phi) == 0:
-            return np.zeros((sn.cat(phi,self.splits['{}_djinn'.format(xs)]).shape))
-        if xs == 'scatter':
-            nphi = np.linalg.norm(phi)
-            phi /= nphi
-        short_phi = sn.cat(phi,self.splits['{}_djinn'.format(xs)])
-        # if self.process == 'norm':
-        #     short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]
+        if np.sum(flux) == 0:
+            return np.zeros((sn.cat(flux,self.splits['fission_djinn']).shape))
+        # Take only the part that is dependent on fission
+        short_phi = sn.cat(flux,self.splits['fission_djinn'])
+        # Check for labeling
         if self.label:
-            short_phi = np.hstack((sn.cat(self.enrich,self.splits['{}_djinn'.format(xs)])[:,None],short_phi))
-        # if xs == 'scatter':
-        #     return model_.predict(short_phi),nphi
-        return model_.predict(short_phi) 
+            short_phi = np.hstack((sn.cat(self.enrich,self.splits['fission_djinn'])[:,None],short_phi))
+        # Predict DJINN model
+        djinn_fission_ns = self.dj_fission.predict(short_phi)
+        # Scale and recombine
+        djinn_fission = eigen_auto_djinn.scale_fission(self,flux,short_phi,djinn_fission_ns)
 
-    def scale_scatter(self,phi,phi_full,djinn_ns):
+        return djinn_fission
+
+    def scale_fission(self,phi,short_phi,djinn_ns):
+        """ Scaling the Latent Space DJINN Fission Model """
         import numpy as np
         from discrete1.util import sn
-        if np.sum(phi) == 0:
-            return np.zeros((sn.cat(phi,self.splits['scatter_djinn']).shape))
-        interest = sn.cat(phi_full,self.splits['scatter_djinn'])
-        scale = np.sum(interest*np.sum(sn.cat(self.scatter,self.splits['scatter_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
-        return scale[:,None]*djinn_ns
-
-    def create_smult(self,flux,flux_full):
-        import numpy as np
-        if (np.sum(flux) == 0):
-            return np.zeros(flux.shape)
-        djinn_scatter_ns = eigen_auto_djinn.label_model(self,'scatter',flux,self.dj_scatter)
-        return eigen_auto_djinn.scale_scatter(self,flux,flux_full,djinn_scatter_ns)#*nphi
-
-    def scale_fission(self,phi,phi_full,djinn_ns):
-        import numpy as np
-        from discrete1.util import sn
-        if np.sum(phi) == 0:
-            return np.zeros((sn.cat(phi,self.splits['fission_djinn']).shape))
-        if self.multAE == 'scatter':
-            return np.einsum('ijk,ik->ij',self.chiNuFission,phi) 
-        interest = sn.cat(phi_full,self.splits['fission_djinn'])
-        scale = np.sum(interest*np.sum(sn.cat(self.chiNuFission,self.splits['fission_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
+        # short_phi is only of the part DJINN looked at
+        # Scaling is of size I x G'
+        # scale = np.sum(short_phi*np.sum(sn.cat(self.chiNuFission,self.splits['fission_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
         # All of the sigma*phi terms not calculated by DJINN
-        regular = np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits['fission_keep']),sn.cat(phi_full,self.splits['fission_keep']))
-        # print('regular shape',regular.shape)
-        # print(phi.shape,regular[:,20])
-        regular = regular[:,:20].copy()
-        return sn.pops_robust('fission',phi.shape,regular,scale[:,None]*djinn_ns,self.splits)
-        
-    def create_fmult(self,flux,flux_full):
-        djinn_fission_ns = 0
-        if self.multAE == 'both' or self.multAE == 'fission':
-            djinn_fission_ns = eigen_auto_djinn.label_model(self,'fission',flux,self.dj_fission)
-        return eigen_auto_djinn.scale_fission(self,flux,flux_full,djinn_fission_ns)
+        # regular = np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits['fission_keep']),sn.cat(phi,self.splits['fission_keep']))
+        regular = np.zeros((sn.cat(phi,self.splits['fission_keep']).shape))
+        # Recompile the DJINN predicted and DJINN non-predicted parts
+        # return sn.pops_robust('fission',phi.shape,regular,scale[:,None]*djinn_ns,self.splits)
+        return sn.pops_robust('fission',phi.shape,regular,djinn_ns,self.splits)
 
-    def transport(self,ae_name,dj_name,problem='carbon',tol=1e-12,MAX_ITS=100,LOUD=True,multAE=False):
+    def scale_decoder(self,reduced_flux,dtype,maxi,mini):
+        import numpy as np
+        from discrete1.util import nnets
+        decoder_model = self.fmult_decoder
+        if dtype == 'scatter':
+            decoder_model = self.smult_decoder
+        # Scaling the data
+        scale = np.sum(reduced_flux,axis=1)
+        # Predict out of the latent space
+        decoded_flux = decoder_model.predict(reduced_flux)
+        # Scale 
+        decoded_flux = (scale/np.sum(decoded_flux,axis=1))[:,None]*decoded_flux
+        decoded_flux[np.isnan(decoded_flux)] = 0;
+        # Unnormalize the Data
+        mult = nnets.unnormalize(decoded_flux,maxi,mini)
+        return mult
+    
+    def construct_fission(self,flux):
+        import numpy as np
+        # Return original fission * phi matrix
+        if self.multAE in ['scatter']:
+            return np.einsum('ijk,ik->ij',self.chiNuFission,flux) 
+        # Send through the phi encoder
+        reduced_flux = eigen_auto_djinn.scale_encoder(self,flux)
+        # Send through DJINN
+        djinn_reduced_flux = eigen_auto_djinn.create_djinn_fission(self,reduced_flux)
+        # Send through the decoder
+        combo = np.einsum('ijk,ik->ij',self.chiNuFission,flux)
+        maxi = np.max(combo,axis=1); mini = np.min(combo,axis=1)
+        mult_flux = eigen_auto_djinn.scale_decoder(self,djinn_reduced_flux,'fission',maxi,mini)
+        return mult_flux
+
+    def transport(self,ae_name,dj_name,problem='carbon',tol=1e-12,MAX_ITS=100,multAE=False):
         """ Arguments:
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
@@ -855,28 +958,18 @@ class eigen_auto_djinn:
         import numpy as np
         from discrete1.util import nnets
         from discrete1.setup import func
-        # from discrete1.util import sn
-        phi_autoencoder,phi_encoder,phi_decoder = func.load_coder(ae_name)
-        self.phi_encoder = phi_encoder
+        # Make mult approx global
         self.multAE = multAE
-
+        # Load DJINN and Autoencoder models
         self.dj_scatter,self.dj_fission = func.djinn_load(dj_name,self.multAE)
-        if self.multAE == 'scatter' or self.multAE == 'both':
-            smult_autoencoder,smult_encoder,smult_decoder = func.load_coder(ae_name,ptype='smult')
-            self.smult_decoder = smult_decoder
-        if self.multAE == 'fission' or self.multAE == 'both':
-            fmult_autoencoder,fmult_encoder,fmult_decoder = func.load_coder(ae_name,ptype='fmult')
-            self.fmult_decoder = fmult_decoder
-
+        self.phi_encoder,self.fmult_decoder,self.smult_decoder = func.auto_load(ae_name,self.multAE)
+        # Initialize flux
         phi_old = func.initial_flux(problem)
-
-        if self.multAE == 'fission' or self.multAE == 'both':
-            sources = eigen_auto_djinn.scale_autoencode(self,phi_old,atype='fmult')
-        else:
-            sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
-
+        # Start convergence
         converged = 0; count = 1
         while not (converged):
+            # Initialize source
+            sources = eigen_auto_djinn.construct_fission(self,phi_old)
             print('Outer Transport Iteration {}'.format(count))
             phi = eigen_auto_djinn.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
             
@@ -884,20 +977,11 @@ class eigen_auto_djinn:
             phi /= keff
 
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))
-            # change = np.linalg.norm((phi-phi_old)/phi/(self.I))
-            if LOUD:
-                print('Change is',change,'Keff is',keff)
-                print('===================================')
+            print('Change is',change,'Keff is',keff,'\n===================================')
             converged = (change < tol) or (count >= MAX_ITS) #or (kchange < tol)
             count += 1
-
             phi_old = phi.copy()
         
-            if self.multAE == 'fission' or self.multAE == 'both':
-                sources = eigen_auto_djinn.scale_autoencode(self,phi_old,atype='fmult')
-            else:
-                sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
-
         return phi,keff
 
 
