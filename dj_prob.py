@@ -39,8 +39,8 @@ class eigen_djinn:
         phi = flux.copy()
         if np.sum(phi) == 0:
             return np.zeros((sn.cat(phi,self.splits['{}_djinn'.format(xs)]).shape))
-        if xs == 'scatter':
-            nphi = np.linalg.norm(phi)
+        # if xs == 'scatter':
+            # nphi = np.linalg.norm(phi)
             # phi /= nphi
         short_phi = sn.cat(phi,self.splits['{}_djinn'.format(xs)])
         # if self.process == 'norm':
@@ -58,7 +58,10 @@ class eigen_djinn:
             return np.zeros((sn.cat(phi,self.splits['scatter_djinn']).shape))
         interest = sn.cat(phi,self.splits['scatter_djinn'])
         scale = np.sum(interest*np.sum(sn.cat(self.scatter,self.splits['scatter_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
-        return scale[:,None]*djinn_ns
+        # All of the sigma*phi terms not calculated by DJINN
+        regular = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_keep']),sn.cat(phi,self.splits['scatter_keep']))
+        return sn.pops_robust('scatter',phi.shape,regular,scale[:,None]*djinn_ns,self.splits)
+        # return scale[:,None]*djinn_ns
 
     def create_smult(self,flux):
         import numpy as np

@@ -122,7 +122,7 @@ class eigen:
         sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old) 
         if self.track == 'source' or self.track == 'both':
             temp_fission2,temp_scatter2 = eigen.tracking_data(self,phi_old,sources)
-            np.save('mydata/track_{}_djinn/enrich_{:<02}_count_000'.format(problem,enrich),temp_scatter2)
+            np.save('mydata/track_{}_scatter_djinn/enrich_{:<02}_count_000'.format(problem,enrich),temp_scatter2)
         while not (converged):
             if self.track == 'power' or self.track == 'both':
                 temp_track_fpw,temp_track_spw = eigen.tracking_data(self,phi_old,sources)
@@ -131,7 +131,7 @@ class eigen:
             print('Outer Transport Iteration {}\n==================================='.format(count))
             if self.track == 'source' or self.track == 'both':
                 phi,temp_scatter2 = eigen.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
-                np.save('mydata/track_{}_djinn/enrich_{:<02}_count_{}'.format(problem,enrich,str(count).zfill(3)),temp_scatter2)
+                np.save('mydata/track_{}_scatter_djinn/enrich_{:<02}_count_{}'.format(problem,enrich,str(count).zfill(3)),temp_scatter2)
             else:
                 phi = eigen.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
             # phi = eigen.multi_group(self,self.total,self.scatter,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
@@ -157,7 +157,7 @@ class eigen:
         # Scatter Tracking - separate phi and add label
         label_scatter = sn.cat(self.enrich,self.splits['scatter_djinn'])
         phi_scatter = sn.cat(phi,self.splits['scatter_djinn'])
-        phi_scatter /= np.linalg.norm(phi_scatter)
+        # phi_scatter /= np.linalg.norm(phi_scatter)
         phi_full_scatter = np.hstack((label_scatter[:,None],phi_scatter))
         # Separate scatter multiplier and add label
         multiplier_scatter = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_djinn']),phi_scatter)
