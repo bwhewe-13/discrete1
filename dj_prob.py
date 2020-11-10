@@ -40,8 +40,8 @@ class eigen_djinn:
         if np.sum(phi) == 0:
             return np.zeros((sn.cat(phi,self.splits['{}_djinn'.format(xs)]).shape))
         # if xs == 'scatter':
-            # nphi = np.linalg.norm(phi)
-            # phi /= nphi
+        #     nphi = np.linalg.norm(phi)
+        #     phi /= nphi
         short_phi = sn.cat(phi,self.splits['{}_djinn'.format(xs)])
         # if self.process == 'norm':
         #     short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]
@@ -68,7 +68,8 @@ class eigen_djinn:
         if (np.sum(flux) == 0):
             return np.zeros(flux.shape)
         djinn_scatter_ns = eigen_djinn.label_model(self,'scatter',flux,self.model_scatter)
-        return eigen_djinn.scale_scatter(self,flux,djinn_scatter_ns)#*nphi
+        # djinn_scatter_ns *= nphi
+        return eigen_djinn.scale_scatter(self,flux,djinn_scatter_ns)
 
     def scale_fission(self,phi,djinn_ns):
         import numpy as np
