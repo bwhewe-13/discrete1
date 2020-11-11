@@ -36,37 +36,39 @@ class eigen_djinn:
     def label_model(self,xs,flux,model_):
         import numpy as np
         from discrete1.util import sn
-        phi = flux.copy()
-        if np.sum(phi) == 0:
-            return np.zeros((sn.cat(phi,self.splits['{}_djinn'.format(xs)]).shape))
+        # I don't know if I want this
         # if xs == 'scatter':
-        #     nphi = np.linalg.norm(phi)
-        #     phi /= nphi
-        short_phi = sn.cat(phi,self.splits['{}_djinn'.format(xs)])
-        # if self.process == 'norm':
-        #     short_phi /= np.linalg.norm(short_phi,axis=1)[:,None]
+        #     nphi = np.linalg.norm(flux)
+        #     flux /= nphi
+        # Take the phi of only the DJINN part
+        short_phi = sn.cat(flux,self.splits['{}_djinn'.format(xs)])
+        # Check for labeling
         if self.label:
             short_phi = np.hstack((sn.cat(self.enrich,self.splits['{}_djinn'.format(xs)])[:,None],short_phi))
-        # if xs == 'scatter':
-        #     return model_.predict(short_phi),nphi
-        return model_.predict(short_phi) 
+        # Predict DJINN
+        djinn_ns = model_.predict(short_phi)
+        return djinn_ns 
 
     def scale_scatter(self,phi,djinn_ns):
         import numpy as np
         from discrete1.util import sn
-        if np.sum(phi) == 0:
-            return np.zeros((sn.cat(phi,self.splits['scatter_djinn']).shape))
-        interest = sn.cat(phi,self.splits['scatter_djinn'])
-        scale = np.sum(interest*np.sum(sn.cat(self.scatter,self.splits['scatter_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
+        # Calculate phi for DJINN part
+        short_phi = sn.cat(phi,self.splits['scatter_djinn'])
+        # Calculate scaling factor
+        scale = np.sum(short_phi*np.sum(sn.cat(self.scatter,self.splits['scatter_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
         # All of the sigma*phi terms not calculated by DJINN
         regular = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_keep']),sn.cat(phi,self.splits['scatter_keep']))
-        return sn.pops_robust('scatter',phi.shape,regular,scale[:,None]*djinn_ns,self.splits)
+        # Scale DJINN
+        djinn_s = scale[:,None]*djinn_ns
+        return sn.pops_robust('scatter',phi.shape,regular,djinn_s,self.splits)
         # return scale[:,None]*djinn_ns
 
     def create_smult(self,flux):
         import numpy as np
+        # Check for Zeros
         if (np.sum(flux) == 0):
             return np.zeros(flux.shape)
+        # Predict DJINN
         djinn_scatter_ns = eigen_djinn.label_model(self,'scatter',flux,self.model_scatter)
         # djinn_scatter_ns *= nphi
         return eigen_djinn.scale_scatter(self,flux,djinn_scatter_ns)
@@ -75,7 +77,8 @@ class eigen_djinn:
         import numpy as np
         from discrete1.util import sn
         if np.sum(phi) == 0:
-            return np.zeros((sn.cat(phi,self.splits['fission_djinn']).shape))
+            # return np.zeros((sn.cat(phi,self.splits['fission_djinn']).shape))
+            return np.zeros((phi.shape))
         if self.multDJ == 'scatter':
             return np.einsum('ijk,ik->ij',self.chiNuFission,phi) 
         interest = sn.cat(phi,self.splits['fission_djinn'])
@@ -85,8 +88,11 @@ class eigen_djinn:
         return sn.pops_robust('fission',phi.shape,regular,scale[:,None]*djinn_ns,self.splits)
         
     def create_fmult(self,flux):
+        import numpy as np
         djinn_fission_ns = 0
-        if self.multDJ == 'both' or self.multDJ == 'fission':
+        if (np.sum(flux) == 0):
+            return np.zeros(flux.shape)
+        if self.multDJ in ['both','fission']:
             djinn_fission_ns = eigen_djinn.label_model(self,'fission',flux,self.model_fission)
         return eigen_djinn.scale_fission(self,flux,djinn_fission_ns)
 
@@ -116,8 +122,9 @@ class eigen_djinn:
                 weight = self.mu[n]*self.inv_delta
                 top_mult = (weight-half_total).astype('float64')
                 bottom_mult = (1/(weight+half_total)).astype('float64')
-                if (self.multDJ == 'scatter' or self.multDJ == 'both'):
-                    temp_scat = sn.pops_robust('scatter',(self.I,),sn.cat(scatter*phi_old,self.splits['scatter_keep']),djinn_1g,self.splits).astype('float64')
+                if (self.multDJ in ['scatter','both']):
+                    # temp_scat = sn.pops_robust('scatter',(self.I,),sn.cat(scatter*phi_old,self.splits['scatter_keep']),djinn_1g,self.splits).astype('float64')
+                    temp_scat = (djinn_1g).astype('float64')
                 else:
                     temp_scat = (scatter * phi_old).astype('float64')
                 # Set Pointers for C function
@@ -156,7 +163,7 @@ class eigen_djinn:
             allmat_sca = np.zeros((2,0,self.G+1))
         while not (converged):
             phi = np.zeros(phi_old.shape)
-            if self.multDJ == 'scatter' or self.multDJ == 'both':
+            if self.multDJ in ['scatter','both']:
                 smult = eigen_djinn.create_smult(self,phi_old)     
                 for g in range(self.G):
                     phi[:,g] = eigen_djinn.one_group(self,total[:,g],scatter[:,g,g],smult[:,g],chiNuFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
