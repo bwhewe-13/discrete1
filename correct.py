@@ -25,7 +25,7 @@ class eigen:
             phi: a I array  """
         import numpy as np
         import ctypes
-        np.seterr(all='raise')
+        # np.seterr(all='raise')
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cfunctions.so')
         sweep = clibrary.sweep
         converged = 0
@@ -51,8 +51,8 @@ class eigen:
                 top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
                 bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
                 sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]))
-            if np.sum(np.isnan(phi)) > 0:
-                print(np.sum(np.isnan(phi)))
+            # if np.sum(np.isnan(phi)) > 0:
+            #     print(np.sum(np.isnan(phi)))
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
