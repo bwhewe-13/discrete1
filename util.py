@@ -248,6 +248,14 @@ class sn:
             phi = sn.cat(phi,splits['djinn'])
             fission = sn.cat(fission,splits['djinn'])
         return np.sum(phi*np.sum(fission,axis=1),axis=1)
+
+    def totalRateShort(fission,phi,splits):
+        import numpy as np
+        density = np.zeros((phi.shape))
+        for ii in range(len(splits)):
+            density[splits[ii]] = phi[splits[ii]] * np.sum(fission[ii],axis=0)
+        return np.sum(density,axis=1)
+
     
     def djinnFissionRate(model,phi,fission,label=None):
         import numpy as np
