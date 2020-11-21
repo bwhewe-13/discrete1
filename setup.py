@@ -198,7 +198,7 @@ class func:
             return array + (0.001*np.random.normal(0,1,array.shape[0]))[:,None]
 
 class problem2:
-    def variables(conc,dim=618,distance=[11,6,3]): #
+    def variables(conc,dim=618,distance=[5,1.5,3.5]): #
         import numpy as np
         from discrete1.util import sn
         I = 1000; 
@@ -206,28 +206,28 @@ class problem2:
         # Scattering
         pu239_scatter = np.load('mydata/pu239/scatter_{}.npy'.format(str(dim).zfill(3)))
         pu240_scatter = np.load('mydata/pu240/scatter_{}.npy'.format(str(dim).zfill(3)))
-        puc240_scatter = np.load('mydata/puc240/scatter_{}.npy'.format(str(dim).zfill(3)))
+        hdpe_scatter = np.load('mydata/hdpe/scatter_{}.npy'.format(str(dim).zfill(3)))
 
-        enrich_scatter = pu239_scatter*conc + pu240_scatter*(1-conc)
+        enrich_scatter = pu239_scatter*(1-conc) + pu240_scatter*conc
         del pu239_scatter
         # Fission
         pu239_fission = np.load('mydata/pu239/nu_fission_{}.npy'.format(str(dim).zfill(3)))
         pu240_fission = np.load('mydata/pu240/nu_fission_{}.npy'.format(str(dim).zfill(3)))
-        puc240_fission = np.load('mydata/puc240/nu_fission_{}.npy'.format(str(dim).zfill(3)))
+        hdpe_fission = np.zeros((dim,dim))
 
-        enrich_fission = pu239_fission*conc + pu240_fission*(1-conc)
+        enrich_fission = pu239_fission*(1-conc) + pu240_fission*conc
         del pu239_fission
         # Total
         pu239_total = np.load('mydata/pu239/total_{}.npy'.format(str(dim).zfill(3)))
         pu240_total = np.load('mydata/pu240/total_{}.npy'.format(str(dim).zfill(3)))
-        puc240_total = np.load('mydata/puc240/total_{}.npy'.format(str(dim).zfill(3)))
+        hdpe_total = np.load('mydata/hdpe/total_{}.npy'.format(str(dim).zfill(3)))
 
-        enrich_total = pu239_total*conc + pu240_total*(1-conc)
+        enrich_total = pu239_total*(1-conc) + pu240_total*conc
         del pu239_total
         # Ordering
-        xs_scatter = [puc240_scatter,enrich_scatter,puc240_scatter]
-        xs_total = [puc240_total,enrich_total,puc240_total]
-        xs_fission = [puc240_fission,enrich_fission,puc240_fission]
+        xs_scatter = [hdpe_scatter,enrich_scatter,pu240_scatter]
+        xs_total = [hdpe_total,enrich_total,pu240_total]
+        xs_fission = [hdpe_fission,enrich_fission,pu240_fission]
         
         # Setting up eigenvalue equation
         N = 8; L = 0; R = sum(distance); G = dim
@@ -255,17 +255,16 @@ class problem2:
         
         return G,N,mu,w,total_,scatter_[:,0],fission_,L,R,I
 
-
-
-    def boundaries_aux(conc,problem=None,distance=[11,6,3]):
+    def boundaries_aux(conc,problem=None,distance=[5,1.5,3.5]):
+        # Concentration is the amount of Pu-240 in Enriched
         import numpy as np
         from discrete1.util import sn
         # Fission Models
         if problem == 'pluto':
-            ment = [239,conc,239]; where = [0,1,2]
+            ment = [(1-conc),1]; where = [1,2]
         # Scatter Models
         elif problem == 'pluto_full':
-            ment = [239,conc,239]; where = [0,1,2]
+            ment = [15.04,(1-conc),1]; where = [0,1,2]
 
         I = 1000; delta = sum(distance)/I
         layers = [int(ii/delta) for ii in distance]
@@ -282,7 +281,7 @@ class problem2:
         enrichment = sn.enrich_list(sum(layers),ment,splits[where].tolist())
         return enrichment,sn.layer_slice_dict(layers,where)
 
-    def boundaries(conc=0.15,problem=None,distance=[11,6,3]):
+    def boundaries(conc=0.15,problem=None,distance=[5,1.5,3.5]):
         problem_scatter = problem + '_full'
         # problem_scatter = problem
         # Set Fission Splits
@@ -295,7 +294,7 @@ class problem2:
         return enrichment,combo_splits
 
 
-    def scatter_fission(enrich,dim=618,distance=[11,6,3]):
+    def scatter_fission(enrich,dim=618,distance=[5,1.5,3.5]):
         _,_,_,_,_,scatter,fission,_,_,_ = problem2.variables(enrich,dim,distance)
         return scatter,fission
 
@@ -303,37 +302,35 @@ class problem2:
         import numpy as np
         pu239_scatter = np.load('mydata/pu239/scatter_{}.npy'.format(str(dim).zfill(3)))
         pu240_scatter = np.load('mydata/pu240/scatter_{}.npy'.format(str(dim).zfill(3)))
-        puc240_scatter = np.load('mydata/puc240/scatter_{}.npy'.format(str(dim).zfill(3)))
+        hdpe_scatter = np.load('mydata/hdpe/scatter_{}.npy'.format(str(dim).zfill(3)))
 
         enrich_scatter = pu239_scatter*conc + pu240_scatter*(1-conc)
 
-        scatter = np.vstack((puc240_scatter[None,:,:],enrich_scatter[None,:,:],puc240_scatter[None,:,:]))
-        del pu239_scatter,pu240_scatter,puc240_scatter,enrich_scatter
+        scatter = np.vstack((hdpe_scatter[None,:,:],enrich_scatter[None,:,:],pu240_scatter[None,:,:]))
+        del pu239_scatter,pu240_scatter,hdpe_scatter,enrich_scatter
         # Fission
         pu239_fission = np.load('mydata/pu239/nu_fission_{}.npy'.format(str(dim).zfill(3)))
         pu240_fission = np.load('mydata/pu240/nu_fission_{}.npy'.format(str(dim).zfill(3)))
-        puc240_fission = np.load('mydata/puc240/nu_fission_{}.npy'.format(str(dim).zfill(3)))
+        hdpe_fission = np.zeros((dim,dim))
 
-        enrich_fission = pu239_fission*conc + pu240_fission*(1-conc)
+        enrich_fission = pu239_fission*(1-conc) + pu240_fission*conc
 
-        fission = np.vstack((puc240_fission[None,:,:],enrich_fission[None,:,:],puc240_fission[None,:,:]))
-        del pu239_fission,pu240_fission,puc240_fission,enrich_fission
+        fission = np.vstack((hdpe_fission[None,:,:],enrich_fission[None,:,:],pu240_fission[None,:,:]))
+        del pu239_fission,pu240_fission,hdpe_fission,enrich_fission
         
         # Total
         pu239_total = np.load('mydata/pu239/total_{}.npy'.format(str(dim).zfill(3)))
         pu240_total = np.load('mydata/pu240/total_{}.npy'.format(str(dim).zfill(3)))
-        puc240_total = np.load('mydata/puc240/total_{}.npy'.format(str(dim).zfill(3)))
+        hdpe_total = np.load('mydata/hdpe/total_{}.npy'.format(str(dim).zfill(3)))
 
-        enrich_total = pu239_total*conc + pu240_total*(1-conc)
+        enrich_total = pu239_total*(1-conc) + pu240_total*conc
 
-        total = np.vstack((puc240_total[None,:],enrich_total[None,:],puc240_total[None,:]))
+        total = np.vstack((hdpe_total[None,:],enrich_total[None,:],pu240_total[None,:]))
         del pu239_total,pu240_total,puc240_total,enrich_total
 
         return scatter,fission,total
 
-
-
-    def boundaries_mat(distance=[11,6,3]):
+    def boundaries_mat(distance=[5,1.5,3.5]):
         import numpy as np
         from discrete1.util import sn
         I = 1000; delta = sum(distance)/I
