@@ -282,8 +282,8 @@ class problem2:
         return enrichment,sn.layer_slice_dict(layers,where)
 
     def boundaries(conc=0.15,problem=None,distance=[5,1.5,3.5]):
-        problem_scatter = problem + '_full'
-        # problem_scatter = problem
+        # problem_scatter = problem + '_full'
+        problem_scatter = problem
         # Set Fission Splits
         enrichment,splits = problem2.boundaries_aux(conc,problem,distance)
         fission_splits = {f'fission_{kk}': vv for kk, vv in splits.items()}
