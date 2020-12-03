@@ -289,6 +289,18 @@ class nnets:
             norm = (data-mini)/(maxi-mini)
         return norm
 
+    def randomize(address,number):
+        """ To be used with autoencoder """
+        import numpy as np
+        dataset = []
+        for add in address:
+            temp = np.load(add)
+            dim = np.arange(len(temp))
+            np.random.shuffle(dim)
+            dataset.append(temp[dim][:number])
+            del temp,dim
+        return np.concatenate((dataset))
+
 
     def normalize(matrix,verbose=False,angle=False):
         data = matrix.copy()
