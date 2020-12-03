@@ -326,7 +326,7 @@ class problem2:
         enrich_total = pu239_total*(1-conc) + pu240_total*conc
 
         total = np.vstack((hdpe_total[None,:],enrich_total[None,:],pu240_total[None,:]))
-        del pu239_total,pu240_total,puc240_total,enrich_total
+        del pu239_total,pu240_total,hdpe_total,enrich_total
 
         return scatter,fission,total
 
