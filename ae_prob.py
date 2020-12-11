@@ -472,24 +472,25 @@ class eigen_auto:
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
         Returns:
-            phi: a I array  """
+            phi: an (I x 1) array  """
         import numpy as np
         import ctypes
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cfunctions.so')
         sweep = clibrary.sweep
-        converged = 0
-        count = 1        
+        
         phi = np.zeros((self.I),dtype='float64')
         phi_old = guess.copy()
-        # phi_full = guess.copy()
         half_total = 0.5*total.copy()
         external = external.astype('float64')
+        converged = 0; count = 1 
         for n in range(self.N):
             weight = self.mu[n]*self.inv_delta
             top_mult = (weight-half_total).astype('float64')
             bottom_mult = (1/(weight+half_total)).astype('float64')
+
             # temp_scat = (scatter * phi_old).astype('float64')
             temp_scat = (scatter).astype('float64')
+
             # Set Pointers for C function
             phi_ptr = ctypes.c_void_p(phi.ctypes.data)
             ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
@@ -500,88 +501,64 @@ class eigen_auto:
 
         return phi
 
-    def multi_group(self,total,scatter,nuChiFission,guess,guess_full,tol=1e-08,MAX_ITS=10000):
-        """ Arguments:
-            total: I x G vector of the total cross section for each spatial cell and energy level
-            scatter: I x G array for the scattering of the spatial cell by moment and energy
-            nuChiFission: 
-            tol: tolerance of convergence, default is 1e-08
-            MAX_ITS: maximum iterations allowed, default is 100
-        Returns:
-            phi: a I x G array  """
-        import numpy as np
-        from discrete1.util import nnets
-        # phi_old_full = guess_full.copy()
-        phi_old = guess.copy()
-
-        smult_full = np.einsum('ijk,ik->ij',scatter,phi_old)
-        # Encode Scatter * Phi
-        if self.multAE == 'smult' or self.multAE == 'both':
-            smult = eigen_auto.scale_autoencode(self,smult_full,atype='smult')
-        else:
-            smult = smult_full.copy()
-
-        converged = 0
-        count = 1
-        while not (converged):
-            phi = np.zeros(phi_old.shape)  
-            for g in range(self.gprime):
-                phi[:,g] = eigen_auto.one_group(self,total[:,g],smult[:,g],nuChiFission[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
-            # Decode out phi
-            # if self.multAE == 'phi' or self.multAE == 'both':
-            #     phi = eigen_auto.scale_autoencode(self,phi,atype='phi')
-            # else:
-                # phi_full = phi.copy()
-
-            change = np.linalg.norm((phi - phi_old)/phi/(self.I))
-            count += 1
-            converged = (change < tol) or (count >= MAX_ITS) 
-            
-            # phi_old_full = phi_full.copy()
-            # _,self.pmaxi,self.pmini = nnets.normalize(phi_old_full,verbose=True)
-            # phi_old = eigen_auto.scale_autoencode(self,phi_old_full,atype='phi')
-            phi_old = phi.copy()
-            # Encode Scatter * Phi
-            smult_full = np.einsum('ijk,ik->ij',scatter,phi)
-            if self.multAE == 'smult' or self.multAE == 'both':
-                smult = eigen_auto.scale_autoencode(self,smult_full,atype='smult')
-            else:
-                smult = smult_full.copy()
-
-        return phi
-    
     def scale_autoencode(self,matrix_full,atype):
         import numpy as np
         from discrete1.util import nnets
+
         if atype == 'fmult':
             model = self.fmult_autoencoder
         elif atype == 'smult':
             model = self.smult_autoencoder
         elif atype == 'phi':
             model = self.phi_autoencoder
-            # models = [self.phi_autoencoder1,self.phi_autoencoder2,self.phi_autoencoder3]
-        # matrix,self.pmaxi,self.pmini = nnets.normalize(matrix_full,verbose=True)
+        # Normalize
         matrix,maxi,mini = nnets.normalize(matrix_full,verbose=True)
-
-        # matrix = nnets.phi_normalize(matrix_full,self.pmaxi,self.pmini)
-        # matrix[np.isnan(matrix)] = 0; self.pmaxi[np.isnan(self.pmaxi)] = 0; self.pmini[np.isnan(self.pmini)] = 0
+        # Remove NaN values
         matrix[np.isnan(matrix)] = 0; maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
+        # Scale
         scale = np.sum(matrix,axis=1)
-
-        # parts = matrix.copy()
-        # matrix = np.empty(parts.shape)
-        # for ind,ae in zip(self.splits,models):
-        #     matrix[ind] = ae.predict(parts[ind])
-
+        # Predict
         matrix = model.predict(matrix)
+        # Rescale
         matrix = (scale/np.sum(matrix,axis=1))[:,None]*matrix
         matrix[np.isnan(matrix)] = 0;
-        # matrix = nnets.unnormalize(matrix,self.pmaxi,self.pmini)
+        # Unnormalize
         matrix = nnets.unnormalize(matrix,maxi,mini)
     
         return matrix
 
-    def transport(self,coder,problem='carbon',tol=1e-12,MAX_ITS=100,LOUD=True,multAE=False):
+    def multi_group(self,source,guess,tol=1e-08,MAX_ITS=1000):
+        """ Arguments:
+            source: 
+            guess:
+            tol: tolerance of convergence, default is 1e-08
+            MAX_ITS: maximum iterations allowed, default is 100
+        Returns:
+            phi: a I x G array  """
+        import numpy as np
+        
+        phi_old = guess.copy()
+        smult = np.einsum('ijk,ik->ij',self.scatter,phi_old)
+
+        converged = 0; count = 1
+        while not (converged):
+            # Squeeze smult and phi
+            # smult = eigen_auto.scale_autoencode(self,smult,atype='smult')
+            phi_old = eigen_auto.scale_autoencode(self,phi_old,atype='phi')
+
+            phi = np.zeros(phi_old.shape)
+            for g in range(self.G):
+                phi[:,g] = eigen_auto.one_group(self,self.total[:,g],smult[:,g],source[:,g],phi_old[:,g],tol=tol,MAX_ITS=MAX_ITS)
+            # Check for convergence
+            change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            count += 1
+            converged = (change < tol) or (count >= MAX_ITS) 
+            # Update flux and smult
+            phi_old = phi.copy()
+            smult = np.einsum('ijk,ik->ij',self.scatter,phi)
+        return phi
+    
+    def transport(self,model_name,problem='carbon',multAE=False,tol=1e-12,MAX_ITS=100):
         """ Arguments:
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
@@ -589,80 +566,40 @@ class eigen_auto:
         Returns:
             phi: a I x G array    """        
         import numpy as np
-        from discrete1.util import nnets
         from discrete1.setup import func
-        # from discrete1.util import sn
-
-        self.multAE = multAE; self.gprime = 87
-
-        if self.multAE == 'phi' or self.multAE == 'both':
-            phi_autoencoder,phi_encoder,phi_decoder = func.load_coder(coder)
-            self.phi_autoencoder = phi_autoencoder
-
-        # ae_model1 = 'eigen_nn/epochs_250/model40-20_hdpe'
-        # ae_model2 = 'eigen_nn/epochs_250/model40-20_u235'
-        # ae_model3 = 'eigen_nn/epochs_250/model40-20_u238'
-
-        # self.phi_autoencoder1,_,_ = func.load_coder(ae_model1)
-        # self.phi_autoencoder2,_,_ = func.load_coder(ae_model2)
-        # self.phi_autoencoder3,_,_ = func.load_coder(ae_model3)
-        # self.splits = [slice(0,450),slice(450,800),slice(800,1000)]
-
-        if self.multAE == 'smult' or self.multAE == 'both':
-            smult_autoencoder,smult_encoder,smult_decoder = func.load_coder(coder,ptype='smult')
-            self.smult_autoencoder = smult_autoencoder
-        if self.multAE == 'fmult' or self.multAE == 'both':
-            fmult_autoencoder,fmult_encoder,fmult_decoder = func.load_coder(coder,ptype='fmult')
-            self.fmult_autoencoder = fmult_autoencoder
-
+        
         phi_old = func.initial_flux(problem)
-        # _,self.pmaxi,self.pmini = nnets.normalize(phi_old_full,verbose=True)
-        keff = np.linalg.norm(phi_old)
 
-        sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
-        # Encode-Decode Phi
-        if self.multAE == 'phi' or self.multAE == 'both':
-            phi_old = eigen_auto.scale_autoencode(self,phi_old,atype='phi')
-        # phi_old = phi_old_full.copy()
-        # Unnormalized Method
-        # phi_old = self.phi_autoencoder.predict(phi_old_full)
-        # phi_old = (np.sum(phi_old_full,axis=1)/np.sum(phi_old,axis=1))[:,None]*phi_old
-        if self.multAE == 'fmult' or self.multAE == 'both':
-            sources = eigen_auto.scale_autoencode(self,sources_full,atype='fmult')
-        else:
-            sources = sources_full.copy()
+        self.multAE = multAE
 
-        converged = 0
-        count = 1
+        self.phi_autoencoder,_,_ = func.load_coder(model_name)
+        # self.smult_autoencoder,_,_ = func.load_coder(model_name,ptype='smult')
+        # self.fmult_autoencoder,_,_ = func.load_coder(model_name,ptype='fmult')
+        
+        sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
+        converged = 0; count = 1
         while not (converged):
             print('Outer Transport Iteration {}'.format(count))
-            phi = eigen_auto.multi_group(self,self.total,self.scatter,sources,phi_old,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
-            # Expand to correct size
-            if self.multAE == 'phi' or self.multAE == 'both':
-                phi = eigen_auto.scale_autoencode(self,phi,atype='phi')
-            # phi_full = phi.copy()
-            
+            # Squeeze flux and sources
+            phi_old = eigen_auto.scale_autoencode(self,phi_old,atype='phi') 
+            # sources = eigen_auto.scale_autoencode(self,sources,atype='fmult')
+
+            # Run the multigroup problem
+            phi = eigen_auto.multi_group(self,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
+
+            # Squeeze Phi
+            phi = eigen_auto.scale_autoencode(self,phi,atype='phi')
+            # Normalize
             keff = np.linalg.norm(phi)
             phi /= keff
-
+            # Check for convergence
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))
-            # change = np.linalg.norm((phi-phi_old)/phi/(self.I))
-            if LOUD:
-                print('Change is',change,'Keff is',keff)
-                print('===================================')
-            converged = (change < tol) or (count >= MAX_ITS) #or (kchange < tol)
+            print('Change is',change,'Keff is',keff,'\n===================================')
+            converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
-
-            # phi_old_full = phi_full.copy()
+            # Update phi and source
             phi_old = phi.copy()
-            # _,self.pmaxi,self.pmini = nnets.normalize(phi_old_full,verbose=True)
-
-            sources_full = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
-            if self.multAE == 'fmult' or self.multAE == 'both':
-                sources = eigen_auto.scale_autoencode(self,sources_full,atype='fmult')
-            else:
-                sources = sources_full.copy()
-            # phi_old = eigen_auto.scale_autoencode(self,phi_old_full,atype='phi')
+            sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
 
         return phi,keff
 
