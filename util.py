@@ -43,6 +43,11 @@ class sn:
             model_fission = djinn.load(model_name=model_name)
         return model_scatter,model_fission
 
+    def djinn_load_double(model_name,dtype):
+        fuel_scatter,fuel_fission = sn.djinn_load(model_name[0],dtype)
+        refl_scatter,refl_fission = sn.djinn_load(model_name[1],dtype)
+        return fuel_scatter,fuel_fission,refl_scatter,refl_fission
+
     def enrich_list(length,enrich,splits):
         import numpy as np
         lst = np.zeros((length))

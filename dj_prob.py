@@ -36,10 +36,6 @@ class eigen_djinn:
     def label_model(self,xs,flux,model_):
         import numpy as np
         from discrete1.util import sn
-        # I don't know if I want this
-        # if xs == 'scatter':
-        #     nphi = np.linalg.norm(flux)
-        #     flux /= nphi
         # Take the phi of only the DJINN part
         short_phi = sn.cat(flux,self.splits['{}_djinn'.format(xs)])
         # Check for labeling
@@ -201,11 +197,15 @@ class eigen_djinn:
 
         phi_old = func.initial_flux(problem)
 
-        self.multDJ = multDJ            
+        self.multDJ = multDJ; #self.double = double
+        # if self.double:
+        #     model_scatter,model_fission,refl_scatter,refl_fission = func.djinn_load_double(model_name,self.multDJ)
+        #     self.refl_scatter = refl_scatter; self.refl_fission = refl_fission
+        # else:
         model_scatter,model_fission = func.djinn_load(model_name,self.multDJ)
         self.model_scatter = model_scatter; self.model_fission = model_fission
-        converged = 0
-        count = 1         
+        
+        converged = 0; count = 1
         while not (converged):
             sources = eigen_djinn.create_fmult(self,phi_old)
             print('Outer Transport Iteration {}\n==================================='.format(count))

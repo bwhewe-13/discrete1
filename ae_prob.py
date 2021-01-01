@@ -543,8 +543,9 @@ class eigen_auto:
         converged = 0; count = 1
         while not (converged):
             # Squeeze smult and phi
-            # smult = eigen_auto.scale_autoencode(self,smult,atype='smult')
-            phi_old = eigen_auto.scale_autoencode(self,phi_old,atype='phi')
+            smult = eigen_auto.scale_autoencode(self,smult,atype='smult')
+            # phi_old = eigen_auto.scale_autoencode(self,phi_old,atype='phi')
+            # smult = np.einsum('ijk,ik->ij',self.scatter,phi_old)
 
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
@@ -558,7 +559,7 @@ class eigen_auto:
             smult = np.einsum('ijk,ik->ij',self.scatter,phi)
         return phi
     
-    def transport(self,model_name,problem='carbon',multAE=False,tol=1e-12,MAX_ITS=100):
+    def transport(self,model_name,number='001',problem='carbon',tol=1e-12,MAX_ITS=100):
         """ Arguments:
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
@@ -570,10 +571,8 @@ class eigen_auto:
         
         phi_old = func.initial_flux(problem)
 
-        self.multAE = multAE
-
-        self.phi_autoencoder,_,_ = func.load_coder(model_name)
-        # self.smult_autoencoder,_,_ = func.load_coder(model_name,ptype='smult')
+        # self.phi_autoencoder,_,_ = func.load_coder(model_name,number=number)
+        self.smult_autoencoder,_,_ = func.load_coder(model_name,ptype='smult',number=number)
         # self.fmult_autoencoder,_,_ = func.load_coder(model_name,ptype='fmult')
         
         sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
@@ -581,14 +580,15 @@ class eigen_auto:
         while not (converged):
             print('Outer Transport Iteration {}'.format(count))
             # Squeeze flux and sources
-            phi_old = eigen_auto.scale_autoencode(self,phi_old,atype='phi') 
+            # phi_old = eigen_auto.scale_autoencode(self,phi_old,atype='phi') 
             # sources = eigen_auto.scale_autoencode(self,sources,atype='fmult')
 
             # Run the multigroup problem
             phi = eigen_auto.multi_group(self,sources,phi_old,tol=1e-08,MAX_ITS=MAX_ITS)
 
             # Squeeze Phi
-            phi = eigen_auto.scale_autoencode(self,phi,atype='phi')
+            # phi = eigen_auto.scale_autoencode(self,phi,atype='phi')
+
             # Normalize
             keff = np.linalg.norm(phi)
             phi /= keff
@@ -598,6 +598,7 @@ class eigen_auto:
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             # Update phi and source
+            # phi = eigen_auto.scale_autoencode(self,phi,atype='phi')
             phi_old = phi.copy()
             sources = np.einsum('ijk,ik->ij',self.chiNuFission,phi_old)
 
