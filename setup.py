@@ -509,8 +509,8 @@ class problem1:
         return np.sort(np.array(sn.layer_slice(layers)))
     
     def boundaries(conc=0.2,problem=None,distance=[45,35,20]):
-        problem_scatter = problem + '_full'
-        # problem_scatter = problem
+        #problem_scatter = problem + '_full'
+        problem_scatter = problem
         # Set Fission Splits
         enrichment,splits = problem1.boundaries_aux(conc,problem,distance)
         fission_splits = {f'fission_{kk}': vv for kk, vv in splits.items()}
