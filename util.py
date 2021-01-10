@@ -30,23 +30,23 @@ class sn:
         import numpy as np
         return np.concatenate(([lst[ii] for ii in splits]))    
 
-    def djinn_load(model_name,dtype):
-        from djinn import djinn
-        if dtype == 'both':
-            model_scatter = djinn.load(model_name=model_name[0])
-            model_fission = djinn.load(model_name=model_name[1])
-        elif dtype == 'scatter':
-            model_scatter = djinn.load(model_name=model_name)
-            model_fission = None
-        elif dtype == 'fission':
-            model_scatter = None
-            model_fission = djinn.load(model_name=model_name)
-        return model_scatter,model_fission
+    # def djinn_load(model_name,dtype):
+    #     from djinn import djinn
+    #     if dtype == 'both':
+    #         model_scatter = djinn.load(model_name=model_name[0])
+    #         model_fission = djinn.load(model_name=model_name[1])
+    #     elif dtype == 'scatter':
+    #         model_scatter = djinn.load(model_name=model_name)
+    #         model_fission = None
+    #     elif dtype == 'fission':
+    #         model_scatter = None
+    #         model_fission = djinn.load(model_name=model_name)
+    #     return model_scatter,model_fission
 
-    def djinn_load_double(model_name,dtype):
-        fuel_scatter,fuel_fission = sn.djinn_load(model_name[0],dtype)
-        refl_scatter,refl_fission = sn.djinn_load(model_name[1],dtype)
-        return fuel_scatter,fuel_fission,refl_scatter,refl_fission
+    # def djinn_load_double(model_name,dtype):
+    #     fuel_scatter,fuel_fission = sn.djinn_load(model_name[0],dtype)
+    #     refl_scatter,refl_fission = sn.djinn_load(model_name[1],dtype)
+    #     return fuel_scatter,fuel_fission,refl_scatter,refl_fission
 
     def enrich_list(length,enrich,splits):
         import numpy as np
