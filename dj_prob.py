@@ -33,34 +33,32 @@ class eigen_djinn:
         self.track = track
         self.label = label
     
-    def label_model(self,xs,flux,model_):
+    def label_model(self,xs,flux,model_,material='djinn'):
         import numpy as np
         from discrete1.util import sn
-        # I don't know if I want this
-        # if xs == 'scatter':
-        #     nphi = np.linalg.norm(flux)
-        #     flux /= nphi
         # Take the phi of only the DJINN part
-        short_phi = sn.cat(flux,self.splits['{}_djinn'.format(xs)])
+        short_phi = sn.cat(flux,self.splits['{}_{}'.format(xs,material)])
         # Check for labeling
         if self.label:
-            short_phi = np.hstack((sn.cat(self.enrich,self.splits['{}_djinn'.format(xs)])[:,None],short_phi))
+            short_phi = np.hstack((sn.cat(self.enrich,self.splits['{}_{}'.format(xs,material)])[:,None],short_phi))
         # Predict DJINN
         djinn_ns = model_.predict(short_phi)
         return djinn_ns 
 
-    def scale_scatter(self,phi,djinn_ns):
+    def scale_scatter(self,phi,djinn_ns,material='djinn'):
         import numpy as np
         from discrete1.util import sn
         # Calculate phi for DJINN part
-        short_phi = sn.cat(phi,self.splits['scatter_djinn'])
+        short_phi = sn.cat(phi,self.splits['scatter_{}'.format(material)])
         # Calculate scaling factor
-        scale = np.sum(short_phi*np.sum(sn.cat(self.scatter,self.splits['scatter_djinn']),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
-        # All of the sigma*phi terms not calculated by DJINN
-        regular = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_keep']),sn.cat(phi,self.splits['scatter_keep']))
+        scale = np.sum(short_phi*np.sum(sn.cat(self.scatter,self.splits['scatter_{}'.format(material)]),axis=1),axis=1)/np.sum(djinn_ns,axis=1)
         # Scale DJINN
         djinn_s = scale[:,None]*djinn_ns
-        return sn.pops_robust('scatter',phi.shape,regular,djinn_s,self.splits)
+        # All of the sigma*phi terms not calculated by DJINN
+        if not self.double:
+            regular = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_keep']),sn.cat(phi,self.splits['scatter_keep']))
+            return sn.pops_robust('scatter',phi.shape,regular,djinn_s,self.splits)
+        return djinn_s
         # return scale[:,None]*djinn_ns
 
     def create_smult(self,flux):
@@ -70,8 +68,14 @@ class eigen_djinn:
             return np.zeros(flux.shape)
         # Predict DJINN
         djinn_scatter_ns = eigen_djinn.label_model(self,'scatter',flux,self.model_scatter)
-        # djinn_scatter_ns *= nphi
-        return eigen_djinn.scale_scatter(self,flux,djinn_scatter_ns)
+        djinn_scatter_s = eigen_djinn.scale_scatter(self,flux,djinn_scatter_ns)
+        if self.double:
+            # Do the same for reflective material
+            djinn_refl_ns = eigen_djinn.label_model(self,'scatter',flux,self.refl_scatter,'keep')
+            djinn_refl_s = eigen_djinn.scale_scatter(self,flux,djinn_refl_ns,'keep')
+            # Combine the two sides
+            return sn.pops_robust('scatter',phi.shape,djinn_refl_s,djinn_scatter_s,self.splits)
+        return djinn_scatter_s
 
     def scale_fission(self,phi,djinn_ns):
         import numpy as np
@@ -186,7 +190,7 @@ class eigen_djinn:
             return phi, allmat_sca
         return phi
 
-    def transport(self,model_name,problem='carbon',multDJ='both',tol=1e-12,MAX_ITS=100):
+    def transport(self,model_name,problem='carbon',multDJ='both',tol=1e-12,MAX_ITS=100,double=False):
         """ EIGEN DJINN SYMM
         Arguments:
             model_name: File location of DJINN model
@@ -201,11 +205,15 @@ class eigen_djinn:
 
         phi_old = func.initial_flux(problem)
 
-        self.multDJ = multDJ            
-        model_scatter,model_fission = func.djinn_load(model_name,self.multDJ)
+        self.multDJ = multDJ; self.double = double
+        if self.double:
+            model_scatter,model_fission,refl_scatter,_ = func.djinn_load_double(model_name,self.multDJ)
+            self.refl_scatter = refl_scatter; #self.refl_fission = refl_fission
+        else:
+            model_scatter,model_fission = func.djinn_load(model_name,self.multDJ)
         self.model_scatter = model_scatter; self.model_fission = model_fission
-        converged = 0
-        count = 1         
+        
+        converged = 0; count = 1
         while not (converged):
             sources = eigen_djinn.create_fmult(self,phi_old)
             print('Outer Transport Iteration {}\n==================================='.format(count))

@@ -22,7 +22,7 @@ class func:
 
     def initial_flux(problem,group=618):
         import numpy as np
-        if problem == 'mixed1':
+        if problem in ['mixed1','hdpe']:
             # np.load('discrete1/data/phi_{}_15.npy'.format(problem))
             problem = 'carbon'
         elif problem == 'pluto':
@@ -139,30 +139,35 @@ class func:
         if dtype == 'both':
             model_scatter = djinn.load(model_name=model_name[0])
             model_fission = djinn.load(model_name=model_name[1])
-        elif dtype == 'scatter':
+        elif dtype in ['scatter']:
+            print('Loading DJINN Scatter...')
             model_scatter = djinn.load(model_name=model_name)
             model_fission = None
-        elif dtype == 'fission':
+        elif dtype in ['fission']:
             model_scatter = None
             model_fission = djinn.load(model_name=model_name)
         return model_scatter,model_fission
 
-    def auto_load(model_name,dtype):
+    def auto_load(model_name,dtype,number=''):
         from tensorflow import keras
+        if len(number) > 1:
+            number = '_' + number
         print('Loading phi encoder...')
-        phi_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(model_name),compile=False)
+        phi_encoder = keras.models.load_model('{}_phi_encoder{}.h5'.format(model_name,number),compile=False)
         fmult_decoder = None; smult_decoder = None
         if dtype in ['fmult','fission','both']:
             print('Loading fmult decoder...')
-            fmult_decoder = keras.models.load_model('{}_fmult_decoder.h5'.format(model_name),compile=False)    
+            fmult_decoder = keras.models.load_model('{}_fmult_decoder{}.h5'.format(model_name,number),compile=False)    
         if dtype in ['smult','scatter','both']:
             print('Loading smult decoder...')
-            smult_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(model_name),compile=False)    
+            smult_decoder = keras.models.load_model('{}_smult_decoder{}.h5'.format(model_name,number),compile=False)    
         return phi_encoder,fmult_decoder,smult_decoder
 
-    def load_coder(coder,ptype='phi'):
+    def load_coder(coder,ptype='phi',number=''):
         """ Coder is the string path to the autoencoder, encoder, and decoder """
         from tensorflow import keras
+        if len(number) > 1:
+            number = '_' + number
         if coder == 'dummy1':
             return func.load_dummy1(),func.load_dummy1(),func.load_dummy1()
         elif coder == 'dummy2':
@@ -170,9 +175,9 @@ class func:
         elif coder == 'dummy3':
             return func.load_dummy3(),func.load_dummy3(),func.load_dummy3()
         print('Loading {} autoencoder...'.format(ptype))
-        autoencoder = keras.models.load_model('{}_{}_autoencoder.h5'.format(coder,ptype))
-        encoder = keras.models.load_model('{}_{}_encoder.h5'.format(coder,ptype),compile=False)
-        decoder = keras.models.load_model('{}_{}_decoder.h5'.format(coder,ptype),compile=False)
+        autoencoder = keras.models.load_model('{}_{}_autoencoder{}.h5'.format(coder,ptype,number))
+        encoder = keras.models.load_model('{}_{}_encoder{}.h5'.format(coder,ptype,number),compile=False)
+        decoder = keras.models.load_model('{}_{}_decoder{}.h5'.format(coder,ptype,number),compile=False)
         return autoencoder,encoder,decoder
 
     def find_gprime(coder):
@@ -198,7 +203,7 @@ class func:
             return array + (0.001*np.random.normal(0,1,array.shape[0]))[:,None]
 
 class problem2:
-    def variables(conc,dim=618,distance=[5,1.5,3.5]): #
+    def variables(conc,problem=None,dim=618,distance=[5,1.5,3.5]): #
         import numpy as np
         from discrete1.util import sn
         I = 1000; 
@@ -326,7 +331,7 @@ class problem2:
         enrich_total = pu239_total*(1-conc) + pu240_total*conc
 
         total = np.vstack((hdpe_total[None,:],enrich_total[None,:],pu240_total[None,:]))
-        del pu239_total,pu240_total,puc240_total,enrich_total
+        del pu239_total,pu240_total,hdpe_total,enrich_total
 
         return scatter,fission,total
 
@@ -350,7 +355,7 @@ class problem1:
     def variables(conc=None,problem=None,distance=[45,35,20]):
         from discrete1.util import chem,sn
         import numpy as np
-        if problem == 'stainless' or problem == 'carbon':
+        if problem in ['stainless','carbon','hdpe']:
             pass
             # distance = [45,35,20]
             # distance = [40,40,20]
@@ -414,7 +419,7 @@ class problem1:
         hdpe_fission = np.zeros((dim,dim))
     
         # Cross section layers
-        if problem == 'carbon':
+        if problem in ['carbon','hdpe']:
             xs_scatter = [hdpe_scatter.T,uh3_scatter.T,uh3_238_scatter.T]
             xs_total = [hdpe_total,uh3_total,uh3_238_total]
             xs_fission = [hdpe_fission.T,uh3_fission.T,uh3_238_fission.T]
@@ -463,7 +468,7 @@ class problem1:
         import numpy as np
         from discrete1.util import sn
         # Fission Models
-        if problem == 'carbon' or problem == 'stainless':
+        if problem in ['carbon','stainless']:
             # distance = [45,35,20]; 
             ment = [conc,0]; where = [1,2]
         elif problem ==  'mixed1':
@@ -477,7 +482,8 @@ class problem1:
         #     distance = [35,20]; ment = [conc,0]; where = [0,1]
         # elif problem == 'stainless_flip':
         #     distance = [20,35,45]; ment = [0,conc]; where = [0,1]
-
+        elif problem == 'hdpe':
+            ment = [15.04]; where = [0]
         # Scatter Models
         elif problem == 'carbon_full':
             # distance = [45,35,20]; 
@@ -509,8 +515,8 @@ class problem1:
         return np.sort(np.array(sn.layer_slice(layers)))
     
     def boundaries(conc=0.2,problem=None,distance=[45,35,20]):
-        #problem_scatter = problem + '_full'
-        problem_scatter = problem
+        problem_scatter = problem + '_full'
+        #problem_scatter = problem
         # Set Fission Splits
         enrichment,splits = problem1.boundaries_aux(conc,problem,distance)
         fission_splits = {f'fission_{kk}': vv for kk, vv in splits.items()}
@@ -535,3 +541,6 @@ class ex_sources:
         source = np.zeros((I,G))
         source[0,g] = 1
         return source
+
+
+
