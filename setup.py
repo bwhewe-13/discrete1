@@ -139,10 +139,11 @@ class func:
         if dtype == 'both':
             model_scatter = djinn.load(model_name=model_name[0])
             model_fission = djinn.load(model_name=model_name[1])
-        elif dtype == 'scatter':
+        elif dtype in ['scatter']:
+            print('Loading DJINN Scatter...')
             model_scatter = djinn.load(model_name=model_name)
             model_fission = None
-        elif dtype == 'fission':
+        elif dtype in ['fission']:
             model_scatter = None
             model_fission = djinn.load(model_name=model_name)
         return model_scatter,model_fission
