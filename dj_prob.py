@@ -63,6 +63,7 @@ class eigen_djinn:
 
     def create_smult(self,flux):
         import numpy as np
+        from discrete1.util import sn
         # Check for Zeros
         if (np.sum(flux) == 0):
             return np.zeros(flux.shape)
@@ -74,7 +75,7 @@ class eigen_djinn:
             djinn_refl_ns = eigen_djinn.label_model(self,'scatter',flux,self.refl_scatter,'keep')
             djinn_refl_s = eigen_djinn.scale_scatter(self,flux,djinn_refl_ns,'keep')
             # Combine the two sides
-            return sn.pops_robust('scatter',phi.shape,djinn_refl_s,djinn_scatter_s,self.splits)
+            return sn.pops_robust('scatter',flux.shape,djinn_refl_s,djinn_scatter_s,self.splits)
         return djinn_scatter_s
 
     def scale_fission(self,phi,djinn_ns):
