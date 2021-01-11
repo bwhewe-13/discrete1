@@ -305,7 +305,7 @@ class problem2:
 
 
     def scatter_fission(enrich,dim=618,distance=[5,1.5,3.5]):
-        _,_,_,_,_,scatter,fission,_,_,_ = problem2.variables(enrich,dim,distance)
+        _,_,_,_,_,scatter,fission,_,_,_ = problem2.variables(enrich,'pluto',dim,distance)
         return scatter,fission
 
     def scatter_fission_total(conc,dim=618):

@@ -710,11 +710,11 @@ class eigen_auto_djinn:
         # Send through DJINN (phi --> phi * sigma)
         djinn_reduced_flux = eigen_auto_djinn.create_djinn_scatter(self,reduced_flux,short_phi)
         # Send through the decoder
-        combo = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_djinn']),sn.cat(flux,self.splits['scatter_djinn']))
+        # combo = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_djinn']),sn.cat(flux,self.splits['scatter_djinn']))
         # combo = np.einsum('ijk,ik->ij',self.scatter,flux)
-        maxi = np.max(combo,axis=1); mini = np.min(combo,axis=1)
+        # maxi = np.max(combo,axis=1); mini = np.min(combo,axis=1)
         # Convert (I' x G') --> (I' x G) 
-        mult_flux = eigen_auto_djinn.scale_decoder(self,djinn_reduced_flux,'scatter',maxi,mini)
+        mult_flux = eigen_auto_djinn.scale_decoder(self,djinn_reduced_flux,'scatter') #,maxi,mini)
         # Compiling it all together (I' x G) --> (I x G)
         regular = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_keep']),sn.cat(flux,self.splits['scatter_keep']))
         complete = sn.pops_robust('scatter',flux.shape,regular,mult_flux,self.splits)
@@ -803,7 +803,7 @@ class eigen_auto_djinn:
         # return sn.pops_robust('fission',phi.shape,regular,scale[:,None]*djinn_ns,self.splits)
         return sn.pops_robust('fission',phi.shape,regular,djinn_ns,self.splits)
 
-    def scale_decoder(self,reduced_flux,dtype,maxi,mini):
+    def scale_decoder(self,reduced_flux,dtype): #,maxi,mini):
         import numpy as np
         from discrete1.util import nnets
         decoder_model = self.fmult_decoder
@@ -817,8 +817,9 @@ class eigen_auto_djinn:
         decoded_flux = (scale/np.sum(decoded_flux,axis=1))[:,None]*decoded_flux
         decoded_flux[np.isnan(decoded_flux)] = 0;
         # Unnormalize the Data
-        mult = nnets.unnormalize(decoded_flux,maxi,mini)
-        return mult # (I' x G)
+        # mult = nnets.unnormalize(decoded_flux,maxi,mini)
+        # return mult # (I' x G)
+        return decoded_flux
     
     def construct_fission(self,flux):
         import numpy as np
