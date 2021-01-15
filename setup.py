@@ -357,7 +357,7 @@ class problem2:
 
 
 class problem1:        
-    def variables(conc=None,problem=None,distance=[45,35,20]):
+    def variables(conc=None,problem=None,distance=[45,35,20],reduced=False):
         from discrete1.util import chem,sn
         import numpy as np
         if problem in ['stainless','carbon','hdpe']:
@@ -422,7 +422,7 @@ class problem1:
             uh3_fission_low = uh3_density_low[0]*u235fission + uh3_density_low[1]*u238fission
         uh3_238_fission = uh3_238_density[0]*u238fission
         hdpe_fission = np.zeros((dim,dim))
-    
+
         # Cross section layers
         if problem in ['carbon','hdpe']:
             xs_scatter = [hdpe_scatter.T,uh3_scatter.T,uh3_238_scatter.T]
@@ -451,8 +451,23 @@ class problem1:
             xs_scatter = [uh3_scatter.T,uh3_238_scatter.T]
             xs_total = [uh3_total,uh3_238_total]
             xs_fission = [uh3_fission.T,uh3_238_fission.T]
+
+        if reduced:
+            energy_grid = np.load('discrete1/data/energyGrid.npy')
+            dim = reduced
+            hdpe_total,hdpe_scatter,hdpe_fission = sn.group_reduction(dim,energy_grid,
+                total=hdpe_total,scatter=hdpe_scatter.T,fission=hdpe_fission.T)
+            uh3_total,uh3_scatter,uh3_fission = sn.group_reduction(dim,energy_grid,
+                total=uh3_total,scatter=uh3_scatter.T,fission=uh3_fission.T)
+            uh3_238_total,uh3_238_scatter,uh3_238_fission = sn.group_reduction(dim,energy_grid,
+                total=uh3_238_total,scatter=uh3_238_scatter.T,fission=uh3_238_fission.T)
+            # Don't need to be transposed
+            xs_scatter = [hdpe_scatter,uh3_scatter,uh3_238_scatter]
+            xs_total = [hdpe_total,uh3_total,uh3_238_total]
+            xs_fission = [hdpe_fission,uh3_fission,uh3_238_fission]
+
         # Setting up eigenvalue equation
-        N = 8; L = 0; R = sum(distance); G = dim
+        N = 8; L = 0; R = sum(distance); #G = dim
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w)
         # Half because symmetry
@@ -467,7 +482,7 @@ class problem1:
         fission_ = sn.mixed_propagate(xs_fission,layers,G=dim,dtype='fission2')
         total_ = sn.mixed_propagate(xs_total,layers,G=dim)
         
-        return G,N,mu,w,total_,scatter_[:,0],fission_,L,R,I
+        return dim,N,mu,w,total_,scatter_[:,0],fission_,L,R,I
     
     def boundaries_aux(conc,problem=None,distance=[45,35,20]):
         import numpy as np
@@ -481,12 +496,6 @@ class problem1:
         elif problem == 'multiplastic':
             distance = [10]*8; distance.append(20); ment = [conc]*4; ment.append(0); where = [1,3,5,7,8]
 
-        # elif problem == 'blur':
-        #     distance = [47,33,20]; ment = [conc,0]; where = [1,2]
-        # elif problem == 'noplastic':
-        #     distance = [35,20]; ment = [conc,0]; where = [0,1]
-        # elif problem == 'stainless_flip':
-        #     distance = [20,35,45]; ment = [0,conc]; where = [0,1]
         elif problem == 'hdpe':
             ment = [15.04]; where = [0]
         # Scatter Models
@@ -531,10 +540,9 @@ class problem1:
         combo_splits = {**scatter_splits, **fission_splits}
         return enrichment,combo_splits
 
-    def scatter_fission(conc,problem,distance=[45,35,20]):
-        _,_,_,_,_,scatter,fission,_,_,_ = problem1.variables(conc,problem,distance)
+    def scatter_fission(conc,problem,distance=[45,35,20],reduced=False):
+        _,_,_,_,_,scatter,fission,_,_,_ = problem1.variables(conc,problem,distance,reduced)
         return scatter,fission
-
 
 class ex_sources:
     def source1(I,G):

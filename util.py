@@ -26,27 +26,108 @@ class display:
 
 class sn:
     """ Tools for discrete ordinates codes (dimensional purposes/convergence) """
+    def group_reduction(new_group,grid,energy=False,**kwargs):
+        import numpy as np
+        """ Used to reduce the number of groups for cross sections and energy levels 
+        Arguments:
+            new_group: the reduction in the number of groups from the original
+            grid: the original energy grid
+            energy: True/False to return the new energy grid, default is False
+            kwargs: 
+                total: total cross section of one spatial cell
+                scatter: scatter cross section of one spatial cell
+                fission: fission cross section of one spatial cell
+        Returns:
+            The reduced matrices and vectors of the cross sections or energy
+            (Specified in the kwargs)   """
+
+        # Remove the extra grid boundary
+        old_group = len(grid) - 1
+        # How many groups are combined (approximate)
+        split = int(old_group/new_group)
+        # Calculate the leftovers
+        rmdr = old_group % new_group
+        # Create array showing the number of groups combined 
+        new_grid = np.ones(new_group) * split
+        # Add the remainder groups to the first x number 
+        # new_grid[:rmdr] += 1
+        # new_grid = new_grid[::-1]
+        new_grid[np.linspace(0,new_group-1,rmdr,dtype=int)] += 1
+        assert (new_grid.sum() == old_group)
+
+        # Calculate the indices while including the left-most (insert)
+        inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
+
+        # Return the new energy grid (for graphing purposes)
+        if energy:
+            return np.array([sum(grid[inds[ii]:inds[ii+1]]) / (inds[ii+1] - inds[ii]) for ii in range(new_group)])
+
+        # This is for scaling the new groups properly
+        # Calculate the change in energy for each of the new boundaries (of size new_group)
+        new_diff_grid = np.array([grid[inds[ii+1]]-grid[inds[ii]] for ii in range(new_group)])
+        # Repeated for the matrix (fission and scatter)
+        new_diff_matrix = new_diff_grid[:,None] @ new_diff_grid[None,:]
+        # Calculate the change in energy for each of the old boundaries
+        old_diff_grid = np.diff(grid)
+        # Repeated for the matrix (fission and scatter)
+        old_diff_matrix = old_diff_grid[:,None] @ old_diff_grid[None,:]
+
+        new_total = None; new_scatter = None; new_fission = None
+        # Work through the cross section terms
+        # print(sn.kwargs["total"].shape)
+        if "total" in kwargs:
+            total = kwargs["total"]
+            total *= old_diff_grid
+            new_total = sn.vector_reduction(total,inds)
+            new_total /= new_diff_grid
+
+        if "scatter" in kwargs:
+            scatter = kwargs["scatter"]
+            scatter *= old_diff_grid
+            new_scatter = sn.matrix_reduction(scatter,inds)
+            new_scatter /= new_diff_grid
+
+        if "fission" in kwargs:
+            fission = kwargs["fission"]
+            fission *= old_diff_grid
+            new_fission = sn.matrix_reduction(fission,inds)
+            new_fission /= new_diff_grid
+
+        return new_total, new_scatter, new_fission
+
+
+    def matrix_reduction(matrix,indices):
+        import numpy as np
+        """ Sum the matrix according to the indicies
+        Arguments:
+            matrix: the full size matrix that will be reduced
+            indices: the location of which cells will be combined
+        Returns:
+            a matrix of size len(indices) - 1
+        """
+        # Remove the extra grid boundary
+        new_group = len(indices) - 1
+        reduced = np.array([[np.sum(matrix[indices[ii]:indices[ii+1],indices[jj]:indices[jj+1]]) for jj in range(new_group)] for ii in range(new_group)])    
+        return reduced
+
+    def vector_reduction(vector,indices):
+        import numpy as np
+        """ Sum the vector according to the indicies
+        Arguments:
+            vector: the full size matrix that will be reduced
+            indices: the location of which cells will be combined
+        Returns:
+            a vector of size len(indices) - 1
+        """
+        # Remove the extra grid boundary
+        new_group = len(indices) - 1
+        # Sum the vector
+        reduced = np.array([sum(vector[indices[ii]:indices[ii+1]]) for ii in range(new_group)])
+        return reduced
+
     def cat(lst,splits):
         import numpy as np
         return np.concatenate(([lst[ii] for ii in splits]))    
-
-    # def djinn_load(model_name,dtype):
-    #     from djinn import djinn
-    #     if dtype == 'both':
-    #         model_scatter = djinn.load(model_name=model_name[0])
-    #         model_fission = djinn.load(model_name=model_name[1])
-    #     elif dtype == 'scatter':
-    #         model_scatter = djinn.load(model_name=model_name)
-    #         model_fission = None
-    #     elif dtype == 'fission':
-    #         model_scatter = None
-    #         model_fission = djinn.load(model_name=model_name)
-    #     return model_scatter,model_fission
-
-    # def djinn_load_double(model_name,dtype):
-    #     fuel_scatter,fuel_fission = sn.djinn_load(model_name[0],dtype)
-    #     refl_scatter,refl_fission = sn.djinn_load(model_name[1],dtype)
-    #     return fuel_scatter,fuel_fission,refl_scatter,refl_fission
 
     def enrich_list(length,enrich,splits):
         import numpy as np
@@ -224,25 +305,21 @@ class sn:
         return u,sigma,v
 
     def wynnepsilon(lst, r):
-        '''Perform Wynn Epsilon Convergence Algorithm
+        """ Perform Wynn Epsilon Convergence Algorithm
         Arguments:
             lst: list of values for convergence
             r: rank of system
         Returns:
-            2D Array where diagonal is convergence
-        '''
+            2D Array where diagonal is convergence """
         import numpy as np
         r = int(r)
         n = 2 * r + 1
         e = np.zeros(shape=(n + 1, n + 1))
-
         for i in range(1, n + 1):
             e[i, 1] = lst[i - 1]
-
         for i in range(3, n + 2):
             for j in range(3, i + 1):
                 e[i - 1, j - 1] = e[i - 2, j - 3] + 1 / (e[i - 1, j - 2] - e[i - 2, j - 2])
-
         er = e[:, 1:n + 1:2]
         return er
     

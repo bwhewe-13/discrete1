@@ -195,7 +195,8 @@ class eigen_djinn:
         """ EIGEN DJINN SYMM
         Arguments:
             model_name: File location of DJINN model
-            process: should be 'norm' to normalize data
+            problem: used to initialize phi
+            multDJ: which DJINN models to use
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
             LOUD: prints the iteration number and the change between iterations, default is False
