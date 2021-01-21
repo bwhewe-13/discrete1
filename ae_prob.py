@@ -729,6 +729,7 @@ class eigen_auto_djinn:
         # Normalize the Data
         matrix,maxi,mini = nnets.normalize(flux,verbose=True)
         matrix[np.isnan(matrix)] = 0; maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
+        self.maxi = maxi; self.mini = mini
         # matrix = flux.copy()
         # Take the sum of each row
         scale = np.sum(matrix,axis=1)
@@ -817,7 +818,7 @@ class eigen_auto_djinn:
         decoded_flux = (scale/np.sum(decoded_flux,axis=1))[:,None]*decoded_flux
         decoded_flux[np.isnan(decoded_flux)] = 0;
         # Unnormalize the Data
-        # mult = nnets.unnormalize(decoded_flux,maxi,mini)
+        # mult = nnets.unnormalize(decoded_flux,self.maxi,self.mini)
         # return mult # (I' x G)
         return decoded_flux
     
