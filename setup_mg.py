@@ -1,11 +1,10 @@
 
 def selection(problem,G,N):
     if problem == 'reeds':
-        select = Reed(G,N)
+        select = Reeds(G,N)
     elif problem == 'four_group':
         select = FourGroup(G,N)
     return select.variables()
-
 
 class Reeds:
     def __init__(self,G,N):
@@ -15,7 +14,7 @@ class Reeds:
     def variables(self):
         import numpy as np
         
-        L = 0; R = 16.
+        L = 0; R = 16.; I = 1000
         mu,w = np.polynomial.legendre.leggauss(self.N)
         w /= np.sum(w); 
 
@@ -48,7 +47,7 @@ class FourGroup:
     def variables(self):
         import numpy as np
 
-        L = 0; R = 5.
+        L = 0; R = 5.; I = 1000
         mu,w = np.polynomial.legendre.leggauss(self.N)
         w /= np.sum(w); 
 

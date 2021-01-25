@@ -1,53 +1,51 @@
 # os.system('gcc -fPIC -shared -o discrete1/data/cfunctions.so discrete1/data/cfunctions.c')
 
-from discrete1.setup_mg import selection
-
 class Hybrid:
     def __init__(self,problem,G,N):
         """ G and N are lists of [uncollided,collided]  """
         self.problem = problem
-        if list(G):
-            self.Gu = G; self.Gc = G
-        else:
+        if type(G) is list:
             self.Gu = G[0]; self.Gc = G[1]
-
-        if list(N):
-            self.Nu = N; self.Nc = N
         else:
+            self.Gu = G; self.Gc = G
+
+        if type(N) is list:
             self.Nu = N[0]; self.Nc = N[1]
+        else:
+            self.Nu = N; self.Nc = N
 
     def run(self):
-        from discrete1.setup_mg import selection
+        from .setup_mg import selection
         import numpy as np
 
         uncollided = Uncollided(*selection(self.problem,self.Gu,self.Nu))
         collided = Collided(*selection(self.problem,self.Gc,self.Nc))
+        
+        T = 100; dt = 1; v = 1
+        psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
+        speed = 1/(v*dt)
+        time_phi = []
 
-        print(uncollided)
-        # T = 100; dt = 1; v = 1
-        # psi_last = np.zeros((I,N,G))
-        # speed = 1/(v*dt)
-        # time_phi = []
+        for t in range(int(T/dt)):      
+            # Step 1: Solve Uncollided Equation
+            phi_u,_ = uncollided.multi_group(psi_last,speed)
+            # Step 2: Compute Source for Collided
+            source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u)
+            # Resizing
+            # source_c = big_2_small(source_c,delta_u,delta_c,splits)
+            # Step 3: Solve Collided Equation
+            phi_c = collided.multi_group(speed,source_c,phi_u)
+            # Resize phi_c
+            # phi = small_2_big(phi_c,delta_u,delta_c,splits) + phi_u
+            phi = phi_c + phi_u
+            # Step 4: Calculate next time step
+            source = np.einsum('ijk,ik->ij',uncollided.fission,phi) + np.einsum('ijk,ik->ij',uncollided.scatter,phi) + uncollided.source
+            phi,psi_next = uncollided.multi_group(psi_last,speed,source)
+            
+            psi_last = psi_next.copy()
+            time_phi.append(phi)
 
-        # for t in range(int(T/dt)):      
-        #     # Step 1: Solve Uncollided Equation
-        #     phi_u,_ = multigroup_uncollided(psi_last,speed,G,N,mu,w,total,source_u,I,inv_delta)
-        #     # Step 2: Compute Source for Collided
-        #     source_c = np.einsum('ijk,ik->ij',scatter,phi_u) + np.einsum('ijk,ik->ij',fission,phi_u)
-        #     # Resizing
-        #     # source_c = big_2_small(source_c,delta_u,delta_c,splits)
-        #     # Step 3: Solve Collided Equation
-        #     phi_c = multigroup_collided(speed,G,N,mu,w,total,scatter,source_c,I,inv_delta,phi_u)
-        #     # Resize phi_c
-        #     # phi = small_2_big(phi_c,delta_u,delta_c,splits) + phi_u
-        #     phi = phi_c + phi_u
-        #     # Step 4: Calculate next time step
-        #     source = np.einsum('ijk,ik->ij',fission,phi) + np.einsum('ijk,ik->ij',scatter,phi) + source_u
-        #     phi,psi_next = multigroup_uncollided(psi_last,speed,G,N,mu,w,total,source,I,inv_delta)
-        #     psi_last = psi_next.copy()
-        #     time_phi.append(phi)
-
-        # return phi,time_phi
+        return phi,time_phi
 
 class Uncollided:
     def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta):
@@ -80,7 +78,7 @@ class Uncollided:
 
         for n in range(self.N):
             # Determine the direction
-            direction = ctypes.c_int(int(np.sign(mu[n])))
+            direction = ctypes.c_int(int(np.sign(self.mu[n])))
             weight = np.sign(self.mu[n]) * self.mu[n] * self.delta
             # Collecting Angle
             psi_angle = np.zeros((self.I),dtype='float64')
@@ -97,18 +95,23 @@ class Uncollided:
 
             phi_ptr = ctypes.c_void_p(phi.ctypes.data)
                 
-            sweep(phi_ptr,psi_ptr,rhs_ptr,top_ptr,bot_ptr,ctypes.c_double(w[n]),direction)
+            sweep(phi_ptr,psi_ptr,rhs_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
 
             psi_next[:,n] = psi_angle.copy()
         
         return phi,psi_next
 
-    def multi_group(self,psi_last,speed):
+    def multi_group(self,psi_last,speed,source=None):
         # G is Gu
         import numpy as np
 
         phi_old = np.random.rand(self.I,self.G)
         psi_next = np.zeros(psi_last.shape)
+
+        if source is None:
+            current = self.source.copy()
+        else:
+            current = source.copy()
 
         tol = 1e-08; MAX_ITS = 100
         converged = 0; count = 1
@@ -116,7 +119,7 @@ class Uncollided:
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
                 # print('Here')
-                phi[:,g],psi_next[:,:,g] = Uncollided.one_group(psi_last[:,:,g],speed,self.total[:,g],self.source[:,g])
+                phi[:,g],psi_next[:,:,g] = Uncollided.one_group(self,psi_last[:,:,g],speed,self.total[:,g],current[:,g])
                 # print('There')
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             # print('Change is',change,'\n===================================')
@@ -127,185 +130,187 @@ class Uncollided:
         return phi,psi_next
 
 
+class Collided:
+    def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta):
+        self.G = G; self.N = N; 
+        self.mu = mu; self.w = w
+        self.total = total
+        self.scatter = scatter
+        self.fission = fission
+        # self.source = source
+        self.I = I
+        self.delta = delta
+
+    def one_group(self,speed,total_,scatter_,source_,guess_):
+        import numpy as np
+        import ctypes
+
+        clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cfunctions.so')
+        sweep = clibrary.collided
+
+        source_ = source_.astype('float64')
+        source_ptr = ctypes.c_void_p(source_.ctypes.data)
+
+        phi_old = guess_.copy()
+
+        tol = 1e-08; MAX_ITS = 100
+        converged = 0; count = 1
+        while not (converged):
+            phi = np.zeros((self.I),dtype='float64')
+            for n in range(self.N):
+                # Determine the direction
+                direction = ctypes.c_int(int(np.sign(self.mu[n])))
+                weight = np.sign(self.mu[n]) * self.mu[n] * self.delta
+
+                top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
+                top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
+
+                bottom_mult = (1/(0.5 * total_ + weight + 0.5 * speed)).astype('float64') 
+                bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
+
+                temp_scat = (scatter_ * phi_old).astype('float64')
+                ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
+
+                phi_ptr = ctypes.c_void_p(phi.ctypes.data)
+                    
+                sweep(phi_ptr,ts_ptr,source_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
+
+            change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            converged = (change < tol) or (count >= MAX_ITS) 
+            count += 1
+            phi_old = phi.copy()
+        return phi
+
+    def update_q(self,phi,start,stop,g):
+        import numpy as np
+        return np.sum(self.scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
+
+    def multi_group(self,speed,source,guess):
+        import numpy as np
+
+        phi_old = guess.copy()
         
+        tol = 1e-08; MAX_ITS = 100
+        converged = 0; count = 1
+        while not (converged):
+            phi = np.zeros(phi_old.shape)
+            for g in range(self.G):
+                q_tilde = source[:,g] + Collided.update_q(self,phi_old,g+1,self.G,g)
+                if g != 0:
+                    q_tilde += Collided.update_q(self,phi,0,g,g)
+                phi[:,g] = Collided.one_group(self,speed,self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g])
+            change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            converged = (change < tol) or (count >= MAX_ITS) 
+            count += 1
+            phi_old = phi.copy()
 
-        
-        
+        return phi 
 
-def one_group_uncollided(psi_last,speed,N,mu,w,total,source,I,inv_delta):
-    """ Step 1 of Hybrid
-    Arguments:
-        Different variables for collided and uncollided except I and inv_delta 
-        psi_last: last time step, of size I x N
-        speed: 1/(v*dt)   """
-    import numpy as np
-    import ctypes
 
-    clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cfunctions.so')
-    sweep = clibrary.uncollided
 
-    # no_scatter = np.zeros((I),dtype='float64')
-    # ns_ptr = ctypes.c_void_p(no_scatter.ctypes.data)
 
-    phi = np.zeros((I),dtype='float64')
 
-    psi_next = np.zeros(psi_last.shape,dtype='float64')
+# def update_q(scatter,phi,start,stop,g):
+#     import numpy as np
+#     return np.sum(scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
 
-    weight = mu * inv_delta
+# def one_group_collided(speed,N,mu,w,total,scatter,source,I,inv_delta,guess,tol=1e-08,MAX_ITS=100):
+#     import numpy as np
+#     import ctypes
 
-    for n in range(N):
-        # Determine the direction
-        direction = ctypes.c_int(int(np.sign(mu[n])))
-        weight = np.sign(mu[n]) * mu[n] * inv_delta
+#     clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cfunctions.so')
+#     sweep = clibrary.collided
 
-        # Collecting Angle
-        psi_angle = np.zeros((I),dtype='float64')
-        psi_ptr = ctypes.c_void_p(psi_angle.ctypes.data)
+#     source = source.astype('float64')
+#     source_ptr = ctypes.c_void_p(source.ctypes.data)
 
-        # Source Terms
-        rhs = (source + psi_last[:,n] * speed).astype('float64')
-        rhs_ptr = ctypes.c_void_p(rhs.ctypes.data)
+#     phi_old = guess.copy()
+#     # no_scatter = np.zeros((I),dtype='float64')
+#     # ns_ptr = ctypes.c_void_p(no_scatter.ctypes.data)
 
-        top_mult = (weight - 0.5 * total - 0.5 * speed).astype('float64')
-        top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
+#     converged = 0; count = 1
+#     while not (converged):
+#         phi = np.zeros((I),dtype='float64')
+#         for n in range(N):
+#             # Determine the direction
+#             direction = ctypes.c_int(int(np.sign(mu[n])))
+#             weight = np.sign(mu[n]) * mu[n] * inv_delta
 
-        bottom_mult = (1/(0.5 * total + weight + 0.5 * speed)).astype('float64')
-        bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
+#             # Collecting Angle
+#             # psi_angle = np.zeros((I),dtype='float64')
+#             # psi_ptr = ctypes.c_void_p(psi_angle.ctypes.data)
 
-        phi_ptr = ctypes.c_void_p(phi.ctypes.data)
-            
-        sweep(phi_ptr,psi_ptr,rhs_ptr,top_ptr,bot_ptr,ctypes.c_double(w[n]),direction)
+#             top_mult = (weight - 0.5 * total - 0.5 * speed).astype('float64')
+#             top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
 
-        psi_next[:,n] = psi_angle.copy()
-    
-    return phi,psi_next
+#             bottom_mult = (1/(0.5 * total + weight + 0.5 * speed)).astype('float64') 
+#             bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
 
-def multigroup_uncollided(psi_last,speed,G,N,mu,w,total,source,I,inv_delta,tol=1e-08,MAX_ITS=100):
-    # G is Gu
-    import numpy as np
+#             temp_scat = (scatter * phi_old).astype('float64')
+#             ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
 
-    phi_old = np.random.rand(I,G)
-
-    psi_next = np.zeros(psi_last.shape)
-
-    converged = 0; count = 1
-    while not (converged):
-        phi = np.zeros(phi_old.shape)
-        for g in range(G):
-            # print('Here')
-            phi[:,g],psi_next[:,:,g] = one_group_uncollided(psi_last[:,:,g],speed,N,mu,w,total[:,g],source[:,g],I,inv_delta)
-            # print('There')
-        change = np.linalg.norm((phi - phi_old)/phi/(I))
-        if np.isnan(change):
-            change = 0
-        # print('Change is',change,'\n===================================')
-        count += 1
-        converged = (change < tol) or (count >= MAX_ITS) 
-
-        phi_old = phi.copy()
-    return phi,psi_next
-
-def update_q(scatter,phi,start,stop,g):
-    import numpy as np
-    return np.sum(scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
-
-def one_group_collided(speed,N,mu,w,total,scatter,source,I,inv_delta,guess,tol=1e-08,MAX_ITS=100):
-    import numpy as np
-    import ctypes
-
-    clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cfunctions.so')
-    sweep = clibrary.collided
-
-    source = source.astype('float64')
-    source_ptr = ctypes.c_void_p(source.ctypes.data)
-
-    phi_old = guess.copy()
-    # no_scatter = np.zeros((I),dtype='float64')
-    # ns_ptr = ctypes.c_void_p(no_scatter.ctypes.data)
-
-    converged = 0; count = 1
-    while not (converged):
-        phi = np.zeros((I),dtype='float64')
-        for n in range(N):
-            # Determine the direction
-            direction = ctypes.c_int(int(np.sign(mu[n])))
-            weight = np.sign(mu[n]) * mu[n] * inv_delta
-
-            # Collecting Angle
-            # psi_angle = np.zeros((I),dtype='float64')
-            # psi_ptr = ctypes.c_void_p(psi_angle.ctypes.data)
-
-            top_mult = (weight - 0.5 * total - 0.5 * speed).astype('float64')
-            top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
-
-            bottom_mult = (1/(0.5 * total + weight + 0.5 * speed)).astype('float64') 
-            bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
-
-            temp_scat = (scatter * phi_old).astype('float64')
-            ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
-
-            phi_ptr = ctypes.c_void_p(phi.ctypes.data)
+#             phi_ptr = ctypes.c_void_p(phi.ctypes.data)
                 
-            sweep(phi_ptr,ts_ptr,source_ptr,top_ptr,bot_ptr,ctypes.c_double(w[n]),direction)
-        change = np.linalg.norm((phi - phi_old)/phi/(I))
-        converged = (change < tol) or (count >= MAX_ITS) 
-        count += 1
-        phi_old = phi.copy()
-    return phi
+#             sweep(phi_ptr,ts_ptr,source_ptr,top_ptr,bot_ptr,ctypes.c_double(w[n]),direction)
+#         change = np.linalg.norm((phi - phi_old)/phi/(I))
+#         converged = (change < tol) or (count >= MAX_ITS) 
+#         count += 1
+#         phi_old = phi.copy()
+#     return phi
 
-def multigroup_collided(speed,G,N,mu,w,total,scatter,source,I,inv_delta,guess,tol=1e-08,MAX_ITS=100):
-    import numpy as np
-    phi_old = guess.copy()
-    # psi_last = np.zeros((N,I,G))
+# def multigroup_collided(speed,G,N,mu,w,total,scatter,source,I,inv_delta,guess,tol=1e-08,MAX_ITS=100):
+#     import numpy as np
+#     phi_old = guess.copy()
+#     # psi_last = np.zeros((N,I,G))
 
-    converged = 0; count = 1
-    while not (converged):
-        phi = np.zeros(phi_old.shape)
-        for g in range(G):
-            q_tilde = source[:,g] + update_q(scatter,phi_old,g+1,G,g)
-            if g != 0:
-                q_tilde += update_q(scatter,phi,0,g,g)
-            phi[:,g] = one_group_collided(speed,N,mu,w,total[:,g],scatter[:,g,g],q_tilde,I,inv_delta,phi_old[:,g])
-        change = np.linalg.norm((phi - phi_old)/phi/(I))
-        converged = (change < tol) or (count >= MAX_ITS) 
-        count += 1
-        phi_old = phi.copy()
+#     converged = 0; count = 1
+#     while not (converged):
+#         phi = np.zeros(phi_old.shape)
+#         for g in range(G):
+#             q_tilde = source[:,g] + update_q(scatter,phi_old,g+1,G,g)
+#             if g != 0:
+#                 q_tilde += update_q(scatter,phi,0,g,g)
+#             phi[:,g] = one_group_collided(speed,N,mu,w,total[:,g],scatter[:,g,g],q_tilde,I,inv_delta,phi_old[:,g])
+#         change = np.linalg.norm((phi - phi_old)/phi/(I))
+#         converged = (change < tol) or (count >= MAX_ITS) 
+#         count += 1
+#         phi_old = phi.copy()
 
-    return phi #,psi_last
+#     return phi #,psi_last
 
 
 
-def driver():
-    import numpy as np
+# def driver():
+#     import numpy as np
 
-    G,N,mu,w,total,scatter,fission,source_u,I,inv_delta = reeds(8,1000)
-    delta_c = [1]; delta_u = [1]
-    splits = [slice(0,1)]
+#     G,N,mu,w,total,scatter,fission,source_u,I,inv_delta = reeds(8,1000)
+#     delta_c = [1]; delta_u = [1]
+#     splits = [slice(0,1)]
     
-    T = 100; dt = 1; v = 1
-    psi_last = np.zeros((I,N,G))
-    speed = 1/(v*dt)
-    time_phi = []
+#     T = 100; dt = 1; v = 1
+#     psi_last = np.zeros((I,N,G))
+#     speed = 1/(v*dt)
+#     time_phi = []
 
-    for t in range(int(T/dt)):      
-        # Step 1: Solve Uncollided Equation
-        phi_u,_ = multigroup_uncollided(psi_last,speed,G,N,mu,w,total,source_u,I,inv_delta)
-        # Step 2: Compute Source for Collided
-        source_c = np.einsum('ijk,ik->ij',scatter,phi_u) + np.einsum('ijk,ik->ij',fission,phi_u)
-        # Resizing
-        # source_c = big_2_small(source_c,delta_u,delta_c,splits)
-        # Step 3: Solve Collided Equation
-        phi_c = multigroup_collided(speed,G,N,mu,w,total,scatter,source_c,I,inv_delta,phi_u)
-        # Resize phi_c
-        # phi = small_2_big(phi_c,delta_u,delta_c,splits) + phi_u
-        phi = phi_c + phi_u
-        # Step 4: Calculate next time step
-        source = np.einsum('ijk,ik->ij',fission,phi) + np.einsum('ijk,ik->ij',scatter,phi) + source_u
-        phi,psi_next = multigroup_uncollided(psi_last,speed,G,N,mu,w,total,source,I,inv_delta)
-        psi_last = psi_next.copy()
-        time_phi.append(phi)
+#     for t in range(int(T/dt)):      
+#         # Step 1: Solve Uncollided Equation
+#         phi_u,_ = multigroup_uncollided(psi_last,speed,G,N,mu,w,total,source_u,I,inv_delta)
+#         # Step 2: Compute Source for Collided
+#         source_c = np.einsum('ijk,ik->ij',scatter,phi_u) + np.einsum('ijk,ik->ij',fission,phi_u)
+#         # Resizing
+#         # source_c = big_2_small(source_c,delta_u,delta_c,splits)
+#         # Step 3: Solve Collided Equation
+#         phi_c = multigroup_collided(speed,G,N,mu,w,total,scatter,source_c,I,inv_delta,phi_u)
+#         # Resize phi_c
+#         # phi = small_2_big(phi_c,delta_u,delta_c,splits) + phi_u
+#         phi = phi_c + phi_u
+#         # Step 4: Calculate next time step
+#         source = np.einsum('ijk,ik->ij',fission,phi) + np.einsum('ijk,ik->ij',scatter,phi) + source_u
+#         phi,psi_next = multigroup_uncollided(psi_last,speed,G,N,mu,w,total,source,I,inv_delta)
+#         psi_last = psi_next.copy()
+#         time_phi.append(phi)
 
-    return phi,time_phi
+#     return phi,time_phi
         
 def small_2_big(mult_c,delta_u,delta_c,splits):
     import numpy as np
@@ -391,11 +396,11 @@ def resizer(energy_u):
 # print(total.shape)
 # print(source_u.shape)
 
-import matplotlib.pyplot as plt
-import numpy as np
+# import matplotlib.pyplot as plt
+# import numpy as np
 
-prob = Hybrid('reeds',[2,2],[8,8])
-prob.run()
+# prob = Hybrid('reeds',[2,2],[8,8])
+# prob.run()
 
 # phi,time_phi = driver()
 
@@ -473,3 +478,76 @@ prob.run()
 #     fission_ = np.zeros((scatter_.shape))
 
 #     return G,N,mu,w,total_,scatter_,fission_,source_,I,1/delta
+
+def one_group_uncollided(psi_last,speed,N,mu,w,total,source,I,inv_delta):
+    """ Step 1 of Hybrid
+    Arguments:
+        Different variables for collided and uncollided except I and inv_delta 
+        psi_last: last time step, of size I x N
+        speed: 1/(v*dt)   """
+    import numpy as np
+    import ctypes
+
+    clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cfunctions.so')
+    sweep = clibrary.uncollided
+
+    # no_scatter = np.zeros((I),dtype='float64')
+    # ns_ptr = ctypes.c_void_p(no_scatter.ctypes.data)
+
+    phi = np.zeros((I),dtype='float64')
+
+    psi_next = np.zeros(psi_last.shape,dtype='float64')
+
+    weight = mu * inv_delta
+
+    for n in range(N):
+        # Determine the direction
+        direction = ctypes.c_int(int(np.sign(mu[n])))
+        weight = np.sign(mu[n]) * mu[n] * inv_delta
+
+        # Collecting Angle
+        psi_angle = np.zeros((I),dtype='float64')
+        psi_ptr = ctypes.c_void_p(psi_angle.ctypes.data)
+
+        # Source Terms
+        rhs = (source + psi_last[:,n] * speed).astype('float64')
+        rhs_ptr = ctypes.c_void_p(rhs.ctypes.data)
+
+        top_mult = (weight - 0.5 * total - 0.5 * speed).astype('float64')
+        top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
+
+        bottom_mult = (1/(0.5 * total + weight + 0.5 * speed)).astype('float64')
+        bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
+
+        phi_ptr = ctypes.c_void_p(phi.ctypes.data)
+            
+        sweep(phi_ptr,psi_ptr,rhs_ptr,top_ptr,bot_ptr,ctypes.c_double(w[n]),direction)
+
+        psi_next[:,n] = psi_angle.copy()
+    
+    return phi,psi_next
+
+def multigroup_uncollided(psi_last,speed,G,N,mu,w,total,source,I,inv_delta,tol=1e-08,MAX_ITS=100):
+    # G is Gu
+    import numpy as np
+
+    phi_old = np.random.rand(I,G)
+
+    psi_next = np.zeros(psi_last.shape)
+
+    converged = 0; count = 1
+    while not (converged):
+        phi = np.zeros(phi_old.shape)
+        for g in range(G):
+            # print('Here')
+            phi[:,g],psi_next[:,:,g] = one_group_uncollided(psi_last[:,:,g],speed,N,mu,w,total[:,g],source[:,g],I,inv_delta)
+            # print('There')
+        change = np.linalg.norm((phi - phi_old)/phi/(I))
+        if np.isnan(change):
+            change = 0
+        # print('Change is',change,'\n===================================')
+        count += 1
+        converged = (change < tol) or (count >= MAX_ITS) 
+
+        phi_old = phi.copy()
+    return phi,psi_next
