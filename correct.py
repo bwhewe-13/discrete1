@@ -306,8 +306,8 @@ class eigen_collect:
             return phi,keff,complete_phi
         return phi,keff
 
-class source:
-    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,track=False,enrich=None,splits=None):
+class Source:
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I): #,track=False,enrich=None,splits=None):
         self.G = G
         self.N = N
         self.mu = mu
@@ -316,7 +316,8 @@ class source:
         self.scatter = scatter
         self.chiNuFission = chiNuFission
         self.I = I
-        self.inv_delta = float(I)/R
+        self.delta = float(I)/R
+        
         self.track = track
         self.enrich = enrich
         self.splits = splits
