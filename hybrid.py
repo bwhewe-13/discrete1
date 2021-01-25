@@ -71,7 +71,7 @@ class Uncollided:
         import numpy as np
         import ctypes
 
-        clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cfunctions.so')
+        clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cHybrid.so')
         sweep = clibrary.uncollided
 
         phi = np.zeros((self.I),dtype='float64')
@@ -122,9 +122,7 @@ class Uncollided:
         while not (converged):
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
-                # print('Here')
                 phi[:,g],psi_next[:,:,g] = Uncollided.one_group(self,psi_last[:,:,g],speed,self.total[:,g],current[:,g])
-                # print('There')
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             # print('Change is',change,'\n===================================')
             count += 1
@@ -149,7 +147,7 @@ class Collided:
         import numpy as np
         import ctypes
 
-        clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cfunctions.so')
+        clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cHybrid.so')
         sweep = clibrary.collided
 
         source_ = source_.astype('float64')
