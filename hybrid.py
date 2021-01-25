@@ -258,7 +258,7 @@ def time_step_update(G,N,mu,w,total,scatter,source,I,inv_delta,guess,tol=1e-08,M
             # q_tilde = source[:,g] + update_q(scatter,phi_old,g+1,G,g)
             # if g != 0:
             #     q_tilde += update_q(scatter,phi,0,g,g)
-            phi[:,g],psi_last[:,:,g] = one_group_collided_s(N,mu,w,total[:,g],scatter[:,g,g],source[:,g],I,inv_delta,phi_old[:,g])
+            phi[:,g],psi_last[:,:,g] = one_group_collided_s(N,mu,w,total[:,g],scatter[:,g,g],source[:,g],I,inv_delta,np.zeros((I)))
         change = np.linalg.norm((phi - phi_old)/phi/(I))
         print(change)
         converged = (change < tol) or (count >= MAX_ITS) 
@@ -445,5 +445,5 @@ phi,alls = driver()
 for ii in range(len(alls)):
     plt.plot(alls[ii])
     plt.title('Number {}'.format(ii))
-    plt.savefig('../Desktop/image_{}.png'.format(str(ii).zfill(3)),bbox_inches='tight')
+    # plt.savefig('../Desktop/image_{}.png'.format(str(ii).zfill(3)),bbox_inches='tight')
     plt.show()
