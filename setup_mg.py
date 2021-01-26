@@ -8,7 +8,7 @@ def selection(problem,G,N):
 
 class Reeds:
     def __init__(self,G,N):
-        self.G = 1
+        self.G = G
         self.N = N
 
     def variables(self):
@@ -26,18 +26,19 @@ class Reeds:
             slice(int(11/delta),int(13/delta)),slice(int(13/delta),int(14/delta)),
             slice(int(14/delta),int(16/delta))]
         
-        total_ = np.zeros((I)); total_vals = [10,10,0,5,50,5,0,10,10]
-        scatter_ = np.zeros((I)); scatter_vals = [9.9,9.9,0,0,0,0,0,9.9,9.9]
-        source_ = np.zeros((I)); source_vals = [0,1,0,0,50,0,0,1,0]
+        total_ = np.zeros((I,self.G)); total_vals = [10,10,0,5,50,5,0,10,10]
+        scatter_ = np.zeros((I,self.G,self.G)); scatter_vals = [9.9,9.9,0,0,0,0,0,9.9,9.9]
+        source_ = np.zeros((I,self.G)); source_vals = [0,1,0,0,50,0,0,1,0]
 
         for ii in range(len(boundaries)):
             total_[boundaries[ii]] = total_vals[ii]
-            scatter_[boundaries[ii]] = scatter_vals[ii]
-            source_[boundaries[ii]] = source_vals[ii]
+            scatter_[boundaries[ii]] = np.diag(np.repeat(scatter_vals[ii],self.G))
+            source_[boundaries[ii]] = source_vals[ii]*1/self.G
 
         fission_ = np.zeros((scatter_.shape))
 
-        return self.G,self.N,mu,w,total_[:,None],scatter_[:,None,None],fission_[:,None,None],source_[:,None],I,1/delta
+        # return self.G,self.N,mu,w,total_[:,None],scatter_[:,None,None],fission_[:,None,None],source_[:,None],I,1/delta
+        return self.G,self.N,mu,w,total_,scatter_,fission_,source_,I,1/delta
 
 class FourGroup:
     def __init__(self,G,N):

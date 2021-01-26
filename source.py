@@ -86,7 +86,7 @@ class Source:
         phi_old = np.random.rand(self.I,self.G)
         # phi_old = np.zeros((self.I,self.G))
         
-        source = np.einsum('ijk,ik->ij',self.fission,phi_old) + self.source
+        # source = np.einsum('ijk,ik->ij',self.fission,phi_old) + self.source
         # source += np.einsum('ijk,ik->ij',self.scatter,phi_old)
 
         tol = 1e-08; MAX_ITS = 100
@@ -96,7 +96,7 @@ class Source:
             for g in range(self.G):
                 q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
-                    q_tilde += Source.update_q(self.scatter,phi,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
+                    q_tilde = q_tilde + Source.update_q(self.scatter,phi,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
                 # phi[:,g] = Source.one_group(self,self.total[:,g],q_tilde,self.source[:,g],phi_old[:,g])
                 phi[:,g] = Source.one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
             
