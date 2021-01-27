@@ -3,10 +3,16 @@
 class Hybrid:
     def __init__(self,problem,G,N):
         """ G and N are lists of [uncollided,collided]  """
+        import numpy as np
         self.problem = problem
         if type(G) is list:
             self.Gu = G[0]; self.Gc = G[1]
             # Have to call for splitting
+            self.splits = Tools.energy_distribution(self.Gu,self.Gc)
+            self.delta_u = [1/self.Gu]*self.Gu
+            # self.delta_c = [1/self.Gc]*self.Gc
+            self.delta_c = [sum(self.delta_u[ii]) for ii in self.splits]
+
         else:
             self.Gu = G; self.Gc = G
 
@@ -21,10 +27,10 @@ class Hybrid:
 
         uncollided = Uncollided(*selection(self.problem,self.Gu,self.Nu))
         collided = Collided(*selection(self.problem,self.Gc,self.Nc))
-
-        delta_u = [1]; delta_c = [1]
-        splits = [slice(0,1)]
         
+        # if self.Gu != self.Gc:
+        #     print(self.factor)
+
         T = 100; dt = 1; v = 1
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
         speed = 1/(v*dt)
@@ -36,16 +42,23 @@ class Hybrid:
             # Step 2: Compute Source for Collided
             source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u)
             # Resizing
-            # source_c = big_2_small(source_c,delta_u,delta_c,splits)
+            if self.Gu != self.Gc:
+                source_c = Tools.big_2_small(source_c,self.delta_u,self.delta_c,self.splits)
             # Step 3: Solve Collided Equation
             phi_c = collided.multi_group(speed,source_c,phi_u)
             # Resize phi_c
-            # phi = small_2_big(phi_c,delta_u,delta_c,splits) + phi_u
-            phi = phi_c + phi_u
+            if self.Gu != self.Gc:
+                phi = Tools.small_2_big(phi_c,self.delta_u,self.delta_c,self.splits) + phi_u
+            else:
+                phi = phi_c + phi_u
+            # print('Combine collided and uncollided phi\t',np.sum(phi))
             # Step 4: Calculate next time step
             source = np.einsum('ijk,ik->ij',uncollided.fission,phi) + np.einsum('ijk,ik->ij',uncollided.scatter,phi) + uncollided.source
             phi,psi_next = uncollided.multi_group(psi_last,speed,source)
-            
+
+            # print(self.delta_u,self.delta_c)
+            # print('Time {}\tPhi'.format(t),np.sum(phi))
+
             psi_last = psi_next.copy()
             time_phi.append(phi)
 
@@ -124,7 +137,9 @@ class Uncollided:
             for g in range(self.G):
                 phi[:,g],psi_next[:,:,g] = Uncollided.one_group(self,psi_last[:,:,g],speed,self.total[:,g],current[:,g])
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
-            # print('Change is',change,'\n===================================')
+            if np.isnan(change):
+                change = 0
+            # print('Uncollided Change is',change,'\n===================================')
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
 
@@ -202,6 +217,9 @@ class Collided:
                     q_tilde += Collided.update_q(self,phi,0,g,g)
                 phi[:,g] = Collided.one_group(self,speed,self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g])
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            if np.isnan(change):
+                change = 0
+            # print('Collided Change is',change,'\n===================================')
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
@@ -209,52 +227,76 @@ class Collided:
         return phi 
 
 
-
-
-
 class Tools:
+
+    def energy_distribution(big,small):
+        """ List of slices for different energy sizes
+        Arguments:
+            big: uncollided energy groups, int
+            small: collided energy groups, int
+        Returns:
+            list of slices   """
+        import numpy as np
+
+        new_grid = np.ones((small)) * int(big/small)
+        new_grid[np.linspace(0,small-1,big % small,dtype=int)] += 1
+
+        inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
+
+        splits = [slice(ii,jj) for ii,jj in zip(inds[:small],inds[1:])]
+        return splits
 
     def small_2_big(mult_c,delta_u,delta_c,splits):
         import numpy as np
 
-        mult_u = np.zeros((len(delta_u)))
-        for count,index in enumerate(splits):
-            mult_u[index] = mult_c[count]
-            delta_u[index] /= delta_c[count]
+        Gu = len(delta_u)
+        size = (mult_c.shape[0],Gu)
+        mult_u = np.zeros(size)
+        factor = delta_u.copy()
+        
 
-        mult_u *= delta_u
+        for count,index in enumerate(splits):
+            for ii in np.arange(index.indices(Gu)[0],index.indices(Gu)[1]):
+                mult_u[:,ii] = mult_c[:,count]
+                factor[ii] /= delta_c[count]
+
+        mult_u *= factor
+
 
         return mult_u
 
     def big_2_small(mult_u,delta_u,delta_c,splits):
         import numpy as np
 
-        mult_c = np.zeros((len(delta_c)))
+        size = (mult_u.shape[0],len(delta_c))
+        mult_c = np.zeros(size)
+
         for count,index in enumerate(splits):
-            mult_c[count] = np.sum(mult_u[splits]) 
+            mult_c[:,count] = np.sum(mult_u[:,index],axis=1) 
 
         return mult_c
 
     def energy_splits_delta(Gc,energy_u=None,delta=False):
-        import numpy as np
-        if energy_u is None:
-            energy_ = np.load('discrete1/data/energyGrid.npy')
-        Gu = len(energy_u) - 1
-        split = int(Gu / Gc); rmdr = Gu % Gc
+        # import numpy as np
+        # if energy_u is None:
+        #     energy_ = np.load('discrete1/data/energyGrid.npy')
+        # Gu = len(energy_u) - 1
+        # split = int(Gu / Gc); rmdr = Gu % Gc
 
-        new_grid = np.ones(Gc) * split
-        new_grid[np.linspace(0,Gc-1,rmdr,dtype=int)] += 1
+        # new_grid = np.ones(Gc) * split
+        # new_grid[np.linspace(0,Gc-1,rmdr,dtype=int)] += 1
 
-        inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
+        # inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
 
-        energy_c = energy_u[inds]
-        splits = [slice(ii,jj) for ii,jj in zip(inds[:len(inds)-1],inds[1:])]
+        # energy_c = energy_u[inds]
+        # splits = [slice(ii,jj) for ii,jj in zip(inds[:len(inds)-1],inds[1:])]
 
-        if delta:
-            delta_u = np.diff(energy_u); delta_c = np.diff(energy_c)
-            return delta_u,delta_c,splits
+        # if delta:
+        #     delta_u = np.diff(energy_u); delta_c = np.diff(energy_c)
+        #     return delta_u,delta_c,splits
 
-        return energy_c,splits
+        # return energy_c,splits
+        return None
 
     def resizer(energy_u):
         # energy_u = np.load('discrete1/data/energyGrid.npy')

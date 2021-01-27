@@ -1,5 +1,25 @@
 class Source:
-    def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta): 
+    def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,**kwargs): 
+        """ Deals with Source multigroup problems (time dependent, steady state,
+        reflected and vacuum boundaries)
+        Attributes:
+            G: Number of energy groups, int
+            N: Number of discrete angles, int
+            mu: Angles from Legendre Polynomials, numpy array of size (N,)
+            w: Normalized weights for mu, numpy array of size (N,)
+            total: total cross section, numpy array of size (I x G)
+            scatter: scatter cross section, numpy array of size (I x G x G)
+            fission: fission cross section, numpy array of size (I x G x G)
+            source: source, numpy array of size (I x G)
+            I: number of spatial cells, int
+            delta: width of each spatial cell, int
+        kwargs:
+            boundary: str (default vacuum), determine RHS of problem
+                options: 'vacuum', 'reflected'
+            time: bool (default False), time dependency
+            track: bool (default False), if track flux change with iteration
+        """ 
+        # Attributes
         self.G = G; self.N = N
         self.mu = mu; self.w = w
         self.total = total
@@ -8,14 +28,12 @@ class Source:
         self.source = source
         self.I = I
         self.delta = delta
-
-    def problem_information(self,**kwargs):
-        """ Takes into account different features of the problem
-        i.e. type of boundary, tracking information """
+        # kwargs
+        self.boundary = 'vacuum'; self.time = False
+        if "time" in kwargs:
+            self.time = kwargs["time"]
         if "boundary" in kwargs:
             self.boundary = kwargs["boundary"]
-        else:
-            self.boundary = 'vacuum'
 
                 
     def one_group(self,total_,scatter_,source_,guess):
@@ -73,18 +91,15 @@ class Source:
         return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
 
     def multi_group(self):
-        """ Arguments:
-            total: I x G vector of the total cross section for each spatial cell and energy level
-            scatter: I x G array for the scattering of the spatial cell by moment and energy
-            nuChiFission: 
-            tol: tolerance of convergence, default is 1e-08
-            MAX_ITS: maximum iterations allowed, default is 100
+        """ Run multi group steady state problem
         Returns:
-            phi: a I x G array  """
+            phi: scalar flux, numpy array of size (I x G) """
         import numpy as np
         
         phi_old = np.random.rand(self.I,self.G)
-        # phi_old = np.zeros((self.I,self.G))
+
+        if self.time:
+            print("Time")
         
         # source = np.einsum('ijk,ik->ij',self.fission,phi_old) + self.source
         # source += np.einsum('ijk,ik->ij',self.scatter,phi_old)
@@ -110,6 +125,19 @@ class Source:
             # source += np.einsum('ijk,ik->ij',self.scatter,phi)
 
         return phi
+
+    def time_multi_group(self):
+        return None
+
+
+    def run(self):
+        """ Will either call multi_group for steady state or time_multi_group
+        for time dependency """
+        if self.time:
+            return Source.time_multi_group(self)
+        return Source.multi_group(self)
+
+
 
     # def tracking_data(self,flux,sources=None):
     #     from discrete1.util import sn
