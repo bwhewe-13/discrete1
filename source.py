@@ -1,4 +1,7 @@
 class Source:
+    # Keyword Arguments allowed currently
+    __allowed = ("boundary","time")
+
     def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,**kwargs): 
         """ Deals with Source multigroup problems (time dependent, steady state,
         reflected and vacuum boundaries)
@@ -30,10 +33,14 @@ class Source:
         self.delta = delta
         # kwargs
         self.boundary = 'vacuum'; self.time = False
-        if "time" in kwargs:
-            self.time = kwargs["time"]
-        if "boundary" in kwargs:
-            self.boundary = kwargs["boundary"]
+        for key, value in kwargs.items():
+            assert (key in self.__class__.__allowed), "Attribute not allowed, available: enrich, energy" 
+            setattr(self, key, value)
+
+        # if "time" in kwargs:
+        #     self.time = kwargs["time"]
+        # if "boundary" in kwargs:
+        #     self.boundary = kwargs["boundary"]
 
                 
     def one_group(self,total_,scatter_,source_,guess):
@@ -116,7 +123,7 @@ class Source:
                 phi[:,g] = Source.one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
             
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
-            print('Change is',change,'\n===================================')
+            print('Change s'i,change,'\n===================================')
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
 

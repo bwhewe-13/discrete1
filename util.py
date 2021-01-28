@@ -623,7 +623,7 @@ class chem:
                         compound[ii] = compound[ii]+'_1'
                     isotope = re.findall('\^(.*)\_',compound[ii])[0]
                     counter.append(int(re.findall('\_(.*)',compound[ii])[0]))
-                    compound[ii] = re.sub(r'[^A-Za-z]+','',compound[ii])+'-'+isotope
+                    compound[ii] = re.sub(r'[^A-Za-z]+','',compound[ii])+''+isotope
                 else:
                     counter.append(int(''.join(re.findall('[0-9][^0-9]*',compound[ii]))))
                     compound[ii] = re.sub(r'[0-9]+','',compound[ii])
@@ -633,7 +633,7 @@ class chem:
         molar_mass = 0
         for ii,jj in zip(compound,counter):
             if ii == 'U':
-                molar_mass += (enrich*library['U-235'][0]+(1-enrich)*library['U-238'][0])*jj
+                molar_mass += (enrich*library['U235'][0]+(1-enrich)*library['U238'][0])*jj
             else:
                 molar_mass += library[ii][0]*jj
         return molar_mass
@@ -643,8 +643,8 @@ class chem:
         density_list = []
         for ckk,kk in enumerate(compound):
             if kk == 'U':
-                density_list.append(((enrich*density*NA)/library['U-235'][0]*(enrich*library['U-235'][0]+(1-enrich)*library['U-238'][0])/molar_mass)*counter[ckk])
-                density_list.append((((1-enrich)*density*NA)/library['U-238'][0]*(enrich*library['U-235'][0]+(1-enrich)*library['U-238'][0])/molar_mass)*counter[ckk])
+                density_list.append(((enrich*density*NA)/library['U235'][0]*(enrich*library['U235'][0]+(1-enrich)*library['U238'][0])/molar_mass)*counter[ckk])
+                density_list.append((((1-enrich)*density*NA)/library['U238'][0]*(enrich*library['U235'][0]+(1-enrich)*library['U238'][0])/molar_mass)*counter[ckk])
             else:
                 density_list.append(((density*NA)/molar_mass)*counter[ckk])
         return density_list
@@ -653,7 +653,7 @@ class chem:
         import numpy as np
         if library is None:
             import json
-            library = json.load(open('discrete1/data/element_dictionary.json'))
+            library = json.load(open('discrete1/data/compound_density.json'))
 
         # Formatting (compounds and count of each)
         compound,counter = chem.cleaning_compound(compound)
