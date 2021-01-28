@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 *.so
+*.Rhistory
 
 # Cross Section Data
 xs/

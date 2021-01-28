@@ -31,7 +31,7 @@ class XSGenerate:
 
     def cross_section(self):
         # Dictionary of Number Densities
-        nd_dict = NumberDensity.run(self.compound,self.enrich)
+        nd_dict = NumberDensity(self.compound,enrich=self.enrich).run()
         # Total Cross Section List
         total = [np.load(DATA_PATH + '{}/vecTotal.npy'.format(ii))[eval(self.__class__.__temp)] for ii in nd_dict.keys()]
         total_xs = sum([total[count]*nd for count,nd in enumerate(nd_dict.values())])
