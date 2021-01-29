@@ -4,5 +4,7 @@ __pycache__/
 *.Rhistory
 *.ipynb
 
+
 # Cross Section Data
 xs/
+svg/
