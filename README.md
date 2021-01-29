@@ -1,21 +1,21 @@
-# One-Dimensional Neutron Transport Equation ($S_{N}$) Solver using the Discrete Ordinates Method
+# One-Dimensional Neutron Transport Equation (![equation](https://latex.codecogs.com/gif.latex?%24S_%7BN%7D%24)) Solver using the Discrete Ordinates Method
 
 ## Machine Learning Methods are used to reduce the data requirements of Scattering and Fission Cross-Sections\ \
 
 ### Current Work
 - [ ] Add Testing Functions with pytest
-- [ ] Clean up $\texttt{source.py}$ and test functions
-- [ ] Make time-dependent source problems for $\texttt{source.py}$
-- [ ] Make $\texttt{class}$ to run through benchmark problems
+- [ ] Clean up ![equation](https://latex.codecogs.com/gif.latex?%24%5Ctexttt%7Bsource.py%7D%24) and test functions
+- [ ] Make time-dependent source problems for ![equation](https://latex.codecogs.com/gif.latex?%24%5Ctexttt%7Bsource.py%7D%24)
+- [ ] Make ![equation](https://latex.codecogs.com/gif.latex?%24%5Ctexttt%7Bclass.py%7D%24) to run through benchmark problems
 
 ### Current Data Saving Techniques
-<!-- 1. $\texttt{correct.py}$ is the correct $S_{N}$ code for one-dimensional sweeps. -->
-1. $\texttt{dj\_prob.py}$ incorporates Deep Jointly-Informed Neural Networks[^1] (DJINN) into the $S_{N}$ code for $\Sigma_\mathrm{s} \phi$ and $\Sigma_\mathrm{f} \phi$ calculations.
-2. $\texttt{ae\_prob.py}$ incorporates an autoencoder into the $S_{N}$ code for $\phi$, $\Sigma_\mathrm{s} \phi$, and $\Sigma_\mathrm{f} \phi$ to compress the energy groups and use in conjuction with DJINN. 
-3. $\texttt{svd\_prob.py}$ incorporates an SVD into the $S_{N}$ code for the $\Sigma_\mathrm{s}$ and $\Sigma_\mathrm{f}$ matrices.
-4. $\texttt{hybrid.py}$ separates the collided and uncollided terms to be used with different numbers of ordinates ($N$) and energy groups ($G$). 
+<!-- 1. $\texttt{correct.py}$ is the correct ![equation](https://latex.codecogs.com/gif.latex?%24S_%7BN%7D%24) code for one-dimensional sweeps. -->
+1. ![equation](https://latex.codecogs.com/gif.latex?%24%5Ctexttt%7Bdj%5C_prob.py%7D%24) incorporates Deep Jointly-Informed Neural Networks<sup>1</sup>sup> (DJINN) into the ![equation](https://latex.codecogs.com/gif.latex?%24S_%7BN%7D%24) code for ![equation](https://latex.codecogs.com/gif.latex?%24%5CSigma_%5Cmathrm%7Bs%7D%20%5Cphi%24) and ![equation](https://latex.codecogs.com/gif.latex?%24%5CSigma_%5Cmathrm%7Bf%7D%20%5Cphi%24) calculations.
+2. $\texttt{ae\_prob.py}$ incorporates an autoencoder into the ![equation](https://latex.codecogs.com/gif.latex?%24S_%7BN%7D%24) code for $\phi$, ![equation](https://latex.codecogs.com/gif.latex?%24%5CSigma_%5Cmathrm%7Bs%7D%20%5Cphi%24), and ![equation](https://latex.codecogs.com/gif.latex?%24%5CSigma_%5Cmathrm%7Bf%7D%20%5Cphi%24) to compress the energy groups and use in conjuction with DJINN. 
+3. ![equation](https://latex.codecogs.com/gif.latex?%24%5Ctexttt%7Bsvd%5C_prob.py%7D%24) incorporates an SVD into the ![equation](https://latex.codecogs.com/gif.latex?%24S_%7BN%7D%24) code for the ![equation](https://latex.codecogs.com/gif.latex?%24%5CSigma_%5Cmathrm%7Bs%7D%24) and ![equation](https://latex.codecogs.com/gif.latex?%24%5CSigma_%5Cmathrm%7Bf%7D%24) matrices.
+4. ![equation](https://latex.codecogs.com/gif.latex?%24%5Ctexttt%7Bhybrid.py%7D%24) separates the collided and uncollided terms to be used with different numbers of ordinates (![equation](https://latex.codecogs.com/gif.latex?%24N%24)) and energy groups (![equation](https://latex.codecogs.com/gif.latex?%24G%24)). 
 
-### Hybrid Method for Time Dependent Multigroup Problems
+<!-- ### Hybrid Method for Time Dependent Multigroup Problems
 0. Initialize $\psi^n$ to zero
 1. Calculate the uncollided $\psi^{n+1}_{u}$ and $\phi_{u}^{n+1}$ through the sweep
 	\begin{equation}
@@ -36,7 +36,7 @@
 	\Omega \cdot \nabla \psi_{u}^{n+2} &+ \left( \Sigma_\mathrm{t} + \frac{1}{v \Delta t} \right) \psi_{u}^{n+2} =  \\ &\Sigma_\mathrm{s} (\phi_{c}^{n+1} + \phi_{u}^{n+1}) + \Sigma_\mathrm{f} (\phi_{c}^{n+1} + \phi_{u}^{n+1}) + Q_{u} + \frac{1}{v \Delta t} \psi_{c}^{n+1} 
 	\end{split} \end{equation} 
 5. Repeat Steps 1-4 with the new angular flux
+ -->
 
 
-
-[^1]:  K. D. Humbird, J. L. Peterson, and R. G. McClarren. "Deep neural network initialization with decision trees." *IEEE transactions on neural networks and learning systems*,volume 30(5), pp. 1286–1295 (2018)
+<sup>1</sup>:  K. D. Humbird, J. L. Peterson, and R. G. McClarren. "Deep neural network initialization with decision trees." *IEEE transactions on neural networks and learning systems*,volume 30(5), pp. 1286–1295 (2018)
