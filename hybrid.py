@@ -1,18 +1,20 @@
 # os.system('gcc -fPIC -shared -o discrete1/data/cfunctions.so discrete1/data/cfunctions.c')
 
+import numpy as np
+from .setup_mg import Selection
+
 class Hybrid:
     def __init__(self,problem,G,N):
         """ G and N are lists of [uncollided,collided]  """
-        import numpy as np
+        
         self.problem = problem
         if type(G) is list:
             self.Gu = G[0]; self.Gc = G[1]
             # Have to call for splitting
             self.splits = Tools.energy_distribution(self.Gu,self.Gc)
-            self.delta_u = [1/self.Gu]*self.Gu
-            # self.delta_c = [1/self.Gc]*self.Gc
+            self.delta_u = Selection.energy_diff(self.problem,self.Gu)
+            # Sum the delta_u
             self.delta_c = [sum(self.delta_u[ii]) for ii in self.splits]
-
         else:
             self.Gu = G; self.Gc = G
 
@@ -22,11 +24,9 @@ class Hybrid:
             self.Nu = N; self.Nc = N
 
     def run(self):
-        from .setup_mg import selection
-        import numpy as np
 
-        uncollided = Uncollided(*selection(self.problem,self.Gu,self.Nu))
-        collided = Collided(*selection(self.problem,self.Gc,self.Nc))
+        uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu))
+        collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc))
         
         # if self.Gu != self.Gc:
         #     print(self.factor)
@@ -276,61 +276,5 @@ class Tools:
 
         return mult_c
 
-    def energy_splits_delta(Gc,energy_u=None,delta=False):
-        # import numpy as np
-        # if energy_u is None:
-        #     energy_ = np.load('discrete1/data/energyGrid.npy')
-        # Gu = len(energy_u) - 1
-        # split = int(Gu / Gc); rmdr = Gu % Gc
 
-        # new_grid = np.ones(Gc) * split
-        # new_grid[np.linspace(0,Gc-1,rmdr,dtype=int)] += 1
 
-        # inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
-
-        # energy_c = energy_u[inds]
-        # splits = [slice(ii,jj) for ii,jj in zip(inds[:len(inds)-1],inds[1:])]
-
-        # if delta:
-        #     delta_u = np.diff(energy_u); delta_c = np.diff(energy_c)
-        #     return delta_u,delta_c,splits
-
-        # return energy_c,splits
-        return None
-
-    def resizer(energy_u):
-        # energy_u = np.load('discrete1/data/energyGrid.npy')
-        
-        # Gu = len(energy_u) - 1
-        # Gc = 40 # Given
-        
-        # split = int(Gu / Gc); rmdr = Gu % Gc
-        # new_grid = np.ones(Gc) * split
-        # new_grid[np.linspace(0,Gc-1,rmdr,dtype=int)] += 1
-        
-        # inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
-        
-        # energy_c = energy_u[inds]
-        
-        # delta_Eu = np.diff(energy_u)
-        # delta_Ec = np.diff(energy_c)
-        
-        # splits = [slice(ii,jj) for ii,jj in zip(inds[:len(inds)-1],inds[1:])]
-        
-        # Small to Big
-        # smult_c = np.random.rand(Gc) # Given
-        # smult_u = np.zeros((Gu))
-        
-        # for count,index in enumerate(splits):
-        #     smult_u[index] = smult_c[count]
-        #     delta_Eu[index] /= delta_Ec[count]
-        
-        # smult_u *= delta_Eu
-        
-        # # Big to Small
-        # fmult_u = np.random.rand(Gu)
-        # fmult_c = np.zeros((Gc))
-        
-        # for count,index in enumerate(splits):
-        #     fmult_c[count] = np.sum(fmult_u[splits]) 
-        return None

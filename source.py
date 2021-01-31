@@ -1,3 +1,12 @@
+"""
+Running Multigroup Source Problems
+"""
+
+from .setup_mg import Selection
+
+import numpy as np
+import ctypes
+
 class Source:
     # Keyword Arguments allowed currently
     __allowed = ("boundary","time")
@@ -34,13 +43,13 @@ class Source:
         # kwargs
         self.boundary = 'vacuum'; self.time = False
         for key, value in kwargs.items():
-            assert (key in self.__class__.__allowed), "Attribute not allowed, available: enrich, energy" 
+            assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, time" 
             setattr(self, key, value)
 
-        # if "time" in kwargs:
-        #     self.time = kwargs["time"]
-        # if "boundary" in kwargs:
-        #     self.boundary = kwargs["boundary"]
+    @classmethod
+    def stainless_infinite(cls,G,N):
+        problem = cls(*Selection.select('stainless infinite',G,N))
+        return problem
 
                 
     def one_group(self,total_,scatter_,source_,guess):
@@ -53,8 +62,6 @@ class Source:
             MAX_ITS: maximum iterations allowed, default is 100
         Returns:
             phi: a I array  """
-        import numpy as np
-        import ctypes
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cSource.so')
         sweep = clibrary.vacuum
         if self.boundary == 'reflected':
@@ -94,14 +101,12 @@ class Source:
         return phi
 
     def update_q(xs,phi,start,stop,g):
-        import numpy as np
         return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
 
     def multi_group(self):
         """ Run multi group steady state problem
         Returns:
             phi: scalar flux, numpy array of size (I x G) """
-        import numpy as np
         
         phi_old = np.random.rand(self.I,self.G)
 
@@ -117,13 +122,16 @@ class Source:
             phi = np.zeros(phi_old.shape)  
             for g in range(self.G):
                 q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
+                # q_tilde = Source.update_q(self.scatter,phi_old,g+1,self.G,g)
                 if g != 0:
                     q_tilde = q_tilde + Source.update_q(self.scatter,phi,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
+                    # q_tilde = Source.update_q(self.scatter,phi,0,g,g)
                 # phi[:,g] = Source.one_group(self,self.total[:,g],q_tilde,self.source[:,g],phi_old[:,g])
                 phi[:,g] = Source.one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
-            
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
-            print('Change s'i,change,'\n===================================')
+            if np.isnan(change) or np.isinf(change):
+                change = 0
+            print('Change ',change,'\n===================================')
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
 
