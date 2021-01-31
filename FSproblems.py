@@ -21,7 +21,7 @@ class Selection:
             boundary = kwargs['boundary']
         # Pick the correct class
         if problem == 'reeds':
-            pick = Reeds(G,N)
+            pick = Reeds(G,N,boundary=boundary)
         elif problem == 'stainless infinite':
             pick = StainlessInfinite(G,N)
         # Call for the variables
@@ -31,7 +31,7 @@ class Selection:
             items[2] = items[2][int(N*0.5):] # mu
             items[3] = items[3][int(N*0.5):] # w
             items[1] = int(N*0.5) # N
-        return items#, kwargs
+        return items, kwargs
 
     def energy_diff(problem,Gu):
         """ Returns the width of the larger energy list """
@@ -47,9 +47,15 @@ class Selection:
 
 
 class Reeds:
-    def __init__(self,G,N):
+    __allowed = ("boundary")
+
+    def __init__(self,G,N,**kwargs):
         self.G = G
         self.N = N
+        self.boundary = 'vacuum'; 
+        for key, value in kwargs.items():
+            assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, time" 
+            setattr(self, key, value)
 
     def variables(self):
         # import numpy as np
@@ -69,6 +75,16 @@ class Reeds:
         total_ = np.zeros((I,self.G)); total_vals = [10,10,0,5,50,5,0,10,10]
         scatter_ = np.zeros((I,self.G,self.G)); scatter_vals = [9.9,9.9,0,0,0,0,0,9.9,9.9]
         source_ = np.zeros((I,self.G)); source_vals = [0,1,0,0,50,0,0,1,0]
+
+        if self.boundary == 'reflected':
+            R = 8.; delta = R/I
+            boundaries = [slice(0,int(2/delta)),slice(int(2/delta),int(3/delta)),
+                slice(int(3/delta),int(5/delta)),slice(int(5/delta),int(6/delta)),
+                slice(int(6/delta),int(8/delta))]
+
+            total_vals = total_vals[:5].copy()
+            scatter_vals = scatter_vals[:5].copy()
+            source_vals = source_vals[:5].copy()
 
         for ii in range(len(boundaries)):
             total_[boundaries[ii]] = total_vals[ii]
@@ -132,19 +148,22 @@ class StainlessInfinite:
         delta = R/I
 
         total,scatter,fission = XSGenerate('SS440').cross_section()
+
         # Create source in 14.1 MeV group
         energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
         g = np.argmin(abs(energy_grid-14.1E6))
-        source = np.zeros((I,self.G))
-        source[:,g] = 1
+        source = np.zeros((len(energy_grid)-1))
+        source[g] = 1 # all spatial cells in this group
 
         if reduced:
             total,scatter,fission = Tools.group_reduction(self.G,energy_grid,total,scatter.T,fission.T)
+            source = Tools.group_reduction(self.G,energy_grid,source,None,None)
 
         # Progagate for all groups
         scatter_ = np.tile(scatter,(I,1,1))
         fission_ = np.tile(fission,(I,1,1))
         total_ = np.tile(total,(I,1))
+        source = np.tile(source,(I,1))
         
         return self.G,self.N,mu,w,total_,scatter_,fission_,source,I,delta
 
@@ -197,6 +216,10 @@ class Tools:
         total *= old_diff_grid
         new_total = Tools.vector_reduction(total,inds)
         new_total /= new_diff_grid
+
+        # For source problem
+        if scatter is None and fission is None:
+            return new_total
 
         # Scatter Cross Section
         scatter *= old_diff_grid
