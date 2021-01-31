@@ -2,7 +2,7 @@
 Running Multigroup Source Problems
 """
 
-from .setup_mg import Selection
+from .FSproblems import Selection
 
 import numpy as np
 import ctypes
@@ -47,10 +47,17 @@ class Source:
             setattr(self, key, value)
 
     @classmethod
-    def stainless_infinite(cls,G,N):
-        problem = cls(*Selection.select('stainless infinite',G,N))
+    def stainless_infinite(cls,G,N,**kwargs):
+        attributes,keywords = Selection.select('stainless infinite',G,N,**kwargs)
+        problem = cls(*attributes,**keywords)
+        # problem = cls(*Selection.select('stainless infinite',G,N))
         return problem
 
+    @classmethod
+    def reeds(cls,G,N,**kwargs):
+        attributes,keywords = Selection.select('reeds',G,N,**kwargs)
+        problem = cls(*attributes,**keywords)
+        return problem
                 
     def one_group(self,total_,scatter_,source_,guess):
         """ Arguments:
@@ -100,10 +107,55 @@ class Source:
 
         return phi
 
+    def time_one_group(self,total_,scatter_,source_,guess,psi_last):
+        clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cSource.so')
+        sweep = clibrary.time_vacuum
+
+        phi_old = guess.copy().astype('float64')
+        # Initialize new angular flux
+        psi_next = np.zeros(psi_last.shape,dtype='float64')
+
+        tol = 1e-08; MAX_ITS = 100
+        converged = 0; count = 1
+        while not (converged):
+            phi = np.zeros((self.I),dtype='float64')
+            for n in range(self.N):
+                # Determining the direction
+                direction = ctypes.c_int(int(np.sign(self.mu[n])))
+                weight = np.sign(self.mu[n]) * self.mu[n] * self.delta
+                # Collecting Angle
+                psi_angle = np.zeros((self.I),dtype='float64')
+                psi_ptr = ctypes.c_void_p(psi_angle.ctypes.data)
+                # Source Term
+                rhs = (source_ + psi_last[:,n] * self.speed).astype('float64')
+                rhs_ptr = ctypes.c_void_p(rhs.ctypes.data)
+
+                top_mult = (weight - 0.5 * total_ - 0.5 * self.speed).astype('float64')
+                top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
+
+                bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * self.speed)).astype('float64')
+                bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
+
+                temp_scat = (scatter_ * phi_old).astype('float64')
+                ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
+                
+                phi_ptr = ctypes.c_void_p(phi.ctypes.data)
+                
+                sweep(phi_ptr,psi_ptr,ts_ptr,rhs_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
+
+                psi_next[:,n] = psi_angle.copy()
+
+            change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            converged = (change < tol) or (count >= MAX_ITS) 
+            count += 1
+            phi_old = phi.copy()
+
+        return phi,psi_next
+
     def update_q(xs,phi,start,stop,g):
         return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
 
-    def multi_group(self):
+    def multi_group(self,**kwargs):
         """ Run multi group steady state problem
         Returns:
             phi: scalar flux, numpy array of size (I x G) """
@@ -111,7 +163,8 @@ class Source:
         phi_old = np.random.rand(self.I,self.G)
 
         if self.time:
-            print("Time")
+            psi_last = kwargs['psi_last'].copy()
+            psi_next = np.zeros(psi_last.shape)
         
         # source = np.einsum('ijk,ik->ij',self.fission,phi_old) + self.source
         # source += np.einsum('ijk,ik->ij',self.scatter,phi_old)
@@ -127,29 +180,50 @@ class Source:
                     q_tilde = q_tilde + Source.update_q(self.scatter,phi,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
                     # q_tilde = Source.update_q(self.scatter,phi,0,g,g)
                 # phi[:,g] = Source.one_group(self,self.total[:,g],q_tilde,self.source[:,g],phi_old[:,g])
-                phi[:,g] = Source.one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
+                if self.time:
+                    phi[:,g],psi_next[:,:,g] = Source.time_one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g],psi_last[:,:,g])
+                else:
+                    phi[:,g] = Source.one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
+
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
-                change = 0
+                change = 0.5
             print('Change ',change,'\n===================================')
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
 
             phi_old = phi.copy()
+
+            if self.time:
+                psi_last = psi_next.copy()
             # source = np.einsum('ijk,ik->ij',self.fission,phi) + self.source
             # source += np.einsum('ijk,ik->ij',self.scatter,phi)
-
+        if self.time:
+            return phi,psi_next
         return phi
 
-    def time_multi_group(self):
-        return None
+    def time_steps(self):
+
+        T = 100; dt = 1; v = 1
+        psi_last = np.zeros((self.I,self.N,self.G))
+        self.speed = 1/(v*dt)
+        time_phi = []
+
+        for t in range(int(T/dt)):
+            # Solve at initial time step
+            phi,psi_next = Source.multi_group(self,psi_last=psi_last)
+            # Update angular flux
+            psi_last = psi_next.copy()
+            time_phi.append(phi)
+
+        return phi,time_phi
 
 
     def run(self):
         """ Will either call multi_group for steady state or time_multi_group
         for time dependency """
         if self.time:
-            return Source.time_multi_group(self)
+            return Source.time_steps(self)
         return Source.multi_group(self)
 
 

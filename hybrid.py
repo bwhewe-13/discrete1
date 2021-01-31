@@ -1,7 +1,7 @@
 # os.system('gcc -fPIC -shared -o discrete1/data/cfunctions.so discrete1/data/cfunctions.c')
 
 import numpy as np
-from .setup_mg import Selection
+from .FSproblems import Selection
 
 class Hybrid:
     def __init__(self,problem,G,N):
@@ -25,12 +25,9 @@ class Hybrid:
 
     def run(self):
 
-        uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu))
-        collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc))
+        uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu)[0])
+        collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc)[0])
         
-        # if self.Gu != self.Gc:
-        #     print(self.factor)
-
         T = 100; dt = 1; v = 1
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
         speed = 1/(v*dt)
