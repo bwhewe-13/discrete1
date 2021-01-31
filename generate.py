@@ -44,7 +44,7 @@ class XSGenerate:
             fission = [np.load(DATA_PATH + '{}/nufission_0{}.npy'.format(ii,self.__class__.__temp))[0] for ii in nd_dict.keys()]
             fission_xs = sum([fission[count]*nd for count,nd in enumerate(nd_dict.values())])
 
-        return total_xs, scatter_xs, fission_xs
+        return total_xs, scatter_xs.T, fission_xs.T
 
 
 
