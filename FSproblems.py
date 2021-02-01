@@ -12,7 +12,6 @@ DATA_PATH = pkg_resources.resource_filename('discrete1','data/')
 
 class Selection:
     
-
     def select(problem,G,N,**kwargs):
         """ Selects the right class for multigroup problems  """
         # Attributes
