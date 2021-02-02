@@ -28,7 +28,7 @@ class Hybrid:
         uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu)[0])
         collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc)[0])
         
-        T = 100; dt = 1; v = 1
+        T = 25; dt = 1; v = 1
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
         speed = 1/(v*dt)
         time_phi = []
@@ -195,9 +195,9 @@ class Collided:
             phi_old = phi.copy()
         return phi
 
-    def update_q(self,phi,start,stop,g):
+    def update_q(xs,phi,start,stop,g):
         import numpy as np
-        return np.sum(self.scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
+        return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
 
     def multi_group(self,speed,source,guess):
         import numpy as np
@@ -209,10 +209,10 @@ class Collided:
         while not (converged):
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
-                q_tilde = source[:,g] + Collided.update_q(self,phi_old,g+1,self.G,g)
+                q_tilde = source[:,g] + Collided.update_q(self.scatter,phi_old,g+1,self.G,g) + Collided.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
-                    q_tilde += Collided.update_q(self,phi,0,g,g)
-                phi[:,g] = Collided.one_group(self,speed,self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g])
+                    q_tilde = q_tilde + Collided.update_q(self.scatter,phi,0,g,g) + Collided.update_q(self.fission,phi,0,g,g)
+                phi[:,g] = Collided.one_group(self,speed,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change):
                 change = 0
