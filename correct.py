@@ -101,7 +101,7 @@ class eigen:
             return phi,scatter_mg
         return phi
             
-    def transport(self,problem,enrich,tol=1e-12,MAX_ITS=100,LOUD=True):
+    def transport(self,problem,enrich,tol=1e-12,MAX_ITS=1000,LOUD=True):
         """ Arguments:
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
