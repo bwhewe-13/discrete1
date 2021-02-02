@@ -8,3 +8,4 @@ __pycache__/
 # Cross Section Data
 xs/
 svgs/
+pkg_xtr/

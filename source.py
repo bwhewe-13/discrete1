@@ -188,14 +188,15 @@ class Source:
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.5
-            print('Change ',change,'\n===================================')
+            if not self.time:
+                print('Count',count,'Change',change,'\n===================================')
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
 
             phi_old = phi.copy()
 
-            if self.time:
-                psi_last = psi_next.copy()
+            # if self.time:
+            #     psi_last = psi_next.copy()
             # source = np.einsum('ijk,ik->ij',self.fission,phi) + self.source
             # source += np.einsum('ijk,ik->ij',self.scatter,phi)
         if self.time:
@@ -204,7 +205,7 @@ class Source:
 
     def time_steps(self):
 
-        T = 100; dt = 1; v = 1
+        T = 25; dt = 1; v = 1
         psi_last = np.zeros((self.I,self.N,self.G))
         self.speed = 1/(v*dt)
         time_phi = []
@@ -212,6 +213,7 @@ class Source:
         for t in range(int(T/dt)):
             # Solve at initial time step
             phi,psi_next = Source.multi_group(self,psi_last=psi_last)
+            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Update angular flux
             psi_last = psi_next.copy()
             time_phi.append(phi)

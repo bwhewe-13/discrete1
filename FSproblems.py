@@ -140,7 +140,8 @@ class StainlessInfinite:
         if self.G != 87:
             reduced = True
 
-        L = 0; R = 10000.; I = 1000
+        # L = 0; R = 1000.; I = 1000
+        L = 0; R = 10000; I = 1
         mu,w = np.polynomial.legendre.leggauss(self.N)
         w /= np.sum(w); 
 

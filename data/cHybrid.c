@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define LENGTH 1000
+// #define LENGTH 1
 
 
 // Uncollided One Group
