@@ -35,7 +35,7 @@ class Hybrid:
         collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc)[0])
 
         T = 25; dt = 1; time_phi = []
-        # self.v_u = 1; self.v_c = 1
+        self.v_u = np.ones((uncollided.G)); self.v_c = np.ones((collided.G))
         speed_u = 1/(self.v_u*dt); speed_c = 1/(self.v_c*dt)
 
         # Initialize psi to zero
