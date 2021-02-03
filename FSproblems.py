@@ -43,6 +43,15 @@ class Selection:
 
         return delta_u
 
+    def speed_calc(problem,Gu):
+        if problem == 'reeds':
+            v = np.ones((Gu))
+
+        elif problem == 'stainless infinite':
+            grid = np.load(DATA_PATH + 'energyGrid.npy')
+            v = Tools.speed_from_energy(grid,Gu)
+
+        return v
 
 
 class Reeds:
@@ -127,8 +136,6 @@ class FourGroup:
 
         return self.G,self.N,mu,w,total_,scatter_,fission_,source_,I,1/delta
 
-
-
 class StainlessInfinite:
     def __init__(self,G,N):
         self.G = G
@@ -139,9 +146,11 @@ class StainlessInfinite:
         reduced = False
         if self.G != 87:
             reduced = True
+            print('REDUCED')
 
-        # L = 0; R = 1000.; I = 1000
-        L = 0; R = 10000; I = 1
+
+        L = 0; R = 1000.; I = 1000
+        # L = 0; R = 10000; I = 1
         mu,w = np.polynomial.legendre.leggauss(self.N)
         w /= np.sum(w); 
 
@@ -156,15 +165,18 @@ class StainlessInfinite:
         source[g] = 1 # all spatial cells in this group
 
         if reduced:
-            total,scatter,fission = Tools.group_reduction(self.G,energy_grid,total,scatter.T,fission.T)
+            total,scatter,fission = Tools.group_reduction(self.G,energy_grid,total,scatter,fission)
             source = Tools.group_reduction(self.G,energy_grid,source,None,None)
+
+        # Something in the downscattering
+        # scatter = np.diag(np.diag(scatter))
 
         # Progagate for all groups
         scatter_ = np.tile(scatter,(I,1,1))
         fission_ = np.tile(fission,(I,1,1))
         total_ = np.tile(total,(I,1))
         source = np.tile(source,(I,1))
-        
+
         return self.G,self.N,mu,w,total_,scatter_,fission_,source,I,delta
 
     def scatter_fission(self):
@@ -260,3 +272,36 @@ class Tools:
         # Sum the vector
         reduced = np.array([sum(vector[indices[ii]:indices[ii+1]]) for ii in range(new_group)])
         return reduced
+
+    def speed_from_energy(grid,G):
+        """ Convert energy edges to speed at cell centers
+        Arguments:
+            grid: energy edges
+            G: number of groups to collapse 
+        Returns:
+            speeds at cell centers (cm/s)
+        """
+        mass_neutron = 1.67493E-27 # kg
+        eV_J = 1.60218E-19 # J
+
+        if len(grid) - 1 == G:
+            centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(range(len(grid)-1),range(1,len(grid)))])
+        else:
+            old_group = len(grid) - 1            
+            # Create array showing the number of groups combined 
+            new_grid = np.ones(new_group) * int(old_group/new_group)
+            # Add the remainder groups to the first x number 
+            new_grid[np.linspace(0,new_group-1,old_group % new_group,dtype=int)] += 1
+
+            assert (new_grid.sum() == old_group)
+            # Calculate the indices while including the left-most (insert)
+            inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
+            centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(inds[:len(grid)-1],inds[1:])])
+
+        v = np.sqrt((2 * eV_J * centers)/mass_neutron) * 100
+        return v
+
+
+
+
+

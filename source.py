@@ -72,6 +72,7 @@ class Source:
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cSource.so')
         sweep = clibrary.vacuum
         if self.boundary == 'reflected':
+            print('Reflected')
             sweep = clibrary.reflected
 
         phi_old = guess.copy()
@@ -79,7 +80,7 @@ class Source:
         source_ = source_.astype('float64')
         source_ptr = ctypes.c_void_p(source_.ctypes.data)
 
-        tol = 1e-08; MAX_ITS = 100
+        tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros((self.I),dtype='float64')
@@ -101,11 +102,14 @@ class Source:
                 sweep(phi_ptr,ts_ptr,source_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
 
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            if np.isnan(change) or np.isinf(change):
+                change = 0.
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
 
         return phi
+
 
     def time_one_group(self,total_,scatter_,source_,guess,psi_last):
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cSource.so')
@@ -115,7 +119,7 @@ class Source:
         # Initialize new angular flux
         psi_next = np.zeros(psi_last.shape,dtype='float64')
 
-        tol = 1e-08; MAX_ITS = 100
+        tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros((self.I),dtype='float64')
@@ -146,6 +150,8 @@ class Source:
                 psi_next[:,n] = psi_angle.copy()
 
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            if np.isnan(change) or np.isinf(change):
+                change = 0.
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
@@ -160,34 +166,35 @@ class Source:
         Returns:
             phi: scalar flux, numpy array of size (I x G) """
         
-        phi_old = np.random.rand(self.I,self.G)
+        # phi_old = np.random.rand(self.I,self.G)
+        phi_old = np.zeros((self.I,self.G))
 
         if self.time:
             psi_last = kwargs['psi_last'].copy()
             psi_next = np.zeros(psi_last.shape)
-        
-        # source = np.einsum('ijk,ik->ij',self.fission,phi_old) + self.source
-        # source += np.einsum('ijk,ik->ij',self.scatter,phi_old)
+            phi_old = kwargs['guess'].copy()
 
-        tol = 1e-08; MAX_ITS = 100
+
+        tol = 1e-12; MAX_ITS = 1000
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)  
             for g in range(self.G):
-                q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
+                # q_tilde = np.einsum('ijk,ik->ij',self.scatter,phi_old) + self.source
+                q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) #+ Source.update_q(self.fission,phi_old,g+1,self.G,g)
                 # q_tilde = Source.update_q(self.scatter,phi_old,g+1,self.G,g)
-                if g != 0:
-                    q_tilde = q_tilde + Source.update_q(self.scatter,phi,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
-                    # q_tilde = Source.update_q(self.scatter,phi,0,g,g)
-                # phi[:,g] = Source.one_group(self,self.total[:,g],q_tilde,self.source[:,g],phi_old[:,g])
+                # if g != 0:
+                #     q_tilde += Source.update_q(self.scatter,phi_old,0,g,g) #+ Source.update_q(self.fission,phi,0,g,g)
+
                 if self.time:
-                    phi[:,g],psi_next[:,:,g] = Source.time_one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g],psi_last[:,:,g])
+                    phi[:,g],psi_next[:,:,g] = Source.time_one_group(self,self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g],psi_last[:,:,g])
+                    # phi[:,g],psi_next[:,:,g] = Source.time_one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g],psi_last[:,:,g])
                 else:
                     phi[:,g] = Source.one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
 
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
-                change = 0.5
+                change = 0.
             if not self.time:
                 print('Count',count,'Change',change,'\n===================================')
             count += 1
@@ -195,10 +202,6 @@ class Source:
 
             phi_old = phi.copy()
 
-            # if self.time:
-            #     psi_last = psi_next.copy()
-            # source = np.einsum('ijk,ik->ij',self.fission,phi) + self.source
-            # source += np.einsum('ijk,ik->ij',self.scatter,phi)
         if self.time:
             return phi,psi_next
         return phi
@@ -210,13 +213,17 @@ class Source:
         self.speed = 1/(v*dt)
         time_phi = []
 
+        phi_old = np.zeros((self.I,self.G))
+
         for t in range(int(T/dt)):
             # Solve at initial time step
-            phi,psi_next = Source.multi_group(self,psi_last=psi_last)
+            phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
+
             print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Update angular flux
             psi_last = psi_next.copy()
             time_phi.append(phi)
+            phi_old = phi.copy()
 
         return phi,time_phi
 
@@ -227,7 +234,6 @@ class Source:
         if self.time:
             return Source.time_steps(self)
         return Source.multi_group(self)
-
 
 
     # def tracking_data(self,flux,sources=None):

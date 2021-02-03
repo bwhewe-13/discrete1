@@ -69,7 +69,7 @@ class eigen:
         Returns:
             phi: a I x G array  """
         import numpy as np
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
         # smult = None
         # phi_old = np.zeros((self.I,self.G))
         phi_old = guess.copy()
@@ -109,7 +109,7 @@ class eigen:
         Returns:
             phi: a I x G array    """        
         import numpy as np
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
 
         phi_old = np.random.rand(self.I,self.G)
         phi_old /= np.linalg.norm(phi_old)
@@ -268,7 +268,7 @@ class eigen_collect:
             phi: a I x G array    """        
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
 
         phi_old = func.initial_flux(problem)
         keff = np.linalg.norm(phi_old)
@@ -371,7 +371,7 @@ class Source:
             phi: a I x G array  """
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.setup import func,ex_sources
+        from discrete1.setup_ke import func,ex_sources
 
         # phi_old = func.initial_flux('carbon_source')
         phi_old = np.random.rand(self.I,self.G)
