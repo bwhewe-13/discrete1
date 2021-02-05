@@ -34,9 +34,15 @@ class Hybrid:
         uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu)[0])
         collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc)[0])
 
-        T = 25; dt = 1; time_phi = []
+        print(self.v_c.shape)
+        print(self.v_u.shape)
+
+        T = 5000; dt = 100; time_phi = []
+        # T = 25; dt = 1; time_phi = []
         self.v_u = np.ones((uncollided.G)); self.v_c = np.ones((collided.G))
         speed_u = 1/(self.v_u*dt); speed_c = 1/(self.v_c*dt)
+
+        phi_c = np.zeros((collided.I,collided.G))
 
         # Initialize psi to zero
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
@@ -44,21 +50,20 @@ class Hybrid:
             # Step 1: Solve Uncollided Equation
             phi_u,_ = uncollided.multi_group(psi_last,speed_u)
             # Step 2: Compute Source for Collided
-            source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u) #+ uncollided.source
+            source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u) 
             # Resizing
             if self.Gu != self.Gc:
                 source_c = Tools.big_2_small(source_c,self.delta_u,self.delta_c,self.splits)
             # Step 3: Solve Collided Equation
-            phi_c = collided.multi_group(speed_c,source_c,phi_u)
+            phi_c = collided.multi_group(speed_c,source_c,phi_c)
             # Resize phi_c
             if self.Gu != self.Gc:
-                print('RESIZE')
                 phi = Tools.small_2_big(phi_c,self.delta_u,self.delta_c,self.splits) + phi_u
             else:
                 phi = phi_c + phi_u
             # Step 4: Calculate next time step
             source = np.einsum('ijk,ik->ij',uncollided.scatter,phi) + uncollided.source + np.einsum('ijk,ik->ij',uncollided.fission,phi)
-            _,psi_next = uncollided.multi_group(psi_last,speed_u,source)
+            phi,psi_next = uncollided.multi_group(psi_last,speed_u,source)
             # Step 5: Update and repeat
             print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             
@@ -109,7 +114,7 @@ class Uncollided:
             top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
             top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
 
-            bottom_mult = (1/(0.5 * total_ + weight + 0.5 * speed)).astype('float64')
+            bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64')
             bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
 
             phi_ptr = ctypes.c_void_p(phi.ctypes.data)
@@ -170,9 +175,8 @@ class Collided:
         source_ptr = ctypes.c_void_p(source_.ctypes.data)
         
         phi_old = guess_.copy()
-        phi_old *= 0
 
-        tol = 1e-12; MAX_ITS = 1000
+        tol = 1e-8; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros((self.I),dtype='float64')
@@ -184,7 +188,7 @@ class Collided:
                 top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
                 top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
 
-                bottom_mult = (1/(0.5 * total_ + weight + 0.5 * speed)).astype('float64') 
+                bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64') 
                 bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
 
                 temp_scat = (scatter_ * phi_old).astype('float64')
@@ -211,20 +215,20 @@ class Collided:
 
         assert(source.shape[1] == self.G), 'Wrong Number of Groups'
 
-        phi_old = np.zeros((self.I,self.G))
+        phi_old = guess.copy()
         
-        tol = 1e-12; MAX_ITS = 1000
+        tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
-                q_tilde = source[:,g] + Collided.update_q(self.scatter,phi_old,g+1,self.G,g) #+ Collided.update_q(self.fission,phi_old,g+1,self.G,g)
-                # if g != 0:
-                #     q_tilde += Collided.update_q(self.scatter,phi,0,g,g) #+ Collided.update_q(self.fission,phi,0,g,g)
+                q_tilde = source[:,g] + Collided.update_q(self.scatter,phi_old,g+1,self.G,g) + Collided.update_q(self.fission,phi_old,g+1,self.G,g)
+                if g != 0:
+                    q_tilde += Collided.update_q(self.scatter,phi,0,g,g) #+ Collided.update_q(self.fission,phi,0,g,g)
                 phi[:,g] = Collided.one_group(self,speed[g],self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g])
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
-                change = 0.
+                change = 0.5
             # print('Collided Change is',change,'\n===================================')
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1

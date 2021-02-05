@@ -9,7 +9,7 @@ import ctypes
 
 class Source:
     # Keyword Arguments allowed currently
-    __allowed = ("boundary","time")
+    __allowed = ("boundary","time","speed")
 
     def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,**kwargs): 
         """ Deals with Source multigroup problems (time dependent, steady state,
@@ -29,6 +29,7 @@ class Source:
             boundary: str (default vacuum), determine RHS of problem
                 options: 'vacuum', 'reflected'
             time: bool (default False), time dependency
+            speed: list of length G for the speed of each energy group (cm/s)
             track: bool (default False), if track flux change with iteration
         """ 
         # Attributes
@@ -41,7 +42,7 @@ class Source:
         self.I = I
         self.delta = delta
         # kwargs
-        self.boundary = 'vacuum'; self.time = False
+        self.boundary = 'vacuum'; self.time = False; self.speed = None
         for key, value in kwargs.items():
             assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, time" 
             setattr(self, key, value)
@@ -49,7 +50,10 @@ class Source:
     @classmethod
     def stainless_infinite(cls,G,N,**kwargs):
         attributes,keywords = Selection.select('stainless infinite',G,N,**kwargs)
+        # cls.speed = Selection.speed_calc('stainless infinite',87)
         problem = cls(*attributes,**keywords)
+        problem.speed = Selection.speed_calc('stainless infinite',87)
+        print(problem.speed)
         # problem = cls(*Selection.select('stainless infinite',G,N))
         return problem
 
@@ -111,7 +115,7 @@ class Source:
         return phi
 
 
-    def time_one_group(self,total_,scatter_,source_,guess,psi_last):
+    def time_one_group(self,total_,scatter_,source_,guess,psi_last,speed):
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cSource.so')
         sweep = clibrary.time_vacuum
 
@@ -119,7 +123,7 @@ class Source:
         # Initialize new angular flux
         psi_next = np.zeros(psi_last.shape,dtype='float64')
 
-        tol = 1e-12; MAX_ITS = 100
+        tol = 1e-8; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros((self.I),dtype='float64')
@@ -131,13 +135,13 @@ class Source:
                 psi_angle = np.zeros((self.I),dtype='float64')
                 psi_ptr = ctypes.c_void_p(psi_angle.ctypes.data)
                 # Source Term
-                rhs = (source_ + psi_last[:,n] * self.speed).astype('float64')
+                rhs = (source_ + psi_last[:,n] * speed).astype('float64')
                 rhs_ptr = ctypes.c_void_p(rhs.ctypes.data)
 
-                top_mult = (weight - 0.5 * total_ - 0.5 * self.speed).astype('float64')
+                top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
                 top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
 
-                bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * self.speed)).astype('float64')
+                bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64')
                 bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
 
                 temp_scat = (scatter_ * phi_old).astype('float64')
@@ -166,7 +170,6 @@ class Source:
         Returns:
             phi: scalar flux, numpy array of size (I x G) """
         
-        # phi_old = np.random.rand(self.I,self.G)
         phi_old = np.zeros((self.I,self.G))
 
         if self.time:
@@ -174,27 +177,22 @@ class Source:
             psi_next = np.zeros(psi_last.shape)
             phi_old = kwargs['guess'].copy()
 
-
-        tol = 1e-12; MAX_ITS = 1000
+        tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)  
             for g in range(self.G):
-                # q_tilde = np.einsum('ijk,ik->ij',self.scatter,phi_old) + self.source
-                q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) #+ Source.update_q(self.fission,phi_old,g+1,self.G,g)
-                # q_tilde = Source.update_q(self.scatter,phi_old,g+1,self.G,g)
-                # if g != 0:
-                #     q_tilde += Source.update_q(self.scatter,phi_old,0,g,g) #+ Source.update_q(self.fission,phi,0,g,g)
-
+                q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
+                if g != 0:
+                    q_tilde += Source.update_q(self.scatter,phi_old,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
                 if self.time:
-                    phi[:,g],psi_next[:,:,g] = Source.time_one_group(self,self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g],psi_last[:,:,g])
-                    # phi[:,g],psi_next[:,:,g] = Source.time_one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g],psi_last[:,:,g])
+                    phi[:,g],psi_next[:,:,g] = Source.time_one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g],psi_last[:,:,g],self.speed[g])
                 else:
                     phi[:,g] = Source.one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
 
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
-                change = 0.
+                change = 0.5
             if not self.time:
                 print('Count',count,'Change',change,'\n===================================')
             count += 1
@@ -208,9 +206,10 @@ class Source:
 
     def time_steps(self):
 
-        T = 25; dt = 1; v = 1
+        T = 5000; dt = 100; v = 1
+        # T = 25; dt = 1; v = 1
         psi_last = np.zeros((self.I,self.N,self.G))
-        self.speed = 1/(v*dt)
+        # self.speed = 1/(v*dt)
         time_phi = []
 
         phi_old = np.zeros((self.I,self.G))

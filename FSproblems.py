@@ -146,8 +146,6 @@ class StainlessInfinite:
         reduced = False
         if self.G != 87:
             reduced = True
-            print('REDUCED')
-
 
         L = 0; R = 1000.; I = 1000
         # L = 0; R = 10000; I = 1
@@ -167,9 +165,6 @@ class StainlessInfinite:
         if reduced:
             total,scatter,fission = Tools.group_reduction(self.G,energy_grid,total,scatter,fission)
             source = Tools.group_reduction(self.G,energy_grid,source,None,None)
-
-        # Something in the downscattering
-        # scatter = np.diag(np.diag(scatter))
 
         # Progagate for all groups
         scatter_ = np.tile(scatter,(I,1,1))
@@ -289,9 +284,9 @@ class Tools:
         else:
             old_group = len(grid) - 1            
             # Create array showing the number of groups combined 
-            new_grid = np.ones(new_group) * int(old_group/new_group)
+            new_grid = np.ones((G)) * int(old_group/G)
             # Add the remainder groups to the first x number 
-            new_grid[np.linspace(0,new_group-1,old_group % new_group,dtype=int)] += 1
+            new_grid[np.linspace(0,G-1,old_group % G,dtype=int)] += 1
 
             assert (new_grid.sum() == old_group)
             # Calculate the indices while including the left-most (insert)

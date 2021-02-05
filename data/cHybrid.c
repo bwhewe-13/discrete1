@@ -20,7 +20,7 @@ void uncollided(void *flux, void *psi_angle, void *external, void *numerator, vo
         for(int ii=0; ii < LENGTH; ii++){
            psi_top = (source[ii] + psi_bottom * top_mult[ii]) * bottom_mult[ii];
            // Write psi to variable
-           psi[ii] = 0.5* (psi_top + psi_bottom);
+           psi[ii] = 0.5 * (psi_top + psi_bottom);
            // Write flux to variable
            phi[ii] += (weight * 0.5 * (psi_top + psi_bottom));
            // Move to next cell
