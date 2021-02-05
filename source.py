@@ -51,14 +51,14 @@ class Source:
     def stainless_infinite(cls,G,N,**kwargs):
         attributes,keywords = Selection.select('stainless infinite',G,N,**kwargs)
         problem = cls(*attributes,**keywords)
-        problem.speed = Selection.speed_calc('stainless infinite',G)
+        problem.v = Selection.speed_calc('stainless infinite',G)
         return problem
 
     @classmethod
     def reeds(cls,G,N,**kwargs):
         attributes,keywords = Selection.select('reeds',G,N,**kwargs)
         problem = cls(*attributes,**keywords)
-        problem.speed = Selection.speed_calc('reeds',G)
+        problem.v = Selection.speed_calc('reeds',G)
         return problem
                 
     def one_group(self,total_,scatter_,source_,guess):
@@ -207,8 +207,8 @@ class Source:
         T = 5000; dt = 100; v = 1
         # T = 25; dt = 1; v = 1
         psi_last = np.zeros((self.I,self.N,self.G))
-        # self.speed = 1/(v*dt)
-        self.speed = 1/(np.ones((self.G))*dt)
+        self.speed = 1/(self.v*dt)
+        # self.speed = 1/(np.ones((self.G))*dt)
         time_phi = []
 
         phi_old = np.zeros((self.I,self.G))

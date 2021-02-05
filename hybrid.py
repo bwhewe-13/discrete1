@@ -34,14 +34,10 @@ class Hybrid:
         uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu)[0])
         collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc)[0])
 
-        print(self.v_c.shape)
-        print(self.v_u.shape)
-
         T = 5000; dt = 100; time_phi = []
         # T = 25; dt = 1; time_phi = []
-        self.v_u = np.ones((uncollided.G)); self.v_c = np.ones((collided.G))
+        # self.v_u = np.ones((uncollided.G)); self.v_c = np.ones((collided.G))
         speed_u = 1/(self.v_u*dt); speed_c = 1/(self.v_c*dt)
-
         phi_c = np.zeros((collided.I,collided.G))
 
         # Initialize psi to zero
