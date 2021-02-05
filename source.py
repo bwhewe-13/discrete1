@@ -181,13 +181,13 @@ class Source:
             phi = np.zeros(phi_old.shape)  
             for g in range(self.G):
                 # q_tilde = np.einsum('ijk,ik->ij',self.scatter,phi_old) + self.source
-                q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) #+ Source.update_q(self.fission,phi_old,g+1,self.G,g)
+                q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
                 # q_tilde = Source.update_q(self.scatter,phi_old,g+1,self.G,g)
-                # if g != 0:
-                #     q_tilde += Source.update_q(self.scatter,phi_old,0,g,g) #+ Source.update_q(self.fission,phi,0,g,g)
+                if g != 0:
+                    q_tilde += Source.update_q(self.scatter,phi_old,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
 
                 if self.time:
-                    phi[:,g],psi_next[:,:,g] = Source.time_one_group(self,self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g],psi_last[:,:,g])
+                    phi[:,g],psi_next[:,:,g] = Source.time_one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g],psi_last[:,:,g])
                     # phi[:,g],psi_next[:,:,g] = Source.time_one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g],psi_last[:,:,g])
                 else:
                     phi[:,g] = Source.one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
