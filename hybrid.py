@@ -4,7 +4,7 @@ import numpy as np
 from .FSproblems import Selection
 
 class Hybrid:
-    def __init__(self,problem,G,N):
+    def __init__(self,problem,G,N,**kwargs):
         """ G and N are lists of [uncollided,collided]  """
         
         self.problem = problem
@@ -15,10 +15,9 @@ class Hybrid:
             self.delta_u = Selection.energy_diff(self.problem,self.Gu)
             # Sum the delta_u
             self.delta_c = [sum(self.delta_u[ii]) for ii in self.splits]
-
+            # Calculate the speed of collided and uncollided
             self.v_u = Selection.speed_calc(self.problem,self.Gu)
             self.v_c = Selection.speed_calc(self.problem,self.Gc)
-
         else:
             self.Gu = G; self.Gc = G
             self.v_u = Selection.speed_calc(self.problem,G)
@@ -29,12 +28,20 @@ class Hybrid:
         else:
             self.Nu = N; self.Nc = N
 
+    # @classmethod
+    # def stainless_infinite(cls,G,N,**kwargs):
+    #     attributes,keywords = Selection.select('stainless infinite',G,N,**kwargs)
+    #     problem = cls(*attributes,**keywords)
+    #     problem.v = Selection.speed_calc('stainless infinite',G)
+    #     return problem
+
     def run(self):
 
         uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu)[0])
         collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc)[0])
 
-        T = 5000; dt = 100; time_phi = []
+        T = 10E-6; dt = 1E-6; time_phi = []
+        # T = 5000; dt = 100; time_phi = []
         # T = 25; dt = 1; time_phi = []
         # self.v_u = np.ones((uncollided.G)); self.v_c = np.ones((collided.G))
         speed_u = 1/(self.v_u*dt); speed_c = 1/(self.v_c*dt)

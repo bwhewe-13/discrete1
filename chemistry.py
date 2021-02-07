@@ -17,10 +17,10 @@ class NumberDensity:
     """ Main class for running to create number density
     Returns a dictionary of elements with number densities """
     __allowed = ("enrich")
-    __compounds = ("UH3","HDPE","SS440")
+    __compounds = ("UH3","HDPE","SS440","U")
 
     def __init__(self,compound,**kwargs):
-        assert (compound in self.__class__.__compounds), "Compound not allowed, available: UH3, HDPE, SS440, Pu"
+        assert (compound in self.__class__.__compounds), "Compound not allowed, available: UH3, HDPE, SS440, U"
         self.compound = compound
         # Kwargs
         self.enrich = 0.0; 
@@ -42,6 +42,9 @@ class NumberDensity:
 
         elif self.compound == 'Pu':
             return Pu(self.enrich).number_density()
+
+        elif self.compound == 'U':
+            return U(self.enrich).number_density()
 
 
 class HDPE:
@@ -80,9 +83,6 @@ class UH3:
     def __init__(self,enrich=0.0):
         self.enrich = enrich
 
-    # def percentage(self):
-    #     return None
-
     def molar_mass(self):
         # Add enriched UH3
         uh3_molar = self.enrich * _Constants.compound_density['U235'][0]
@@ -109,6 +109,34 @@ class UH3:
 
         return density_list
 
+
+class U:
+    __isotopes = ['u235','u238']
+
+    def __init__(self,enrich=0.0):
+        self.enrich = enrich
+
+    def molar_mass(self):
+        # Add U-235
+        u_molar = self.enrich * _Constants.compound_density['U235'][0]
+        # Add U-238
+        u_molar += (1- self.enrich) * _Constants.compound_density['U238'][0]
+
+        return u_molar
+
+    def number_density(self):
+        density_list = {}
+        u_molar = U.molar_mass(self)
+        rho = _Constants.compound_density['U'][1]
+        library = _Constants.compound_density.copy()
+        # Add Enriched U235
+        density_list['u235'] = (self.enrich * rho * _Constants.avagadro) / library['U235'][0] * \
+            (self.enrich * library['U235'][0] + (1 - self.enrich) * library['U238'][0]) / u_molar * _Constants.barn
+        # Add U238
+        density_list['u238'] = ((1 - self.enrich) * rho * _Constants.avagadro) / library['U238'][0] * \
+            (self.enrich * library['U235'][0] + (1 - self.enrich) * library['U238'][0]) / u_molar * _Constants.barn
+        
+        return density_list
 
 class SS440:
     __isotopes = ['fe54','fe56','fe57','cr50','cr52','cr53','cr54','si28','si29',

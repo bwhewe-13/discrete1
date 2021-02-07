@@ -10,21 +10,45 @@ import pkg_resources
 
 DATA_PATH = pkg_resources.resource_filename('discrete1','data/')
 
+# class TimeDependent:
+#     def __init__(self,G,N,time,dt,boundary='vacuum'):
+#         self.G = G
+#         self.N = N
+#         self.time = time
+#         self.dt = dt
+#         self.boundary = boundary
+
+#     @classmethod
+#     def reeds(cls,G,N,time,dt,boundary='vacuum'):
+#         steady_vars = list(Reeds(G,N,boundary).variables())
+#         # Reduce the number of angles, weights if reflected
+#         if boundary == 'reflected':
+#             steady_vars[2] = steady_vars[2][int(N*0.5):] # mu
+#             steady_vars[3] = steady_vars[3][int(N*0.5):] # w
+#             steady_vars[1] = int(N*0.5) # N
+#         v = np.ones((steady_vars[0]))
+#         return steady_vars + [time,dt,v,boundary]
+
+
 class Selection:
     
     def select(problem,G,N,**kwargs):
         """ Selects the right class for multigroup problems  """
         # Attributes
-        boundary = 'vacuum'
+        boundary = 'vacuum'; enrich = 0.007
         if 'boundary' in kwargs:
             boundary = kwargs['boundary']
+
         # Pick the correct class
         if problem == 'reeds':
             pick = Reeds(G,N,boundary=boundary)
         elif problem == 'stainless infinite':
             pick = StainlessInfinite(G,N)
+        elif problem == 'uranium infinite':
+            pick = UraniumInfinite(G,N,enrich=enrich)
         # Call for the variables
         items = list(pick.variables())
+        
         # Change N, mu, w if reflected
         if boundary == 'reflected':
             items[2] = items[2][int(N*0.5):] # mu
@@ -37,7 +61,7 @@ class Selection:
         if problem == 'reeds':
             delta_u = [1/Gu] * Gu
 
-        elif problem == 'stainless infinite':
+        elif problem in ['stainless infinite','uranium infinite']:
             grid = np.load(DATA_PATH + 'energyGrid.npy')
             delta_u = np.diff(grid)
 
@@ -47,9 +71,10 @@ class Selection:
         if problem == 'reeds':
             v = np.ones((Gu))
 
-        elif problem == 'stainless infinite':
+        elif problem in ['stainless infinite', 'uranium infinite']:
             grid = np.load(DATA_PATH + 'energyGrid.npy')
-            v = Tools.speed_from_energy(grid,Gu)
+            v = Tools.relative_speed(grid,Gu)
+            # v = Tools.classical_speed(grid,Gu)
 
         return v
 
@@ -101,39 +126,6 @@ class Reeds:
 
         fission_ = np.zeros((scatter_.shape))
 
-        # return self.G,self.N,mu,w,total_[:,None],scatter_[:,None,None],fission_[:,None,None],source_[:,None],I,1/delta
-        return self.G,self.N,mu,w,total_,scatter_,fission_,source_,I,1/delta
-
-class FourGroup:
-    def __init__(self,G,N):
-        self.G = G
-        self.N = N
-
-    def variables(self):
-        # import numpy as np
-
-        L = 0; R = 5.; I = 1000
-        mu,w = np.polynomial.legendre.leggauss(self.N)
-        w /= np.sum(w); 
-
-        delta = R/I
-        
-        sigma_a = np.array([0.00490, 0.00280, 0.03050, 0.12100])
-        sigma_ds = np.array([0.08310,0.05850,0.06510])
-        D_g = np.array([2.16200,1.08700,0.63200,0.35400])
-            
-        total_ = np.tile(1/(3*D_g),(I,1))
-        down_scat = np.array([(1/(3*D_g[ii]) - sigma_a[ii]) - sigma_ds[ii] for ii in range(self.G-1)])
-
-        scatter_vals = np.diag(down_scat,-1)
-        np.fill_diagonal(scatter_vals,1/(3*D_g) - sigma_a)
-        scatter_ = np.tile(scatter_vals,(I,1,1))
-
-        source_vals = [1e12,0,0,0]
-        source_ = np.tile(source_vals,(I,1))
-
-        fission_ = np.zeros((scatter_.shape))
-
         return self.G,self.N,mu,w,total_,scatter_,fission_,source_,I,1/delta
 
 class StainlessInfinite:
@@ -148,12 +140,10 @@ class StainlessInfinite:
             reduced = True
 
         L = 0; R = 1000.; I = 1000
-        # L = 0; R = 10000; I = 1
         mu,w = np.polynomial.legendre.leggauss(self.N)
         w /= np.sum(w); 
 
         delta = R/I
-
         total,scatter,fission = XSGenerate('SS440').cross_section()
 
         # Create source in 14.1 MeV group
@@ -177,6 +167,46 @@ class StainlessInfinite:
     def scatter_fission(self):
         _,_,_,_,_,scatter,fission,_,_,_ = StainlessInfinite.variables(self)
         return scatter,fission
+
+class UraniumInfinite:
+    def __init__(self,G,N,enrich=0.0):
+        self.G = G
+        self.N = N
+        self.enrich = enrich
+
+    def variables(self):
+
+        reduced = False
+        if self.G != 87:
+            reduced = True
+
+        L = 0; R = 1000.; I = 1000
+        mu,w = np.polynomial.legendre.leggauss(self.N)
+        w /= np.sum(w); 
+
+        delta = R/I
+
+        total,scatter,fission = XSGenerate('U',enrich=self.enrich).cross_section()
+
+        # Create source in 14.1 MeV group
+        energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
+        g = np.argmin(abs(energy_grid-14.1E6))
+        source = np.zeros((len(energy_grid)-1))
+        # source[g] = 1 # all spatial cells in this group
+
+        if reduced:
+            total,scatter,fission = Tools.group_reduction(self.G,energy_grid,total,scatter,fission)
+            source = Tools.group_reduction(self.G,energy_grid,source,None,None)
+
+        # Progagate for all groups
+        scatter_ = np.tile(scatter,(I,1,1))
+        fission_ = np.tile(fission,(I,1,1))
+        total_ = np.tile(total,(I,1))
+        source = np.tile(source,(I,1))
+
+        source[0,g] = 1
+
+        return self.G,self.N,mu,w,total_,scatter_,fission_,source,I,delta
 
 class Tools:
 
@@ -232,11 +262,13 @@ class Tools:
         scatter *= old_diff_grid
         new_scatter = Tools.matrix_reduction(scatter,inds)
         new_scatter /= new_diff_grid
+        # new_scatter /= new_diff_matrix
 
         # Fission Cross Section
         fission *= old_diff_grid
         new_fission = Tools.matrix_reduction(fission,inds)
         new_fission /= new_diff_grid
+        # new_fission /= new_diff_matrix
 
         return new_total, new_scatter, new_fission
 
@@ -268,8 +300,8 @@ class Tools:
         reduced = np.array([sum(vector[indices[ii]:indices[ii+1]]) for ii in range(new_group)])
         return reduced
 
-    def speed_from_energy(grid,G):
-        """ Convert energy edges to speed at cell centers
+    def classical_speed(grid,G):
+        """ Convert energy edges to speed at cell centers, Classical Physics
         Arguments:
             grid: energy edges
             G: number of groups to collapse 
@@ -296,7 +328,35 @@ class Tools:
         v = np.sqrt((2 * eV_J * centers)/mass_neutron) * 100
         return v
 
+    def relative_speed(grid,G):
+        """ Convert energy edges to speed at cell centers, Relative Physics
+        Arguments:
+            grid: energy edges
+            G: number of groups to collapse 
+        Returns:
+            speeds at cell centers (cm/s)
+        """
+        mass_neutron = 1.67493E-27 # kg
+        eV_J = 1.60218E-19 # J
+        light = 2.9979246E8 # m/s
 
+        if len(grid) - 1 == G:
+            centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(range(len(grid)-1),range(1,len(grid)))])
+        else:
+            old_group = len(grid) - 1            
+            # Create array showing the number of groups combined 
+            new_grid = np.ones((G)) * int(old_group/G)
+            # Add the remainder groups to the first x number 
+            new_grid[np.linspace(0,G-1,old_group % G,dtype=int)] += 1
+
+            assert (new_grid.sum() == old_group)
+            # Calculate the indices while including the left-most (insert)
+            inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
+            centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(inds[:len(grid)-1],inds[1:])])
+
+        gamma = (eV_J * centers)/(mass_neutron * light**2) + 1
+        v = light/gamma * np.sqrt(gamma**2 - 1) * 100
+        return v
 
 
 

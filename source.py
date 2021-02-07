@@ -9,7 +9,7 @@ import ctypes
 
 class Source:
     # Keyword Arguments allowed currently
-    __allowed = ("boundary","time","speed")
+    __allowed = ("boundary","time","speed","enrich")
 
     def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,**kwargs): 
         """ Deals with Source multigroup problems (time dependent, steady state,
@@ -48,18 +48,23 @@ class Source:
             setattr(self, key, value)
 
     @classmethod
-    def stainless_infinite(cls,G,N,**kwargs):
-        attributes,keywords = Selection.select('stainless infinite',G,N,**kwargs)
+    def run(cls,ptype,G,N,boundary='vacuum',**kwargs):
+        # Currently cannot use reflected boundary with TD problems
+        if 'T' in kwargs and boundary == 'reflected':
+            print('Using Vacuum Boundaries, cannot use Time Dependency with Reflected Conditions')
+            boundary = 'vacuum'
+        if 'enrich' in kwargs:
+            attributes,keywords = Selection.select(ptype,G,N,boundary=boundary,enrich=kwargs['enrich'])
+        else:
+            attributes,keywords = Selection.select(ptype,G,N,boundary=boundary)
         problem = cls(*attributes,**keywords)
-        problem.v = Selection.speed_calc('stainless infinite',G)
-        return problem
+        if 'T' in kwargs:
+            problem.v = Selection.speed_calc(ptype,G)
+            problem.time = True
+            problem.T = kwargs['T']; problem.dt = kwargs['dt']
+            return problem.time_steps()
+        return problem.multi_group()
 
-    @classmethod
-    def reeds(cls,G,N,**kwargs):
-        attributes,keywords = Selection.select('reeds',G,N,**kwargs)
-        problem = cls(*attributes,**keywords)
-        problem.v = Selection.speed_calc('reeds',G)
-        return problem
                 
     def one_group(self,total_,scatter_,source_,guess):
         """ Arguments:
@@ -204,16 +209,16 @@ class Source:
 
     def time_steps(self):
 
-        T = 5000; dt = 100; v = 1
+        # T = 5000; dt = 100; v = 1
         # T = 25; dt = 1; v = 1
         psi_last = np.zeros((self.I,self.N,self.G))
-        self.speed = 1/(self.v*dt)
+        self.speed = 1/(self.v*self.dt)
         # self.speed = 1/(np.ones((self.G))*dt)
         time_phi = []
 
         phi_old = np.zeros((self.I,self.G))
 
-        for t in range(int(T/dt)):
+        for t in range(int(self.T/self.dt)):
             # Solve at initial time step
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
 
@@ -226,12 +231,12 @@ class Source:
         return phi,time_phi
 
 
-    def run(self):
-        """ Will either call multi_group for steady state or time_multi_group
-        for time dependency """
-        if self.time:
-            return Source.time_steps(self)
-        return Source.multi_group(self)
+    # def run(self):
+    #     """ Will either call multi_group for steady state or time_multi_group
+    #     for time dependency """
+    #     if self.time:
+    #         return Source.time_steps(self)
+    #     return Source.multi_group(self)
 
 
     # def tracking_data(self,flux,sources=None):

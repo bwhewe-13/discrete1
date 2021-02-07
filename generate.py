@@ -14,13 +14,13 @@ DATA_PATH = pkg_resources.resource_filename('discrete1','xs/')
 class XSGenerate:
     """ Generating the total, fission, scatter cross sections """
     __allowed = ("enrich") # Currently only keyword
-    __compounds = ("UH3","HDPE","SS440") # Materials that we can use
-    __fissioning = ("UH3") # Materials that fission
+    __compounds = ("UH3","HDPE","SS440","U") # Materials that we can use
+    __fissioning = ("UH3","U") # Materials that fission
     # Using the first temperature
     __temp = '00'
 
     def __init__(self,compound,**kwargs):
-        assert (compound in self.__class__.__compounds), "Compound not allowed, available: UH3, HDPE, SS440, Pu"
+        assert (compound in self.__class__.__compounds), "Compound not allowed, available: UH3, HDPE, SS440, U"
         self.compound = compound
         # Kwargs
         self.enrich = 0.0; 
