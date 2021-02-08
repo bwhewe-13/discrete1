@@ -1,6 +1,6 @@
-# One-Dimensional Neutron Transport Equation (<img src="https://rawgit.com/bwhewe-13/discrete1 (fetch/master/svgs/1e54c312f0549fca79cfdb38a3588f3d.svg?invert_in_darkmode" align=middle width=21.72608624999999pt height=22.465723500000017pt/>) Solver using the Discrete Ordinates Method
+# One-Dimensional Neutron Transport Equation (S<sub>N</sub>)  Solver using the Discrete Ordinates Method
 
-## Machine Learning Methods are used to reduce the data requirements of Scattering and Fission Cross-Sections\ \
+## Machine Learning Methods are used to reduce the data requirements of Scattering and Fission Cross-Sections
 
 ### Current Work
 - [ ] Add Testing Functions with pytest
@@ -15,6 +15,7 @@
 3. svd\_prob.py incorporates an SVD into the S<sub>N</sub> code for the &Sigma;<sub>s</sub> and &Sigma;<sub>f</sub> matrices.
 4. hybrid.py separates the collided and uncollided terms to be used with different numbers of ordinates (N) and energy groups (G). 
 
+<!--
 ### Hybrid Method for Time Dependent Multigroup Problems
 0. Initialize <img src="https://rawgit.com/bwhewe-13/discrete1 (fetch/master/svgs/a73b9ed978c3a83db5f171415ca083be.svg?invert_in_darkmode" align=middle width=19.42361189999999pt height=22.831056599999986pt/> to zero
 1. Calculate the uncollided <img src="https://rawgit.com/bwhewe-13/discrete1 (fetch/master/svgs/c77f3b1de554cb37e2114a29ce9cae87.svg?invert_in_darkmode" align=middle width=36.06753149999999pt height=26.76175259999998pt/> and <img src="https://rawgit.com/bwhewe-13/discrete1 (fetch/master/svgs/71575e9dddc7fe2a251de8f75f80a141.svg?invert_in_darkmode" align=middle width=34.56448709999999pt height=26.76175259999998pt/> through the sweep
@@ -27,6 +28,6 @@
 	<p align="center"><img src="https://rawgit.com/bwhewe-13/discrete1 (fetch/master/svgs/f49edd9196a68e14e720c72c80650161.svg?invert_in_darkmode" align=middle width=584.19276795pt height=79.0179555pt/></p> 
 5. Repeat Steps 1-4 with the new angular flux
 
+-->
 
-
-<sup>1</sup>:  K. D. Humbird, J. L. Peterson, and R. G. McClarren. "Deep neural network initialization with decision trees." *IEEE transactions on neural networks and learning systems*,volume 30(5), pp. 1286–1295 (2018)
+<sup>1</sup> K. D. Humbird, J. L. Peterson, and R. G. McClarren. "Deep neural network initialization with decision trees." *IEEE transactions on neural networks and learning systems*,volume 30(5), pp. 1286–1295 (2018)

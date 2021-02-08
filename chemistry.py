@@ -120,7 +120,7 @@ class U:
         # Add U-235
         u_molar = self.enrich * _Constants.compound_density['U235'][0]
         # Add U-238
-        u_molar += (1- self.enrich) * _Constants.compound_density['U238'][0]
+        u_molar += (1 - self.enrich) * _Constants.compound_density['U238'][0]
 
         return u_molar
 

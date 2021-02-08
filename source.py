@@ -208,15 +208,10 @@ class Source:
         return phi
 
     def time_steps(self):
-
-        # T = 5000; dt = 100; v = 1
-        # T = 25; dt = 1; v = 1
-        psi_last = np.zeros((self.I,self.N,self.G))
-        self.speed = 1/(self.v*self.dt)
-        # self.speed = 1/(np.ones((self.G))*dt)
-        time_phi = []
-
         phi_old = np.zeros((self.I,self.G))
+        psi_last = np.zeros((self.I,self.N,self.G))
+        
+        self.speed = 1/(self.v*self.dt); time_phi = []
 
         for t in range(int(self.T/self.dt)):
             # Solve at initial time step
@@ -227,6 +222,8 @@ class Source:
             psi_last = psi_next.copy()
             time_phi.append(phi)
             phi_old = phi.copy()
+
+            self.source *= 0
 
         return phi,time_phi
 

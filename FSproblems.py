@@ -6,12 +6,15 @@ from .generate import XSGenerate
 
 import numpy as np
 import pkg_resources
+import os
 
 
 DATA_PATH = pkg_resources.resource_filename('discrete1','data/')
 
+# Problems with same energy grid
+group87 = ['stainless infinite','stainless','uranium infinite', 'uranium stainless']
 
-class Selection:
+class Selection:    
     
     def select(problem,G,N,**kwargs):
         """ Selects the right class for multigroup problems  """
@@ -23,12 +26,18 @@ class Selection:
         # Pick the correct class
         if problem == 'reeds':
             pick = Reeds(G,N,boundary=boundary)
+
         elif problem == 'stainless infinite':
             pick = Stainless.infinite(G,N)
+
         elif problem == 'stainless':
-            pick = Stainless.infinite(G,N)
+            pick = Stainless.finite(G,N)
+
         elif problem == 'uranium infinite':
             pick = UraniumInfinite(G,N,enrich=enrich)
+
+        elif problem == 'uranium stainless':
+            pick = UraniumStainless.problem1(G,N,**kwargs)
         # Call for the variables
         items = list(pick)
         
@@ -44,7 +53,7 @@ class Selection:
         if problem == 'reeds':
             delta_u = [1/Gu] * Gu
 
-        elif problem in ['stainless infinite','stainless','uranium infinite']:
+        elif problem in group87:
             grid = np.load(DATA_PATH + 'energyGrid.npy')
             delta_u = np.diff(grid)
 
@@ -54,7 +63,7 @@ class Selection:
         if problem == 'reeds':
             v = np.ones((Gu))
 
-        elif problem in ['stainless infinite','stainless','uranium infinite']:
+        elif problem in group87:
             grid = np.load(DATA_PATH + 'energyGrid.npy')
             v = Tools.relative_speed(grid,Gu)
             # v = Tools.classical_speed(grid,Gu)
@@ -111,6 +120,7 @@ class Reeds:
 
         return self.G,self.N,mu,w,total_,scatter_,fission_,source_,I,1/delta
 
+
 class Stainless:
     def __init__(self,G,N):
         self.G = G
@@ -119,18 +129,36 @@ class Stainless:
     @classmethod
     def infinite(cls,G,N):
         problem = list(cls(G,N).variables())
-        R = 1000.
-        problem[-1] = R/problem[-2] # change delta
+        R = 1000.; I = 1000
+        problem[-1] = R/I # change delta
+        problem[-2] = I # change I
+
+        problem[5] = np.tile(problem[5],(I,1,1)) # Scatter
+        problem[6] = np.tile(problem[6],(I,1,1)) # Fission
+        problem[4] = np.tile(problem[4],(I,1))   # Total
+        problem[7] = np.tile(problem[7],(I,1))   # Source
+
+        Tools.recompile(I)
         return problem
 
+    @classmethod
     def finite(cls,G,N):
         problem = list(cls(G,N).variables())
-        R = 10.
-        problem[-1] = R/problem[-2] # change delta
+        R = 10.; I = 100
+        problem[-1] = R/I # change delta
+        problem[-2] = I # change I
+        
+        problem[5] = np.tile(problem[5],(I,1,1)) # Scatter
+        problem[6] = np.tile(problem[6],(I,1,1)) # Fission
+        problem[4] = np.tile(problem[4],(I,1))   # Total
+        problem[7] = np.tile(problem[7],(I,1))   # Source
+
         problem[-3][1:] *= 0 # Source enter from LHS
+
+        Tools.recompile(I)
         return problem
 
-    def variables(self):
+    def variables(self,prop=None):
         
         reduced = False
         if self.G != 87:
@@ -153,17 +181,18 @@ class Stainless:
             total,scatter,fission = Tools.group_reduction(self.G,energy_grid,total,scatter,fission)
             source = Tools.group_reduction(self.G,energy_grid,source,None,None)
 
+        if prop:
         # Progagate for all groups
-        scatter_ = np.tile(scatter,(I,1,1))
-        fission_ = np.tile(fission,(I,1,1))
-        total_ = np.tile(total,(I,1))
-        source = np.tile(source,(I,1))
+            scatter = np.tile(scatter,(prop,1,1))
+            fission = np.tile(fission,(prop,1,1))
+            total = np.tile(total,(prop,1))
+            source = np.tile(source,(prop,1))
 
-        return self.G,self.N,mu,w,total_,scatter_,fission_,source,I,delta
+        return self.G,self.N,mu,w,total,scatter,fission,source,I,delta
 
     @classmethod
-    def var_dict(cls):
-        problem = list(cls(87,8).variables())
+    def var_dict(cls,I):
+        problem = list(cls(87,8).variables(prop=I))
         dictionary = {}
         keys = ['G','N','mu','w','total','scatter','fission','source','I','delta']
         for ii in range(len(keys)):
@@ -220,6 +249,77 @@ class UraniumInfinite:
             dictionary[keys[ii]] = problem[ii]
         return dictionary
 
+
+class UraniumStainless:
+    def __init__(self,G,N,enrich=0.0):
+        self.G = G
+        self.N = N
+        self.enrich = enrich
+
+    @classmethod
+    def problem1(cls,G,N,enrich,**kwargs):
+        if 'materials' in kwargs:
+            materials = kwargs['materials']
+        else:
+            materials = ['ss440',['u',enrich],'ss440']
+
+        if 'shape' in kwargs:
+            shape = kwargs['shape']
+        else:
+            shape = [4,2,4]
+
+        problem = cls(G,N,enrich)
+        problem.materials = materials
+        problem.shape = shape
+
+        prob = list(problem.variables())
+
+        Tools.recompile(prob[-2])
+        return prob
+
+
+    def variables(self):
+        reduced = False
+        if self.G != 87:
+            reduced = True
+
+        L = 0; R = sum(self.shape); I = 100
+        mu,w = np.polynomial.legendre.leggauss(self.N)
+        w /= np.sum(w); 
+
+        delta = R/I
+
+        # Get list of xs for each material
+        xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(self.materials)
+        # Get sizes of each material
+        layers = [int(ii/delta) for ii in self.shape]
+
+        # 
+        energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
+        g = np.argmin(abs(energy_grid-14.1E6))
+        source = np.zeros((len(energy_grid)-1))
+        source[g] = 1 # all spatial cells in this group
+
+        # Propogate onto full space 
+        total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
+
+        source = np.tile(source,(I,1))
+        source[1:,] *= 0
+
+        return self.G,self.N,mu,w,total_,scatter_,fission_,source,I,delta
+
+    @classmethod
+    def var_dict(cls,enrich=0.2):
+        problem = cls(87,8,enrich=enrich)
+        problem.shape = [4,2,4]; problem.materials = ['ss440',['u',enrich],'ss440']
+
+        prob = list(problem.variables())
+
+        dictionary = {}
+        keys = ['G','N','mu','w','total','scatter','fission','source','I','delta']
+        for ii in range(len(keys)):
+            dictionary[keys[ii]] = prob[ii]
+        return dictionary
 
 
 class Tools:
@@ -372,5 +472,37 @@ class Tools:
         v = light/gamma * np.sqrt(gamma**2 - 1) * 100
         return v
 
+    def recompile(I):
+        # Recompile cSource
+        command = 'gcc -fPIC -shared -o {}cSource.so {}cSource.c -DLENGTH={}'.format(DATA_PATH,DATA_PATH,I)
+        os.system(command)
+        # Recompile cHybrid
+        command = 'gcc -fPIC -shared -o {}cHybrid.so {}cHybrid.c -DLENGTH={}'.format(DATA_PATH,DATA_PATH,I)
+        os.system(command)
 
+    def populate_xs_list(materials):
+        """ Populate list with cross sections of different materials """
+        xs_total = []; xs_scatter = []; xs_fission = []
+        # Iterate through materials list
+        for mat in materials:
+            # Check for Enrichment
+            if type(mat) is list:
+                iso = mat[0].upper()
+                total_,scatter_,fission_ = XSGenerate(iso,enrich=mat[1]).cross_section()
+            else:
+                total_,scatter_,fission_ = XSGenerate(mat.upper()).cross_section()
+            xs_total.append(total_); xs_scatter.append(scatter_); xs_fission.append(fission_)
+            del total_, scatter_, fission_
+        return xs_total, xs_scatter, xs_fission
+
+    def populate_full_space(total,scatter,fission,layers):
+        """ Populate lists into full space (I)
+        total, scatter, fission: lists of cross sections of different materials
+        layers: list of cell widths of each material
+        """
+        total_ = np.vstack([np.tile(total[count],(width,1)) for count,width in enumerate(layers)])
+        scatter_ = np.vstack([np.tile(scatter[count],(width,1,1)) for count,width in enumerate(layers)])
+        fission_ = np.vstack([np.tile(fission[count],(width,1,1)) for count,width in enumerate(layers)])
+
+        return total_,scatter_,fission_
 
