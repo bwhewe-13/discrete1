@@ -24,11 +24,13 @@ class Selection:
         if problem == 'reeds':
             pick = Reeds(G,N,boundary=boundary)
         elif problem == 'stainless infinite':
-            pick = StainlessInfinite(G,N)
+            pick = Stainless.infinite(G,N)
+        elif problem == 'stainless':
+            pick = Stainless.infinite(G,N)
         elif problem == 'uranium infinite':
             pick = UraniumInfinite(G,N,enrich=enrich)
         # Call for the variables
-        items = list(pick.variables())
+        items = list(pick)
         
         # Change N, mu, w if reflected
         if boundary == 'reflected':
@@ -42,7 +44,7 @@ class Selection:
         if problem == 'reeds':
             delta_u = [1/Gu] * Gu
 
-        elif problem in ['stainless infinite','uranium infinite']:
+        elif problem in ['stainless infinite','stainless','uranium infinite']:
             grid = np.load(DATA_PATH + 'energyGrid.npy')
             delta_u = np.diff(grid)
 
@@ -52,7 +54,7 @@ class Selection:
         if problem == 'reeds':
             v = np.ones((Gu))
 
-        elif problem in ['stainless infinite', 'uranium infinite']:
+        elif problem in ['stainless infinite','stainless','uranium infinite']:
             grid = np.load(DATA_PATH + 'energyGrid.npy')
             v = Tools.relative_speed(grid,Gu)
             # v = Tools.classical_speed(grid,Gu)
@@ -109,10 +111,24 @@ class Reeds:
 
         return self.G,self.N,mu,w,total_,scatter_,fission_,source_,I,1/delta
 
-class StainlessInfinite:
+class Stainless:
     def __init__(self,G,N):
         self.G = G
         self.N = N
+
+    @classmethod
+    def infinite(cls,G,N):
+        problem = list(cls(G,N).variables())
+        R = 1000.
+        problem[-1] = R/problem[-2] # change delta
+        return problem
+
+    def finite(cls,G,N):
+        problem = list(cls(G,N).variables())
+        R = 10.
+        problem[-1] = R/problem[-2] # change delta
+        problem[-3][1:] *= 0 # Source enter from LHS
+        return problem
 
     def variables(self):
         
@@ -145,9 +161,15 @@ class StainlessInfinite:
 
         return self.G,self.N,mu,w,total_,scatter_,fission_,source,I,delta
 
-    def scatter_fission(self):
-        _,_,_,_,_,scatter,fission,_,_,_ = StainlessInfinite.variables(self)
-        return scatter,fission
+    @classmethod
+    def var_dict(cls):
+        problem = list(cls(87,8).variables())
+        dictionary = {}
+        keys = ['G','N','mu','w','total','scatter','fission','source','I','delta']
+        for ii in range(len(keys)):
+            dictionary[keys[ii]] = problem[ii]
+        return dictionary
+
 
 class UraniumInfinite:
     def __init__(self,G,N,enrich=0.0):
@@ -188,6 +210,17 @@ class UraniumInfinite:
         # source[0,g] = 1
 
         return self.G,self.N,mu,w,total_,scatter_,fission_,source,I,delta
+
+    @classmethod
+    def var_dict(cls):
+        problem = list(cls(87,8).variables())
+        dictionary = {}
+        keys = ['G','N','mu','w','total','scatter','fission','source','I','delta']
+        for ii in range(len(keys)):
+            dictionary[keys[ii]] = problem[ii]
+        return dictionary
+
+
 
 class Tools:
 
