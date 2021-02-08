@@ -4,7 +4,7 @@ import numpy as np
 from .FSproblems import Selection
 
 class Hybrid:
-    def __init__(self,problem,G,N,**kwargs):
+    def __init__(self,problem,G,N):
         """ G and N are lists of [uncollided,collided]  """
         
         self.problem = problem
@@ -28,28 +28,37 @@ class Hybrid:
         else:
             self.Nu = N; self.Nc = N
 
-    # @classmethod
-    # def stainless_infinite(cls,G,N,**kwargs):
-    #     attributes,keywords = Selection.select('stainless infinite',G,N,**kwargs)
-    #     problem = cls(*attributes,**keywords)
-    #     problem.v = Selection.speed_calc('stainless infinite',G)
-    #     return problem
+    @classmethod
+    def run(cls,ptype,G,N,T,dt,**kwargs):
+        prob = cls(ptype,G,N)
+        prob.T = T; prob.dt = dt
 
-    def run(self):
+        if 'enrich' in kwargs:
+            prob.enrich = kwargs['enrich']
+        else:
+            prob.enrich = None
 
-        uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu)[0])
-        collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc)[0])
+        return prob.time_steps()
 
-        T = 10E-6; dt = 1E-6; time_phi = []
+    def time_steps(self):
+
+        if self.enrich:
+            uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu,enrich=self.enrich)[0])
+            collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc,enrich=self.enrich)[0])
+        else:
+            uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu)[0])
+            collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc)[0])
+
+        # T = 10E-6; dt = 1E-6; time_phi = []
+        time_phi = []
         # T = 5000; dt = 100; time_phi = []
         # T = 25; dt = 1; time_phi = []
-        # self.v_u = np.ones((uncollided.G)); self.v_c = np.ones((collided.G))
-        speed_u = 1/(self.v_u*dt); speed_c = 1/(self.v_c*dt)
+        speed_u = 1/(self.v_u*self.dt); speed_c = 1/(self.v_c*self.dt)
         phi_c = np.zeros((collided.I,collided.G))
 
         # Initialize psi to zero
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
-        for t in range(int(T/dt)):      
+        for t in range(int(self.T/self.dt)):      
             # Step 1: Solve Uncollided Equation
             phi_u,_ = uncollided.multi_group(psi_last,speed_u)
             # Step 2: Compute Source for Collided
@@ -227,8 +236,8 @@ class Collided:
             for g in range(self.G):
                 q_tilde = source[:,g] + Collided.update_q(self.scatter,phi_old,g+1,self.G,g) + Collided.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
-                    q_tilde += Collided.update_q(self.scatter,phi,0,g,g) #+ Collided.update_q(self.fission,phi,0,g,g)
-                phi[:,g] = Collided.one_group(self,speed[g],self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g])
+                    q_tilde += Collided.update_q(self.scatter,phi,0,g,g) + Collided.update_q(self.fission,phi,0,g,g)
+                phi[:,g] = Collided.one_group(self,speed[g],self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.5

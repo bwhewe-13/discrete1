@@ -10,25 +10,6 @@ import pkg_resources
 
 DATA_PATH = pkg_resources.resource_filename('discrete1','data/')
 
-# class TimeDependent:
-#     def __init__(self,G,N,time,dt,boundary='vacuum'):
-#         self.G = G
-#         self.N = N
-#         self.time = time
-#         self.dt = dt
-#         self.boundary = boundary
-
-#     @classmethod
-#     def reeds(cls,G,N,time,dt,boundary='vacuum'):
-#         steady_vars = list(Reeds(G,N,boundary).variables())
-#         # Reduce the number of angles, weights if reflected
-#         if boundary == 'reflected':
-#             steady_vars[2] = steady_vars[2][int(N*0.5):] # mu
-#             steady_vars[3] = steady_vars[3][int(N*0.5):] # w
-#             steady_vars[1] = int(N*0.5) # N
-#         v = np.ones((steady_vars[0]))
-#         return steady_vars + [time,dt,v,boundary]
-
 
 class Selection:
     
@@ -192,7 +173,7 @@ class UraniumInfinite:
         energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
         g = np.argmin(abs(energy_grid-14.1E6))
         source = np.zeros((len(energy_grid)-1))
-        # source[g] = 1 # all spatial cells in this group
+        source[g] = 1 # all spatial cells in this group
 
         if reduced:
             total,scatter,fission = Tools.group_reduction(self.G,energy_grid,total,scatter,fission)
@@ -204,7 +185,7 @@ class UraniumInfinite:
         total_ = np.tile(total,(I,1))
         source = np.tile(source,(I,1))
 
-        source[0,g] = 1
+        # source[0,g] = 1
 
         return self.G,self.N,mu,w,total_,scatter_,fission_,source,I,delta
 
