@@ -1,3 +1,141 @@
+"""
+Setting up K-eigenvalue (criticality problems)
+"""
+
+from .generate import XSGenerate
+
+import numpy as np
+import pkg_resources
+
+DATA_PATH = pkg_resources.resource_filename('discrete1','data/')
+
+# Most likely this will be removed when I work on the dj_prob.py
+class Selection:
+    """ 
+    Different Preset problems
+    problem1: ['hdpe','enrich uh3','deplete uh3'], [45,35,20], reflective
+    problem2: ['ss440','enrich uh3','deplete uh3'], [45,35,20], reflective
+    """
+    def problem1(cls,enrich):
+        """ Uranium Hydride with HDPE  """
+        materials = ['hdpe',['uh3',enrich],['uh3',0.]]
+        shape = [45,35,20]
+        reflect = True
+        return UraniumHydride(materials,shape,reflect)
+
+    def problem2(enrich):
+        """ Uranium Hydride with HDPE  """
+        materials = ['ss440',['uh3',enrich],['uh3',0.]]
+        shape = [45,35,20]
+        reflect = True
+        return UraniumHydride(materials,shape,reflect)
+    
+
+class UraniumHydride:
+    __reflective = ['hdpe','ss440']
+    __molar_mass = {'hdpe':15.04,'ss440':52.68}
+
+    """ Uranium Hydride with different orientations """
+    def __init__(self,materials,shape,reflect):
+        self.materials = materials
+        self.shape = shape
+        self.reflect = reflect
+        # Used for doubling the sides (vacuum boundaries)
+        if not self.reflect:
+            self.shape = self.shape + self.shape[::-1]
+            self.materials = self.materials + self.materials[::-1]
+
+    # Debate on whether I should use this
+    @classmethod
+    def problem1(cls,enrich):
+        materials = ['hdpe',['uh3',enrich],['uh3',0.]]
+        shape = [45,35,20]
+        reflect = True
+        return cls(materials,shape,reflect)
+        
+    def variables(self):
+
+        L = 0; I = 1000; R = sum(self.shape)
+        G = 87; N = 8; delta = R/I
+        mu,w = np.polynomial.legendre.leggauss(N)
+        w /= np.sum(w)
+
+        if self.reflect:
+            mu = mu[int(N*0.5):]
+            w = w[int(N*0.5):]
+            N = int(N*0.5) 
+        # Get list of xs for each material
+        xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(self.materials)
+        # Get sizes of each material
+        layers = [int(ii/delta) for ii in self.shape]
+        # Propogate onto full space 
+        total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
+
+        return G,N,mu,w,total_,scatter_,fission_,I,delta
+
+    def boundaries(self):
+        I = 1000; R = sum(self.shape); delta = R/I
+        # Get slices of the material boundaries
+        layers = [int(ii/delta) for ii in self.shape]
+        # One dimensional array for labels
+        labels = np.zeros(sum(layers))
+        # Change layers to slices
+        layers = np.cumsum(np.insert(layers,0,0))
+        inds = [slice(layers[ii],layers[ii+1]) for ii in range(len(layers)-1)]        
+        # Get the dictionary for the splits
+        # splits = {'fuel':[slice(0,0)],'refl':[slice(0,0)]}
+        splits = {'fuel':[],'refl':[]}
+        for count,mat in enumerate(self.materials):
+            if type(mat) == list:
+                # Append the splits dictionary
+                splits['fuel'].append(inds[count])
+                # Populate the labels
+                labels[inds[count]] = mat[1]
+            elif mat in self.__class__.__reflective:
+                # Append the splits dictionary
+                splits['refl'].append(inds[count])
+                # Populate the labels
+                labels[inds[count]] = self.__class__.__molar_mass[mat]
+        return labels,splits
+
+    def scatter_fission(self):
+        _,_,_,_,_,scatter,fission,_,_ = UraniumHydride.variables(self)
+        return scatter,fission
+
+
+class Tools:
+
+    def populate_xs_list(materials):
+        """ Populate list with cross sections of different materials """
+        xs_total = []; xs_scatter = []; xs_fission = []
+        # Iterate through materials list
+        for mat in materials:
+            # Check for Enrichment
+            if type(mat) is list:
+                iso = mat[0].upper()
+                total_,scatter_,fission_ = XSGenerate(iso,enrich=mat[1]).cross_section()
+            else:
+                total_,scatter_,fission_ = XSGenerate(mat.upper()).cross_section()
+            xs_total.append(total_); xs_scatter.append(scatter_); xs_fission.append(fission_)
+            del total_, scatter_, fission_
+        return xs_total, xs_scatter, xs_fission
+
+    def populate_full_space(total,scatter,fission,layers):
+        """ Populate lists into full space (I)
+        total, scatter, fission: lists of cross sections of different materials
+        layers: list of cell widths of each material
+        """
+        total_ = np.vstack([np.tile(total[count],(width,1)) for count,width in enumerate(layers)])
+        scatter_ = np.vstack([np.tile(scatter[count],(width,1,1)) for count,width in enumerate(layers)])
+        fission_ = np.vstack([np.tile(fission[count],(width,1,1)) for count,width in enumerate(layers)])
+
+        return total_,scatter_,fission_
+
+
+
+
+
+
 class func:
     def __init__(self):
         self.dum1 = self.load_dummy1()
@@ -305,7 +443,7 @@ class problem2:
 
 
     def scatter_fission(enrich,dim=618,distance=[5,1.5,3.5]):
-        _,_,_,_,_,scatter,fission,_,_,_ = problem2.variables(enrich,dim,distance)
+        _,_,_,_,_,scatter,fission,_,_,_ = problem2.variables(enrich,'pluto',dim,distance)
         return scatter,fission
 
     def scatter_fission_total(conc,dim=618):
@@ -357,7 +495,7 @@ class problem2:
 
 
 class problem1:        
-    def variables(conc=None,problem=None,distance=[45,35,20]):
+    def variables(conc=None,problem=None,distance=[45,35,20],reduced=False):
         from discrete1.util import chem,sn
         import numpy as np
         if problem in ['stainless','carbon','hdpe']:
@@ -422,7 +560,7 @@ class problem1:
             uh3_fission_low = uh3_density_low[0]*u235fission + uh3_density_low[1]*u238fission
         uh3_238_fission = uh3_238_density[0]*u238fission
         hdpe_fission = np.zeros((dim,dim))
-    
+
         # Cross section layers
         if problem in ['carbon','hdpe']:
             xs_scatter = [hdpe_scatter.T,uh3_scatter.T,uh3_238_scatter.T]
@@ -451,8 +589,23 @@ class problem1:
             xs_scatter = [uh3_scatter.T,uh3_238_scatter.T]
             xs_total = [uh3_total,uh3_238_total]
             xs_fission = [uh3_fission.T,uh3_238_fission.T]
+
+        if reduced:
+            energy_grid = np.load('discrete1/data/energyGrid.npy')
+            dim = reduced
+            hdpe_total,hdpe_scatter,hdpe_fission = sn.group_reduction(dim,energy_grid,
+                total=hdpe_total,scatter=hdpe_scatter.T,fission=hdpe_fission.T)
+            uh3_total,uh3_scatter,uh3_fission = sn.group_reduction(dim,energy_grid,
+                total=uh3_total,scatter=uh3_scatter.T,fission=uh3_fission.T)
+            uh3_238_total,uh3_238_scatter,uh3_238_fission = sn.group_reduction(dim,energy_grid,
+                total=uh3_238_total,scatter=uh3_238_scatter.T,fission=uh3_238_fission.T)
+            # Don't need to be transposed
+            xs_scatter = [hdpe_scatter,uh3_scatter,uh3_238_scatter]
+            xs_total = [hdpe_total,uh3_total,uh3_238_total]
+            xs_fission = [hdpe_fission,uh3_fission,uh3_238_fission]
+
         # Setting up eigenvalue equation
-        N = 8; L = 0; R = sum(distance); G = dim
+        N = 8; L = 0; R = sum(distance); #G = dim
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w)
         # Half because symmetry
@@ -467,7 +620,7 @@ class problem1:
         fission_ = sn.mixed_propagate(xs_fission,layers,G=dim,dtype='fission2')
         total_ = sn.mixed_propagate(xs_total,layers,G=dim)
         
-        return G,N,mu,w,total_,scatter_[:,0],fission_,L,R,I
+        return dim,N,mu,w,total_,scatter_[:,0],fission_,L,R,I
     
     def boundaries_aux(conc,problem=None,distance=[45,35,20]):
         import numpy as np
@@ -481,12 +634,6 @@ class problem1:
         elif problem == 'multiplastic':
             distance = [10]*8; distance.append(20); ment = [conc]*4; ment.append(0); where = [1,3,5,7,8]
 
-        # elif problem == 'blur':
-        #     distance = [47,33,20]; ment = [conc,0]; where = [1,2]
-        # elif problem == 'noplastic':
-        #     distance = [35,20]; ment = [conc,0]; where = [0,1]
-        # elif problem == 'stainless_flip':
-        #     distance = [20,35,45]; ment = [0,conc]; where = [0,1]
         elif problem == 'hdpe':
             ment = [15.04]; where = [0]
         # Scatter Models
@@ -520,7 +667,7 @@ class problem1:
         return np.sort(np.array(sn.layer_slice(layers)))
     
     def boundaries(conc=0.2,problem=None,distance=[45,35,20]):
-        #problem_scatter = problem + '_full'
+        # problem_scatter = problem + '_full'
         problem_scatter = problem
         # Set Fission Splits
         enrichment,splits = problem1.boundaries_aux(conc,problem,distance)
@@ -531,10 +678,9 @@ class problem1:
         combo_splits = {**scatter_splits, **fission_splits}
         return enrichment,combo_splits
 
-    def scatter_fission(conc,problem,distance=[45,35,20]):
-        _,_,_,_,_,scatter,fission,_,_,_ = problem1.variables(conc,problem,distance)
+    def scatter_fission(conc,problem,distance=[45,35,20],reduced=False):
+        _,_,_,_,_,scatter,fission,_,_,_ = problem1.variables(conc,problem,distance,reduced)
         return scatter,fission
-
 
 class ex_sources:
     def source1(I,G):

@@ -1,4 +1,11 @@
 __pycache__/
 *.py[cod]
 *.so
+*.Rhistory
+*.ipynb
 
+
+# Cross Section Data
+xs/
+svgs/
+pkg_xtr/
