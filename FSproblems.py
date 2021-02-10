@@ -34,7 +34,7 @@ class Selection:
             pick = Stainless.finite(G,N)
 
         elif problem == 'uranium infinite':
-            pick = UraniumInfinite(G,N,enrich=enrich)
+            pick = UraniumInfinite(G,N,enrich=enrich).variables()
 
         elif problem == 'uranium stainless':
             pick = UraniumStainless.problem1(G,N,**kwargs)
