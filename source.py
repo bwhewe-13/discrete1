@@ -40,7 +40,7 @@ class Source:
         self.fission = fission
         self.source = source
         self.I = I
-        self.delta = delta
+        self.delta = 1/delta
         # kwargs
         self.boundary = 'vacuum'; self.time = False; self.speed = None
         for key, value in kwargs.items():
@@ -63,6 +63,7 @@ class Source:
             problem.time = True
             problem.T = kwargs['T']; problem.dt = kwargs['dt']
             return problem.time_steps()
+        print('Multigroup Problem')
         return problem.multi_group()
 
                 
