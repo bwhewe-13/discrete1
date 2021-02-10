@@ -283,7 +283,7 @@ class UraniumStainless:
         if self.G != 87:
             reduced = True
 
-        L = 0; R = sum(self.shape); I = 100
+        L = 0; R = sum(self.shape); I = 1000
         mu,w = np.polynomial.legendre.leggauss(self.N)
         w /= np.sum(w); 
 
