@@ -213,7 +213,7 @@ class Source:
         psi_last = np.zeros((self.I,self.N,self.G))
         
         self.speed = 1/(self.v*self.dt); time_phi = []
-
+        print(np.sum(self.source))
         for t in range(int(self.T/self.dt)):
             # Solve at initial time step
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
@@ -225,6 +225,7 @@ class Source:
             phi_old = phi.copy()
 
             self.source *= 0
+            print(np.sum(self.source))
 
         return phi,time_phi
 
