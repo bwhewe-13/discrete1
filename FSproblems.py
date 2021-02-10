@@ -144,7 +144,7 @@ class Stainless:
     @classmethod
     def finite(cls,G,N):
         problem = list(cls(G,N).variables())
-        R = 2.; I = 1000
+        R = 10.; I = 1000
         problem[-1] = R/I # change delta
         problem[-2] = I # change I
         
@@ -153,7 +153,7 @@ class Stainless:
         problem[4] = np.tile(problem[4],(I,1))   # Total
         problem[7] = np.tile(problem[7],(I,1))   # Source
 
-        problem[-3][10:] *= 0 # Source enter from LHS
+        problem[-3][1:] *= 0 # Source enter from LHS
 
         Tools.recompile(I)
         return problem
@@ -283,7 +283,7 @@ class UraniumStainless:
         if self.G != 87:
             reduced = True
 
-        L = 0; R = sum(self.shape); I = 100
+        L = 0; R = sum(self.shape); I = 1000
         mu,w = np.polynomial.legendre.leggauss(self.N)
         w /= np.sum(w); 
 

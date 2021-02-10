@@ -49,6 +49,10 @@ class Hybrid:
             uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu)[0])
             collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc)[0])
 
+        print(uncollided.delta)
+        print(uncollided.source.shape)
+        print(np.sum(uncollided.source))
+
         time_phi = []
         speed_u = 1/(self.v_u*self.dt); speed_c = 1/(self.v_c*self.dt)
         phi_c = np.zeros((collided.I,collided.G))
@@ -79,6 +83,8 @@ class Hybrid:
             if self.problem in ['stainless','uranium stainless'] and t == 0: # kill source after first time step
                 uncollided.source *= 0
 
+            print(np.sum(uncollided.source))
+
             psi_last = psi_next.copy(); time_phi.append(phi)
 
         return phi,time_phi
@@ -92,7 +98,7 @@ class Uncollided:
         self.fission = fission
         self.source = source
         self.I = I
-        self.delta = delta
+        self.delta = 1/delta
 
     def one_group(self,psi_last,speed,total_,source_):
         """ Step 1 of Hybrid
@@ -174,7 +180,7 @@ class Collided:
         self.fission = fission
         # self.source = source
         self.I = I
-        self.delta = delta
+        self.delta = 1/delta
 
     def one_group(self,speed,total_,scatter_,source_,guess_):
         import numpy as np
