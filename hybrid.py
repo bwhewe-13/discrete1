@@ -76,7 +76,7 @@ class Hybrid:
             # Step 5: Update and repeat
             print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             
-            if self.problem in ['stainless','uranium stainless'] and t == 0: # kill source after first time step
+            if self.problem in ['stainless','uranium stainless']: # and t == 0: # kill source after first time step
                 uncollided.source *= 0
 
             psi_last = psi_next.copy(); time_phi.append(phi)
