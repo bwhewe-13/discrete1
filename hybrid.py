@@ -49,6 +49,8 @@ class Hybrid:
             uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu)[0])
             collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc)[0])
 
+        print(collided.total.shape)
+
         time_phi = []
         speed_u = 1/(self.v_u*self.dt); speed_c = 1/(self.v_c*self.dt)
         phi_c = np.zeros((collided.I,collided.G))
@@ -223,8 +225,7 @@ class Collided:
         return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
 
     def multi_group(self,speed,source,guess):
-        import numpy as np
-
+        
         assert(source.shape[1] == self.G), 'Wrong Number of Groups'
 
         phi_old = guess.copy()
