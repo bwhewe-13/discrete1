@@ -69,7 +69,7 @@ class eigen:
         Returns:
             phi: a I x G array  """
         import numpy as np
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
         # smult = None
         # phi_old = np.zeros((self.I,self.G))
         phi_old = guess.copy()
@@ -101,7 +101,7 @@ class eigen:
             return phi,scatter_mg
         return phi
             
-    def transport(self,problem,enrich,tol=1e-12,MAX_ITS=100,LOUD=True):
+    def transport(self,problem,enrich,tol=1e-12,MAX_ITS=1000,LOUD=True):
         """ Arguments:
             tol: tolerance of convergence, default is 1e-08
             MAX_ITS: maximum iterations allowed, default is 100
@@ -109,7 +109,7 @@ class eigen:
         Returns:
             phi: a I x G array    """        
         import numpy as np
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
 
         phi_old = np.random.rand(self.I,self.G)
         phi_old /= np.linalg.norm(phi_old)
@@ -268,7 +268,7 @@ class eigen_collect:
             phi: a I x G array    """        
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
 
         phi_old = func.initial_flux(problem)
         keff = np.linalg.norm(phi_old)
@@ -306,8 +306,8 @@ class eigen_collect:
             return phi,keff,complete_phi
         return phi,keff
 
-class source:
-    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I,track=False,enrich=None,splits=None):
+class Source:
+    def __init__(self,G,N,mu,w,total,scatter,chiNuFission,L,R,I): #,track=False,enrich=None,splits=None):
         self.G = G
         self.N = N
         self.mu = mu
@@ -316,7 +316,8 @@ class source:
         self.scatter = scatter
         self.chiNuFission = chiNuFission
         self.I = I
-        self.inv_delta = float(I)/R
+        self.delta = float(I)/R
+        
         self.track = track
         self.enrich = enrich
         self.splits = splits
@@ -370,7 +371,7 @@ class source:
             phi: a I x G array  """
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.setup import func,ex_sources
+        from discrete1.setup_ke import func,ex_sources
 
         # phi_old = func.initial_flux('carbon_source')
         phi_old = np.random.rand(self.I,self.G)
