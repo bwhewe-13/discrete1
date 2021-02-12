@@ -2,7 +2,7 @@
 Running Multigroup Source Problems
 """
 
-from .FSproblems import Selection
+from .fixed import FixedSource
 
 import numpy as np
 import ctypes
@@ -64,6 +64,7 @@ class Source:
             problem.T = kwargs['T']; problem.dt = kwargs['dt']
             return problem.time_steps()
         print('Multigroup Problem')
+        print(problem.scatter.shape)
         return problem.multi_group()
 
                 

@@ -1,5 +1,5 @@
 """ 
-Setting Up Multigroup problems
+Setting Up Multigroup problems for source.py and hybrid.py
 """
 
 from .generate import XSGenerate
@@ -14,79 +14,126 @@ DATA_PATH = pkg_resources.resource_filename('discrete1','data/')
 # Problems with same energy grid
 group87 = ['stainless infinite','stainless','uranium infinite', 'uranium stainless']
 
-class Selection:    
-    
-    def select(problem,G,N,**kwargs):
-        """ Selects the right class for multigroup problems  """
+class FixedSource:
+    # Keyword Arguments allowed currently
+    __allowed = ("T","dt","boundary","enrich","hybrid")
+
+    def __init__(self,ptype,G,N,**kwargs):
+        """ Deals with picking the correct variables needed for the function
+        (steady state, time dependent, hybrid)
+        Attributes:
+            ptype: the preset problem, str
+                Options: Reeds, Stainless, StainlessInfinite, UraniumInfinite, UraniumStainless
+            G: Number of energy groups, int
+            N: Number of discrete angles, int
+        kwargs:
+            T: Length of the time period (for time dependent problems), float
+            dt: Width of the time step (for time dependent problems), float
+            v: Speed of the neutrons in cm/s, list of length G
+            boundary: str (default vacuum), determine RHS of problem
+                options: 'vacuum', 'reflected'
+            enrich: enrichment percentage of U235 in uranium problems, float
+            hybrid: Will return uncollided delta if hybrid == G, collided and splits if hybrid > G
+        """
         # Attributes
-        boundary = 'vacuum'; enrich = 0.007
-        if 'boundary' in kwargs:
-            boundary = kwargs['boundary']
+        self.ptype = ptype
+        self.G = G
+        self.N = N
+        # kwargs
+        self.T = None; self.dt = None; # self.v = None
+        self.boundary = 'vacuum'; self.enrich = None; self.hybrid = None
+        for key, value in kwargs.items():
+            assert (key in self.__class__.__allowed), "Attribute not allowed, available: T, dt, boundary, enrich, hybrid" 
+            setattr(self, key, value)
 
-        # Pick the correct class
-        if problem == 'reeds':
-            pick = Reeds(G,N,boundary=boundary)
+    @classmethod
+    def initialize(cls,ptype,G,N,**kwargs):
+        problem = cls(ptype,G,N,**kwargs)
+        td_vars = []; hy_vars = []
+        # calling steady state variables
+        if problem.enrich:
+            ss_vars = list(eval(ptype).steady(G,N,problem.boundary,problem.enrich))
+        else:
+            ss_vars = list(eval(ptype).steady(G,N,problem.boundary))
+        # Check if time dependent problem
+        if problem.T:
+            td_vars = list(eval(ptype).timed(G,problem.T,problem.dt))
+        # Check if hybrid problem
+        if problem.hybrid:
+            hy_vars = list(eval(ptype).hybrid(G,problem.hybrid))
 
-        elif problem == 'stainless infinite':
-            pick = Stainless.infinite(G,N)
+        return ss_vars + td_vars + hy_vars
 
-        elif problem == 'stainless':
-            pick = Stainless.finite(G,N)
 
-        elif problem == 'uranium infinite':
-            pick = UraniumInfinite(G,N,enrich=enrich).variables()
+    # def select(problem,G,N,**kwargs):
+    #     """ Selects the right class for multigroup problems  """
+    #     # Attributes
+    #     boundary = 'vacuum'; enrich = 0.007
+    #     if 'boundary' in kwargs:
+    #         boundary = kwargs['boundary']
 
-        elif problem == 'uranium stainless':
-            pick = UraniumStainless.problem1(G,N,**kwargs)
-        # Call for the variables
-        items = list(pick)
+    #     # Pick the correct class
+    #     if problem == 'reeds':
+    #         pick = Reeds(G,N,boundary=boundary)
+
+    #     elif problem == 'stainless infinite':
+    #         pick = Stainless.infinite(G,N)
+
+    #     elif problem == 'stainless':
+    #         pick = Stainless.finite(G,N)
+
+    #     elif problem == 'uranium infinite':
+    #         pick = UraniumInfinite(G,N,enrich=enrich).variables()
+
+    #     elif problem == 'uranium stainless':
+    #         pick = UraniumStainless.problem1(G,N,**kwargs)
+    #     # Call for the variables
+    #     items = list(pick)
         
-        # Change N, mu, w if reflected
-        if boundary == 'reflected':
-            items[2] = items[2][int(N*0.5):] # mu
-            items[3] = items[3][int(N*0.5):] # w
-            items[1] = int(N*0.5) # N
-        return items, kwargs
+    #     # Change N, mu, w if reflected
+    #     if boundary == 'reflected':
+    #         items[2] = items[2][int(N*0.5):] # mu
+    #         items[3] = items[3][int(N*0.5):] # w
+    #         items[1] = int(N*0.5) # N
+    #     return items, kwargs
 
-    def energy_diff(problem,Gu):
-        """ Returns the width of the larger energy list """
-        if problem == 'reeds':
-            delta_u = [1/Gu] * Gu
+    # def energy_diff(problem,Gu):
+    #     """ Returns the width of the larger energy list """
+    #     if problem == 'reeds':
+    #         delta_u = [1/Gu] * Gu
 
-        elif problem in group87:
-            grid = np.load(DATA_PATH + 'energyGrid.npy')
-            delta_u = np.diff(grid)
+    #     elif problem in group87:
+    #         grid = np.load(DATA_PATH + 'energyGrid.npy')
+    #         delta_u = np.diff(grid)
 
-        return delta_u
+    #     return delta_u
 
-    def speed_calc(problem,Gu):
-        if problem == 'reeds':
-            v = np.ones((Gu))
+    # def speed_calc(problem,Gu):
+    #     if problem == 'reeds':
+    #         v = np.ones((Gu))
 
-        elif problem in group87:
-            grid = np.load(DATA_PATH + 'energyGrid.npy')
-            v = Tools.relative_speed(grid,Gu)
-            # v = Tools.classical_speed(grid,Gu)
+    #     elif problem in group87:
+    #         grid = np.load(DATA_PATH + 'energyGrid.npy')
+    #         v = Tools.relative_speed(grid,Gu)
+    #         # v = Tools.classical_speed(grid,Gu)
 
-        return v
+    #     return v
+
 
 
 class Reeds:
-    __allowed = ("boundary")
+    
+    # def __init__(self,G,N,boundary):
+    #     self.G = G
+    #     self.N = N
+    #     self.boundary = boundary
 
-    def __init__(self,G,N,**kwargs):
-        self.G = G
-        self.N = N
-        self.boundary = 'vacuum'; 
-        for key, value in kwargs.items():
-            assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, time" 
-            setattr(self, key, value)
 
-    def variables(self):
+    def steady(G,N,boundary='vacuum'):
         # import numpy as np
         
         L = 0; R = 16.; I = 1000
-        mu,w = np.polynomial.legendre.leggauss(self.N)
+        mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w); 
 
         delta = R/I
@@ -97,11 +144,11 @@ class Reeds:
             slice(int(11/delta),int(13/delta)),slice(int(13/delta),int(14/delta)),
             slice(int(14/delta),int(16/delta))]
         
-        total_ = np.zeros((I,self.G)); total_vals = [10,10,0,5,50,5,0,10,10]
-        scatter_ = np.zeros((I,self.G,self.G)); scatter_vals = [9.9,9.9,0,0,0,0,0,9.9,9.9]
-        source_ = np.zeros((I,self.G)); source_vals = [0,1,0,0,50,0,0,1,0]
+        total_ = np.zeros((I,G)); total_vals = [10,10,0,5,50,5,0,10,10]
+        scatter_ = np.zeros((I,G,G)); scatter_vals = [9.9,9.9,0,0,0,0,0,9.9,9.9]
+        source_ = np.zeros((I,G)); source_vals = [0,1,0,0,50,0,0,1,0]
 
-        if self.boundary == 'reflected':
+        if boundary == 'reflected':
             R = 8.; delta = R/I
             boundaries = [slice(0,int(2/delta)),slice(int(2/delta),int(3/delta)),
                 slice(int(3/delta),int(5/delta)),slice(int(5/delta),int(6/delta)),
@@ -111,14 +158,34 @@ class Reeds:
             scatter_vals = scatter_vals[:5].copy()
             source_vals = source_vals[:5].copy()
 
+            N = int(0.5 * N)
+            mu = mu[N:]; w = w[N:]
+
         for ii in range(len(boundaries)):
             total_[boundaries[ii]] = total_vals[ii]
-            scatter_[boundaries[ii]] = np.diag(np.repeat(scatter_vals[ii],self.G))
-            source_[boundaries[ii]] = source_vals[ii]*1/self.G
+            scatter_[boundaries[ii]] = np.diag(np.repeat(scatter_vals[ii],G))
+            source_[boundaries[ii]] = source_vals[ii]*1/G
 
         fission_ = np.zeros((scatter_.shape))
 
-        return self.G,self.N,mu,w,total_,scatter_,fission_,source_,I,1/delta
+        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta
+
+    def timed(G,T,dt):
+        v = np.ones((G))
+        return T, dt, v
+
+    def hybrid(G,hybrid):
+        # Will return 
+        if hybrid == G:
+            delta_u = [1/G] * G
+            return delta_u
+        # Will return uncollided delta_e
+        elif hybrid > G:
+            splits = Tools.energy_distribution(hybrid,G)
+            delta_u = [1/hybrid] * G
+            delta_c = [sum(delta_u[ii]) for ii in splits]
+            return delta_c, splits
+
 
 
 class Stainless:
@@ -180,6 +247,7 @@ class Stainless:
         if reduced:
             total,scatter,fission = Tools.group_reduction(self.G,energy_grid,total,scatter,fission)
             source = Tools.group_reduction(self.G,energy_grid,source,None,None)
+            # total = Tools.group_reduction(self.G,energy_grid,total,None,None)
 
         if prop:
         # Progagate for all groups
@@ -187,6 +255,16 @@ class Stainless:
             fission = np.tile(fission,(prop,1,1))
             total = np.tile(total,(prop,1))
             source = np.tile(source,(prop,1))
+
+        # scatter = np.tile(scatter,(I,1,1))
+        # fission = np.tile(fission,(I,1,1))
+        # total = np.tile(total,(I,1))
+        # source = np.tile(source,(I,1))
+
+        # if reduced:
+        #     _,scatter,fission = Tools.group_reduction(self.G,energy_grid,total,scatter,fission)
+
+        print(scatter.shape,fission.shape,total.shape,source.shape)
 
         return self.G,self.N,mu,w,total,scatter,fission,source,I,delta
 
@@ -294,11 +372,15 @@ class UraniumStainless:
         # Get sizes of each material
         layers = [int(ii/delta) for ii in self.shape]
 
-        # 
+        # Source term
         energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
         g = np.argmin(abs(energy_grid-14.1E6))
         source = np.zeros((len(energy_grid)-1))
         source[g] = 1 # all spatial cells in this group
+
+        if reduced:
+            xs_total,xs_scatter,xs_fission = Tools.group_reduction(self.G,energy_grid,xs_total,xs_scatter,xs_fission)
+            source = Tools.group_reduction(self.G,energy_grid,source,None,None)
 
         # Propogate onto full space 
         total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
@@ -323,6 +405,22 @@ class UraniumStainless:
 
 
 class Tools:
+
+    def energy_distribution(big,small):
+        """ List of slices for different energy sizes
+        Arguments:
+            big: uncollided energy groups, int
+            small: collided energy groups, int
+        Returns:
+            list of slices   """
+
+        new_grid = np.ones((small)) * int(big/small)
+        new_grid[np.linspace(0,small-1,big % small,dtype=int)] += 1
+
+        inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
+
+        splits = [slice(ii,jj) for ii,jj in zip(inds[:small],inds[1:])]
+        return splits
 
     def group_reduction(new_group,grid,total,scatter,fission):
         """ Used to reduce the number of groups for cross sections and energy levels 
@@ -362,7 +460,24 @@ class Tools:
         old_diff_grid = np.diff(grid)
         # Repeated for the matrix (fission and scatter)
         old_diff_matrix = old_diff_grid[:,None] @ old_diff_grid[None,:]
-        
+
+        # Check for list of materials
+        if type(total) == list:
+            new_total = []; new_scatter = []; new_fission = []
+            for mat in range(len(total)):
+                # Total
+                temp_total = Tools.vector_reduction(total[mat]*old_diff_grid,inds)
+                new_total.append(temp_total / new_diff_grid)
+                # Scatter
+                temp_scatter = Tools.matrix_reduction(scatter[mat]*old_diff_grid,inds)
+                new_scatter.append(temp_scatter / new_diff_grid)
+                # Fission
+                temp_fission = Tools.matrix_reduction(fission[mat]*old_diff_grid,inds)
+                new_fission.append(temp_fission / new_diff_grid)
+                del temp_total, temp_scatter, temp_fission
+
+            return new_total,new_scatter,new_fission
+
         # Total Cross Section
         total *= old_diff_grid
         new_total = Tools.vector_reduction(total,inds)
@@ -370,10 +485,18 @@ class Tools:
 
         # For source problem
         if scatter is None and fission is None:
+            # total *= old_diff_grid
+            # new_total = Tools.vector_reduction(total,inds)
+            # new_total /= new_diff_grid
             return new_total
+        
+        # phi = np.load('stainless_g87.npy')
+        # new_scatter,new_fission = Tools.low_rank_svd(phi,scatter,fission,60)
+        # new_total = np.zeros((1,1))
 
         # Scatter Cross Section
         scatter *= old_diff_grid
+        # scatter *= old_diff_matrix
         new_scatter = Tools.matrix_reduction(scatter,inds)
         new_scatter /= new_diff_grid
         # new_scatter /= new_diff_matrix
@@ -506,3 +629,4 @@ class Tools:
 
         return total_,scatter_,fission_
 
+   
