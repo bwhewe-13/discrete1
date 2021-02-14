@@ -9,7 +9,7 @@ import ctypes
 
 class Source:
     # Keyword Arguments allowed currently
-    __allowed = ("boundary","time","speed","enrich")
+    __allowed = ("T","dt","v","boundary") # ,"hybrid","enrich","track")
 
     def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,**kwargs): 
         """ Deals with Source multigroup problems (time dependent, steady state,
@@ -26,10 +26,12 @@ class Source:
             I: number of spatial cells, int
             delta: width of each spatial cell, int
         kwargs:
+            T: Length of the time period (for time dependent problems), float
+            dt: Width of the time step (for time dependent problems), float
+            v: Speed of the neutrons in cm/s, list of length G
             boundary: str (default vacuum), determine RHS of problem
                 options: 'vacuum', 'reflected'
-            time: bool (default False), time dependency
-            speed: list of length G for the speed of each energy group (cm/s)
+            enrich: enrichment percentage of U235 in uranium problems, float
             track: bool (default False), if track flux change with iteration
         """ 
         # Attributes
@@ -42,29 +44,42 @@ class Source:
         self.I = I
         self.delta = 1/delta
         # kwargs
-        self.boundary = 'vacuum'; self.time = False; self.speed = None
+        self.T = None; self.dt = None; self.v = None
+        self.boundary = 'vacuum'; self.problem = None
+        #self.enrich = None; self.time = False
         for key, value in kwargs.items():
             assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, time" 
             setattr(self, key, value)
 
     @classmethod
-    def run(cls,ptype,G,N,boundary='vacuum',**kwargs):
+    def run(cls,ptype,G,N,**kwargs):
+        # Default is vacuum
+        boundary = 'vacuum'
+        if 'boundary' in kwargs:
+            boundary = kwargs['boundary']
         # Currently cannot use reflected boundary with TD problems
         if 'T' in kwargs and boundary == 'reflected':
             print('Using Vacuum Boundaries, cannot use Time Dependency with Reflected Conditions')
             boundary = 'vacuum'
-        if 'enrich' in kwargs:
-            attributes,keywords = Selection.select(ptype,G,N,boundary=boundary,enrich=kwargs['enrich'])
-        else:
-            attributes,keywords = Selection.select(ptype,G,N,boundary=boundary)
+        # if 'enrich' in kwargs:
+        #     attributes,keywords = Selection.select(ptype,G,N,boundary=boundary,enrich=kwargs['enrich'])
+        # else:
+        #     attributes,keywords = Selection.select(ptype,G,N,boundary=boundary)
+
+        attributes,keywords = FixedSource.initialize(ptype,G,N,**kwargs)
+
         problem = cls(*attributes,**keywords)
+
+        problem.boundary = boundary
+        problem.problem = ptype
+        # problem = cls(*FixedSource.initialize(ptype,G,N,**kwargs)[:10],**FixedSource.initialize(ptype,G,N,**kwargs)[10:])
         if 'T' in kwargs:
-            problem.v = Selection.speed_calc(ptype,G)
-            problem.time = True
-            problem.T = kwargs['T']; problem.dt = kwargs['dt']
+            # problem.v = Selection.speed_calc(ptype,G)
+            # problem.time = True
+            # problem.T = kwargs['T']; problem.dt = kwargs['dt']
             return problem.time_steps()
-        print('Multigroup Problem')
-        print(problem.scatter.shape)
+        # print('Multigroup Problem')
+        # print(problem.scatter.shape)
         return problem.multi_group()
 
                 
@@ -81,7 +96,7 @@ class Source:
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cSource.so')
         sweep = clibrary.vacuum
         if self.boundary == 'reflected':
-            print('Reflected')
+            # print('\nReflected\n')
             sweep = clibrary.reflected
 
         phi_old = guess.copy()
@@ -118,7 +133,6 @@ class Source:
             phi_old = phi.copy()
 
         return phi
-
 
     def time_one_group(self,total_,scatter_,source_,guess,psi_last,speed):
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cSource.so')
@@ -177,7 +191,7 @@ class Source:
         
         phi_old = np.zeros((self.I,self.G))
 
-        if self.time:
+        if self.T:
             psi_last = kwargs['psi_last'].copy()
             psi_next = np.zeros(psi_last.shape)
             phi_old = kwargs['guess'].copy()
@@ -190,7 +204,7 @@ class Source:
                 q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
                     q_tilde += Source.update_q(self.scatter,phi_old,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
-                if self.time:
+                if self.T:
                     phi[:,g],psi_next[:,:,g] = Source.time_one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g],psi_last[:,:,g],self.speed[g])
                 else:
                     phi[:,g] = Source.one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
@@ -198,14 +212,14 @@ class Source:
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.5
-            if not self.time:
+            if not self.T:
                 print('Count',count,'Change',change,'\n===================================')
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
 
             phi_old = phi.copy()
 
-        if self.time:
+        if self.T:
             return phi,psi_next
         return phi
 
@@ -225,7 +239,8 @@ class Source:
             time_phi.append(phi)
             phi_old = phi.copy()
 
-            self.source *= 0
+            if self.problem in ['Stainless','UraniumStainless']:
+                self.source *= 0
             print(np.sum(self.source))
 
         return phi,time_phi
@@ -234,7 +249,7 @@ class Source:
     # def run(self):
     #     """ Will either call multi_group for steady state or time_multi_group
     #     for time dependency """
-    #     if self.time:
+    #     if self.T:
     #         return Source.time_steps(self)
     #     return Source.multi_group(self)
 

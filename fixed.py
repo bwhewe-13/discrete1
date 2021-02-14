@@ -49,7 +49,7 @@ class FixedSource:
     @classmethod
     def initialize(cls,ptype,G,N,**kwargs):
         problem = cls(ptype,G,N,**kwargs)
-        td_vars = []; hy_vars = []
+        td_vars = {}; hy_vars = {}
         # calling steady state variables
         if problem.enrich:
             ss_vars = list(eval(ptype).steady(G,N,problem.boundary,problem.enrich))
@@ -57,12 +57,16 @@ class FixedSource:
             ss_vars = list(eval(ptype).steady(G,N,problem.boundary))
         # Check if time dependent problem
         if problem.T:
-            td_vars = list(eval(ptype).timed(G,problem.T,problem.dt))
+            temp = list(eval(ptype).timed(G,problem.T,problem.dt))
+            keys = ['T','dt','v']
+            for ii in range(len(keys)):
+                td_vars[keys[ii]] = temp[ii]
+
         # Check if hybrid problem
         if problem.hybrid:
             hy_vars = list(eval(ptype).hybrid(G,problem.hybrid))
 
-        return ss_vars + td_vars + hy_vars
+        return ss_vars, {**td_vars,**hy_vars}
 
 
     # def select(problem,G,N,**kwargs):
@@ -130,7 +134,6 @@ class Reeds:
 
 
     def steady(G,N,boundary='vacuum'):
-        # import numpy as np
         
         L = 0; R = 16.; I = 1000
         mu,w = np.polynomial.legendre.leggauss(N)
@@ -167,6 +170,8 @@ class Reeds:
             source_[boundaries[ii]] = source_vals[ii]*1/G
 
         fission_ = np.zeros((scatter_.shape))
+
+        Tools.recompile(I)
 
         return G,N,mu,w,total_,scatter_,fission_,source_,I,delta
 
