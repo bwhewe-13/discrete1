@@ -180,7 +180,7 @@ class Source:
         """ Run multi group steady state problem
         Returns:
             phi: scalar flux, numpy array of size (I x G) """
-        
+
         phi_old = np.zeros((self.I,self.G))
 
         if self.T:
@@ -192,14 +192,20 @@ class Source:
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)  
+
+            # total,scatter = Tools.group_reduction(self.G,self.total,self.scatter,phi_old) 
+
             for g in range(self.G):
                 q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
+                # q_tilde = self.source[:,g] + Source.update_q(scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
                     q_tilde += Source.update_q(self.scatter,phi_old,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
+                    # q_tilde += Source.update_q(scatter,phi_old,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
                 if self.T:
                     phi[:,g],psi_next[:,:,g] = Source.time_one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g],psi_last[:,:,g],self.speed[g])
                 else:
                     phi[:,g] = Source.one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
+                    # phi[:,g] = Source.one_group(self,total[:,g],scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
 
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
@@ -231,19 +237,14 @@ class Source:
             time_phi.append(phi)
             phi_old = phi.copy()
 
-            if self.problem in ['Stainless','UraniumStainless']:
-                self.source *= 0
-            print(np.sum(self.source))
+            if self.problem in ['Stainless','UraniumStainless']: # and t > 2:
+                if t < 2:
+                    self.source *= 1
+                else:
+                    self.source *= 0.5
+            # print(np.sum(self.source))
 
         return phi,time_phi
-
-
-    # def run(self):
-    #     """ Will either call multi_group for steady state or time_multi_group
-    #     for time dependency """
-    #     if self.T:
-    #         return Source.time_steps(self)
-    #     return Source.multi_group(self)
 
 
     # def tracking_data(self,flux,sources=None):

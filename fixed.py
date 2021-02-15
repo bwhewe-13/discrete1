@@ -55,6 +55,7 @@ class FixedSource:
             ss_vars = list(eval(ptype).steady(G,N,problem.boundary,problem.enrich))
         else:
             ss_vars = list(eval(ptype).steady(G,N,problem.boundary))
+
         # Check if time dependent problem
         if problem.T:
             temp = list(eval(ptype).timed(G,problem.T,problem.dt))
@@ -64,9 +65,45 @@ class FixedSource:
 
         # Check if hybrid problem
         if problem.hybrid:
-            hy_vars = list(eval(ptype).hybrid(G,problem.hybrid))
+            temp = list(eval(ptype).hybrid(G,problem.hybrid))
+            if len(temp) == 1:
+                keys = ['delta_e'] # uncollided
+            else:
+                keys = ['delta_e','splits'] # collided
+            for ii in range(len(keys)):
+                hy_vars[keys[ii]] = temp[ii]
 
         return ss_vars, {**td_vars,**hy_vars}
+
+    @classmethod
+    def dictionary(cls,ptype,G,N,**kwargs):
+        problem = cls(ptype,G,N,**kwargs)
+        ss_vars = {}; td_vars = {}; hy_vars = {}
+        # calling steady state variables
+        if problem.enrich:
+            temp = list(eval(ptype).steady(G,N,problem.boundary,problem.enrich))
+        else:
+            temp = list(eval(ptype).steady(G,N,problem.boundary))
+        # Send to dictionary
+        keys = ['G','N','mu','w','total','scatter','fission','source','I','delta']
+        for ii in range(len(keys)):
+            ss_vars[keys[ii]] = temp[ii]
+        del temp
+        # Check if time dependent problem
+        if problem.T:
+            temp = list(eval(ptype).timed(G,problem.T,problem.dt))
+            keys = ['T','dt','v']
+            for ii in range(len(keys)):
+                td_vars[keys[ii]] = temp[ii]
+
+        # Check if hybrid problem
+        if problem.hybrid:
+            temp = list(eval(ptype).hybrid(G,problem.hybrid))
+            keys = ['delta_e','splits'] 
+            for ii in range(len(keys)):
+                hy_vars[keys[ii]] = temp[ii]
+
+        return {**ss_vars, **td_vars,**hy_vars}
 
 class Reeds:
     
@@ -120,11 +157,11 @@ class Reeds:
         # Will return 
         if hy_g == G:
             delta_u = [1/G] * G
-            return delta_u
+            return delta_u,None
         # Will return uncollided delta_e
         elif hy_g > G:
             splits = Tools.energy_distribution(hy_g,G)
-            delta_u = [1/hy_g] * G
+            delta_u = [1/hy_g] * hy_g
             delta_c = [sum(delta_u[ii]) for ii in splits]
             return delta_c, splits
 
@@ -155,7 +192,7 @@ class StainlessInfinite:
 
         if reduced:
             total,scatter,fission = Tools.group_reduction(G,energy_grid,total,scatter,fission)
-            source = Tools.group_reduction(G,energy_grid,source,None,None)
+            source = Tools.source_reduction(87,G,source)
 
         scatter_ = np.tile(scatter,(I,1,1))
         fission_ = np.tile(fission,(I,1,1))
@@ -175,7 +212,7 @@ class StainlessInfinite:
         grid = np.load(DATA_PATH + 'energyGrid.npy')
         if hy_g == G:
             delta_u = np.diff(grid)
-            return delta_u
+            return delta_u,None
         # Will return uncollided delta_e
         elif hy_g > G:
             splits = Tools.energy_distribution(hy_g,G)
@@ -210,15 +247,16 @@ class Stainless:
 
         if reduced:
             total,scatter,fission = Tools.group_reduction(G,energy_grid,total,scatter,fission)
-            source = Tools.group_reduction(G,energy_grid,source,None,None)
+            # _,scatter,fission = Tools.group_reduction(G,energy_grid,total.copy(),scatter.copy(),fission)
+            source = Tools.source_reduction(87,G,source)
 
         scatter_ = np.tile(scatter,(I,1,1))
         fission_ = np.tile(fission,(I,1,1))
         total_ = np.tile(total,(I,1))
         source_ = np.tile(source,(I,1))
 
-        source[1:] *= 0 # Entering from LHS
-
+        source_[1:] *= 0 # Entering from LHS
+        
         Tools.recompile(I)
 
         return G,N,mu,w,total_,scatter_,fission_,source_,I,delta
@@ -232,7 +270,7 @@ class Stainless:
         grid = np.load(DATA_PATH + 'energyGrid.npy')
         if hy_g == G:
             delta_u = np.diff(grid)
-            return delta_u
+            return delta_u,None
         # Will return uncollided delta_e
         elif hy_g > G:
             splits = Tools.energy_distribution(hy_g,G)
@@ -265,7 +303,7 @@ class UraniumInfinite:
 
         if reduced:
             total,scatter,fission = Tools.group_reduction(G,energy_grid,total,scatter,fission)
-            source = Tools.group_reduction(G,energy_grid,source,None,None)
+            source = Tools.source_reduction(87,G,source)
 
         # Progagate for all groups
         scatter_ = np.tile(scatter,(I,1,1))
@@ -286,7 +324,7 @@ class UraniumInfinite:
         grid = np.load(DATA_PATH + 'energyGrid.npy')
         if hy_g == G:
             delta_u = np.diff(grid)
-            return delta_u
+            return delta_u,None
         # Will return uncollided delta_e
         elif hy_g > G:
             splits = Tools.energy_distribution(hy_g,G)
@@ -324,13 +362,13 @@ class UraniumStainless:
 
         if reduced:
             xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,xs_total,xs_scatter,xs_fission)
-            source = Tools.group_reduction(G,energy_grid,source,None,None)
+            source = Tools.source_reduction(87,G,source)
 
         # Propogate onto full space 
         total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
 
         source_ = np.tile(source,(I,1))
-        source_[1:,] *= 0
+        source_[1:] *= 0
 
         Tools.recompile(I)
 
@@ -345,7 +383,7 @@ class UraniumStainless:
         grid = np.load(DATA_PATH + 'energyGrid.npy')
         if hy_g == G:
             delta_u = np.diff(grid)
-            return delta_u
+            return delta_u, None
         # Will return uncollided delta_e
         elif hy_g > G:
             splits = Tools.energy_distribution(hy_g,G)
@@ -363,14 +401,42 @@ class Tools:
             small: collided energy groups, int
         Returns:
             list of slices   """
-
-        new_grid = np.ones((small)) * int(big/small)
-        new_grid[np.linspace(0,small-1,big % small,dtype=int)] += 1
-
-        inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
+        inds = Tools.index_generator(big,small)
 
         splits = [slice(ii,jj) for ii,jj in zip(inds[:small],inds[1:])]
         return splits
+
+    def index_generator(big,small):
+        """  Get the indices for resizing matrices
+        Arguments:
+            big: larger energy group size, int
+            small: smaller energy group size, int
+        Returns:
+            array of indicies of length small + 1 """
+
+        new_grid = np.ones((small)) * int(big/small)
+        new_grid[np.linspace(0,small-1,big % small,dtype=int)] += 1
+        assert (new_grid.sum() == big)
+
+        inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
+
+        return inds
+
+    def source_reduction(big,small,source):
+        """ Multiplication factors not used with source 
+        Arguments:
+            big: the correct size of the matrix, int
+            small: the reduced size of the matrix, int
+            source: source size (of size (G x 1))
+        Returns:
+            the reduced vector """
+        inds = Tools.index_generator(big,small)
+        orig_size = np.sum(source)
+
+        new_source = Tools.vector_reduction(source,inds)
+        assert (orig_size == np.sum(new_source))
+
+        return new_source
 
     def group_reduction(new_group,grid,total,scatter,fission):
         """ Used to reduce the number of groups for cross sections and energy levels 
@@ -386,20 +452,8 @@ class Tools:
             The reduced matrices and vectors of the cross sections or energy
             (Specified in the kwargs)   """
 
-        # Remove the extra grid boundary
-        old_group = len(grid) - 1
-        # How many groups are combined (approximate)
-        split = int(old_group/new_group)
-        # Calculate the leftovers
-        rmdr = old_group % new_group
-        # Create array showing the number of groups combined 
-        new_grid = np.ones(new_group) * split
-        # Add the remainder groups to the first x number 
-        new_grid[np.linspace(0,new_group-1,rmdr,dtype=int)] += 1
-        assert (new_grid.sum() == old_group)
-
         # Calculate the indices while including the left-most (insert)
-        inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
+        inds = Tools.index_generator(len(grid)-1,new_group)
 
         # This is for scaling the new groups properly
         # Calculate the change in energy for each of the new boundaries (of size new_group)
@@ -432,30 +486,16 @@ class Tools:
         total *= old_diff_grid
         new_total = Tools.vector_reduction(total,inds)
         new_total /= new_diff_grid
-
-        # For source problem
-        if scatter is None and fission is None:
-            # total *= old_diff_grid
-            # new_total = Tools.vector_reduction(total,inds)
-            # new_total /= new_diff_grid
-            return new_total
         
-        # phi = np.load('stainless_g87.npy')
-        # new_scatter,new_fission = Tools.low_rank_svd(phi,scatter,fission,60)
-        # new_total = np.zeros((1,1))
-
         # Scatter Cross Section
         scatter *= old_diff_grid
-        # scatter *= old_diff_matrix
         new_scatter = Tools.matrix_reduction(scatter,inds)
         new_scatter /= new_diff_grid
-        # new_scatter /= new_diff_matrix
-
+        
         # Fission Cross Section
         fission *= old_diff_grid
         new_fission = Tools.matrix_reduction(fission,inds)
         new_fission /= new_diff_grid
-        # new_fission /= new_diff_matrix
 
         return new_total, new_scatter, new_fission
 
@@ -470,7 +510,7 @@ class Tools:
         """
         # Remove the extra grid boundary
         new_group = len(indices) - 1
-        reduced = np.array([[np.sum(matrix[indices[ii]:indices[ii+1],indices[jj]:indices[jj+1]]) for jj in range(new_group)] for ii in range(new_group)])    
+        reduced = np.array([[np.sum(matrix[indices[ii]:indices[ii+1],indices[jj]:indices[jj+1]]) for jj in range(new_group)] for ii in range(new_group)])
         return reduced
 
     def vector_reduction(vector,indices):

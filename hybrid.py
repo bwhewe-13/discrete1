@@ -1,27 +1,21 @@
-# os.system('gcc -fPIC -shared -o discrete1/data/cfunctions.so discrete1/data/cfunctions.c')
+"""
+Running Hybrid Problems (time dependent)
+"""
+
+from .fixed import FixedSource
 
 import numpy as np
-from .FSproblems import Selection
+import ctypes
 
 class Hybrid:
-    def __init__(self,problem,G,N):
+    def __init__(self,ptype,G,N):
         """ G and N are lists of [uncollided,collided]  """
         
-        self.problem = problem
+        self.ptype = ptype
         if type(G) is list:
             self.Gu = G[0]; self.Gc = G[1]
-            # Have to call for splitting
-            self.splits = Tools.energy_distribution(self.Gu,self.Gc)
-            self.delta_u = Selection.energy_diff(self.problem,self.Gu)
-            # Sum the delta_u
-            self.delta_c = [sum(self.delta_u[ii]) for ii in self.splits]
-            # Calculate the speed of collided and uncollided
-            self.v_u = Selection.speed_calc(self.problem,self.Gu)
-            self.v_c = Selection.speed_calc(self.problem,self.Gc)
         else:
             self.Gu = G; self.Gc = G
-            self.v_u = Selection.speed_calc(self.problem,G)
-            self.v_c = self.v_u.copy()
 
         if type(N) is list:
             self.Nu = N[0]; self.Nc = N[1]
@@ -43,33 +37,36 @@ class Hybrid:
     def time_steps(self):
 
         if self.enrich:
-            uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu,enrich=self.enrich)[0])
-            collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc,enrich=self.enrich)[0])
+            un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=enrich)
+            uncollided = Uncollided(*un_attr)
+            col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=enrich)
+            collided = Collided(*col_attr)
         else:
-            uncollided = Uncollided(*Selection.select(self.problem,self.Gu,self.Nu)[0])
-            collided = Collided(*Selection.select(self.problem,self.Gc,self.Nc)[0])
-
-        print(collided.scatter.shape)
-
+            un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu)
+            uncollided = Uncollided(*un_attr)
+            col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu)
+            collided = Collided(*col_attr)
+            
         time_phi = []
-        speed_u = 1/(self.v_u*self.dt); speed_c = 1/(self.v_c*self.dt)
+        speed_u = 1/(un_keys['v']*un_keys['dt']); speed_c = 1/(col_keys['v']*col_keys['dt'])
         phi_c = np.zeros((collided.I,collided.G))
 
         # Initialize psi to zero
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
-        for t in range(int(self.T/self.dt)):      
+        for t in range(int(un_keys['T']/un_keys['dt'])):      
             # Step 1: Solve Uncollided Equation
             phi_u,_ = uncollided.multi_group(psi_last,speed_u)
             # Step 2: Compute Source for Collided
             source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u) 
             # Resizing
             if self.Gu != self.Gc:
-                source_c = Tools.big_2_small(source_c,self.delta_u,self.delta_c,self.splits)
+                source_c = Tools.big_2_small(source_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits'])
             # Step 3: Solve Collided Equation
             phi_c = collided.multi_group(speed_c,source_c,phi_c)
             # Resize phi_c
             if self.Gu != self.Gc:
-                phi = Tools.small_2_big(phi_c,self.delta_u,self.delta_c,self.splits) + phi_u
+                # phi = Tools.small_2_big(phi_c,self.delta_u,self.delta_c,self.splits) + phi_u
+                phi = Tools.small_2_big(phi_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits']) + phi_u
             else:
                 phi = phi_c + phi_u
             # Step 4: Calculate next time step
@@ -78,8 +75,11 @@ class Hybrid:
             # Step 5: Update and repeat
             print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             
-            if self.problem in ['Stainless','UraniumStainless']: # and t == 0: # kill source after first time step
-                uncollided.source *= 0
+            if self.ptype in ['Stainless','UraniumStainless']: # and t == 0: # kill source after first time step
+                if t < 2:
+                    uncollided.source *= 1
+                else:
+                    uncollided.source *= 0.5
 
             psi_last = psi_next.copy(); time_phi.append(phi)
 
@@ -102,8 +102,6 @@ class Uncollided:
             Different variables for collided and uncollided except I and inv_delta 
             psi_last: last time step, of size I x N
             speed: 1/(v*dt)   """
-        import numpy as np
-        import ctypes
 
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cHybrid.so')
         sweep = clibrary.uncollided
@@ -179,8 +177,6 @@ class Collided:
         self.delta = 1/delta
 
     def one_group(self,speed,total_,scatter_,source_,guess_):
-        import numpy as np
-        import ctypes
 
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cHybrid.so')
         sweep = clibrary.collided
@@ -221,7 +217,6 @@ class Collided:
         return phi
 
     def update_q(xs,phi,start,stop,g):
-        import numpy as np
         return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
 
     def multi_group(self,speed,source,guess):
@@ -259,7 +254,6 @@ class Tools:
             small: collided energy groups, int
         Returns:
             list of slices   """
-        import numpy as np
 
         new_grid = np.ones((small)) * int(big/small)
         new_grid[np.linspace(0,small-1,big % small,dtype=int)] += 1
@@ -270,7 +264,6 @@ class Tools:
         return splits
 
     def small_2_big(mult_c,delta_u,delta_c,splits):
-        import numpy as np
 
         Gu = len(delta_u)
         size = (mult_c.shape[0],Gu)
@@ -289,7 +282,6 @@ class Tools:
         return mult_u
 
     def big_2_small(mult_u,delta_u,delta_c,splits):
-        import numpy as np
 
         size = (mult_u.shape[0],len(delta_c))
         mult_c = np.zeros(size)
