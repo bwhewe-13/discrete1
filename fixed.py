@@ -68,71 +68,8 @@ class FixedSource:
 
         return ss_vars, {**td_vars,**hy_vars}
 
-
-    # def select(problem,G,N,**kwargs):
-    #     """ Selects the right class for multigroup problems  """
-    #     # Attributes
-    #     boundary = 'vacuum'; enrich = 0.007
-    #     if 'boundary' in kwargs:
-    #         boundary = kwargs['boundary']
-
-    #     # Pick the correct class
-    #     if problem == 'reeds':
-    #         pick = Reeds(G,N,boundary=boundary)
-
-    #     elif problem == 'stainless infinite':
-    #         pick = Stainless.infinite(G,N)
-
-    #     elif problem == 'stainless':
-    #         pick = Stainless.finite(G,N)
-
-    #     elif problem == 'uranium infinite':
-    #         pick = UraniumInfinite(G,N,enrich=enrich).variables()
-
-    #     elif problem == 'uranium stainless':
-    #         pick = UraniumStainless.problem1(G,N,**kwargs)
-    #     # Call for the variables
-    #     items = list(pick)
-        
-    #     # Change N, mu, w if reflected
-    #     if boundary == 'reflected':
-    #         items[2] = items[2][int(N*0.5):] # mu
-    #         items[3] = items[3][int(N*0.5):] # w
-    #         items[1] = int(N*0.5) # N
-    #     return items, kwargs
-
-    # def energy_diff(problem,Gu):
-    #     """ Returns the width of the larger energy list """
-    #     if problem == 'reeds':
-    #         delta_u = [1/Gu] * Gu
-
-    #     elif problem in group87:
-    #         grid = np.load(DATA_PATH + 'energyGrid.npy')
-    #         delta_u = np.diff(grid)
-
-    #     return delta_u
-
-    # def speed_calc(problem,Gu):
-    #     if problem == 'reeds':
-    #         v = np.ones((Gu))
-
-    #     elif problem in group87:
-    #         grid = np.load(DATA_PATH + 'energyGrid.npy')
-    #         v = Tools.relative_speed(grid,Gu)
-    #         # v = Tools.classical_speed(grid,Gu)
-
-    #     return v
-
-
-
 class Reeds:
     
-    # def __init__(self,G,N,boundary):
-    #     self.G = G
-    #     self.N = N
-    #     self.boundary = boundary
-
-
     def steady(G,N,boundary='vacuum'):
         
         L = 0; R = 16.; I = 1000
@@ -179,66 +116,33 @@ class Reeds:
         v = np.ones((G))
         return T, dt, v
 
-    def hybrid(G,hybrid):
+    def hybrid(G,hy_g):
         # Will return 
-        if hybrid == G:
+        if hy_g == G:
             delta_u = [1/G] * G
             return delta_u
         # Will return uncollided delta_e
-        elif hybrid > G:
-            splits = Tools.energy_distribution(hybrid,G)
-            delta_u = [1/hybrid] * G
+        elif hy_g > G:
+            splits = Tools.energy_distribution(hy_g,G)
+            delta_u = [1/hy_g] * G
             delta_c = [sum(delta_u[ii]) for ii in splits]
             return delta_c, splits
 
 
+class StainlessInfinite:
 
-class Stainless:
-    def __init__(self,G,N):
-        self.G = G
-        self.N = N
-
-    @classmethod
-    def infinite(cls,G,N):
-        problem = list(cls(G,N).variables())
-        R = 1000.; I = 1000
-        problem[-1] = R/I # change delta
-        problem[-2] = I # change I
-
-        problem[5] = np.tile(problem[5],(I,1,1)) # Scatter
-        problem[6] = np.tile(problem[6],(I,1,1)) # Fission
-        problem[4] = np.tile(problem[4],(I,1))   # Total
-        problem[7] = np.tile(problem[7],(I,1))   # Source
-
-        Tools.recompile(I)
-        return problem
-
-    @classmethod
-    def finite(cls,G,N):
-        problem = list(cls(G,N).variables())
-        R = 10.; I = 1000
-        problem[-1] = R/I # change delta
-        problem[-2] = I # change I
-        
-        problem[5] = np.tile(problem[5],(I,1,1)) # Scatter
-        problem[6] = np.tile(problem[6],(I,1,1)) # Fission
-        problem[4] = np.tile(problem[4],(I,1))   # Total
-        problem[7] = np.tile(problem[7],(I,1))   # Source
-
-        problem[-3][1:] *= 0 # Source enter from LHS
-
-        Tools.recompile(I)
-        return problem
-
-    def variables(self,prop=None):
-        
+    def steady(G,N,boundary='vacuum'):
         reduced = False
-        if self.G != 87:
+        if G != 87:
             reduced = True
 
         L = 0; R = 1000.; I = 1000
-        mu,w = np.polynomial.legendre.leggauss(self.N)
+        mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w); 
+
+        if boundary == 'reflected':
+            N = int(0.5 * N)
+            mu = mu[N:]; w = w[N:]
 
         delta = R/I
         total,scatter,fission = XSGenerate('SS440').cross_section()
@@ -250,58 +154,53 @@ class Stainless:
         source[g] = 1 # all spatial cells in this group
 
         if reduced:
-            total,scatter,fission = Tools.group_reduction(self.G,energy_grid,total,scatter,fission)
-            source = Tools.group_reduction(self.G,energy_grid,source,None,None)
-            # total = Tools.group_reduction(self.G,energy_grid,total,None,None)
+            total,scatter,fission = Tools.group_reduction(G,energy_grid,total,scatter,fission)
+            source = Tools.group_reduction(G,energy_grid,source,None,None)
 
-        if prop:
-        # Progagate for all groups
-            scatter = np.tile(scatter,(prop,1,1))
-            fission = np.tile(fission,(prop,1,1))
-            total = np.tile(total,(prop,1))
-            source = np.tile(source,(prop,1))
+        scatter_ = np.tile(scatter,(I,1,1))
+        fission_ = np.tile(fission,(I,1,1))
+        total_ = np.tile(total,(I,1))
+        source_ = np.tile(source,(I,1))
 
-        # scatter = np.tile(scatter,(I,1,1))
-        # fission = np.tile(fission,(I,1,1))
-        # total = np.tile(total,(I,1))
-        # source = np.tile(source,(I,1))
+        Tools.recompile(I)
 
-        # if reduced:
-        #     _,scatter,fission = Tools.group_reduction(self.G,energy_grid,total,scatter,fission)
+        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta
 
-        print(scatter.shape,fission.shape,total.shape,source.shape)
+    def timed(G,T,dt):
+        grid = np.load(DATA_PATH + 'energyGrid.npy')
+        v = Tools.relative_speed(grid,G)
+        return T, dt, v
 
-        return self.G,self.N,mu,w,total,scatter,fission,source,I,delta
-
-    @classmethod
-    def var_dict(cls,I):
-        problem = list(cls(87,8).variables(prop=I))
-        dictionary = {}
-        keys = ['G','N','mu','w','total','scatter','fission','source','I','delta']
-        for ii in range(len(keys)):
-            dictionary[keys[ii]] = problem[ii]
-        return dictionary
+    def hybrid(G,hy_g):
+        grid = np.load(DATA_PATH + 'energyGrid.npy')
+        if hy_g == G:
+            delta_u = np.diff(grid)
+            return delta_u
+        # Will return uncollided delta_e
+        elif hy_g > G:
+            splits = Tools.energy_distribution(hy_g,G)
+            delta_u = np.diff(grid)
+            delta_c = [sum(delta_u[ii]) for ii in splits]
+            return delta_c, splits
 
 
-class UraniumInfinite:
-    def __init__(self,G,N,enrich=0.0):
-        self.G = G
-        self.N = N
-        self.enrich = enrich
+class Stainless:
 
-    def variables(self):
-
+    def steady(G,N,boundary='vacuum'):
         reduced = False
-        if self.G != 87:
+        if G != 87:
             reduced = True
 
-        L = 0; R = 1000.; I = 1000
-        mu,w = np.polynomial.legendre.leggauss(self.N)
+        L = 0; R = 10.; I = 1000
+        mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w); 
 
-        delta = R/I
+        if boundary == 'reflected':
+            N = int(0.5 * N)
+            mu = mu[N:]; w = w[N:]
 
-        total,scatter,fission = XSGenerate('U',enrich=self.enrich).cross_section()
+        delta = R/I
+        total,scatter,fission = XSGenerate('SS440').cross_section()
 
         # Create source in 14.1 MeV group
         energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
@@ -310,72 +209,112 @@ class UraniumInfinite:
         source[g] = 1 # all spatial cells in this group
 
         if reduced:
-            total,scatter,fission = Tools.group_reduction(self.G,energy_grid,total,scatter,fission)
-            source = Tools.group_reduction(self.G,energy_grid,source,None,None)
+            total,scatter,fission = Tools.group_reduction(G,energy_grid,total,scatter,fission)
+            source = Tools.group_reduction(G,energy_grid,source,None,None)
+
+        scatter_ = np.tile(scatter,(I,1,1))
+        fission_ = np.tile(fission,(I,1,1))
+        total_ = np.tile(total,(I,1))
+        source_ = np.tile(source,(I,1))
+
+        source[1:] *= 0 # Entering from LHS
+
+        Tools.recompile(I)
+
+        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta
+
+    def timed(G,T,dt):
+        grid = np.load(DATA_PATH + 'energyGrid.npy')
+        v = Tools.relative_speed(grid,G)
+        return T, dt, v
+
+    def hybrid(G,hy_g):
+        grid = np.load(DATA_PATH + 'energyGrid.npy')
+        if hy_g == G:
+            delta_u = np.diff(grid)
+            return delta_u
+        # Will return uncollided delta_e
+        elif hy_g > G:
+            splits = Tools.energy_distribution(hy_g,G)
+            delta_u = np.diff(grid)
+            delta_c = [sum(delta_u[ii]) for ii in splits]
+            return delta_c, splits
+
+
+class UraniumInfinite:
+
+    def steady(G,N,boundary='vacuum',enrich=0.007):
+
+        reduced = False
+        if G != 87:
+            reduced = True
+
+        L = 0; R = 1000.; I = 1000
+        mu,w = np.polynomial.legendre.leggauss(N)
+        w /= np.sum(w); 
+
+        delta = R/I
+
+        total,scatter,fission = XSGenerate('U',enrich=enrich).cross_section()
+
+        # Create source in 14.1 MeV group
+        energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
+        g = np.argmin(abs(energy_grid-14.1E6))
+        source = np.zeros((len(energy_grid)-1))
+        source[g] = 1 # all spatial cells in this group
+
+        if reduced:
+            total,scatter,fission = Tools.group_reduction(G,energy_grid,total,scatter,fission)
+            source = Tools.group_reduction(G,energy_grid,source,None,None)
 
         # Progagate for all groups
         scatter_ = np.tile(scatter,(I,1,1))
         fission_ = np.tile(fission,(I,1,1))
         total_ = np.tile(total,(I,1))
-        source = np.tile(source,(I,1))
+        source_ = np.tile(source,(I,1))
 
-        # source[0,g] = 1
+        Tools.recompile(I)
 
-        return self.G,self.N,mu,w,total_,scatter_,fission_,source,I,delta
+        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta
 
-    @classmethod
-    def var_dict(cls):
-        problem = list(cls(87,8).variables())
-        dictionary = {}
-        keys = ['G','N','mu','w','total','scatter','fission','source','I','delta']
-        for ii in range(len(keys)):
-            dictionary[keys[ii]] = problem[ii]
-        return dictionary
+    def timed(G,T,dt):
+        grid = np.load(DATA_PATH + 'energyGrid.npy')
+        v = Tools.relative_speed(grid,G)
+        return T, dt, v
+
+    def hybrid(G,hy_g):
+        grid = np.load(DATA_PATH + 'energyGrid.npy')
+        if hy_g == G:
+            delta_u = np.diff(grid)
+            return delta_u
+        # Will return uncollided delta_e
+        elif hy_g > G:
+            splits = Tools.energy_distribution(hy_g,G)
+            delta_u = np.diff(grid)
+            delta_c = [sum(delta_u[ii]) for ii in splits]
+            return delta_c, splits
 
 
 class UraniumStainless:
-    def __init__(self,G,N,enrich=0.0):
-        self.G = G
-        self.N = N
-        self.enrich = enrich
 
-    @classmethod
-    def problem1(cls,G,N,enrich,**kwargs):
-        if 'materials' in kwargs:
-            materials = kwargs['materials']
-        else:
-            materials = ['ss440',['u',enrich],'ss440']
+    def steady(G,N,boundary='vacuum',enrich=0.2):
+        shape = [4,2,4]
+        materials = ['ss440',['u',enrich],'ss440']
 
-        if 'shape' in kwargs:
-            shape = kwargs['shape']
-        else:
-            shape = [4,2,4]
-
-        problem = cls(G,N,enrich)
-        problem.materials = materials
-        problem.shape = shape
-
-        prob = list(problem.variables())
-
-        Tools.recompile(prob[-2])
-        return prob
-
-
-    def variables(self):
         reduced = False
-        if self.G != 87:
+        if G != 87:
             reduced = True
 
-        L = 0; R = sum(self.shape); I = 1000
-        mu,w = np.polynomial.legendre.leggauss(self.N)
+        L = 0; R = sum(shape); I = 1000
+        mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w); 
 
         delta = R/I
 
         # Get list of xs for each material
-        xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(self.materials)
+        xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(materials)
         # Get sizes of each material
-        layers = [int(ii/delta) for ii in self.shape]
+        layers = [int(ii/delta) for ii in shape]
 
         # Source term
         energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
@@ -384,29 +323,35 @@ class UraniumStainless:
         source[g] = 1 # all spatial cells in this group
 
         if reduced:
-            xs_total,xs_scatter,xs_fission = Tools.group_reduction(self.G,energy_grid,xs_total,xs_scatter,xs_fission)
-            source = Tools.group_reduction(self.G,energy_grid,source,None,None)
+            xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,xs_total,xs_scatter,xs_fission)
+            source = Tools.group_reduction(G,energy_grid,source,None,None)
 
         # Propogate onto full space 
         total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
 
-        source = np.tile(source,(I,1))
-        source[1:,] *= 0
+        source_ = np.tile(source,(I,1))
+        source_[1:,] *= 0
 
-        return self.G,self.N,mu,w,total_,scatter_,fission_,source,I,delta
+        Tools.recompile(I)
 
-    @classmethod
-    def var_dict(cls,enrich=0.2):
-        problem = cls(87,8,enrich=enrich)
-        problem.shape = [4,2,4]; problem.materials = ['ss440',['u',enrich],'ss440']
+        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta
 
-        prob = list(problem.variables())
+    def timed(G,T,dt):
+        grid = np.load(DATA_PATH + 'energyGrid.npy')
+        v = Tools.relative_speed(grid,G)
+        return T, dt, v
 
-        dictionary = {}
-        keys = ['G','N','mu','w','total','scatter','fission','source','I','delta']
-        for ii in range(len(keys)):
-            dictionary[keys[ii]] = prob[ii]
-        return dictionary
+    def hybrid(G,hy_g):
+        grid = np.load(DATA_PATH + 'energyGrid.npy')
+        if hy_g == G:
+            delta_u = np.diff(grid)
+            return delta_u
+        # Will return uncollided delta_e
+        elif hy_g > G:
+            splits = Tools.energy_distribution(hy_g,G)
+            delta_u = np.diff(grid)
+            delta_c = [sum(delta_u[ii]) for ii in splits]
+            return delta_c, splits
 
 
 class Tools:

@@ -61,10 +61,6 @@ class Source:
         if 'T' in kwargs and boundary == 'reflected':
             print('Using Vacuum Boundaries, cannot use Time Dependency with Reflected Conditions')
             boundary = 'vacuum'
-        # if 'enrich' in kwargs:
-        #     attributes,keywords = Selection.select(ptype,G,N,boundary=boundary,enrich=kwargs['enrich'])
-        # else:
-        #     attributes,keywords = Selection.select(ptype,G,N,boundary=boundary)
 
         attributes,keywords = FixedSource.initialize(ptype,G,N,**kwargs)
 
@@ -72,14 +68,10 @@ class Source:
 
         problem.boundary = boundary
         problem.problem = ptype
-        # problem = cls(*FixedSource.initialize(ptype,G,N,**kwargs)[:10],**FixedSource.initialize(ptype,G,N,**kwargs)[10:])
+        
         if 'T' in kwargs:
-            # problem.v = Selection.speed_calc(ptype,G)
-            # problem.time = True
-            # problem.T = kwargs['T']; problem.dt = kwargs['dt']
             return problem.time_steps()
-        # print('Multigroup Problem')
-        # print(problem.scatter.shape)
+
         return problem.multi_group()
 
                 
