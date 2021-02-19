@@ -66,10 +66,7 @@ class FixedSource:
         # Check if hybrid problem
         if problem.hybrid:
             temp = list(eval(ptype).hybrid(G,problem.hybrid))
-            if len(temp) == 1:
-                keys = ['delta_e'] # uncollided
-            else:
-                keys = ['delta_e','splits'] # collided
+            keys = ['delta_e','splits'] # collided
             for ii in range(len(keys)):
                 hy_vars[keys[ii]] = temp[ii]
 
@@ -85,7 +82,7 @@ class FixedSource:
         else:
             temp = list(eval(ptype).steady(G,N,problem.boundary))
         # Send to dictionary
-        keys = ['G','N','mu','w','total','scatter','fission','source','I','delta']
+        keys = ['G','N','mu','w','total','scatter','fission','source','I','delta','LHS']
         for ii in range(len(keys)):
             ss_vars[keys[ii]] = temp[ii]
         del temp
@@ -124,6 +121,7 @@ class Reeds:
         total_ = np.zeros((I,G)); total_vals = [10,10,0,5,50,5,0,10,10]
         scatter_ = np.zeros((I,G,G)); scatter_vals = [9.9,9.9,0,0,0,0,0,9.9,9.9]
         source_ = np.zeros((I,G)); source_vals = [0,1,0,0,50,0,0,1,0]
+        lhs = np.zeros(G)
 
         if boundary == 'reflected':
             R = 8.; delta = R/I
@@ -147,7 +145,7 @@ class Reeds:
 
         Tools.recompile(I)
 
-        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta
+        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta,lhs
 
     def timed(G,T,dt):
         v = np.ones((G))
@@ -189,10 +187,12 @@ class StainlessInfinite:
         g = np.argmin(abs(energy_grid-14.1E6))
         source = np.zeros((len(energy_grid)-1))
         source[g] = 1 # all spatial cells in this group
+        lhs = np.zeros((len(energy_grid)-1))
 
         if reduced:
             total,scatter,fission = Tools.group_reduction(G,energy_grid,total,scatter,fission)
             source = Tools.source_reduction(87,G,source)
+            lhs = Tools.source_reduction(87,G,lhs)
 
         scatter_ = np.tile(scatter,(I,1,1))
         fission_ = np.tile(fission,(I,1,1))
@@ -201,7 +201,7 @@ class StainlessInfinite:
 
         Tools.recompile(I)
 
-        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta
+        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta,lhs
 
     def timed(G,T,dt):
         grid = np.load(DATA_PATH + 'energyGrid.npy')
@@ -243,23 +243,24 @@ class Stainless:
         energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
         g = np.argmin(abs(energy_grid-14.1E6))
         source = np.zeros((len(energy_grid)-1))
-        source[g] = 1 # all spatial cells in this group
+        lhs = np.zeros((len(energy_grid)-1))
+        lhs[g] = 1 # all spatial cells in this group
 
         if reduced:
             total,scatter,fission = Tools.group_reduction(G,energy_grid,total,scatter,fission)
-            # _,scatter,fission = Tools.group_reduction(G,energy_grid,total.copy(),scatter.copy(),fission)
             source = Tools.source_reduction(87,G,source)
+            lhs = Tools.source_reduction(87,G,lhs)
+
 
         scatter_ = np.tile(scatter,(I,1,1))
         fission_ = np.tile(fission,(I,1,1))
         total_ = np.tile(total,(I,1))
         source_ = np.tile(source,(I,1))
 
-        source_[1:] *= 0 # Entering from LHS
-        
+        # source_[1:] *= 0 # Entering from LHS        
         Tools.recompile(I)
 
-        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta
+        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta,lhs
 
     def timed(G,T,dt):
         grid = np.load(DATA_PATH + 'energyGrid.npy')
@@ -300,10 +301,12 @@ class UraniumInfinite:
         g = np.argmin(abs(energy_grid-14.1E6))
         source = np.zeros((len(energy_grid)-1))
         source[g] = 1 # all spatial cells in this group
+        lhs = np.zeros((len(enegyr_grid)-1))
 
         if reduced:
             total,scatter,fission = Tools.group_reduction(G,energy_grid,total,scatter,fission)
             source = Tools.source_reduction(87,G,source)
+            lhs = Tools.source_reduction(87,G,lhs)
 
         # Progagate for all groups
         scatter_ = np.tile(scatter,(I,1,1))
@@ -313,7 +316,7 @@ class UraniumInfinite:
 
         Tools.recompile(I)
 
-        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta
+        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta,lhs
 
     def timed(G,T,dt):
         grid = np.load(DATA_PATH + 'energyGrid.npy')
@@ -358,21 +361,23 @@ class UraniumStainless:
         energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
         g = np.argmin(abs(energy_grid-14.1E6))
         source = np.zeros((len(energy_grid)-1))
-        source[g] = 1 # all spatial cells in this group
+        lhs = np.zeros((len(energy_grid)-1))
+        lhs[g] = 1 # all spatial cells in this group
 
         if reduced:
             xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,xs_total,xs_scatter,xs_fission)
             source = Tools.source_reduction(87,G,source)
+            lhs = Tools.source_reduction(87,G,lhs)
 
         # Propogate onto full space 
         total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
 
         source_ = np.tile(source,(I,1))
-        source_[1:] *= 0
+        # source_[1:] *= 0
 
         Tools.recompile(I)
 
-        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta
+        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta,lhs
 
     def timed(G,T,dt):
         grid = np.load(DATA_PATH + 'energyGrid.npy')
@@ -422,6 +427,16 @@ class Tools:
 
         return inds
 
+    def index_generator_cherry(big,small,total):
+        # Get the difference for the total cross section
+        difference = abs(np.diff(total))
+        # Find locations of change below threshold 
+        min_change = np.argwhere(difference < np.sort(difference)[big-small-1]).flatten()
+        # Combine consecutive terms
+        inds = np.array([ii for ii in range(big) if ii not in min_change])
+        return inds
+
+
     def source_reduction(big,small,source):
         """ Multiplication factors not used with source 
         Arguments:
@@ -453,7 +468,9 @@ class Tools:
             (Specified in the kwargs)   """
 
         # Calculate the indices while including the left-most (insert)
+
         inds = Tools.index_generator(len(grid)-1,new_group)
+        # inds = Tools.index_generator_cherry(len(grid)-1,new_group,total)   
 
         # This is for scaling the new groups properly
         # Calculate the change in energy for each of the new boundaries (of size new_group)
@@ -481,7 +498,7 @@ class Tools:
                 del temp_total, temp_scatter, temp_fission
 
             return new_total,new_scatter,new_fission
-
+        
         # Total Cross Section
         total *= old_diff_grid
         new_total = Tools.vector_reduction(total,inds)
@@ -496,6 +513,7 @@ class Tools:
         fission *= old_diff_grid
         new_fission = Tools.matrix_reduction(fission,inds)
         new_fission /= new_diff_grid
+
 
         return new_total, new_scatter, new_fission
 

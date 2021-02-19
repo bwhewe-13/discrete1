@@ -3,9 +3,9 @@
 // #define LENGTH 1000
 
 
-void reflected(void *flux, void *scatter, void *external, void *numerator, void *denominator, double weight, int direction){
+void reflected(void *flux, void *scatter, void *external, void *numerator, void *denominator, double weight, double boundary, int direction){
     double psi_top;
-    double psi_bottom = 0.0;
+    double psi_bottom = boundary;
     
     double * phi = (double *) flux;
     double * temp_scat = (double *) scatter;
@@ -34,10 +34,10 @@ void reflected(void *flux, void *scatter, void *external, void *numerator, void 
 
 
 
-void vacuum(void *flux, void *scatter, void *external, void *numerator, void *denominator, double weight, int direction){
+void vacuum(void *flux, void *scatter, void *external, void *numerator, void *denominator, double weight, double boundary, int direction){
     double psi_top;
     double psi_bottom = 0.0;
-    
+
     double * phi = (double *) flux;
     double * temp_scat = (double *) scatter;
 
@@ -46,6 +46,7 @@ void vacuum(void *flux, void *scatter, void *external, void *numerator, void *de
     double * bottom_mult = (double *) denominator; 
 
     if(direction == 1){
+        psi_bottom = boundary; // source enters from LHS
         for(int ii=0; ii < LENGTH; ii++){
            psi_top = (temp_scat[ii] + source[ii] + psi_bottom * top_mult[ii]) * bottom_mult[ii];
            // Write flux to variable
@@ -68,7 +69,7 @@ void vacuum(void *flux, void *scatter, void *external, void *numerator, void *de
 }
 
 // Time Dependent One Group (Vacuum)
-void time_vacuum(void *flux, void *psi_angle, void *scatter, void *external, void *numerator, void *denominator, double weight, int direction){
+void time_vacuum(void *flux, void *psi_angle, void *scatter, void *external, void *numerator, void *denominator, double weight, double boundary, int direction){
     double psi_top;
     double psi_bottom = 0.0;
     
@@ -81,6 +82,7 @@ void time_vacuum(void *flux, void *psi_angle, void *scatter, void *external, voi
     double * bottom_mult = (double *) denominator; 
 
     if(direction == 1){
+        psi_bottom = boundary; // source enters from LHS
         for(int ii=0; ii < LENGTH; ii++){
            psi_top = (temp_scat[ii] + source[ii] + psi_bottom * top_mult[ii]) * bottom_mult[ii];
            // Write psi to variable

@@ -76,17 +76,17 @@ class Hybrid:
             print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             
             if self.ptype in ['Stainless','UraniumStainless']: # and t == 0: # kill source after first time step
-                if t < 2:
-                    uncollided.source *= 1
-                else:
-                    uncollided.source *= 0.5
+                if t < 20:
+                    uncollided.lhs *= 1
+                elif t % 10 == 0:
+                    uncollided.lhs *= 0.5
 
             psi_last = psi_next.copy(); time_phi.append(phi)
 
         return phi,time_phi
 
 class Uncollided:
-    def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta):
+    def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,lhs):
         self.G = G; self.N = N; 
         self.mu = mu; self.w = w
         self.total = total
@@ -95,8 +95,9 @@ class Uncollided:
         self.source = source
         self.I = I
         self.delta = 1/delta
+        self.lhs = lhs
 
-    def one_group(self,psi_last,speed,total_,source_):
+    def one_group(self,psi_last,speed,total_,source_,boundary):
         """ Step 1 of Hybrid
         Arguments:
             Different variables for collided and uncollided except I and inv_delta 
@@ -111,6 +112,7 @@ class Uncollided:
         psi_next = np.zeros(psi_last.shape,dtype='float64')
 
         weight = self.mu * self.delta
+        lhs = ctypes.c_double(boundary)
 
         for n in range(self.N):
             # Determine the direction
@@ -131,7 +133,7 @@ class Uncollided:
 
             phi_ptr = ctypes.c_void_p(phi.ctypes.data)
                 
-            sweep(phi_ptr,psi_ptr,rhs_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
+            sweep(phi_ptr,psi_ptr,rhs_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),lhs,direction)
 
             psi_next[:,n] = psi_angle.copy()
         
@@ -152,7 +154,7 @@ class Uncollided:
         while not (converged):
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
-                phi[:,g],psi_next[:,:,g] = Uncollided.one_group(self,psi_last[:,:,g],speed[g],self.total[:,g],current[:,g])
+                phi[:,g],psi_next[:,:,g] = Uncollided.one_group(self,psi_last[:,:,g],speed[g],self.total[:,g],current[:,g],self.lhs[g])
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.
@@ -166,7 +168,7 @@ class Uncollided:
 
 
 class Collided:
-    def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta):
+    def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,boundary):
         self.G = G; self.N = N; 
         self.mu = mu; self.w = w
         self.total = total
@@ -175,6 +177,8 @@ class Collided:
         # self.source = source
         self.I = I
         self.delta = 1/delta
+        # self.boundary = boundary
+
 
     def one_group(self,speed,total_,scatter_,source_,guess_):
 

@@ -4,7 +4,7 @@
 
 
 // Uncollided One Group
-void uncollided(void *flux, void *psi_angle, void *external, void *numerator, void *denominator, double weight, int direction){
+void uncollided(void *flux, void *psi_angle, void *external, void *numerator, void *denominator, double weight, double boundary, int direction){
     double psi_top;
     double psi_bottom = 0.0;
     
@@ -16,6 +16,7 @@ void uncollided(void *flux, void *psi_angle, void *external, void *numerator, vo
     double * bottom_mult = (double *) denominator; 
 
     if(direction == 1){
+        psi_bottom = boundary; // source enters from LHS
         for(int ii=0; ii < LENGTH; ii++){
            psi_top = (source[ii] + psi_bottom * top_mult[ii]) * bottom_mult[ii];
            // Write psi to variable
