@@ -199,8 +199,6 @@ class Source:
         while not (converged):
             phi = np.zeros(phi_old.shape)  
 
-            # total,scatter = Tools.group_reduction(self.G,self.total,self.scatter,phi_old) 
-
             for g in range(self.G):
                 q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
                 # q_tilde = self.source[:,g] + Source.update_q(scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
@@ -231,8 +229,6 @@ class Source:
         phi_old = np.zeros((self.I,self.G))
         psi_last = np.zeros((self.I,self.N,self.G))
 
-        display = 1
-
         self.speed = 1/(self.v*self.dt); time_phi = []
         print(np.sum(self.source))
         for t in range(int(self.T/self.dt)):
@@ -249,8 +245,6 @@ class Source:
                 if t <= 20:
                     self.lhs *= 1
                 elif t % 10 == 0:
-                    print('Reduction ',display)
-                    display += 1
                     self.lhs *= 0.5
             # print(np.sum(self.source))
 

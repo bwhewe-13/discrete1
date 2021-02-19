@@ -156,7 +156,7 @@ class eigen_djinn:
         Returns:
             phi: a I x G array  """
         import numpy as np
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
 
         # phi_old = func.initial_flux(problem)
         phi_old = problem.copy()
@@ -203,7 +203,7 @@ class eigen_djinn:
         Returns:
             phi: a I x G array    """        
         import numpy as np
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
 
         phi_old = func.initial_flux(problem)
 
@@ -372,7 +372,7 @@ class source_djinn:
         Returns:
             phi: a I x G array  """
         import numpy as np
-        from discrete1.setup import func,ex_sources
+        from discrete1.setup_ke import func,ex_sources
         
         phi_old = func.initial_flux('carbon_source')
         # phi_old *= 0
