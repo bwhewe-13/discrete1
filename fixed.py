@@ -428,13 +428,20 @@ class Tools:
         return inds
 
     def index_generator_cherry(big,small,total):
-        # Get the difference for the total cross section
-        difference = abs(np.diff(total))
-        # Find locations of change below threshold 
-        min_change = np.argwhere(difference < np.sort(difference)[big-small-1]).flatten()
-        # Combine consecutive terms
-        inds = np.array([ii for ii in range(big) if ii not in min_change])
-        inds[-1] = 87
+        # # Get the difference for the total cross section
+        # difference = abs(np.diff(total))
+        # # Find locations of change below threshold 
+        # min_change = np.argwhere(difference < np.sort(difference)[big-small-1]).flatten()
+        # # Combine consecutive terms
+        # inds = np.array([ii for ii in range(big) if ii not in min_change])
+        # inds[-1] = 87
+
+        new_grid = np.ones((small)) * int(big/small)
+        new_grid[np.linspace(0,small-1,big % small,dtype=int)] += 1
+
+        new_grid = np.sort(new_grid)
+        inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
+
         return inds
 
 
@@ -471,15 +478,7 @@ class Tools:
         # Calculate the indices while including the left-most (insert)
 
         # inds = Tools.index_generator(len(grid)-1,new_group)
-        inds = Tools.index_generator_cherry(len(grid)-1,new_group,total)   
-        # g21 01
-        # inds = np.array([ 0, 1, 10, 11, 14, 17, 18, 20, 22, 23, 25, 26, 28, 29, 31, 37, 38, 42, 50, 61, 72, 86])
-        # g21 02
-        # inds = np.array([ 5, 10, 11, 14, 17, 18, 20, 22, 23, 25, 28, 29, 31, 37, 38, 42, 48, 56, 63, 70, 77, 86])
-        # g43 01
-        # inds = np.array([0,2,9,10,11,12,14,15,16,17,18,19,20,21,22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,39, 40, 41, 43, 45, 48, 50, 53, 56, 62, 70, 77, 86])
-        # g43 02
-        # inds = np.array([0,1,5,10,11,12,14,15,16,17,18,19,20, 21,22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 35, 38,39, 40, 41, 43, 45, 48, 50, 53, 56, 62, 68, 74, 77, 80, 83, 86])
+        inds = Tools.index_generator_cherry(len(grid)-1,new_group,total)
 
         # This is for scaling the new groups properly
         # Calculate the change in energy for each of the new boundaries (of size new_group)
@@ -522,7 +521,6 @@ class Tools:
         fission *= old_diff_grid
         new_fission = Tools.matrix_reduction(fission,inds)
         new_fission /= new_diff_grid
-
 
         return new_total, new_scatter, new_fission
 
