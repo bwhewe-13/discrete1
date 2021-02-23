@@ -242,7 +242,7 @@ class Source:
             phi_old = phi.copy()
 
             if self.problem in ['Stainless','UraniumStainless']: # and t > 2:
-                if t <= 20:
+                if t < 20:
                     self.lhs *= 1
                 elif t % 10 == 0:
                     self.lhs *= 0.5

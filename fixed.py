@@ -477,8 +477,8 @@ class Tools:
 
         # Calculate the indices while including the left-most (insert)
 
-        # inds = Tools.index_generator(len(grid)-1,new_group)
-        inds = Tools.index_generator_cherry(len(grid)-1,new_group,total)
+        inds = Tools.index_generator(len(grid)-1,new_group)
+        # inds = Tools.index_generator_cherry(len(grid)-1,new_group,total)
 
         # This is for scaling the new groups properly
         # Calculate the change in energy for each of the new boundaries (of size new_group)
