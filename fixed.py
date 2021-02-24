@@ -16,7 +16,7 @@ group87 = ['stainless infinite','stainless','uranium infinite', 'uranium stainle
 
 class FixedSource:
     # Keyword Arguments allowed currently
-    __allowed = ("T","dt","boundary","enrich","hybrid")
+    __allowed = ("T","dt","boundary","enrich","hybrid","edges")
 
     def __init__(self,ptype,G,N,**kwargs):
         """ Deals with picking the correct variables needed for the function
@@ -41,9 +41,9 @@ class FixedSource:
         self.N = N
         # kwargs
         self.T = None; self.dt = None; # self.v = None
-        self.boundary = 'vacuum'; self.enrich = None; self.hybrid = None
+        self.boundary = 'vacuum'; self.enrich = None; self.hybrid = None; self.edges = None
         for key, value in kwargs.items():
-            assert (key in self.__class__.__allowed), "Attribute not allowed, available: T, dt, boundary, enrich, hybrid" 
+            assert (key in self.__class__.__allowed), "Attribute not allowed, available: T, dt, boundary, enrich, hybrid, edges" 
             setattr(self, key, value)
 
     @classmethod
@@ -52,9 +52,9 @@ class FixedSource:
         td_vars = {}; hy_vars = {}
         # calling steady state variables
         if problem.enrich:
-            ss_vars = list(eval(ptype).steady(G,N,problem.boundary,problem.enrich))
+            ss_vars = list(eval(ptype).steady(G,N,problem.boundary,problem.enrich,problem.edges))
         else:
-            ss_vars = list(eval(ptype).steady(G,N,problem.boundary))
+            ss_vars = list(eval(ptype).steady(G,N,problem.boundary,problem.edges))
 
         # Check if time dependent problem
         if problem.T:
@@ -223,7 +223,7 @@ class StainlessInfinite:
 
 class Stainless:
 
-    def steady(G,N,boundary='vacuum'):
+    def steady(G,N,boundary='vacuum',edges=None):
         reduced = False
         if G != 87:
             reduced = True
@@ -247,9 +247,9 @@ class Stainless:
         lhs[g] = 1 # all spatial cells in this group
 
         if reduced:
-            total,scatter,fission = Tools.group_reduction(G,energy_grid,total,scatter,fission)
-            source = Tools.source_reduction(87,G,source)
-            lhs = Tools.source_reduction(87,G,lhs)
+            total,scatter,fission = Tools.group_reduction(G,energy_grid,total,scatter,fission,edges)
+            source = Tools.source_reduction(87,G,source,edges)
+            lhs = Tools.source_reduction(87,G,lhs,edges)
 
 
         scatter_ = np.tile(scatter,(I,1,1))
@@ -338,7 +338,7 @@ class UraniumInfinite:
 
 class UraniumStainless:
 
-    def steady(G,N,boundary='vacuum',enrich=0.2):
+    def steady(G,N,boundary='vacuum',enrich=0.2,edges=None):
         shape = [4,2,4]
         materials = ['ss440',['u',enrich],'ss440']
 
@@ -365,9 +365,9 @@ class UraniumStainless:
         lhs[g] = 1 # all spatial cells in this group
 
         if reduced:
-            xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,xs_total,xs_scatter,xs_fission)
-            source = Tools.source_reduction(87,G,source)
-            lhs = Tools.source_reduction(87,G,lhs)
+            xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,xs_total,xs_scatter,xs_fission,edges)
+            source = Tools.source_reduction(87,G,source,edges)
+            lhs = Tools.source_reduction(87,G,lhs,edges)
 
         # Propogate onto full space 
         total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
@@ -445,7 +445,7 @@ class Tools:
         return inds
 
 
-    def source_reduction(big,small,source):
+    def source_reduction(big,small,source,inds=None):
         """ Multiplication factors not used with source 
         Arguments:
             big: the correct size of the matrix, int
@@ -453,7 +453,8 @@ class Tools:
             source: source size (of size (G x 1))
         Returns:
             the reduced vector """
-        inds = Tools.index_generator(big,small)
+        if inds is None:
+            inds = Tools.index_generator(big,small)
         orig_size = np.sum(source)
 
         new_source = Tools.vector_reduction(source,inds)
@@ -461,7 +462,7 @@ class Tools:
 
         return new_source
 
-    def group_reduction(new_group,grid,total,scatter,fission):
+    def group_reduction(new_group,grid,total,scatter,fission,inds=None):
         """ Used to reduce the number of groups for cross sections and energy levels 
         Arguments:
             new_group: the reduction in the number of groups from the original
@@ -476,19 +477,25 @@ class Tools:
             (Specified in the kwargs)   """
 
         # Calculate the indices while including the left-most (insert)
-
-        inds = Tools.index_generator(len(grid)-1,new_group)
+        if inds is None:
+            inds = Tools.index_generator(len(grid)-1,new_group)
+        
         # inds = Tools.index_generator_cherry(len(grid)-1,new_group,total)
+
+        # nums = np.arange(1,87)
+        # np.random.shuffle(nums); np.random.shuffle(nums)
+        # inds = np.sort(nums[:new_group-1])
+
+        # inds = np.insert(inds,0,0); 
+        # inds = np.append(inds,87)
+
+        # np.save('temporary_indexing',inds)
 
         # This is for scaling the new groups properly
         # Calculate the change in energy for each of the new boundaries (of size new_group)
         new_diff_grid = np.array([grid[inds[ii+1]]-grid[inds[ii]] for ii in range(new_group)])
-        # Repeated for the matrix (fission and scatter)
-        new_diff_matrix = new_diff_grid[:,None] @ new_diff_grid[None,:]
         # Calculate the change in energy for each of the old boundaries
         old_diff_grid = np.diff(grid)
-        # Repeated for the matrix (fission and scatter)
-        old_diff_matrix = old_diff_grid[:,None] @ old_diff_grid[None,:]
 
         # Check for list of materials
         if type(total) == list:

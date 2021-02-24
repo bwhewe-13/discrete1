@@ -26,6 +26,10 @@ class Hybrid:
     def run(cls,ptype,G,N,T,dt,**kwargs):
         prob = cls(ptype,G,N)
         prob.T = T; prob.dt = dt
+        if 'edges' in kwargs:
+            prob.edges = kwargs['edges']
+        else:
+            prob.edges = None
 
         if 'enrich' in kwargs:
             prob.enrich = kwargs['enrich']
@@ -37,14 +41,14 @@ class Hybrid:
     def time_steps(self):
 
         if self.enrich:
-            un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich)
+            un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
             uncollided = Uncollided(*un_attr)
-            col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich)
+            col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
             collided = Collided(*col_attr)
         else:
-            un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu)
+            un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,edges=self.edges)
             uncollided = Uncollided(*un_attr)
-            col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu)
+            col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,edges=self.edges)
             collided = Collided(*col_attr)
             
         time_phi = []
