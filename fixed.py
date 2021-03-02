@@ -453,6 +453,7 @@ class Tools:
             source: source size (of size (G x 1))
         Returns:
             the reduced vector """
+        
         if inds is None:
             inds = Tools.index_generator(big,small)
         orig_size = np.sum(source)
