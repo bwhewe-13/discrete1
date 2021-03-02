@@ -55,9 +55,12 @@ class Hybrid:
         speed_u = 1/(un_keys['v']*un_keys['dt']); speed_c = 1/(col_keys['v']*col_keys['dt'])
         phi_c = np.zeros((collided.I,collided.G))
 
+        print('Initial Source ',np.sum(uncollided.lhs))
+        steps = int(un_keys['T']/un_keys['dt'])
+
         # Initialize psi to zero
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
-        for t in range(int(un_keys['T']/un_keys['dt'])):      
+        for t in range(int(un_keys['T']/un_keys['dt'])): 
             # Step 1: Solve Uncollided Equation
             phi_u,_ = uncollided.multi_group(psi_last,speed_u)
             # Step 2: Compute Source for Collided
@@ -80,10 +83,14 @@ class Hybrid:
             print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             
             if self.ptype in ['Stainless','UraniumStainless']: # and t == 0: # kill source after first time step
-                if t < 20:
+                if t < int(0.2*steps):
                     uncollided.lhs *= 1
-                elif t % 10 == 0:
+                    
+                elif t % int(0.1*steps) == 0:
+                    # t >= int(0.2*steps) and 
+                    print('Reduction by 1/2')
                     uncollided.lhs *= 0.5
+                    print('Source ',np.sum(uncollided.lhs))
 
             psi_last = psi_next.copy(); time_phi.append(phi)
 
