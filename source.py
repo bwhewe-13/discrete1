@@ -230,7 +230,8 @@ class Source:
         psi_last = np.zeros((self.I,self.N,self.G))
 
         self.speed = 1/(self.v*self.dt); time_phi = []
-        print(np.sum(self.source))
+
+        steps = int(self.T/self.dt)
         for t in range(int(self.T/self.dt)):
             # Solve at initial time step
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
@@ -242,14 +243,12 @@ class Source:
             phi_old = phi.copy()
 
             if self.problem in ['Stainless','UraniumStainless']: # and t > 2:
-                if t < 20:
+                if t < int(0.2*steps):
                     self.lhs *= 1
-                elif t % 10 == 0:
+                elif t % int(0.1*steps) == 0:
                     self.lhs *= 0.5
-            # print(np.sum(self.source))
 
         return phi,time_phi
-
 
     # def tracking_data(self,flux,sources=None):
     #     from discrete1.util import sn
