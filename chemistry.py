@@ -1,5 +1,4 @@
-"""
-How to Return the Number Density of Different Materials
+""" How to Return the Number Density of Different Materials
 Current Materials Available
     - Uranium Hydride (enriched or depleted Uranium)
     - High Density Polyethylene
@@ -7,7 +6,8 @@ Current Materials Available
 Pu239 and Pu240 Need to be looked at
 """
 
-import json, re
+import json
+import re
 import pkg_resources
 
 # Used for determining path to dictionaries
@@ -53,9 +53,6 @@ class HDPE:
     def __init__(self):
         return None
 
-    # def percentage(self):
-    #     return None
-
     def molar_mass(self):
         """ Needed if not already in .json file """
         # Add natural carbon
@@ -69,11 +66,8 @@ class HDPE:
         density_list = {}
         hdpe_molar = HDPE.molar_mass(self)
         rho = _Constants.compound_density['HDPE'][1]
-        # Add cnat
-        density_list['cnat'] = (rho * _Constants.avagadro) / hdpe_molar * _Constants.barn
-        # Add H1
-        density_list['h1'] = (rho * _Constants.avagadro) / hdpe_molar * 3 * _Constants.barn
-        
+        density_list['cnat'] = (rho * _Constants.avagadro) / hdpe_molar * _Constants.barn   # Add cnat
+        density_list['h1'] = (rho * _Constants.avagadro) / hdpe_molar * 3 * _Constants.barn # Add H1
         return density_list 
 
 
@@ -84,13 +78,9 @@ class UH3:
         self.enrich = enrich
 
     def molar_mass(self):
-        # Add enriched UH3
-        uh3_molar = self.enrich * _Constants.compound_density['U235'][0]
-        # Add depleted UH3
-        uh3_molar += (1 - self.enrich) * _Constants.compound_density['U238'][0]
-        # Add Hydrogen
-        uh3_molar += _Constants.compound_density['H'][0] * 3
-
+        uh3_molar = self.enrich * _Constants.compound_density['U235'][0]         # Add enriched UH3
+        uh3_molar += (1 - self.enrich) * _Constants.compound_density['U238'][0]  # Add depleted UH3
+        uh3_molar += _Constants.compound_density['H'][0] * 3                     # Add Hydrogen
         return uh3_molar
 
     def number_density(self):
@@ -117,11 +107,8 @@ class U:
         self.enrich = enrich
 
     def molar_mass(self):
-        # Add U-235
-        u_molar = self.enrich * _Constants.compound_density['U235'][0]
-        # Add U-238
-        u_molar += (1 - self.enrich) * _Constants.compound_density['U238'][0]
-
+        u_molar = self.enrich * _Constants.compound_density['U235'][0]        # Add U-235
+        u_molar += (1 - self.enrich) * _Constants.compound_density['U238'][0] # Add U-238
         return u_molar
 
     def number_density(self):
@@ -187,47 +174,29 @@ class SS440:
         return density_list
 
 
-class Pu240:
-    __isotopes = ['pu240']
-
-    def __init__(self):
-        return None
-
-    # def percentage(self):
-    #     return None
-
-
-class Pu239:
+class Pu:
     __isotopes = ['pu239','pu240']
 
     def __init__(self,enrich=0.0):
+        # Enrichment is the amount of Pu-240 present
         self.enrich = enrich
 
-    # def percentage(self):
-    #     return None
-
     def molar_mass(self):
-        # Add Pu239
-        pu_molar = (1 - self.enrich) * _Constants.compound_density['Pu239'][0]
-        # Add Pu240
-        pu_molar += self.enrich * _Constants.compound_density['Pu240'][0]
-
+        pu_molar = (1 - self.enrich) * _Constants.compound_density['Pu239'][0] # Add Pu239
+        pu_molar += self.enrich * _Constants.compound_density['Pu240'][0]      # Add Pu240
         return pu_molar
 
     def number_density(self):
         density_list = {}
-        pu_molar = Pu239.molar_mass(self)
+        pu_molar = Pu.molar_mass(self)
         rho = _Constants.compound_density['UH3'][1]
         library = _Constants.compound_density.copy()
-        # Add Enriched U235
-        density_list['u235'] = (self.enrich * rho * _Constants.avagadro) / library['U235'][0] * \
-            (self.enrich * library['U235'][0] + (1 - self.enrich) * library['U238'][0]) / uh3_molar * _Constants.barn
-        # Add U238
-        density_list['u238'] = ((1 - self.enrich) * rho * _Constants.avagadro) / library['U238'][0] * \
-            (self.enrich * library['U235'][0] + (1 - self.enrich) * library['U238'][0]) / uh3_molar * _Constants.barn
-        # Add H1
-        density_list['h1'] = (rho * _Constants.avagadro) / uh3_molar * 3 * _Constants.barn
-
+        # Add Pu240
+        density_list['pu240'] = (self.enrich * rho * _Constants.avagadro) / library['Pu239'][0] * \
+            (self.enrich * library['Pu239'][0] + (1 - self.enrich) * library['Pu240'][0]) / pu_molar * _Constants.barn
+        # Add Enriched Pu239
+        density_list['pu239'] = ((1 - self.enrich) * rho * _Constants.avagadro) / library['Pu240'][0] * \
+            (self.enrich * library['Pu240'][0] + (1 - self.enrich) * library['Pu239'][0]) / pu_molar * _Constants.barn
         return density_list
 
 
@@ -235,12 +204,9 @@ class _Constants:
     # Constants
     avagadro = 6.022E23
     barn = 1E-24
-
     # Dictionaries
-    # ['Abundance %','molar mass']
-    isotope_abundance = json.load(open(DATA_PATH + 'isotope_abundance.json','r'))
-    # ['molar mass','density']
-    compound_density = json.load(open(DATA_PATH + 'compound_density.json','r'))
+    isotope_abundance = json.load(open(DATA_PATH + 'isotope_abundance.json','r')) # ['Abundance %','molar mass']
+    compound_density = json.load(open(DATA_PATH + 'compound_density.json','r'))   # ['molar mass','density']
 
 
 class _Tools:

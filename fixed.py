@@ -1,8 +1,6 @@
-""" 
-Setting Up Multigroup problems for source.py and hybrid.py
-"""
+""" Setting Up Multigroup problems for source.py and hybrid.py """
 
-from .generate import XSGenerate
+from .generate import XSGenerate087
 
 import numpy as np
 import pkg_resources
@@ -180,7 +178,7 @@ class StainlessInfinite:
             mu = mu[N:]; w = w[N:]
 
         delta = R/I
-        total,scatter,fission = XSGenerate('SS440').cross_section()
+        total,scatter,fission = XSGenerate087('SS440').cross_section()
 
         # Create source in 14.1 MeV group
         energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
@@ -237,7 +235,7 @@ class Stainless:
             mu = mu[N:]; w = w[N:]
 
         delta = R/I
-        total,scatter,fission = XSGenerate('SS440').cross_section()
+        total,scatter,fission = XSGenerate087('SS440').cross_section()
 
         # Create source in 14.1 MeV group
         energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
@@ -294,7 +292,7 @@ class UraniumInfinite:
 
         delta = R/I
 
-        total,scatter,fission = XSGenerate('U',enrich=enrich).cross_section()
+        total,scatter,fission = XSGenerate087('U',enrich=enrich).cross_section()
 
         # Create source in 14.1 MeV group
         energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
@@ -634,9 +632,9 @@ class Tools:
             # Check for Enrichment
             if type(mat) is list:
                 iso = mat[0].upper()
-                total_,scatter_,fission_ = XSGenerate(iso,enrich=mat[1]).cross_section()
+                total_,scatter_,fission_ = XSGenerate087(iso,enrich=mat[1]).cross_section()
             else:
-                total_,scatter_,fission_ = XSGenerate(mat.upper()).cross_section()
+                total_,scatter_,fission_ = XSGenerate087(mat.upper()).cross_section()
             xs_total.append(total_); xs_scatter.append(scatter_); xs_fission.append(fission_)
             del total_, scatter_, fission_
         return xs_total, xs_scatter, xs_fission

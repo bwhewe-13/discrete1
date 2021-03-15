@@ -24,7 +24,7 @@ class eigen_eNDe:
             phi: a I array  """
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
         import ctypes
         # import scipy.optimize as op
 
@@ -372,7 +372,7 @@ class eigen_eNDe:
             phi: a I x G array    """        
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
 
         # Load Encoders, Decoders
         phi_autoencoder,phi_encoder,phi_decoder = func.load_coder(coder)
@@ -512,9 +512,12 @@ class eigen_auto:
         elif atype == 'phi':
             model = self.phi_autoencoder
         # Normalize
-        matrix,maxi,mini = nnets.normalize(matrix_full,verbose=True)
+        # matrix,maxi,mini = nnets.normalize(matrix_full,verbose=True)
+        matrix = matrix_full[500:].copy()
+        matrix = matrix**(1/3)
         # Remove NaN values
-        matrix[np.isnan(matrix)] = 0; maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
+        matrix[np.isnan(matrix)] = 0; matrix[np.isinf(matrix)] = 0; 
+        #maxi[np.isnan(maxi)] = 0; mini[np.isnan(mini)] = 0
         # Scale
         scale = np.sum(matrix,axis=1)
         # Predict
@@ -523,9 +526,10 @@ class eigen_auto:
         matrix = (scale/np.sum(matrix,axis=1))[:,None]*matrix
         matrix[np.isnan(matrix)] = 0;
         # Unnormalize
-        matrix = nnets.unnormalize(matrix,maxi,mini)
-    
-        return matrix
+        # matrix = nnets.unnormalize(matrix,maxi,mini)
+        matrix = matrix**3
+            
+        return np.vstack((matrix_full[:500],matrix))
 
     def multi_group(self,source,guess,tol=1e-08,MAX_ITS=1000):
         """ Arguments:
@@ -544,6 +548,7 @@ class eigen_auto:
         while not (converged):
             # Squeeze smult and phi
             smult = eigen_auto.scale_autoencode(self,smult,atype='smult')
+            
             # phi_old = eigen_auto.scale_autoencode(self,phi_old,atype='phi')
             # smult = np.einsum('ijk,ik->ij',self.scatter,phi_old)
 
@@ -567,7 +572,7 @@ class eigen_auto:
         Returns:
             phi: a I x G array    """        
         import numpy as np
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
         
         phi_old = func.initial_flux(problem)
 
@@ -671,7 +676,7 @@ class eigen_auto_djinn:
             phi: a I x G array  """
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
         
         phi_old = guess.copy()
         
@@ -846,7 +851,7 @@ class eigen_auto_djinn:
             phi: a I x G array    """        
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
         # Make mult approx global
         self.multAE = multAE
         # Load DJINN and Autoencoder models
@@ -968,7 +973,7 @@ class source_auto:
             phi: a I x G array  """
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.setup import ex_sources,func
+        from discrete1.setup_ke import ex_sources,func
         phi_autoencoder,phi_encoder,phi_decoder = func.load_coder(coder)
         self.phi_autoencoder = phi_autoencoder
 
@@ -1032,7 +1037,7 @@ class source_eNDe:
     def multi_group(self,smult,external,guess):
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.setup import func
+        from discrete1.setup_ke import func
         import ctypes
 
         # cfunctions = ctypes.cdll.LoadLibrary('./discrete1/data/clibrary.so')
@@ -1256,7 +1261,7 @@ class source_eNDe:
     def transport(self,coder,problem='carbon',tol=1e-08,MAX_ITS=10):
         import numpy as np
         from discrete1.util import nnets
-        from discrete1.setup import ex_sources,func
+        from discrete1.setup_ke import ex_sources,func
         # Load Antoencoders, Encoders, Decoders
         # Phi
         phi_autoencoder,phi_encoder,phi_decoder = func.load_coder(coder)

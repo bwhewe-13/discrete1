@@ -502,18 +502,18 @@ class problem1:
         # Scatter Models
         elif problem == 'carbon_full':
             # distance = [45,35,20]; 
-            # ment = [15.04,conc,0]; where = [0,1,2]
-            ment = [0.1504,conc,0]; where = [0,1,2]
+            ment = [15.04,conc,0]; where = [0,1,2]
+            # ment = [0.1504,conc,0]; where = [0,1,2]
         elif problem == 'mixed1_full':
-            # distance = [45,5,25,5,20]; ment = [15.04,0.12,0.27,0.12,0]; where = [0,1,2,3,4]
-            distance = [45,5,25,5,20]; ment = [0.1504,0.12,0.27,0.12,0]; where = [0,1,2,3,4]
+            distance = [45,5,25,5,20]; ment = [15.04,0.12,0.27,0.12,0]; where = [0,1,2,3,4]
+            # distance = [45,5,25,5,20]; ment = [0.1504,0.12,0.27,0.12,0]; where = [0,1,2,3,4]
         elif problem == 'multiplastic_full':
             # distance = [10]*8; distance.append(20); ment = [15.04,conc]*4; ment.append(0); where = [0,1,2,3,4,5,6,7,8]
             distance = [10]*8; distance.append(20); ment = [0.1504,conc]*4; ment.append(0); where = [0,1,2,3,4,5,6,7,8]
         elif problem == 'stainless_full':
             # distance = [45,35,20]; 
-            # ment = [52.68,conc,0]; where = [0,1,2]
-            ment = [0.5268,conc,0]; where = [0,1,2]
+            ment = [52.68,conc,0]; where = [0,1,2]
+            # ment = [0.5268,conc,0]; where = [0,1,2]
         delta = 0.1
         layers = [int(ii/delta) for ii in distance]
         splits = np.array(sn.layer_slice(layers))
@@ -534,8 +534,8 @@ class problem1:
         return np.sort(np.array(sn.layer_slice(layers)))
     
     def boundaries(conc=0.2,problem=None,distance=[45,35,20]):
-        #problem_scatter = problem + '_full'
-        problem_scatter = problem
+        problem_scatter = problem + '_full'
+        # problem_scatter = problem
         # Set Fission Splits
         enrichment,splits = problem1.boundaries_aux(conc,problem,distance)
         fission_splits = {f'fission_{kk}': vv for kk, vv in splits.items()}

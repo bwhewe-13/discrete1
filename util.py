@@ -371,16 +371,31 @@ class nnets:
             norm = (data-mini)/(maxi-mini)
         return norm
 
-    def randomize(address,number):
+    def randomize(address,number,index=False):
         """ To be used with autoencoder """
         import numpy as np
+        if index:
+            index = []
         dataset = []
         for add in address:
             temp = np.load(add)
             dim = np.arange(len(temp))
             np.random.shuffle(dim)
             dataset.append(temp[dim][:number])
+            index.append(dim[:number])
             del temp,dim
+        if index:
+            return np.concatenate((dataset)),index
+        return np.concatenate((dataset))
+
+    def retrieve_randomize(address,number,index):
+        """ To be used with autoencoder """
+        import numpy as np
+        dataset = []
+        for ind,add in zip(index,address):
+            temp = np.load(add)
+            dataset.append(temp[ind])
+            del temp
         return np.concatenate((dataset))
 
 
@@ -402,24 +417,6 @@ class nnets:
         if verbose:
             return norm,maxi,mini
         return norm
-        # norm = (data-mini[:,None])/(maxi-mini)[:,None]
-        # if verbose:
-        #     return norm,maxi,mini
-        # return norm
-    
-    # def l2normalize(data,verbose=False):
-    #     import numpy as np
-    #     normed = np.linalg.norm(data,axis=1)
-    #     if np.argwhere(normed == 0).shape[0] > 0:
-    #         ind = np.argwhere(normed != 0).flatten()
-    #         final = np.zeros((data.shape))
-    #         final[ind] = data[ind]/normed[ind][:,None]
-    #     else:
-    #         final = data / normed[:,None]
-    #     if verbose:
-    #         return final, normed
-    #     return final
-
 
     def scale_back(scale,data):
         import numpy as np
