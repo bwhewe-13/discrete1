@@ -1,10 +1,13 @@
 """ Criticality Eigenvalue Problems """
 
 from .keigenvalue import Problem1, Problem2
-from .reduction import DJ
+from .reduction import DJ,DJAE
 
 import numpy as np
 import ctypes
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning) 
+
 
 class Critical:
     # Keyword Arguments allowed currently
@@ -71,8 +74,27 @@ class Critical:
 
         return problem.transport(models=model)
 
+    @classmethod
+    def run_djae(cls,refl,enrich,dj_models,ae_models,atype,orient='orig',transform='cuberoot',**kwargs):
+        if refl in ['hdpe','ss440']:
+            attributes = Problem1.steady(refl,enrich,orient)
+        elif refl in ['pu']:
+            attributes = Problem2.steady('hdpe',enrich,orient)
+        initial = 'discrete1/data/initial_{}.npy'.format(refl)
+
+        problem = cls(*attributes)
+        problem.saving = '3' # To know when to call DJINN
+        problem.atype = atype
+        problem.initial = initial
+
+        model = DJAE(dj_models,ae_models,atype,transform,**kwargs)
+        model.load_model()
+        model.load_problem(refl,enrich,orient)
+
+        return problem.transport(models=model)
+
         
-    def one_group(self,total_,scatter_,source_,guess):
+    def one_group(self,total_,scatter_,source_,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
             total_: I x 1 vector of the total cross section for each spatial cell
             scatter_: I x L+1 array for the scattering of the spatial cell by moment
@@ -91,7 +113,6 @@ class Critical:
         source_ = source_.astype('float64')
         ext_ptr = ctypes.c_void_p(source_.ctypes.data)
 
-        tol=1e-08; MAX_ITS=100
         converged = 0; count = 1 
         while not(converged):
             phi = np.zeros((self.I),dtype='float64')
@@ -105,9 +126,12 @@ class Critical:
                 bottom_mult = (1/(weight + 0.5 * total_)).astype('float64')
                 bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
 
-                temp_scat = (scatter_ * phi_old).astype('float64')
+                if self.atype in ['scatter','both']:
+                    temp_scat = (scatter_).astype('float64')
+                else:
+                    temp_scat = (scatter_ * phi_old).astype('float64')
+
                 ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
-                
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
                 
                 sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
@@ -122,22 +146,23 @@ class Critical:
     def update_q(self,phi,start,stop,g):
         return np.sum(self.scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
 
-    def multi_group(self,source,guess):
+    def multi_group(self,source,guess,tol=1e-08,MAX_ITS=100):
         phi_old = guess.copy()
 
-        tol=1e-08; MAX_ITS=100
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
             if self.atype in ['scatter','both']:
-                pass
+                smult = self.models.predict_scatter(phi_old)
+                for g in range(self.G):
+                    phi[:,g] = Critical.one_group(self,self.total[:,g],smult[:,g],source[:,g],phi_old[:,g])
+            else:
+                for g in range(self.G):
+                    q_tilde = source[:,g] + Critical.update_q(self,phi_old,g+1,self.G,g)
+                    if g != 0:
+                        q_tilde += Critical.update_q(self,phi,0,g,g)
 
-            for g in range(self.G):
-                q_tilde = source[:,g] + Critical.update_q(self,phi_old,g+1,self.G,g)
-                if g != 0:
-                    q_tilde += Critical.update_q(self,phi,0,g,g)
-
-                phi[:,g] = Critical.one_group(self,self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g])
+                    phi[:,g] = Critical.one_group(self,self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g])
 
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
@@ -145,8 +170,9 @@ class Critical:
             phi_old = phi.copy()
         return phi
             
-    def transport(self,models=None,tol=1e-12; MAX_ITS=100):
+    def transport(self,models=None,tol=1e-12,MAX_ITS=100):
 
+        self.models = models
         if self.saving != '0': # Running from random
             phi_old = np.load(self.initial)
         else:
@@ -155,7 +181,7 @@ class Critical:
 
         converged = 0; count = 1
         while not (converged):
-            sources = Critical.sorting_fission(self,phi_old,models)
+            sources = Critical.sorting_fission(self,phi_old,self.models)
 
             print('Outer Transport Iteration {}\n==================================='.format(count))
             phi = Critical.multi_group(self,sources,phi_old)
@@ -175,13 +201,18 @@ class Critical:
 
     def sorting_fission(self,phi,models):
         if self.saving == '0' or self.atype not in ['both','fission']: # No Reduction
-            return np.einsum('ijk,ik->ij',self.fission,old)
-        if self.saving == '1':                                         # DJINN
+            return np.einsum('ijk,ik->ij',self.fission,phi)
+        elif self.saving == '1':                                       # DJINN
             return models.predict_fission(phi)
+        elif self.saving == '3':
+            return 
+
 
     def sorting_scatter(self,phi,models):
-        if self.saving == '0' or self.atype not in ['both','scatter']: # No Reduction
-            return 
+        if self.saving in ['1','3']:                      # DJINN / DJINN + Autoencoder
+            return models.predict_scatter(phi)
+
+
 
 
 
