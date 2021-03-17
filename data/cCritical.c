@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-// #define LENGTH 1000
+#define LENGTH 1000
 
 
 void reflected(void *flux, void *scatter, void *external, void *numerator, void *denominator, double weight, int direction){

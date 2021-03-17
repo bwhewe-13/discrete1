@@ -1,15 +1,14 @@
-"""
-Criticality Eigenvalue Problems
-"""
+""" Criticality Eigenvalue Problems """
 
-from .KEproblems import Selection
+from .keigenvalue import Problem1, Problem2
+from .reduction import DJ
 
 import numpy as np
 import ctypes
 
 class Critical:
     # Keyword Arguments allowed currently
-    __allowed = ("boundary") #,"track","enrich","split")
+    __allowed = ("boundary","track")
 
     def __init__(self,G,N,mu,w,total,scatter,fission,I,delta,**kwargs):
         """ Deals with Eigenvalue multigroup problems (reflected and vacuum boundaries)
@@ -27,8 +26,6 @@ class Critical:
             boundary: str (default reflected), determine RHS of problem
                 options: 'vacuum', 'reflected'
             track: bool (default False), if track flux change with iteration
-            enrich: float, used for labeling tracking # Combine with track?
-            split: list of slices, used for tracking # Combine with track?
         """ 
         # Attributes
         self.G = G; self.N = N
@@ -37,11 +34,42 @@ class Critical:
         self.scatter = scatter
         self.fission = fission
         self.I = I
-        self.delta = delta
-        self.boundary = 'reflected'; 
+        self.delta = 1/delta
+        self.boundary = 'reflected'; self.track = False
         for key, value in kwargs.items():
-            assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary" 
+            assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, track" 
             setattr(self, key, value)
+
+    @classmethod
+    def run(cls,refl,enrich,orient='orig',**kwargs):
+        if refl in ['hdpe','ss440']:
+            attributes = Problem1.steady(refl,enrich,orient)
+        elif refl in ['pu']:
+            attributes = Problem2.steady('hdpe',enrich,orient)
+
+        problem = cls(*attributes)
+        problem.saving = '0'
+        problem.atype = ''
+        return problem.transport()
+
+    @classmethod
+    def run_djinn(cls,refl,enrich,models,atype,orient='orig',**kwargs):
+        if refl in ['hdpe','ss440']:
+            attributes = Problem1.steady(refl,enrich,orient)
+        elif refl in ['pu']:
+            attributes = Problem2.steady('hdpe',enrich,orient)
+        initial = 'discrete1/data/initial_{}.npy'.format(refl)
+
+        problem = cls(*attributes)
+        problem.saving = '1' # To know when to call DJINN
+        problem.atype = atype
+        problem.initial = initial
+
+        model = DJ(models,atype,**kwargs)
+        model.load_model()
+        model.load_problem(refl,enrich,orient)
+
+        return problem.transport(models=model)
 
         
     def one_group(self,total_,scatter_,source_,guess):
@@ -52,7 +80,7 @@ class Critical:
             guess: Initial guess of the scalar flux for a specific energy group (I x L+1)
         Returns:
             phi: a I array  """
-        clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cCritcal.so')
+        clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cCritical.so')
         sweep = clibrary.reflected
         if self.boundary == 'vacumm':
             print('Reflected')
@@ -63,7 +91,7 @@ class Critical:
         source_ = source_.astype('float64')
         ext_ptr = ctypes.c_void_p(source_.ctypes.data)
 
-        tol=1e-12; MAX_ITS=100
+        tol=1e-08; MAX_ITS=100
         converged = 0; count = 1 
         while not(converged):
             phi = np.zeros((self.I),dtype='float64')
@@ -82,7 +110,7 @@ class Critical:
                 
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
                 
-                sweep(phi_ptr,ts_ptr,source_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
+                sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
                 
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
@@ -101,6 +129,9 @@ class Critical:
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
+            if self.atype in ['scatter','both']:
+                pass
+
             for g in range(self.G):
                 q_tilde = source[:,g] + Critical.update_q(self,phi_old,g+1,self.G,g)
                 if g != 0:
@@ -114,16 +145,19 @@ class Critical:
             phi_old = phi.copy()
         return phi
             
-    def power_iteration(self):
+    def transport(self,models=None,tol=1e-12; MAX_ITS=100):
 
-        phi_old = np.random.rand(self.I,self.G)
-        phi_old /= np.linalg.norm(phi_old)
+        if self.saving != '0': # Running from random
+            phi_old = np.load(self.initial)
+        else:
+            phi_old = np.random.rand(self.I,self.G)
+            phi_old /= np.linalg.norm(phi_old)
 
-        sources = np.einsum('ijk,ik->ij',self.fission,phi_old) 
-
-        tol=1e-12; MAX_ITS=100
         converged = 0; count = 1
         while not (converged):
+            sources = Critical.sorting_fission(self,phi_old,models)
+
+            print('Outer Transport Iteration {}\n==================================='.format(count))
             phi = Critical.multi_group(self,sources,phi_old)
             
             keff = np.linalg.norm(phi)
@@ -136,9 +170,22 @@ class Critical:
             count += 1
 
             phi_old = phi.copy()
-            sources = np.einsum('ijk,ik->ij',self.fission,phi_old) 
 
         return phi,keff
+
+    def sorting_fission(self,phi,models):
+        if self.saving == '0' or self.atype not in ['both','fission']: # No Reduction
+            return np.einsum('ijk,ik->ij',self.fission,old)
+        if self.saving == '1':                                         # DJINN
+            return models.predict_fission(phi)
+
+    def sorting_scatter(self,phi,models):
+        if self.saving == '0' or self.atype not in ['both','scatter']: # No Reduction
+            return 
+
+
+
+
 
     # def tracking_data(self,flux,sources=None):
     #     from discrete1.util import sn

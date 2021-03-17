@@ -32,6 +32,8 @@ class eigen_djinn:
         self.splits = splits
         self.track = track
         self.label = label
+        
+        # self.multDJ = 'fission'
     
     def label_model(self,xs,flux,model_,material='djinn'):
         import numpy as np
@@ -94,6 +96,12 @@ class eigen_djinn:
         
     def create_fmult(self,flux):
         import numpy as np
+        # from discrete1.setup_ke import func
+
+        # model_name = 'fission_1d/carbon/djinn_reg/model_001002'
+        
+        # _,self.model_fission = func.djinn_load(model_name,self.multDJ)
+        
         djinn_fission_ns = 0
         if (np.sum(flux) == 0):
             return np.zeros(flux.shape)

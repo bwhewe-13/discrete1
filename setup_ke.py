@@ -29,18 +29,7 @@ class func:
             print('Pluto')
             return np.load('discrete1/data/phi_group_{}.npy'.format(str(group).zfill(3)))
         return np.load('discrete1/data/phi_{}_15.npy'.format(problem))
-#        if problem == 'carbon':
-#            return np.load('discrete1/data/phi_orig_15.npy')
-#        elif problem == 'stainless':
-#            return np.load('discrete1/data/phi_ss_15.npy')
-#        elif problem == 'stainless_flip':
-#            return np.load('discrete1/data/phi_ss_flip_15.npy')
-#        elif problem == 'multiplastic':
-#            return np.load('discrete1/data/phi_mp_15.npy')
-#        elif problem == 'mixed1':
-#            return np.load('discrete1/data/phi_mixed1.npy')
-#        elif problem == 'carbon_source':
-#            return np.load('discrete1/data/phi_carbon_source.npy')
+
 
     def low_rank_svd(phi,scatter,fission,problem,rank,distance):
         import numpy as np
