@@ -76,9 +76,9 @@ class FixedSource:
         ss_vars = {}; td_vars = {}; hy_vars = {}
         # calling steady state variables
         if problem.enrich:
-            temp = list(eval(ptype).steady(G,N,problem.boundary,problem.enrich))
+            temp = list(eval(ptype).steady(G,N,problem.boundary,problem.enrich,problem.edges))
         else:
-            temp = list(eval(ptype).steady(G,N,problem.boundary))
+            temp = list(eval(ptype).steady(G,N,problem.boundary,problem.edges))
         # Send to dictionary
         keys = ['G','N','mu','w','total','scatter','fission','source','I','delta','LHS']
         for ii in range(len(keys)):
