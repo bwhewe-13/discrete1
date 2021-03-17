@@ -298,6 +298,4 @@ class Tools:
             mult_c[:,count] = np.sum(mult_u[:,index],axis=1) 
 
         return mult_c
-
-
-
+        
