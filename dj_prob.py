@@ -33,7 +33,8 @@ class eigen_djinn:
         self.track = track
         self.label = label
         
-        # self.multDJ = 'fission'
+        self.multDJ = 'scatter'
+        self.double = False
     
     def label_model(self,xs,flux,model_,material='djinn'):
         import numpy as np
@@ -66,6 +67,11 @@ class eigen_djinn:
     def create_smult(self,flux):
         import numpy as np
         from discrete1.util import sn
+        from discrete1.setup_ke import func
+
+        model_name = 'scatter_1d/cscat/djinn_reg/model_001003'
+        self.model_scatter,self.model_fission = func.djinn_load(model_name,self.multDJ)
+
         # Check for Zeros
         if (np.sum(flux) == 0):
             return np.zeros(flux.shape)

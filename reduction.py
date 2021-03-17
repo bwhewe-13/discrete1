@@ -74,9 +74,9 @@ class DJ:
 
         # Get scaling factors
         if self.double or self.focus == 'fuel':
-            scale_hot = phi_hot * Tools.concat(self.scatter_scale,self.splits['fuel'])
+            scale_hot = np.sum(phi_hot * Tools.concat(self.scatter_scale,self.splits['fuel']),axis=1)
         if self.double or self.focus == 'refl':
-            scale_cold = phi_cold * Tools.concat(self.scatter_scale,self.splits['refl'])
+            scale_cold = np.sum(phi_cold * Tools.concat(self.scatter_scale,self.splits['refl']),axis=1)
 
         # Labeling the necessary models
         if self.label and self.focus == 'fuel':
@@ -87,10 +87,10 @@ class DJ:
         # Predict and scale
         if self.double or self.focus == 'fuel':
             phi_hot = self.fuel_scatter.predict(phi_hot)
-            phi_hot = scale_hot/np.sum(phi_hot,axis=1)[:,None] * phi_hot
+            phi_hot = (scale_hot/np.sum(phi_hot,axis=1))[:,None] * phi_hot
         if self.double or self.focus == 'refl':
             phi_cold = self.refl_scatter.predict(phi_cold)
-            phi_cold = scale_cold/np.sum(phi_cold,axis=1)[:,None] * phi_cold
+            phi_cold = (scale_cold/np.sum(phi_cold,axis=1))[:,None] * phi_cold
 
         # Repopulate matrix
         if np.array_equal(phi_hot,Tools.concat(phi,self.splits['fuel'])):
@@ -206,6 +206,112 @@ class AE:
 
         return phi
     
+class DJAE:
+    __allowed = ("double","focus","label")
+
+    def __init__(self,djinn_model,encode_model,atype,transform='cuberoot',**kwargs):
+        """ For functions related to using DJINN and approximating phi * sigma
+        Attributes:
+            djinn_model: string or list of strings of DJINN models
+            encode_model: string or list of strings of path to phi encoder and smult decoder
+            atype: string of approxmation type (can be 'fission','scatter',
+                 or 'both')
+            transform: string of transformation, 'cuberoot','minmax'
+        kwargs:
+            double: if using multiple models for one operation, default False
+            focus: if looking at the reflecting or fuel material
+        """
+        # Attributes
+        self.djinn_model = djinn_model
+        self.encode_model = encode_model
+        self.atype = atype
+        self.transform = transform
+        # kwargs
+        self.double = False; self.focus = 'fuel'; self.label = False
+        for key, value in kwargs.items():
+            assert (key in self.__class__.__allowed), "Attribute not allowed, available: double, focus, label" 
+            setattr(self, key, value)
+
+    def load_model(self):
+        """ Load the DJINN and Encoder/Decoder Model """
+        if self.double:
+            self.dj_fuel_scatter,self.dj_fuel_fission = Tools.djinn_load_driver(self.djinn_model[0],self.atype)
+            self.dj_refl_scatter,self.dj_refl_fission = Tools.djinn_load_driver(self.djinn_model[1],self.atype)
+        elif self.focus == 'fuel':
+            self.dj_fuel_scatter,self.dj_fuel_fission = Tools.djinn_load_driver(self.djinn_model,self.atype)
+            self.dj_refl_scatter = None; self.dj_refl_fission = None
+        elif self.focus == 'reflector':
+            self.dj_fuel_scatter = None; self.dj_fuel_fission = None
+            self.dj_refl_scatter,self.dj_refl_fission = Tools.djinn_load_driver(self.djinn_model,self.atype)
+        print('DJINN Models Loaded')
+        if self.double:
+            self.ae_fuel_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model[0]))
+            self.ae_refl_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model[1]))
+            self.ae_fuel_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(self.encode_model[0]))
+            self.ae_refl_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(self.encode_model[1]))
+        elif self.focus == 'fuel':
+            self.ae_fuel_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model))
+            self.ae_refl_encoder = None
+            self.ae_fuel_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(self.encode_model))
+            self.ae_refl_decoder = None
+        elif self.focus == 'reflector':
+            self.ae_fuel_encoder = None;
+            self.ae_refl_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model))
+            self.ae_fuel_decoder = None
+            self.ae_refl_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(self.encode_model))
+        print('Autoencoder Loaded')
+
+    def load_problem(self,problem,enrich,orient='orig'):
+        """ Loading all the extra Data to run DJINN """
+        if problem in ['hdpe','ss440']:
+            self.labels,self.splits = Problem1.labeling(problem,enrich,orient)
+            _,_,_,_,_,self.scatter_full,self.fission_full,_,_ = Problem1.steady(problem,enrich,orient)
+        elif problem in ['pu']:
+            self.labels,self.splits = Problem2.labeling('hdpe',enrich,orient)
+            _,_,_,_,_,self.scatter_full,self.fission_full,_,_ = Problem2.steady('hdpe',enrich,orient)
+
+        self.scatter_scale = np.sum(self.scatter_full,axis=1)
+        self.fission_scale = np.sum(self.fission_full,axis=1)
+        print('Problem Loaded')
+
+    def predict_scatter(self,phi):
+        """ predict phi * sigma_s """
+        if np.sum(phi) == 0:
+            return phi
+
+        # Separate into refl and fuel
+        phi_hot = Tools.concat(phi,self.splits['fuel'])
+        phi_cold = Tools.concat(phi,self.splits['refl'])
+
+        # Working with fuel
+        if self.double or self.focus == 'fuel':
+            scale_hot = np.sum(phi_hot * Tools.concat(self.scatter_scale,self.splits['fuel']),axis=1)   # Scale
+            phi_hot,maxi_hot,mini_hot = Tools.transformation(phi_hot,self.transform)                    # Transform
+            phi_hot = self.ae_fuel_encoder.predict(phi_hot)                                             # Encode
+            phi_hot = self.dj_fuel_scatter.predict(phi_hot)                                             # DJINN
+            phi_hot = self.ae_fuel_decoder.predict(phi_hot)                                             # Decode
+            phi_hot = Tools.detransformation(phi_hot,maxi_hot,mini_hot,self.transform)                  # Untransform
+            phi_hot = (scale_hot/np.sum(phi_hot,axis=1))[:,None] * phi_hot                                # Unscale
+            
+        # Working with refl
+        if self.double or self.focus == 'refl':
+            scale_cold = np.sum(phi_cold * Tools.concat(self.scatter_scale,self.splits['refl']),axis=1)   # Scale
+            phi_cold,maxi_cold,mini_cold = Tools.transformation(phi_cold,self.transform)                  # Transform
+            phi_cold = self.ae_fuel_encoder.predict(phi_cold)                                             # Encode
+            phi_cold = self.dj_fuel_scatter.predict(phi_cold)                                             # DJINN
+            phi_cold = self.ae_fuel_decoder.predict(phi_cold)                                             # Decode
+            phi_cold = Tools.detransformation(phi_cold,maxi_cold,mini_cold,self.transform)                # Untransform
+            phi_cold = (scale_cold/np.sum(phi_cold,axis=1))[:,None] * phi_cold                              # Unscale
+
+        # Repopulate matrix
+        if np.array_equal(phi_hot,Tools.concat(phi,self.splits['fuel'])):
+            phi_hot = np.einsum('ijk,ik->ij',Tools.concat(self.scatter_full,self.splits['fuel']),phi_hot)
+        if np.array_equal(phi_cold,Tools.concat(phi,self.splits['refl'])):
+            phi_cold = np.einsum('ijk,ik->ij',Tools.concat(self.scatter_full,self.splits['refl']),phi_cold)
+        phi = Tools.repopulate(phi_hot,phi_cold,self.splits)
+
+        return phi
+
 
 class Tools:
 
