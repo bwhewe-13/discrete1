@@ -1,7 +1,7 @@
 """ Criticality Eigenvalue Problems """
 
 from .keigenvalue import Problem1, Problem2
-from .reduction import DJ,DJAE
+from .reduction import DJ,AE,DJAE
 
 import numpy as np
 import ctypes
@@ -69,6 +69,25 @@ class Critical:
         problem.initial = initial
 
         model = DJ(models,atype,**kwargs)
+        model.load_model()
+        model.load_problem(refl,enrich,orient)
+
+        return problem.transport(models=model)
+
+    @classmethod
+    def run_auto(cls,refl,enrich,models,atype,orient='orig',transform='cuberoot',**kwargs):
+        if refl in ['hdpe','ss440']:
+            attributes = Problem1.steady(refl,enrich,orient)
+        elif refl in ['pu']:
+            attributes = Problem2.steady('hdpe',enrich,orient)
+        initial = 'discrete1/data/initial_{}.npy'.format(refl)
+
+        problem = cls(*attributes)
+        problem.saving = '2'
+        problem.atype = atype
+        problem.initial = initial
+
+        model = AE(models,atype,transform,**kwargs)
         model.load_model()
         model.load_problem(refl,enrich,orient)
 
@@ -153,7 +172,7 @@ class Critical:
         while not (converged):
             phi = np.zeros(phi_old.shape)
             if self.atype in ['scatter','both']:
-                smult = self.models.predict_scatter(phi_old)
+                smult = Critical.sorting_scatter(self,phi_old,self.models)
                 for g in range(self.G):
                     phi[:,g] = Critical.one_group(self,self.total[:,g],smult[:,g],source[:,g],phi_old[:,g])
             else:
@@ -173,7 +192,8 @@ class Critical:
     def transport(self,models=None,tol=1e-12,MAX_ITS=100):
 
         self.models = models
-        if self.saving != '0': # Running from random
+        # if self.saving != '0': # Running from random
+        if self.saving not in ['0','2']:
             phi_old = np.load(self.initial)
         else:
             phi_old = np.random.rand(self.I,self.G)
@@ -182,6 +202,15 @@ class Critical:
         converged = 0; count = 1
         while not (converged):
             sources = Critical.sorting_fission(self,phi_old,self.models)
+
+            if count == 1:
+                temp = phi_old.copy()
+
+            phi_old = Critical.sorting_phi(self,phi_old,self.models)
+
+            if count == 1:
+                print('check squeeze',np.array_equal(phi_old,temp))
+                del temp
 
             print('Outer Transport Iteration {}\n==================================='.format(count))
             phi = Critical.multi_group(self,sources,phi_old)
@@ -202,20 +231,22 @@ class Critical:
     def sorting_fission(self,phi,models):
         if self.saving == '0' or self.atype not in ['both','fission']: # No Reduction
             return np.einsum('ijk,ik->ij',self.fission,phi)
-        elif self.saving == '1':                                       # DJINN
+        elif self.saving in ['1','3']:                                 # DJINN / DJINN + Autoencoder
             return models.predict_fission(phi)
-        elif self.saving == '3':
-            return 
-
+        elif self.saving in ['2']:                                     # Autoencoder Squeeze
+            return models.squeeze(np.einsum('ijk,ik->ij',self.fission,phi))
 
     def sorting_scatter(self,phi,models):
         if self.saving in ['1','3']:                      # DJINN / DJINN + Autoencoder
             return models.predict_scatter(phi)
+        elif self.saving in ['2']:                        # Autoencoder Squeeze
+            return models.squeeze(np.einsum('ijk,ik->ij',self.scatter,phi))
 
-
-
-
-
+    def sorting_phi(self,phi,models):
+        if self.saving in ['2'] and self.atype == 'phi':
+            return models.squeeze(phi)
+        else:
+            return phi
 
 
     # def tracking_data(self,flux,sources=None):

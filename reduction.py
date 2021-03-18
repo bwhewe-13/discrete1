@@ -2,8 +2,8 @@
 
 Available Methods:
     - DJINN
-    - Autoencoder + DJINN
     - Autoencoder (squeeze)
+    - Autoencoder + DJINN
     - SVD
 """
 
@@ -44,7 +44,7 @@ class DJ:
         elif self.focus == 'fuel':
             self.fuel_scatter,self.fuel_fission = Tools.djinn_load_driver(self.model_name,self.atype)
             self.refl_scatter = None; self.refl_fission = None
-        elif self.focus == 'reflector':
+        elif self.focus == 'refl':
             self.fuel_scatter = None; self.fuel_fission = None
             self.refl_scatter,self.refl_fission = Tools.djinn_load_driver(self.model_name,self.atype)
         print('DJINN Models Loaded')
@@ -161,7 +161,7 @@ class AE:
         elif self.focus == 'fuel':
             self.fuel_model = keras.models.load_model('{}_autoencoder.h5'.format(self.model_name))
             self.refl_model = None
-        elif self.focus == 'reflector':
+        elif self.focus == 'refl':
             self.fuel_model = None;
             self.refl_model = keras.models.load_model('{}_autoencoder.h5'.format(self.model_name))
         print('Autoencoder Loaded')
@@ -187,19 +187,19 @@ class AE:
 
         # Working with fuel
         if self.double or self.focus == 'fuel':
-            phi_hot,maxi_hot,mini_hot = Tools.transformation(phi_hot,self.transform)     # Transform
             scale_hot = np.sum(phi_hot,axis=1)                                           # Scale
+            phi_hot,maxi_hot,mini_hot = Tools.transformation(phi_hot,self.transform)     # Transform
             phi_hot = self.fuel_model.predict(phi_hot)                                   # Predict
-            phi_hot = scale_hot/np.sum(phi_hot,axis=1)[:,None] * phi_hot                 # Unscale
             phi_hot = Tools.detransformation(phi_hot,maxi_hot,mini_hot,self.transform)   # Untransform
+            phi_hot = (scale_hot/np.sum(phi_hot,axis=1))[:,None] * phi_hot               # Unscale
 
         # Working with refl
         if self.double or self.focus == 'refl':
-            phi_cold,maxi_cold,mini_cold = Tools.transformation(phi_cold,self.transform)   # Transform
             scale_cold = np.sum(phi_cold,axis=1)                                           # Scale
+            phi_cold,maxi_cold,mini_cold = Tools.transformation(phi_cold,self.transform)   # Transform
             phi_cold = self.refl_model.predict(phi_cold)                                   # Predict
-            phi_cold = scale_cold/np.sum(phi_cold,axis=1)[:,None] * phi_cold               # Unscale
             phi_cold = Tools.detransformation(phi_cold,maxi_cold,mini_cold,self.transform) # Untransform
+            phi_cold = (scale_cold/np.sum(phi_cold,axis=1))[:,None] * phi_cold             # Unscale
 
         # Repopulate matrix
         phi = Tools.repopulate(phi_hot,phi_cold,self.splits)
@@ -240,7 +240,7 @@ class DJAE:
         elif self.focus == 'fuel':
             self.dj_fuel_scatter,self.dj_fuel_fission = Tools.djinn_load_driver(self.djinn_model,self.atype)
             self.dj_refl_scatter = None; self.dj_refl_fission = None
-        elif self.focus == 'reflector':
+        elif self.focus == 'refl':
             self.dj_fuel_scatter = None; self.dj_fuel_fission = None
             self.dj_refl_scatter,self.dj_refl_fission = Tools.djinn_load_driver(self.djinn_model,self.atype)
         print('DJINN Models Loaded')
@@ -254,7 +254,7 @@ class DJAE:
             self.ae_refl_encoder = None
             self.ae_fuel_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(self.encode_model))
             self.ae_refl_decoder = None
-        elif self.focus == 'reflector':
+        elif self.focus == 'refl':
             self.ae_fuel_encoder = None;
             self.ae_refl_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model))
             self.ae_fuel_decoder = None
@@ -332,7 +332,7 @@ class Tools:
     def repopulate(hot,cold,splits):
         """ Repopulating Phi * Sigma Matrix 
         hot: fuel material
-        cold: reflector material
+        cold: refl material
         splits: dictionary of splits    
         """
         phi = np.zeros((len(hot) + len(cold),hot.shape[1]))
