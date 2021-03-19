@@ -4,33 +4,6 @@ class func:
         self.dum2 = self.load_dummy2()
         self.dum3 = self.load_dummy3()
         
-    def total_add(tot,mu,delta,side):
-        if side == 'right' and mu > 0: #forward sweep
-            return mu/delta-(0.5*tot)
-        elif side == 'right' and mu < 0: #backward sweep
-            return -mu/delta-(0.5*tot)
-        elif side == 'left' and mu > 0: #forward sweep
-            return mu/delta+(0.5*tot)
-        return -mu/delta+(0.5*tot) #backward sweep
-    
-    def diamond_diff(top,bottom):
-        return 0.5*(top + bottom)
-
-    def update_q(scatter,phi,start,stop,g):
-        import numpy as np
-        return np.sum(scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
-
-    def initial_flux(problem,group=618):
-        import numpy as np
-        if problem in ['mixed1','hdpe']:
-            # np.load('discrete1/data/phi_{}_15.npy'.format(problem))
-            problem = 'carbon'
-        elif problem == 'pluto':
-            print('Pluto')
-            return np.load('discrete1/data/phi_group_{}.npy'.format(str(group).zfill(3)))
-        return np.load('discrete1/data/phi_{}_15.npy'.format(problem))
-
-
     def low_rank_svd(phi,scatter,fission,problem,rank,distance):
         import numpy as np
         from discrete1.util import sn
@@ -110,18 +83,6 @@ class func:
             r_fission[mat] = np.tile(yf_tilde,(sn.length(mat),1,1))
         return r_scatter,r_fission
     
-    # def normalize(data,verbose=False):
-    #     import numpy as np
-    #     maxi = np.amax(data,axis=1)
-    #     mini = np.amin(data,axis=1)
-    #     norm = (data-mini[:,None])/(maxi-mini)[:,None]
-    #     if verbose:
-    #         return norm,maxi,mini
-    #     return norm
-    
-    # def unnormalize(data,maxi,mini):
-    #     return data*(maxi-mini)[:,None]+mini[:,None]
-
     def djinn_load(model_name,dtype):
         from djinn import djinn
         # from dj2.djinn import djinn

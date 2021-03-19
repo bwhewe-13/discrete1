@@ -18,9 +18,9 @@
 4. hybrid.py separates the collided and uncollided terms to be used with different numbers of ordinates (N) and energy groups (G). 
 
 ### Python Files Being Updated
-- [ ] dj\_prob.py, svd\_prob.py, and ae\_prob.py &#8594 reduction.py
-- [ ] setup\_ke.py &#8594 keigenvalue.py
-- [ ] correct.py &#8594 critical.py
+- [ ] dj\_prob.py, svd\_prob.py, and ae\_prob.py &#8594; reduction.py
+- [ ] setup\_ke.py &#8594; keigenvalue.py
+- [ ] correct.py &#8594; critical.py
 
 ### Python Files to Remove
 Important functions have to be extracted before these are removed

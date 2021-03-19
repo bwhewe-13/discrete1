@@ -189,7 +189,7 @@ class Critical:
             phi_old = phi.copy()
         return phi
             
-    def transport(self,models=None,tol=1e-12,MAX_ITS=100):
+    def transport(self,models=None,tol=1e-12,MAX_ITS=20):
 
         self.models = models
         # if self.saving != '0': # Running from random
