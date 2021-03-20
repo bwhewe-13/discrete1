@@ -25,6 +25,6 @@
 ### Python Files to Remove
 Important functions have to be extracted before these are removed
 - [ ] util.py
-- [ ] KEproblems.py
+- [x] KEproblems.py
 
 <sup>1</sup> K. D. Humbird, J. L. Peterson, and R. G. McClarren. "Deep neural network initialization with decision trees." *IEEE transactions on neural networks and learning systems*,volume 30(5), pp. 1286–1295 (2018)

@@ -297,9 +297,9 @@ class DJAE:
         if self.double or self.focus == 'refl':
             scale_cold = np.sum(phi_cold * Tools.concat(self.scatter_scale,self.splits['refl']),axis=1)   # Scale
             phi_cold,maxi_cold,mini_cold = Tools.transformation(phi_cold,self.transform)                  # Transform
-            phi_cold = self.ae_fuel_encoder.predict(phi_cold)                                             # Encode
-            phi_cold = self.dj_fuel_scatter.predict(phi_cold)                                             # DJINN
-            phi_cold = self.ae_fuel_decoder.predict(phi_cold)                                             # Decode
+            phi_cold = self.ae_refl_encoder.predict(phi_cold)                                             # Encode
+            phi_cold = self.dj_refl_scatter.predict(phi_cold)                                             # DJINN
+            phi_cold = self.ae_refl_decoder.predict(phi_cold)                                             # Decode
             phi_cold = Tools.detransformation(phi_cold,maxi_cold,mini_cold,self.transform)                # Untransform
             phi_cold = (scale_cold/np.sum(phi_cold,axis=1))[:,None] * phi_cold                              # Unscale
 
@@ -354,6 +354,8 @@ class Tools:
             reduced = (reduced - mini[:,None]) / (maxi - mini)[:,None]
         elif ttype == 'cuberoot':
             reduced = reduced**(1/3)
+        elif ttype == 'log':
+            reduced = -0.01 * np.log(reduced)
 
         reduced[np.isnan(reduced)] = 0; reduced[np.isinf(reduced)] = 0
         return reduced,maxi,mini
@@ -364,6 +366,8 @@ class Tools:
             reduced = reduced * (maxi - mini)[:,None] + mini[:,None]
         elif ttype =='cuberoot':
             reduced = reduced**3
+        elif ttype == 'log':
+            reduced = np.exp(reduced * -100)
 
         reduced[np.isnan(reduced)] = 0; reduced[np.isinf(reduced)] = 0
         return reduced
