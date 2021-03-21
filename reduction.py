@@ -288,20 +288,24 @@ class DJAE:
             scale_hot = np.sum(phi_hot * Tools.concat(self.scatter_scale,self.splits['fuel']),axis=1)   # Scale
             phi_hot,maxi_hot,mini_hot = Tools.transformation(phi_hot,self.transform)                    # Transform
             phi_hot = self.ae_fuel_encoder.predict(phi_hot)                                             # Encode
+            if self.label:                                                                              # Check Label
+                phi_hot = np.hstack((Tools.concat(self.labels,self.splits['fuel'])[:,None],phi_hot))     # Add Label
             phi_hot = self.dj_fuel_scatter.predict(phi_hot)                                             # DJINN
             phi_hot = self.ae_fuel_decoder.predict(phi_hot)                                             # Decode
             phi_hot = Tools.detransformation(phi_hot,maxi_hot,mini_hot,self.transform)                  # Untransform
-            phi_hot = (scale_hot/np.sum(phi_hot,axis=1))[:,None] * phi_hot                                # Unscale
+            phi_hot = (scale_hot/np.sum(phi_hot,axis=1))[:,None] * phi_hot                              # Unscale
             
         # Working with refl
         if self.double or self.focus == 'refl':
             scale_cold = np.sum(phi_cold * Tools.concat(self.scatter_scale,self.splits['refl']),axis=1)   # Scale
             phi_cold,maxi_cold,mini_cold = Tools.transformation(phi_cold,self.transform)                  # Transform
             phi_cold = self.ae_refl_encoder.predict(phi_cold)                                             # Encode
+            if self.label:                                                                                # Check Label
+                phi_cold = np.hstack((Tools.concat(self.labels,self.splits['refl'])[:,None],phi_cold))     # Add Label
             phi_cold = self.dj_refl_scatter.predict(phi_cold)                                             # DJINN
             phi_cold = self.ae_refl_decoder.predict(phi_cold)                                             # Decode
             phi_cold = Tools.detransformation(phi_cold,maxi_cold,mini_cold,self.transform)                # Untransform
-            phi_cold = (scale_cold/np.sum(phi_cold,axis=1))[:,None] * phi_cold                              # Unscale
+            phi_cold = (scale_cold/np.sum(phi_cold,axis=1))[:,None] * phi_cold                            # Unscale
 
         # Repopulate matrix
         if np.array_equal(phi_hot,Tools.concat(phi,self.splits['fuel'])):
