@@ -354,12 +354,12 @@ class Tools:
         maxi = None; mini = None
         if ttype == 'minmax':
             maxi = np.max(reduced,axis=1)
-            mini = np.max(reduced,axis=1)
+            mini = np.min(reduced,axis=1)
             reduced = (reduced - mini[:,None]) / (maxi - mini)[:,None]
         elif ttype == 'cuberoot':
             reduced = reduced**(1/3)
         elif ttype == 'log':
-            reduced = -0.01 * np.log(reduced)
+            reduced = np.log(reduced)
 
         reduced[np.isnan(reduced)] = 0; reduced[np.isinf(reduced)] = 0
         return reduced,maxi,mini
@@ -371,7 +371,7 @@ class Tools:
         elif ttype =='cuberoot':
             reduced = reduced**3
         elif ttype == 'log':
-            reduced = np.exp(reduced * -100)
+            reduced = np.exp(reduced)
 
         reduced[np.isnan(reduced)] = 0; reduced[np.isinf(reduced)] = 0
         return reduced
