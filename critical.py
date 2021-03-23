@@ -203,14 +203,7 @@ class Critical:
         while not (converged):
             sources = Critical.sorting_fission(self,phi_old,self.models)
 
-            if count == 1:
-                temp = phi_old.copy()
-
             phi_old = Critical.sorting_phi(self,phi_old,self.models)
-
-            if count == 1:
-                print('check squeeze',np.array_equal(phi_old,temp))
-                del temp
 
             print('Outer Transport Iteration {}\n==================================='.format(count))
             phi = Critical.multi_group(self,sources,phi_old)
