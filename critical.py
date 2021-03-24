@@ -225,7 +225,6 @@ class Critical:
         if self.saving == '0' or self.atype not in ['both','fission']: # No Reduction
             return np.einsum('ijk,ik->ij',self.fission,phi)
         elif self.saving in ['1','3']:                                 # DJINN / DJINN + Autoencoder
-            print('Right Path - Sorting Fission')
             return models.predict_fission(phi)
         elif self.saving in ['2']:                                     # Autoencoder Squeeze
             return models.squeeze(np.einsum('ijk,ik->ij',self.fission,phi))

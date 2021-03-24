@@ -243,27 +243,18 @@ class DJAE:
         elif self.focus == 'refl':
             self.dj_fuel_scatter = None; self.dj_fuel_fission = None
             self.dj_refl_scatter,self.dj_refl_fission = Tools.djinn_load_driver(self.djinn_model,self.atype)
-        print('DJINN Models Loaded')
-        if self.double and self.atype in ['both','scatter']:
-            self.ae_fuel_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model[0]))
-            self.ae_refl_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model[1]))
-            self.ae_fuel_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(self.encode_model[0]))
-            self.ae_refl_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(self.encode_model[1]))
-        elif self.focus == 'fuel' and self.atype in ['both','scatter']:
-            self.ae_fuel_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model))
-            self.ae_refl_encoder = None
-            self.ae_fuel_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(self.encode_model))
-            self.ae_refl_decoder = None
-        elif self.focus == 'refl' and self.atype in ['both','scatter']:
-            self.ae_fuel_encoder = None;
-            self.ae_refl_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model))
-            self.ae_fuel_decoder = None
-            self.ae_refl_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(self.encode_model))
-
-        if self.atype in ['both','fission']:
-            self.ae_fission_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model))
-            self.ae_fission_decoder = keras.models.load_model('{}_fmult_decoder.h5'.format(self.encode_model))
-
+        print('DJINN Models Loaded')        
+        if self.double:
+            self.aes_fuel_encoder,self.aes_fuel_decoder,self.aef_fuel_encoder,self.aef_fuel_decoder = Tools.encoder_load_driver(self.encode_model[0],self.atype)
+            self.aes_refl_encoder,self.aes_refl_decoder,self.aef_refl_encoder,self.aef_refl_decoder = Tools.encoder_load_driver(self.encode_model[1],self.atype)
+        elif self.focus == 'fuel':
+            self.aes_fuel_encoder,self.aes_fuel_decoder,self.aef_fuel_encoder,self.aef_fuel_decoder = Tools.encoder_load_driver(self.encode_model,self.atype)
+            self.aes_refl_encoder = None; self.aes_refl_decoder = None
+            self.aef_refl_encoder = None; self.aef_refl_decoder = None 
+        elif self.focus == 'refl':
+            self.aes_fuel_encoder = None; self.aes_fuel_decoder = None
+            self.aef_fuel_encoder = None; self.aef_fuel_decoder = None 
+            self.aes_refl_encoder,self.aes_refl_decoder,self.aef_refl_encoder,self.aef_refl_decoder = Tools.encoder_load_driver(self.encode_model,self.atype)
         print('Autoencoder Loaded')
 
     def load_problem(self,problem,enrich,orient='orig'):
@@ -277,8 +268,8 @@ class DJAE:
 
         self.scatter_scale = np.sum(self.scatter_full,axis=1)
         self.fission_scale = np.sum(self.fission_full,axis=1)
-        self.fission_max = np.max(self.fission_full,axis=1)
-        self.fission_min = np.min(self.fission_full,axis=1)
+        # self.fission_max = np.max(self.fission_full,axis=1)
+        # self.fission_min = np.min(self.fission_full,axis=1)
         print('Problem Loaded')
 
     def predict_scatter(self,phi):
@@ -294,11 +285,11 @@ class DJAE:
         if self.double or self.focus == 'fuel':
             scale_hot = np.sum(phi_hot * Tools.concat(self.scatter_scale,self.splits['fuel']),axis=1)   # Scale
             phi_hot,maxi_hot,mini_hot = Tools.transformation(phi_hot,self.transform)                    # Transform
-            phi_hot = self.ae_fuel_encoder.predict(phi_hot)                                             # Encode
+            phi_hot = self.aes_fuel_encoder.predict(phi_hot)                                            # Encode
             if self.label:                                                                              # Check Label
                 phi_hot = np.hstack((Tools.concat(self.labels,self.splits['fuel'])[:,None],phi_hot))    # Add Label
             phi_hot = self.dj_fuel_scatter.predict(phi_hot)                                             # DJINN
-            phi_hot = self.ae_fuel_decoder.predict(phi_hot)                                             # Decode
+            phi_hot = self.aes_fuel_decoder.predict(phi_hot)                                            # Decode
             phi_hot = Tools.detransformation(phi_hot,maxi_hot,mini_hot,self.transform)                  # Untransform
             phi_hot = (scale_hot/np.sum(phi_hot,axis=1))[:,None] * phi_hot                              # Unscale
             
@@ -306,11 +297,11 @@ class DJAE:
         if self.double or self.focus == 'refl':
             scale_cold = np.sum(phi_cold * Tools.concat(self.scatter_scale,self.splits['refl']),axis=1)   # Scale
             phi_cold,maxi_cold,mini_cold = Tools.transformation(phi_cold,self.transform)                  # Transform
-            phi_cold = self.ae_refl_encoder.predict(phi_cold)                                             # Encode
+            phi_cold = self.aes_refl_encoder.predict(phi_cold)                                            # Encode
             if self.label:                                                                                # Check Label
                 phi_cold = np.hstack((Tools.concat(self.labels,self.splits['refl'])[:,None],phi_cold))    # Add Label
             phi_cold = self.dj_refl_scatter.predict(phi_cold)                                             # DJINN
-            phi_cold = self.ae_refl_decoder.predict(phi_cold)                                             # Decode
+            phi_cold = self.aes_refl_decoder.predict(phi_cold)                                            # Decode
             phi_cold = Tools.detransformation(phi_cold,maxi_cold,mini_cold,self.transform)                # Untransform
             phi_cold = (scale_cold/np.sum(phi_cold,axis=1))[:,None] * phi_cold                            # Unscale
 
@@ -334,15 +325,15 @@ class DJAE:
 
         # Working with fuel
         scale_hot = np.sum(phi_hot * Tools.concat(self.fission_scale,self.splits['fuel']),axis=1)   # Scale
-        maxi_hot = np.sum(phi_hot * Tools.concat(self.fission_max,self.splits['fuel']),axis=1)      # Ad Hoc Max
-        mini_hot = np.sum(phi_hot * Tools.concat(self.fission_min,self.splits['fuel']),axis=1)      # Ad Hoc Min
-        phi_hot,_,_ = Tools.transformation(phi_hot,self.transform)                                  # Transform
-        phi_hot = self.ae_fission_encoder.predict(phi_hot)                                          # Encode
+        # maxi_hot = np.sum(phi_hot * Tools.concat(self.fission_max,self.splits['fuel']),axis=1)      # Ad Hoc Max
+        # mini_hot = np.sum(phi_hot * Tools.concat(self.fission_min,self.splits['fuel']),axis=1)      # Ad Hoc Min
+        phi_hot,maxi_hot,mini_hot = Tools.transformation(phi_hot,'minmax')                          # Transform
+        phi_hot = self.aef_fuel_encoder.predict(phi_hot)                                            # Encode
         if self.label:                                                                              # Check Label
             phi_hot = np.hstack((Tools.concat(self.labels,self.splits['fuel'])[:,None],phi_hot))    # Add Label
         phi_hot = self.dj_fuel_fission.predict(phi_hot)                                             # DJINN
-        phi_hot = self.ae_fission_decoder.predict(phi_hot)                                          # Decode
-        phi_hot = Tools.detransformation(phi_hot,maxi_hot,mini_hot,self.transform)                  # Untransform
+        phi_hot = self.aef_fuel_decoder.predict(phi_hot)                                            # Decode
+        phi_hot = Tools.detransformation(phi_hot,maxi_hot,mini_hot,'minmax')                        # Untransform
         phi_hot = (scale_hot/np.sum(phi_hot,axis=1))[:,None] * phi_hot                              # Unscale
             
         # Repopulate matrix
@@ -364,6 +355,25 @@ class Tools:
         elif atype == 'fission':
             model_fission = djinn.load(model_name=model_)
         return model_scatter,model_fission
+
+    def encoder_load_driver(model_,atype):
+        model_fission_encoder = None; model_fission_decoder = None
+        model_scatter_encoder = None; model_scatter_decoder = None
+
+        if atype == 'both':
+            model_scatter_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(model_[0]))
+            model_scatter_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(model_[0]))
+
+            model_fission_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(model_[1]))
+            model_fission_decoder = keras.models.load_model('{}_fmult_decoder.h5'.format(model_[1]))
+        elif atype == 'scatter':
+            model_scatter_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(model_))
+            model_scatter_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(model_))
+        elif atype == 'fission':
+            model_fission_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(model_))
+            model_fission_decoder = keras.models.load_model('{}_fmult_decoder.h5'.format(model_))
+
+        return model_scatter_encoder, model_scatter_decoder, model_fission_encoder, model_fission_decoder
 
     def concat(lst,splits):
         return np.concatenate(([lst[ii] for ii in splits]))   
