@@ -244,21 +244,26 @@ class DJAE:
             self.dj_fuel_scatter = None; self.dj_fuel_fission = None
             self.dj_refl_scatter,self.dj_refl_fission = Tools.djinn_load_driver(self.djinn_model,self.atype)
         print('DJINN Models Loaded')
-        if self.double:
+        if self.double and self.atype in ['both','scatter']:
             self.ae_fuel_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model[0]))
             self.ae_refl_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model[1]))
             self.ae_fuel_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(self.encode_model[0]))
             self.ae_refl_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(self.encode_model[1]))
-        elif self.focus == 'fuel':
+        elif self.focus == 'fuel' and self.atype in ['both','scatter']:
             self.ae_fuel_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model))
             self.ae_refl_encoder = None
             self.ae_fuel_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(self.encode_model))
             self.ae_refl_decoder = None
-        elif self.focus == 'refl':
+        elif self.focus == 'refl' and self.atype in ['both','scatter']:
             self.ae_fuel_encoder = None;
             self.ae_refl_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model))
             self.ae_fuel_decoder = None
             self.ae_refl_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(self.encode_model))
+
+        if self.atype in ['both','fission']:
+            self.ae_fission_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(self.encode_model))
+            self.ae_fission_decoder = keras.models.load_model('{}_fmult_decoder.h5'.format(self.encode_model))
+
         print('Autoencoder Loaded')
 
     def load_problem(self,problem,enrich,orient='orig'):
@@ -272,6 +277,8 @@ class DJAE:
 
         self.scatter_scale = np.sum(self.scatter_full,axis=1)
         self.fission_scale = np.sum(self.fission_full,axis=1)
+        self.fission_max = np.max(self.fission_full,axis=1)
+        self.fission_min = np.min(self.fission_full,axis=1)
         print('Problem Loaded')
 
     def predict_scatter(self,phi):
@@ -289,7 +296,7 @@ class DJAE:
             phi_hot,maxi_hot,mini_hot = Tools.transformation(phi_hot,self.transform)                    # Transform
             phi_hot = self.ae_fuel_encoder.predict(phi_hot)                                             # Encode
             if self.label:                                                                              # Check Label
-                phi_hot = np.hstack((Tools.concat(self.labels,self.splits['fuel'])[:,None],phi_hot))     # Add Label
+                phi_hot = np.hstack((Tools.concat(self.labels,self.splits['fuel'])[:,None],phi_hot))    # Add Label
             phi_hot = self.dj_fuel_scatter.predict(phi_hot)                                             # DJINN
             phi_hot = self.ae_fuel_decoder.predict(phi_hot)                                             # Decode
             phi_hot = Tools.detransformation(phi_hot,maxi_hot,mini_hot,self.transform)                  # Untransform
@@ -301,7 +308,7 @@ class DJAE:
             phi_cold,maxi_cold,mini_cold = Tools.transformation(phi_cold,self.transform)                  # Transform
             phi_cold = self.ae_refl_encoder.predict(phi_cold)                                             # Encode
             if self.label:                                                                                # Check Label
-                phi_cold = np.hstack((Tools.concat(self.labels,self.splits['refl'])[:,None],phi_cold))     # Add Label
+                phi_cold = np.hstack((Tools.concat(self.labels,self.splits['refl'])[:,None],phi_cold))    # Add Label
             phi_cold = self.dj_refl_scatter.predict(phi_cold)                                             # DJINN
             phi_cold = self.ae_refl_decoder.predict(phi_cold)                                             # Decode
             phi_cold = Tools.detransformation(phi_cold,maxi_cold,mini_cold,self.transform)                # Untransform
@@ -312,6 +319,34 @@ class DJAE:
             phi_hot = np.einsum('ijk,ik->ij',Tools.concat(self.scatter_full,self.splits['fuel']),phi_hot)
         if np.array_equal(phi_cold,Tools.concat(phi,self.splits['refl'])):
             phi_cold = np.einsum('ijk,ik->ij',Tools.concat(self.scatter_full,self.splits['refl']),phi_cold)
+        phi = Tools.repopulate(phi_hot,phi_cold,self.splits)
+
+        return phi
+
+    def predict_fission(self,phi):
+        """ predict phi * sigma_s """
+        if np.sum(phi) == 0 or self.focus == 'refl':
+            return phi
+
+        # Separate into refl and fuel
+        phi_hot = Tools.concat(phi,self.splits['fuel'])
+        phi_cold = Tools.concat(phi,self.splits['refl'])
+
+        # Working with fuel
+        scale_hot = np.sum(phi_hot * Tools.concat(self.fission_scale,self.splits['fuel']),axis=1)   # Scale
+        maxi_hot = np.sum(phi_hot * Tools.concat(self.fission_max,self.splits['fuel']),axis=1)      # Ad Hoc Max
+        mini_hot = np.sum(phi_hot * Tools.concat(self.fission_min,self.splits['fuel']),axis=1)      # Ad Hoc Min
+        phi_hot,_,_ = Tools.transformation(phi_hot,self.transform)                                  # Transform
+        phi_hot = self.ae_fission_encoder.predict(phi_hot)                                          # Encode
+        if self.label:                                                                              # Check Label
+            phi_hot = np.hstack((Tools.concat(self.labels,self.splits['fuel'])[:,None],phi_hot))    # Add Label
+        phi_hot = self.dj_fuel_fission.predict(phi_hot)                                             # DJINN
+        phi_hot = self.ae_fission_decoder.predict(phi_hot)                                          # Decode
+        phi_hot = Tools.detransformation(phi_hot,maxi_hot,mini_hot,self.transform)                  # Untransform
+        phi_hot = (scale_hot/np.sum(phi_hot,axis=1))[:,None] * phi_hot                              # Unscale
+            
+        # Repopulate matrix
+        phi_cold = np.einsum('ijk,ik->ij',Tools.concat(self.fission_full,self.splits['refl']),phi_cold)
         phi = Tools.repopulate(phi_hot,phi_cold,self.splits)
 
         return phi
