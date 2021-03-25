@@ -236,7 +236,7 @@ class DJAE:
         """ Load the DJINN and Encoder/Decoder Model """
         if self.double:
             self.dj_fuel_scatter,self.dj_fuel_fission = Tools.djinn_load_driver(self.djinn_model[0],self.atype)
-            self.dj_refl_scatter,self.dj_refl_fission = Tools.djinn_load_driver(self.djinn_model[1],self.atype)
+            self.dj_refl_scatter,self.dj_refl_fission = Tools.djinn_load_driver(self.djinn_model[1],'scatter')
         elif self.focus == 'fuel':
             self.dj_fuel_scatter,self.dj_fuel_fission = Tools.djinn_load_driver(self.djinn_model,self.atype)
             self.dj_refl_scatter = None; self.dj_refl_fission = None
@@ -246,7 +246,7 @@ class DJAE:
         print('DJINN Models Loaded')        
         if self.double:
             self.aes_fuel_encoder,self.aes_fuel_decoder,self.aef_fuel_encoder,self.aef_fuel_decoder = Tools.encoder_load_driver(self.encode_model[0],self.atype)
-            self.aes_refl_encoder,self.aes_refl_decoder,self.aef_refl_encoder,self.aef_refl_decoder = Tools.encoder_load_driver(self.encode_model[1],self.atype)
+            self.aes_refl_encoder,self.aes_refl_decoder,self.aef_refl_encoder,self.aef_refl_decoder = Tools.encoder_load_driver(self.encode_model[1],'scatter')
         elif self.focus == 'fuel':
             self.aes_fuel_encoder,self.aes_fuel_decoder,self.aef_fuel_encoder,self.aef_fuel_decoder = Tools.encoder_load_driver(self.encode_model,self.atype)
             self.aes_refl_encoder = None; self.aes_refl_decoder = None
