@@ -9,7 +9,7 @@ import ctypes
 
 class Source:
     # Keyword Arguments allowed currently
-    __allowed = ("T","dt","v","boundary") # ,"hybrid","enrich","track")
+    __allowed = ("T","dt","v","boundary","geometry") # ,"hybrid","enrich","track")
 
     def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,lhs,**kwargs): 
         """ Deals with Source multigroup problems (time dependent, steady state,
@@ -34,6 +34,7 @@ class Source:
                 options: 'vacuum', 'reflected'
             enrich: enrichment percentage of U235 in uranium problems, float
             track: bool (default False), if track flux change with iteration
+            geometry: str (default slab), determines coordinates of sweep ('slab' or 'sphere')
         """ 
         # Attributes
         self.G = G; self.N = N
@@ -48,9 +49,10 @@ class Source:
         # kwargs
         self.T = None; self.dt = None; self.v = None
         self.boundary = 'vacuum'; self.problem = None
+        self.geometry = 'slab'
         #self.enrich = None; self.time = False
         for key, value in kwargs.items():
-            assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, time" 
+            assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, time, geometry" 
             setattr(self, key, value)
 
     @classmethod
@@ -59,6 +61,8 @@ class Source:
         boundary = 'vacuum'
         if 'boundary' in kwargs:
             boundary = kwargs['boundary']
+        if 'geometry' in kwargs:
+            geometry = kwargs['geometry']
         # Currently cannot use reflected boundary with TD problems
         if 'T' in kwargs and boundary == 'reflected':
             print('Using Vacuum Boundaries, cannot use Time Dependency with Reflected Conditions')
@@ -70,6 +74,7 @@ class Source:
 
         problem.boundary = boundary
         problem.problem = ptype
+        problem.geometry = geometry
         
         if 'T' in kwargs:
             return problem.time_steps()
@@ -77,7 +82,7 @@ class Source:
         return problem.multi_group()
 
                 
-    def one_group(self,total_,scatter_,source_,boundary,guess):
+    def slab(self,total_,scatter_,source_,boundary,guess):
         """ Arguments:
             total: I x 1 vector of the total cross section for each spatial cell
             scatter: I x L+1 array for the scattering of the spatial cell by moment
@@ -130,7 +135,141 @@ class Source:
 
         return phi
 
-    def time_one_group(self,total_,scatter_,source_,boundary,guess,psi_last,speed):
+    def sphere(self,total_,scatter_,source_,boundary,guess):
+        """ Arguments:
+            total_: I x 1 vector of the total cross section for each spatial cell
+            scatter_: I x L+1 array for the scattering of the spatial cell by moment
+            source_: I array for the external sources
+            guess: Initial guess of the scalar flux for a specific energy group (I x L+1)
+        Returns:
+            phi: a I array  """
+        clib = ctypes.cdll.LoadLibrary('./discrete1/data/cSourceSP.so')
+
+        edges = np.cumsum(np.insert(np.ones((self.I))*1/self.delta,0,0))
+        SA_plus = Source.surface_area(edges[1:]).astype('float64')       # Positive surface area
+        SAp_ptr = ctypes.c_void_p(SA_plus.ctypes.data)
+
+        SA_minus = Source.surface_area(edges[:self.I]).astype('float64') # Negative surface area
+        SAm_ptr = ctypes.c_void_p(SA_minus.ctypes.data)
+
+        V = Source.volume(edges[1:],edges[:self.I])                      # Volume and total
+        v_total = (V * total_).astype('float64')
+        v_ptr = ctypes.c_void_p(v_total.ctypes.data)
+
+        phi_old = guess.copy()
+        psi_centers = np.zeros((self.N),dtype='float64')
+
+        tol=1e-12; MAX_ITS=100
+        converged = 0; count = 1; 
+        while not (converged):
+            angular = np.zeros((self.I),dtype='float64')
+            an_ptr = ctypes.c_void_p(angular.ctypes.data)
+
+            phi = np.zeros((self.I),dtype='float64')
+            # psi_nhalf = (Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
+            for n in range(self.N):
+                if n == 0:
+                    alpha_minus = ctypes.c_double(0.)
+                    psi_nhalf = (Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
+                if n == self.N - 1:
+                    alpha_plus = ctypes.c_double(0.)
+                else:
+                    alpha_plus = ctypes.c_double(alpha_minus - self.mu[n] * self.w[n])
+
+                # psi_ihalf = ctypes.c_double(min(0.,psi_centers[N-n-1],key=abs))
+                if self.mu[n] > 0:
+                    psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
+                elif self.mu[n] < 0:
+                    psi_ihalf = ctypes.c_double(boundary)
+
+                Q = (V * (source_ + scatter_ * phi_old)).astype('float64')
+                q_ptr = ctypes.c_void_p(Q.ctypes.data)
+
+                psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
+                phi_ptr = ctypes.c_void_p(phi.ctypes.data)
+
+                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf)
+                # Update angular center corrections
+                psi_centers[n] = angular[0]
+                # Update angular difference coefficients
+                alpha_minus = alpha_plus
+                
+            change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            converged = (change < tol) or (count >= MAX_ITS) 
+            count += 1
+            phi_old = phi.copy()
+
+        return phi
+
+    def sphere_time(self,total_,scatter_,source_,boundary,guess,psi_last,speed):
+        """ Arguments:
+            total_: I x 1 vector of the total cross section for each spatial cell
+            scatter_: I x L+1 array for the scattering of the spatial cell by moment
+            source_: I array for the external sources
+            guess: Initial guess of the scalar flux for a specific energy group (I x L+1)
+        Returns:
+            phi: a I array  """
+        clib = ctypes.cdll.LoadLibrary('./discrete1/data/cSourceSP.so')
+
+        edges = np.cumsum(np.insert(np.ones((self.I))*1/self.delta,0,0))
+        SA_plus = Source.surface_area(edges[1:]).astype('float64')       # Positive surface area
+        SAp_ptr = ctypes.c_void_p(SA_plus.ctypes.data)
+
+        SA_minus = Source.surface_area(edges[:self.I]).astype('float64') # Negative surface area
+        SAm_ptr = ctypes.c_void_p(SA_minus.ctypes.data)
+
+        V = Source.volume(edges[1:],edges[:self.I])                      # Volume and total
+        v_total = (V * total_ + speed).astype('float64')
+        v_ptr = ctypes.c_void_p(v_total.ctypes.data)
+
+        phi_old = guess.copy()
+        psi_next = np.zeros(psi_last.shape,dtype='float64')
+        psi_centers = np.zeros((self.N),dtype='float64')
+
+        tol=1e-12; MAX_ITS=100
+        converged = 0; count = 1; 
+        while not (converged):
+            angular = np.zeros((self.I),dtype='float64')
+            an_ptr = ctypes.c_void_p(angular.ctypes.data)
+
+            phi = np.zeros((self.I),dtype='float64')
+            # psi_nhalf = (Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
+            for n in range(self.N):
+                if n == 0:
+                    alpha_minus = ctypes.c_double(0.)
+                    psi_nhalf = (Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
+                if n == self.N - 1:
+                    alpha_plus = ctypes.c_double(0.)
+                else:
+                    alpha_plus = ctypes.c_double(alpha_minus - self.mu[n] * self.w[n])
+
+                # psi_ihalf = ctypes.c_double(min(0.,psi_centers[N-n-1],key=abs))
+                if self.mu[n] > 0:
+                    psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
+                elif self.mu[n] < 0:
+                    psi_ihalf = ctypes.c_double(boundary)
+
+                Q = (V * (source_ + scatter_ * phi_old + psi_last[:,n] * speed)).astype('float64')
+                q_ptr = ctypes.c_void_p(Q.ctypes.data)
+
+                psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
+                phi_ptr = ctypes.c_void_p(phi.ctypes.data)
+
+                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf)
+                # Update angular center corrections
+                psi_centers[n] = angular[0]
+                psi_next[:,n] = angular.copy()
+                # Update angular difference coefficients
+                alpha_minus = alpha_plus
+                
+            change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            converged = (change < tol) or (count >= MAX_ITS) 
+            count += 1
+            phi_old = phi.copy()
+
+        return phi,psi_next
+
+    def slab_time(self,total_,scatter_,source_,boundary,guess,psi_last,speed):
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cSource.so')
         sweep = clibrary.time_vacuum
 
@@ -188,8 +327,10 @@ class Source:
             phi: scalar flux, numpy array of size (I x G) """
 
         phi_old = np.zeros((self.I,self.G))
+        geo = getattr(Source,self.geometry)  # Get the specific sweep
 
         if self.T:
+            geo = getattr(Source,'{}_time'.format(self.geometry))  # Get the specific sweep
             psi_last = kwargs['psi_last'].copy()
             psi_next = np.zeros(psi_last.shape)
             phi_old = kwargs['guess'].copy()
@@ -201,15 +342,12 @@ class Source:
 
             for g in range(self.G):
                 q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
-                # q_tilde = self.source[:,g] + Source.update_q(scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
                     q_tilde += Source.update_q(self.scatter,phi_old,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
-                    # q_tilde += Source.update_q(scatter,phi_old,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
                 if self.T:
-                    phi[:,g],psi_next[:,:,g] = Source.time_one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],phi_old[:,g],psi_last[:,:,g],self.speed[g])
+                    phi[:,g],psi_next[:,:,g] = geo(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],phi_old[:,g],psi_last[:,:,g],self.speed[g])
                 else:
-                    phi[:,g] = Source.one_group(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],phi_old[:,g])
-                    # phi[:,g] = Source.one_group(self,total[:,g],scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
+                    phi[:,g] = geo(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],phi_old[:,g])
 
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
@@ -249,6 +387,16 @@ class Source:
                     self.lhs *= 0.5
 
         return phi,time_phi
+
+    def surface_area(rho):
+        return 4 * np.pi * rho**2
+
+    def volume(plus,minus):
+        return 4 * np.pi / 3 * (plus**3 - minus**3)
+
+    def half_angle(psi_plus,total,delta,source):
+        """ This is for finding the half angle (N = 1/2) at cell i """
+        return (2 * psi_plus + delta * source ) / (2 + total * delta)
 
     # def tracking_data(self,flux,sources=None):
     #     from discrete1.util import sn

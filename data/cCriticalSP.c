@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#define LENGTH 1000
-#define N 16
+// #define LENGTH 1000
+// #define N 64
 
 
 

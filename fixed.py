@@ -14,7 +14,7 @@ group87 = ['stainless infinite','stainless','uranium infinite', 'uranium stainle
 
 class FixedSource:
     # Keyword Arguments allowed currently
-    __allowed = ("T","dt","boundary","enrich","hybrid","edges")
+    __allowed = ("T","dt","boundary","enrich","hybrid","edges","geometry")
 
     def __init__(self,ptype,G,N,**kwargs):
         """ Deals with picking the correct variables needed for the function
@@ -39,7 +39,7 @@ class FixedSource:
         self.N = N
         # kwargs
         self.T = None; self.dt = None; # self.v = None
-        self.boundary = 'vacuum'; self.enrich = None; self.hybrid = None; self.edges = None
+        self.boundary = 'vacuum'; self.enrich = None; self.hybrid = None; self.edges = None; 
         for key, value in kwargs.items():
             assert (key in self.__class__.__allowed), "Attribute not allowed, available: T, dt, boundary, enrich, hybrid, edges" 
             setattr(self, key, value)
@@ -102,7 +102,7 @@ class FixedSource:
 
 class Reeds:
     
-    def steady(G,N,boundary='vacuum'):
+    def steady(G,N,boundary='vacuum',edges=None):
         
         L = 0; R = 16.; I = 1000
         mu,w = np.polynomial.legendre.leggauss(N)
