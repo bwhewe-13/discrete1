@@ -29,7 +29,7 @@ class Critical:
             boundary: str (default reflected), determine RHS of problem
                 options: 'vacuum', 'reflected'
             track: bool (default False), if track flux change with iteration
-            geometry: str (default slab), determines coordinates of sweep ('slab' or 'spherical')
+            geometry: str (default slab), determines coordinates of sweep ('slab' or 'sphere')
         """ 
         # Attributes
         self.G = G; self.N = N
@@ -166,7 +166,7 @@ class Critical:
 
         return phi
 
-    def spherical(self,total_,scatter_,source_,guess,tol=1e-12,MAX_ITS=100):
+    def sphere(self,total_,scatter_,source_,guess,tol=1e-12,MAX_ITS=100):
         """ Arguments:
             total_: I x 1 vector of the total cross section for each spatial cell
             scatter_: I x L+1 array for the scattering of the spatial cell by moment
@@ -224,7 +224,7 @@ class Critical:
     def update_q(self,phi,start,stop,g):
         return np.sum(self.scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
 
-    def multi_group(self,source,guess,tol=1e-08,MAX_ITS=100):
+    def multi_group(self,source,guess,tol=1e-12,MAX_ITS=100):
         phi_old = guess.copy()
 
         geo = getattr(Critical,self.geometry)  # Get the specific sweep
@@ -253,7 +253,7 @@ class Critical:
             phi_old = phi.copy()
         return phi
             
-    def transport(self,models=None,tol=1e-12,MAX_ITS=100):
+    def transport(self,models=None,tol=1e-16,MAX_ITS=100):
 
         self.models = models
         # if self.saving != '0': # Running from random
@@ -314,10 +314,7 @@ class Critical:
 
     def half_angle(psi_plus,total,delta,source):
         """ This is for finding the half angle (N = 1/2) at cell i """
-        psi_half = (2 * psi_plus + delta * source ) / (2 + total * delta)
-        # psi_half /= (2 + total * delta)
-        
-        return psi_half
+        return (2 * psi_plus + delta * source ) / (2 + total * delta)
 
 
     # def tracking_data(self,flux,sources=None):

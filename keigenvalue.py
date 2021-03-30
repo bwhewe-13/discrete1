@@ -5,26 +5,9 @@ from .generate import XSGenerate087, XSGenerate618
 import numpy as np
 import pkg_resources
 import json
+import os
 
 DATA_PATH = pkg_resources.resource_filename('discrete1','data/')
-
-# class KEigenvalue:
-
-#     def __init__(self,problem,enrich,orient='orig'):
-#         self.problem = problem
-#         self.enrich = enrich
-#         self.orient = orient
-
-#     @classmethod
-#     def initialize(cls,problem,enrich,orient='orig'):
-#         setup = cls(problem,enrich,orient)
-#         dj_vars = {}
-#         keys = 
-#         if problem in ['hdpe','ss440']:
-#             ss_vars = Problem1.steady(problem,enrich,orient)
-#         elif problem in ['pu']:
-#             ss_vars = Problem2.steady('hdpe',enrich,orient)
-
 
 class Problem1:
     # 87 Group problem
@@ -150,6 +133,14 @@ class Tools:
             initial += dist
 
         return np.array(labels),splits
+
+    def recompile(I):
+        # Recompile cCritical
+        command = 'gcc -fPIC -shared -o {}cCritical.so {}cCritical.c -DLENGTH={}'.format(DATA_PATH,DATA_PATH,I,N)
+        os.system(command)
+        # Recompile cCriticalSP
+        command = 'gcc -fPIC -shared -o {}cCriticalSP.so {}cCriticalSP.c -DLENGTH={}'.format(DATA_PATH,DATA_PATH,I,N)
+        os.system(command)
 
 
 class _Constants:
