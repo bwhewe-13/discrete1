@@ -161,7 +161,6 @@ class Reeds:
             delta_c = [sum(delta_u[ii]) for ii in splits]
             return delta_c, splits
 
-
 class StainlessInfinite:
 
     def steady(G,N,boundary='vacuum'):
@@ -241,6 +240,7 @@ class Stainless:
         energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
         g = np.argmin(abs(energy_grid-14.1E6))
         source = np.zeros((len(energy_grid)-1))
+        # source[g] = 1
         lhs = np.zeros((len(energy_grid)-1))
         lhs[g] = 1 # all spatial cells in this group
 
@@ -254,6 +254,7 @@ class Stainless:
         fission_ = np.tile(fission,(I,1,1))
         total_ = np.tile(total,(I,1))
         source_ = np.tile(source,(I,1))
+        # source_[:800] *= 0.0
 
         # source_[1:] *= 0 # Entering from LHS        
         Tools.recompile(I)
@@ -339,6 +340,66 @@ class UraniumStainless:
     def steady(G,N,boundary='vacuum',enrich=0.2,edges=None):
         shape = [4,2,4]
         materials = ['ss440',['u',enrich],'ss440']
+
+        reduced = False
+        if G != 87:
+            reduced = True
+
+        L = 0; R = sum(shape); I = 1000
+        mu,w = np.polynomial.legendre.leggauss(N)
+        w /= np.sum(w); 
+
+        delta = R/I
+
+        # Get list of xs for each material
+        xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(materials)
+        # Get sizes of each material
+        layers = [int(ii/delta) for ii in shape]
+
+        # Source term
+        energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
+        g = np.argmin(abs(energy_grid-14.1E6))
+        source = np.zeros((len(energy_grid)-1))
+        lhs = np.zeros((len(energy_grid)-1))
+        lhs[g] = 1 # all spatial cells in this group
+
+        if reduced:
+            xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,xs_total,xs_scatter,xs_fission,edges)
+            source = Tools.source_reduction(87,G,source,edges)
+            lhs = Tools.source_reduction(87,G,lhs,edges)
+
+        # Propogate onto full space 
+        total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
+
+        source_ = np.tile(source,(I,1))
+        # source_[1:] *= 0
+
+        Tools.recompile(I)
+
+        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta,lhs
+
+    def timed(G,T,dt):
+        grid = np.load(DATA_PATH + 'energyGrid.npy')
+        v = Tools.relative_speed(grid,G)
+        return T, dt, v
+
+    def hybrid(G,hy_g):
+        grid = np.load(DATA_PATH + 'energyGrid.npy')
+        if hy_g == G:
+            delta_u = np.diff(grid)
+            return delta_u, None
+        # Will return uncollided delta_e
+        elif hy_g > G:
+            splits = Tools.energy_distribution(hy_g,G)
+            delta_u = np.diff(grid)
+            delta_c = [sum(delta_u[ii]) for ii in splits]
+            return delta_c, splits
+
+class StainlessUranium:
+
+    def steady(G,N,boundary='vacuum',enrich=0.2,edges=None):
+        shape = [4,2,4]
+        materials = [['u',enrich],['u',0],'ss440']
 
         reduced = False
         if G != 87:
@@ -622,6 +683,12 @@ class Tools:
         os.system(command)
         # Recompile cHybrid
         command = 'gcc -fPIC -shared -o {}cHybrid.so {}cHybrid.c -DLENGTH={}'.format(DATA_PATH,DATA_PATH,I)
+        os.system(command)
+
+        command = 'gcc -fPIC -shared -o {}cSourceSP.so {}cSourceSP.c -DLENGTH={}'.format(DATA_PATH,DATA_PATH,I)
+        os.system(command)
+
+        command = 'gcc -fPIC -shared -o {}cHybridSP.so {}cHybridSP.c -DLENGTH={}'.format(DATA_PATH,DATA_PATH,I)
         os.system(command)
 
     def populate_xs_list(materials):

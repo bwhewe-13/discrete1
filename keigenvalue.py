@@ -134,12 +134,12 @@ class Tools:
 
         return np.array(labels),splits
 
-    def recompile(I):
+    def recompile(I,N):
         # Recompile cCritical
         command = 'gcc -fPIC -shared -o {}cCritical.so {}cCritical.c -DLENGTH={}'.format(DATA_PATH,DATA_PATH,I,N)
         os.system(command)
         # Recompile cCriticalSP
-        command = 'gcc -fPIC -shared -o {}cCriticalSP.so {}cCriticalSP.c -DLENGTH={}'.format(DATA_PATH,DATA_PATH,I,N)
+        command = 'gcc -fPIC -shared -o {}cCriticalSP.so {}cCriticalSP.c -DLENGTH={} -DN={}'.format(DATA_PATH,DATA_PATH,I,N)
         os.system(command)
 
 

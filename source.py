@@ -249,7 +249,7 @@ class Source:
                 elif self.mu[n] < 0:
                     psi_ihalf = ctypes.c_double(boundary)
 
-                Q = (V * (source_ + scatter_ * phi_old + psi_last[:,n] * speed)).astype('float64')
+                Q = (V * (source_ + scatter_ * phi_old) + psi_last[:,n] * speed).astype('float64') #+ psi_last[:,n] * speed
                 q_ptr = ctypes.c_void_p(Q.ctypes.data)
 
                 psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
@@ -380,7 +380,7 @@ class Source:
             time_phi.append(phi)
             phi_old = phi.copy()
 
-            if self.problem in ['Stainless','UraniumStainless']: # and t > 2:
+            if self.problem in ['Stainless','UraniumStainless','StainlessUranium']: # and t > 2:
                 if t < int(0.2*steps):
                     self.lhs *= 1
                 elif t % int(0.1*steps) == 0:
