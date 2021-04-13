@@ -40,10 +40,17 @@ class Hybrid:
             prob.geometry = kwargs['geometry']
         else:
             prob.geometry = 'slab'
+        if 'td' in kwargs:
+            prob.td = kwargs['td']
+            if prob.td == 'BE':
+                return prob.backward_euler()
+            elif prob.td == 'BDF2':
+                return prob.bdf2()
 
-        return prob.time_steps()
 
-    def time_steps(self):
+        return prob.backward_euler()
+
+    def backward_euler(self):
 
         if self.enrich:
             un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
@@ -101,8 +108,72 @@ class Hybrid:
 
         return phi,time_phi
 
+    def bdf2(self):
+
+        if self.enrich:
+            un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
+            uncollided = Uncollided(*un_attr,td='BDF2')
+            col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
+            collided = Collided(*col_attr,td='BDF2')
+        else:
+            un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,edges=self.edges)
+            uncollided = Uncollided(*un_attr,td='BDF2')
+            col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,edges=self.edges)
+            collided = Collided(*col_attr,td='BDF2')
+            
+        time_phi = []
+        speed_u = 1/(un_keys['v']*un_keys['dt']); speed_c = 1/(col_keys['v']*col_keys['dt'])
+        phi_c = np.zeros((collided.I,collided.G))
+
+        print('Initial Source ',np.sum(uncollided.lhs))
+        steps = int(un_keys['T']/un_keys['dt'])
+
+        # Initialize psi to zero
+        psi_n0 = np.zeros((uncollided.I,uncollided.N,uncollided.G))
+        psi_n1 = psi_n0.copy()
+        for t in range(int(un_keys['T']/un_keys['dt'])): 
+            psi_last = 2 * psi_n1 - 0.5 * psi_n0
+            # Step 1: Solve Uncollided Equation
+            phi_u,_ = uncollided.multi_group(psi_last,speed_u,self.geometry)
+            # Step 2: Compute Source for Collided
+            source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u) 
+            # Resizing
+            if self.Gu != self.Gc:
+                source_c = Tools.big_2_small(source_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits'])
+            # Step 3: Solve Collided Equation
+            phi_c = collided.multi_group(speed_c,source_c,phi_c,self.geometry)
+            # Resize phi_c
+            if self.Gu != self.Gc:
+                # phi = Tools.small_2_big(phi_c,self.delta_u,self.delta_c,self.splits) + phi_u
+                phi = Tools.small_2_big(phi_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits']) + phi_u
+            else:
+                phi = phi_c + phi_u
+            # Step 4: Calculate next time step
+            source = np.einsum('ijk,ik->ij',uncollided.scatter,phi) + uncollided.source + np.einsum('ijk,ik->ij',uncollided.fission,phi)
+            phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source)
+            # Step 5: Update and repeat
+            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            
+            if self.ptype in ['Stainless','UraniumStainless','StainlessUranium']: # and t == 0: # kill source after first time step
+                if t < int(0.2*steps):
+                    uncollided.lhs *= 1
+                    
+                elif t % int(0.1*steps) == 0:
+                    # t >= int(0.2*steps) and 
+                    print('Reduction by 1/2')
+                    uncollided.lhs *= 0.5
+                    print('Source ',np.sum(uncollided.lhs))
+
+            # psi_last = psi_next.copy(); 
+            time_phi.append(phi)
+
+            psi_n0 = psi_n1.copy()
+            psi_n1 = psi_next.copy()
+
+        return phi,time_phi
+
 class Uncollided:
-    def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,lhs):
+    def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,lhs,td='BE'):
         self.G = G; self.N = N; 
         self.mu = mu; self.w = w
         self.total = total
@@ -112,6 +183,7 @@ class Uncollided:
         self.I = I
         self.delta = 1/delta
         self.lhs = lhs
+        self.td = td
 
     def slab(self,psi_last,speed,total_,source_,boundary):
         """ Step 1 of Hybrid
@@ -141,10 +213,16 @@ class Uncollided:
             rhs = (source_ + psi_last[:,n] * speed).astype('float64')
             rhs_ptr = ctypes.c_void_p(rhs.ctypes.data)
 
-            top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
-            top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
+            if self.td == 'BE':
+                top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
+                bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64')
+            elif self.td == 'BDF2':
+                top_mult = (weight - 0.5 * total_ - 0.75 * speed).astype('float64')
+                bottom_mult = (1/(weight + 0.5 * total_ + 0.75 * speed)).astype('float64')
 
-            bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64')
+            # top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
+            # bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64')
+            top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
             bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
 
             phi_ptr = ctypes.c_void_p(phi.ctypes.data)
@@ -166,7 +244,10 @@ class Uncollided:
         SAm_ptr = ctypes.c_void_p(SA_minus.ctypes.data)
 
         V = Tools.volume(edges[1:],edges[:self.I])                      # Volume and total
-        v_total = (V * total_ + speed).astype('float64')
+        if self.td == 'BE':
+            v_total = (V * total_ + speed).astype('float64')
+        elif self.td == 'BDF2':
+            v_total = (V * total_ + 1.5 * speed).astype('float64')
         v_ptr = ctypes.c_void_p(v_total.ctypes.data)
 
         psi_next = np.zeros(psi_last.shape,dtype='float64')
@@ -237,7 +318,7 @@ class Uncollided:
 
 
 class Collided:
-    def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,boundary):
+    def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,boundary,td='BE'):
         self.G = G; self.N = N; 
         self.mu = mu; self.w = w
         self.total = total
@@ -247,7 +328,7 @@ class Collided:
         self.I = I
         self.delta = 1/delta
         # self.boundary = boundary
-
+        self.td = td
 
     def slab(self,speed,total_,scatter_,source_,guess_):
 
@@ -268,10 +349,15 @@ class Collided:
                 direction = ctypes.c_int(int(np.sign(self.mu[n])))
                 weight = np.sign(self.mu[n]) * self.mu[n] * self.delta
 
-                top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
+                if self.td == 'BE':
+                    top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
+                    bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64')
+                elif self.td == 'BDF2':
+                    top_mult = (weight - 0.5 * total_ - 0.75 * speed).astype('float64')
+                    bottom_mult = (1/(weight + 0.5 * total_ + 0.75 * speed)).astype('float64')
+                # top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
+                # bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64') 
                 top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
-
-                bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64') 
                 bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
 
                 temp_scat = (scatter_ * phi_old).astype('float64')
@@ -300,7 +386,10 @@ class Collided:
         SAm_ptr = ctypes.c_void_p(SA_minus.ctypes.data)
 
         V = Tools.volume(edges[1:],edges[:self.I])                      # Volume and total
-        v_total = (V * total_ + speed).astype('float64')
+        if self.td == 'BE':
+            v_total = (V * total_ + speed).astype('float64')
+        elif self.td == 'BDF2':
+            v_total = (V * total_ + 1.5 * speed).astype('float64')
         v_ptr = ctypes.c_void_p(v_total.ctypes.data)
 
         phi_old = guess_.copy()
