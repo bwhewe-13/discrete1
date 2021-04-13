@@ -14,7 +14,7 @@ group87 = ['stainless infinite','stainless','uranium infinite', 'uranium stainle
 
 class FixedSource:
     # Keyword Arguments allowed currently
-    __allowed = ("T","dt","boundary","enrich","hybrid","edges","geometry")
+    __allowed = ("T","dt","boundary","enrich","hybrid","edges","geometry","td")
 
     def __init__(self,ptype,G,N,**kwargs):
         """ Deals with picking the correct variables needed for the function
@@ -39,9 +39,11 @@ class FixedSource:
         self.N = N
         # kwargs
         self.T = None; self.dt = None; # self.v = None
-        self.boundary = 'vacuum'; self.enrich = None; self.hybrid = None; self.edges = None; 
+        self.boundary = 'vacuum'; self.enrich = None; self.hybrid = None; 
+        self.edges = None; 
         for key, value in kwargs.items():
-            assert (key in self.__class__.__allowed), "Attribute not allowed, available: T, dt, boundary, enrich, hybrid, edges" 
+            assert (key in self.__class__.__allowed), "Attribute not allowed, available: T, dt, \
+            boundary, enrich, hybrid, edges" 
             setattr(self, key, value)
 
     @classmethod

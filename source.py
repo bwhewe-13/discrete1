@@ -9,7 +9,7 @@ import ctypes
 
 class Source:
     # Keyword Arguments allowed currently
-    __allowed = ("T","dt","v","boundary","geometry") # ,"hybrid","enrich","track")
+    __allowed = ("T","dt","v","boundary","geometry","td") # ,"hybrid","enrich","track")
 
     def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,lhs,**kwargs): 
         """ Deals with Source multigroup problems (time dependent, steady state,
@@ -35,6 +35,7 @@ class Source:
             enrich: enrichment percentage of U235 in uranium problems, float
             track: bool (default False), if track flux change with iteration
             geometry: str (default slab), determines coordinates of sweep ('slab' or 'sphere')
+            td (Time Discretization): str (default BE), which time discretization to use
         """ 
         # Attributes
         self.G = G; self.N = N
@@ -49,7 +50,7 @@ class Source:
         # kwargs
         self.T = None; self.dt = None; self.v = None
         self.boundary = 'vacuum'; self.problem = None
-        self.geometry = 'slab'
+        self.geometry = 'slab'; self.td = 'BE'
         #self.enrich = None; self.time = False
         for key, value in kwargs.items():
             assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, time, geometry" 
@@ -57,27 +58,34 @@ class Source:
 
     @classmethod
     def run(cls,ptype,G,N,**kwargs):
-        # Default is vacuum
-        boundary = 'vacuum'
-        if 'boundary' in kwargs:
-            boundary = kwargs['boundary']
-        if 'geometry' in kwargs:
-            geometry = kwargs['geometry']
-        # Currently cannot use reflected boundary with TD problems
-        if 'T' in kwargs and boundary == 'reflected':
-            print('Using Vacuum Boundaries, cannot use Time Dependency with Reflected Conditions')
-            boundary = 'vacuum'
 
         attributes,keywords = FixedSource.initialize(ptype,G,N,**kwargs)
 
         problem = cls(*attributes,**keywords)
-
-        problem.boundary = boundary
         problem.problem = ptype
-        problem.geometry = geometry
+
+        if 'boundary' in kwargs:
+            boundary = kwargs['boundary']
+            # Currently cannot use reflected boundary with TD problems
+            if 'T' in kwargs and boundary == 'reflected':
+                print('Using Vacuum Boundaries, cannot use Time Dependency \
+                    with Reflected Conditions')
+                boundary = 'vacuum'
+            problem.boundary = boundary
+
+        if 'geometry' in kwargs:
+            geometry = kwargs['geometry']
+            problem.geometry = geometry
         
-        if 'T' in kwargs:
-            return problem.time_steps()
+        if 'T' in kwargs and 'td' not in kwargs:
+            kwargs['td'] = 'BE'
+
+        if 'td' in kwargs:
+            problem.td = kwargs['td']
+            if problem.td == 'BE':
+                return problem.backward_euler()
+            elif problem.td == 'BDF2':
+                return problem.bdf2()
 
         return problem.multi_group()
 
@@ -219,7 +227,11 @@ class Source:
         SAm_ptr = ctypes.c_void_p(SA_minus.ctypes.data)
 
         V = Source.volume(edges[1:],edges[:self.I])                      # Volume and total
-        v_total = (V * total_ + speed).astype('float64')
+        if self.td == 'BE':
+            v_total = (V * total_ + speed).astype('float64')
+        elif self.td == 'BDF2':
+            v_total = (V * total_ + 1.5 * speed).astype('float64')
+
         v_ptr = ctypes.c_void_p(v_total.ctypes.data)
 
         phi_old = guess.copy()
@@ -294,10 +306,14 @@ class Source:
                 rhs = (source_ + psi_last[:,n] * speed).astype('float64')
                 rhs_ptr = ctypes.c_void_p(rhs.ctypes.data)
 
-                top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
-                top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
+                if self.td == 'BE':
+                    top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
+                    bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64')
+                elif self.td == 'BDF2':
+                    top_mult = (weight - 0.5 * total_ - 0.75 * speed).astype('float64')
+                    bottom_mult = (1/(weight + 0.5 * total_ + 0.75 * speed)).astype('float64')
 
-                bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64')
+                top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
                 bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
 
                 temp_scat = (scatter_ * phi_old).astype('float64')
@@ -363,7 +379,7 @@ class Source:
             return phi,psi_next
         return phi
 
-    def time_steps(self):
+    def backward_euler(self):
         phi_old = np.zeros((self.I,self.G))
         psi_last = np.zeros((self.I,self.N,self.G))
 
@@ -379,6 +395,35 @@ class Source:
             psi_last = psi_next.copy()
             time_phi.append(phi)
             phi_old = phi.copy()
+
+            if self.problem in ['Stainless','UraniumStainless','StainlessUranium']: # and t > 2:
+                if t < int(0.2*steps):
+                    self.lhs *= 1
+                elif t % int(0.1*steps) == 0:
+                    self.lhs *= 0.5
+
+        return phi,time_phi
+
+    def bdf2(self):
+        phi_old = np.zeros((self.I,self.G))
+        self.speed = 1/(self.v*self.dt); time_phi = []
+
+        psi_n0 = np.zeros((self.I,self.N,self.G))
+        psi_n1 = psi_n0.copy()
+
+        steps = int(self.T/self.dt)
+        for t in range(int(self.T/self.dt)):
+            # Solve at initial time step
+            psi_last = 2 * psi_n1 - 0.5 * psi_n0
+            phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
+
+            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            # Update angular flux
+            time_phi.append(phi)
+            phi_old = phi.copy()
+
+            psi_n0 = psi_n1.copy()
+            psi_n1 = psi_next.copy()
 
             if self.problem in ['Stainless','UraniumStainless','StainlessUranium']: # and t > 2:
                 if t < int(0.2*steps):
