@@ -85,7 +85,7 @@ class Hybrid:
             source = np.einsum('ijk,ik->ij',uncollided.scatter,phi) + uncollided.source + np.einsum('ijk,ik->ij',uncollided.fission,phi)
             phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source)
             # Step 5: Update and repeat
-            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            #print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             
             if self.ptype in ['Stainless','UraniumStainless','StainlessUranium']: # and t == 0: # kill source after first time step
                 if t < int(0.2*steps):

@@ -374,7 +374,7 @@ class Source:
             # Solve at initial time step
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
 
-            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            #print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Update angular flux
             psi_last = psi_next.copy()
             time_phi.append(phi)
