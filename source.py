@@ -385,8 +385,8 @@ class Source:
 
         self.speed = 1/(self.v*self.dt); time_phi = []
 
-        steps = int(self.T/self.dt)
-        for t in range(int(self.T/self.dt)):
+        steps = int(np.ceil(self.T/self.dt))
+        for t in range(steps):
             # Solve at initial time step
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
 
@@ -411,8 +411,8 @@ class Source:
         psi_n0 = np.zeros((self.I,self.N,self.G))
         psi_n1 = psi_n0.copy()
 
-        steps = int(self.T/self.dt)
-        for t in range(int(self.T/self.dt)):
+        steps = int(np.ceil(self.T/self.dt))
+        for t in range(steps):
             # Solve at initial time step
             psi_last = 2 * psi_n1 - 0.5 * psi_n0
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)

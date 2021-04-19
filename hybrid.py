@@ -68,11 +68,11 @@ class Hybrid:
         phi_c = np.zeros((collided.I,collided.G))
 
         print('Initial Source ',np.sum(uncollided.lhs))
-        steps = int(un_keys['T']/un_keys['dt'])
+        steps = int(np.ceil(un_keys['T']/un_keys['dt']))
 
         # Initialize psi to zero
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
-        for t in range(int(un_keys['T']/un_keys['dt'])): 
+        for t in range(steps): 
             # Step 1: Solve Uncollided Equation
             phi_u,_ = uncollided.multi_group(psi_last,speed_u,self.geometry)
             # Step 2: Compute Source for Collided
