@@ -131,7 +131,7 @@ class Hybrid:
         # Initialize psi to zero
         psi_n0 = np.zeros((uncollided.I,uncollided.N,uncollided.G))
         psi_n1 = psi_n0.copy()
-
+        
         for t in range(steps): 
             psi_last = 2 * psi_n1 - 0.5 * psi_n0
             # Step 1: Solve Uncollided Equation

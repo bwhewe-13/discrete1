@@ -368,8 +368,8 @@ class Source:
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.5
-            if not self.T:
-                print('Count',count,'Change',change,'\n===================================')
+            # if self.T:
+            #     print('Count',count,'Change',change,'\n===================================')
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
 
@@ -390,7 +390,7 @@ class Source:
             # Solve at initial time step
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
 
-            #print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Update angular flux
             psi_last = psi_next.copy()
             time_phi.append(phi)
@@ -429,7 +429,9 @@ class Source:
                 if t < int(0.2*steps):
                     self.lhs *= 1
                 elif t % int(0.1*steps) == 0:
+                    print('Reduction by 1/2')
                     self.lhs *= 0.5
+                    print('Source ',np.sum(self.lhs))
 
         return phi,time_phi
 
