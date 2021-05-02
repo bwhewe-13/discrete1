@@ -153,7 +153,7 @@ class Hybrid:
             source = np.einsum('ijk,ik->ij',uncollided.scatter,phi) + uncollided.source + np.einsum('ijk,ik->ij',uncollided.fission,phi)
             phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source)
             # Step 5: Update and repeat
-            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            # print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             
             if self.ptype in ['Stainless','UraniumStainless','StainlessUranium']: # and t == 0: # kill source after first time step
                 if t < int(0.2*steps):
@@ -254,14 +254,19 @@ class Uncollided:
         psi_next = np.zeros(psi_last.shape,dtype='float64')
         psi_centers = np.zeros((self.N),dtype='float64')
 
+        mu_minus = -1
+
         angular = np.zeros((self.I),dtype='float64')
         an_ptr = ctypes.c_void_p(angular.ctypes.data)
 
         phi = np.zeros((self.I),dtype='float64')
         for n in range(self.N):
+            mu_plus = mu_minus + 2 * self.w[n]
+            tau = (self.mu[n] - mu_minus) / (mu_plus - mu_minus)
+
             if n == 0:
                 alpha_minus = ctypes.c_double(0.)
-                psi_nhalf = (Tools.half_angle(0,total_,1/self.delta, source_)).astype('float64')
+                psi_nhalf = (Tools.half_angle(boundary,total_,1/self.delta, source_)).astype('float64')
             if n == self.N - 1:
                 alpha_plus = ctypes.c_double(0.)
             else:
@@ -269,7 +274,8 @@ class Uncollided:
 
             # psi_ihalf = ctypes.c_double(min(0.,psi_centers[N-n-1],key=abs))
             if self.mu[n] > 0:
-                psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
+                # psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
+                psi_ihalf = ctypes.c_double(psi_nhalf[0])
             elif self.mu[n] < 0:
                 psi_ihalf = ctypes.c_double(boundary)
 
@@ -279,12 +285,13 @@ class Uncollided:
             psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
             phi_ptr = ctypes.c_void_p(phi.ctypes.data)
 
-            clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf)
+            clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf,ctypes.c_double(tau))
             # Update angular center corrections
             psi_centers[n] = angular[0]
             psi_next[:,n] = angular.copy()
             # Update angular difference coefficients
             alpha_minus = alpha_plus
+            mu_minus = mu_plus
                 
         return phi,psi_next
 
@@ -400,12 +407,16 @@ class Collided:
         tol=1e-12; MAX_ITS=100
         converged = 0; count = 1; 
         while not (converged):
+            mu_minus = -1
             angular = np.zeros((self.I),dtype='float64')
             an_ptr = ctypes.c_void_p(angular.ctypes.data)
 
             phi = np.zeros((self.I),dtype='float64')
             # psi_nhalf = (Tools.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
             for n in range(self.N):
+                mu_plus = mu_minus + 2 * self.w[n]
+                tau = (self.mu[n] - mu_minus) / (mu_plus - mu_minus)
+                
                 if n == 0:
                     alpha_minus = ctypes.c_double(0.)
                     psi_nhalf = (Tools.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
@@ -414,12 +425,11 @@ class Collided:
                 else:
                     alpha_plus = ctypes.c_double(alpha_minus - self.mu[n] * self.w[n])
 
-                # psi_ihalf = ctypes.c_double(min(0.,psi_centers[N-n-1],key=abs))
-                psi_ihalf = ctypes.c_double(0.)
-                # if self.mu[n] > 0:
-                #     psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
-                # elif self.mu[n] < 0:
-                #     psi_ihalf = ctypes.c_double(boundary)
+                if self.mu[n] > 0:
+                    # psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
+                    psi_ihalf = ctypes.c_double(psi_nhalf[0])
+                elif self.mu[n] < 0:
+                    psi_ihalf = ctypes.c_double(0.)
 
                 Q = (V * (source_ + scatter_ * phi_old)).astype('float64') #+ psi_last[:,n] * speed
                 q_ptr = ctypes.c_void_p(Q.ctypes.data)
@@ -427,11 +437,12 @@ class Collided:
                 psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
 
-                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf)
+                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf,ctypes.c_double(tau))
                 # Update angular center corrections
                 psi_centers[n] = angular[0]
                 # Update angular difference coefficients
                 alpha_minus = alpha_plus
+                mu_minus = mu_plus
                 
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
@@ -446,7 +457,6 @@ class Collided:
     def multi_group(self,speed,source,guess,geometry='slab'):
         
         assert(source.shape[1] == self.G), 'Wrong Number of Groups'
-
         phi_old = guess.copy()
 
         geo = getattr(Collided,geometry)  # Get the specific sweep
@@ -496,7 +506,6 @@ class Tools:
         mult_u = np.zeros(size)
         factor = delta_u.copy()
         
-
         for count,index in enumerate(splits):
             for ii in np.arange(index.indices(Gu)[0],index.indices(Gu)[1]):
                 mult_u[:,ii] = mult_c[:,count]
@@ -525,5 +534,10 @@ class Tools:
 
     def half_angle(psi_plus,total,delta,source):
         """ This is for finding the half angle (N = 1/2) at cell i """
-        return (2 * psi_plus + delta * source ) / (2 + total * delta)
+        # return (2 * psi_plus + delta * source ) / (2 + total * delta)
+        psi_nhalf = np.zeros((len(total)))
+        for ii in range(len(total)-1,-1,-1):
+            psi_nhalf[ii] = (2 * psi_plus + delta * source[ii] ) / (2 + total[ii] * delta)
+            psi_plus = 2 * psi_nhalf[ii] - psi_plus
+        return psi_nhalf
         

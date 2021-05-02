@@ -3,7 +3,7 @@
 // #define LENGTH 1000
 
 // Time Independent Problems
-void sweep(void *psif, void *flux, void *half, void *external, void *v_total, void *area_one, void *area_two, double w, double mu, double alpha_plus, double alpha_minus, double psi_ihalf){
+void sweep(void *psif, void *flux, void *half, void *external, void *v_total, void *area_one, void *area_two, double w, double mu, double alpha_plus, double alpha_minus, double psi_ihalf, double tau){
   // Scalar and angular flux
   double * angular = (double *) psif;
   double * phi = (double *) flux;
@@ -30,7 +30,14 @@ void sweep(void *psif, void *flux, void *half, void *external, void *v_total, vo
       phi[ii] += (w * psi);
       // Update spatial and angle bounds
       psi_ihalf = 2 * psi - psi_ihalf;
-      psi_nhalf[ii] = 2 * psi - psi_nhalf[ii];
+      // psi_nhalf[ii] = 2 * psi - psi_nhalf[ii];
+      if (ii != 0){
+        // Lewis and Miller Corrector
+        // psi_nhalf[ii] = 2 * psi - psi_nhalf[ii];
+
+        // Morel and Montry Corrector
+        psi_nhalf[ii] = 1/tau * (psi - (1 - tau) * psi_nhalf[ii]);        
+      }
     }
   }
 
@@ -47,8 +54,17 @@ void sweep(void *psif, void *flux, void *half, void *external, void *v_total, vo
       phi[ii] += (w * psi);
       // Update spatial and angle bounds
       psi_ihalf = 2 * psi - psi_ihalf;
-      psi_nhalf[ii] = 2 * psi - psi_nhalf[ii];
+      // psi_nhalf[ii] = 2 * psi - psi_nhalf[ii];
+      if (ii != 0){
+        // Lewis and Miller Corrector
+        // psi_nhalf[ii] = 2 * psi - psi_nhalf[ii];
+
+        // Morel and Montry Corrector
+        psi_nhalf[ii] = 1/tau * (psi - (1 - tau) * psi_nhalf[ii]);
+      }
     }
   }
 
 }
+
+

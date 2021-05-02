@@ -127,10 +127,10 @@ class Critical:
             phi: a I array  """
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cCritical.so')
         sweep = clibrary.reflected
-        if self.boundary == 'vacumm':
-            print('Reflected')
+        if self.boundary == 'vacuum':
+            print('Vacuum')
             sweep = clibrary.vacuum
-               
+        
         phi_old = guess.copy()
 
         source_ = source_.astype('float64')
@@ -196,7 +196,7 @@ class Critical:
         w_ptr = ctypes.c_void_p(w.ctypes.data)
 
         converged = 0; count = 1; 
-
+        # psi_nhalf = (Critical.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
         while not (converged):
             phi = np.zeros((self.I),dtype='float64')
             if self.atype in ['scatter','both']:
@@ -212,7 +212,7 @@ class Critical:
             phi_ptr = ctypes.c_void_p(phi.ctypes.data)
 
             sweep(phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,mu_ptr,w_ptr)
-                
+            
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
@@ -235,7 +235,6 @@ class Critical:
             if self.atype in ['scatter','both']:
                 phi_old[np.isnan(phi_old)] = 0
                 smult = Critical.sorting_scatter(self,phi_old,self.models)
-                # print('here',count,np.sum(phi_old))
                 for g in range(self.G):
                     phi[:,g] = geo(self,self.total[:,g],smult[:,g],source[:,g],phi_old[:,g])
             else:
@@ -288,7 +287,6 @@ class Critical:
         if self.saving == '0' or self.atype not in ['both','fission']: # No Reduction
             return np.einsum('ijk,ik->ij',self.fission,phi)
         elif self.saving in ['1','3']:                                 # DJINN / DJINN + Autoencoder
-            print('right path - sorting fission')
             # return np.einsum('ijk,ik->ij',self.fission,phi)
             return models.predict_fission(phi)
         elif self.saving in ['2']:                                     # Autoencoder Squeeze
@@ -314,7 +312,11 @@ class Critical:
 
     def half_angle(psi_plus,total,delta,source):
         """ This is for finding the half angle (N = 1/2) at cell i """
-        return (2 * psi_plus + delta * source ) / (2 + total * delta)
+        psi_nhalf = np.zeros((len(total)))
+        for ii in range(len(total)-1,-1,-1):            
+            psi_nhalf[ii] = (2 * psi_plus + delta * source[ii] ) / (2 + total[ii] * delta)
+            psi_plus = 2 * psi_nhalf[ii] - psi_plus
+        return psi_nhalf
 
 
     # def tracking_data(self,flux,sources=None):

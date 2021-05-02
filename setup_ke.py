@@ -103,6 +103,10 @@ class func:
         refl_scatter,refl_fission = func.djinn_load(model_name[1],dtype)
         return fuel_scatter,fuel_fission,refl_scatter,refl_fission
 
+    def update_q(scatter,phi,start,stop,g):
+        import numpy as np
+        return np.sum(scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
+
     def auto_load(model_name,dtype,number=''):
         from tensorflow import keras
         if len(number) > 1:

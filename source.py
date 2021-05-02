@@ -170,15 +170,23 @@ class Source:
         tol=1e-12; MAX_ITS=100
         converged = 0; count = 1; 
         while not (converged):
+            mu_minus = -1
+
             angular = np.zeros((self.I),dtype='float64')
             an_ptr = ctypes.c_void_p(angular.ctypes.data)
 
             phi = np.zeros((self.I),dtype='float64')
             # psi_nhalf = (Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
             for n in range(self.N):
+                mu_plus = mu_minus + 2 * self.w[n]
+                tau = (self.mu[n] - mu_minus) / (mu_plus - mu_minus)
+                # tau = 0
+
                 if n == 0:
                     alpha_minus = ctypes.c_double(0.)
                     psi_nhalf = (Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
+                    # psi_nhalf,inner = Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)
+                    # psi_nhalf = (psi_nhalf).astype('float64')
                 if n == self.N - 1:
                     alpha_plus = ctypes.c_double(0.)
                 else:
@@ -186,7 +194,9 @@ class Source:
 
                 # psi_ihalf = ctypes.c_double(min(0.,psi_centers[N-n-1],key=abs))
                 if self.mu[n] > 0:
-                    psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
+                    # psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
+                    psi_ihalf = ctypes.c_double(psi_nhalf[0])
+                    # psi_ihalf = ctypes.c_double(inner)
                 elif self.mu[n] < 0:
                     psi_ihalf = ctypes.c_double(boundary)
 
@@ -195,12 +205,17 @@ class Source:
 
                 psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
+                # before = psi_nhalf[0]
 
-                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf)
+                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf,ctypes.c_double(tau))
                 # Update angular center corrections
-                psi_centers[n] = angular[0]
+                # psi_centers[n] = angular[0]
+
+                # after = psi_nhalf[0]
+                # print('before {}\tafter {}'.format(before,after))
                 # Update angular difference coefficients
                 alpha_minus = alpha_plus
+                mu_minus = mu_plus
                 
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
@@ -241,15 +256,20 @@ class Source:
         tol=1e-12; MAX_ITS=100
         converged = 0; count = 1; 
         while not (converged):
+            mu_minus = -1
             angular = np.zeros((self.I),dtype='float64')
             an_ptr = ctypes.c_void_p(angular.ctypes.data)
 
             phi = np.zeros((self.I),dtype='float64')
             # psi_nhalf = (Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
             for n in range(self.N):
+
+                mu_plus = mu_minus + 2 * self.w[n]
+                tau = (self.mu[n] - mu_minus) / (mu_plus - mu_minus)
+
                 if n == 0:
                     alpha_minus = ctypes.c_double(0.)
-                    psi_nhalf = (Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
+                    psi_nhalf = (Source.half_angle(boundary,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
                 if n == self.N - 1:
                     alpha_plus = ctypes.c_double(0.)
                 else:
@@ -257,7 +277,8 @@ class Source:
 
                 # psi_ihalf = ctypes.c_double(min(0.,psi_centers[N-n-1],key=abs))
                 if self.mu[n] > 0:
-                    psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
+                    # psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
+                    psi_ihalf = ctypes.c_double(psi_nhalf[0])
                 elif self.mu[n] < 0:
                     psi_ihalf = ctypes.c_double(boundary)
 
@@ -267,12 +288,13 @@ class Source:
                 psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
 
-                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf)
+                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf,ctypes.c_double(tau))
                 # Update angular center corrections
                 psi_centers[n] = angular[0]
                 psi_next[:,n] = angular.copy()
                 # Update angular difference coefficients
                 alpha_minus = alpha_plus
+                mu_minus = mu_plus
                 
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
@@ -390,7 +412,7 @@ class Source:
             # Solve at initial time step
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
 
-            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            # print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Update angular flux
             psi_last = psi_next.copy()
             time_phi.append(phi)
@@ -412,12 +434,13 @@ class Source:
         psi_n1 = psi_n0.copy()
 
         steps = int(np.ceil(self.T/self.dt))
+        # steps = int((self.T/self.dt))
         for t in range(steps):
             # Solve at initial time step
             psi_last = 2 * psi_n1 - 0.5 * psi_n0
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
 
-            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            # print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Update angular flux
             time_phi.append(phi)
             phi_old = phi.copy()
@@ -443,7 +466,11 @@ class Source:
 
     def half_angle(psi_plus,total,delta,source):
         """ This is for finding the half angle (N = 1/2) at cell i """
-        return (2 * psi_plus + delta * source ) / (2 + total * delta)
+        psi_nhalf = np.zeros((len(total)))
+        for ii in range(len(total)-1,-1,-1):
+            psi_nhalf[ii] = (2 * psi_plus + delta * source[ii] ) / (2 + total[ii] * delta)
+            psi_plus = 2 * psi_nhalf[ii] - psi_plus
+        return psi_nhalf
 
     # def tracking_data(self,flux,sources=None):
     #     from discrete1.util import sn

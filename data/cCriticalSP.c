@@ -24,11 +24,22 @@ void vacuum(void *flux, void *half, void *external, void *v_total, void *area_on
   double psi, psi_ihalf;
   double alpha_plus;
 
-  double center[N] = {0};
+  // Lewis and Miller Corrector
+  double center[N] = {0.};
+
   double alpha_minus = 0.; // For first angle
+
+  // Morel and Montry Corrector
+  double mu_minus = -1.;
+  double mu_plus = 0.;
+  double tau = 0.;
 
   for(int n=0; n < N; n++){
 
+    // Morel and Montry Corrector
+    mu_plus = mu_minus + 2 * w[n];
+    tau = (mu[n] - mu_minus) / (mu_plus - mu_minus);
+    
     if (n == N - 1){
       alpha_plus = 0.;
     } 
@@ -47,41 +58,72 @@ void vacuum(void *flux, void *half, void *external, void *v_total, void *area_on
               (-2 * mu[n] * SA_minus[ii] + 2/w[n] * (SA_plus[ii] - SA_minus[ii]) * 
                   (alpha_plus) + total[ii]);
         
+        // Lewis and Miller Corrector
         if(ii == 0){
-          center[n] = psi;
+          // center[n] = psi;
+          center[n] = 2 * psi - psi_ihalf;
         }
+
         // Update flux
         phi[ii] = phi[ii] + (w[n] * psi);
-        // Update spatial and angle bounds
+        // Update spatial bounds
         psi_ihalf = 2 * psi - psi_ihalf;
-        psi_nhalf[ii] = 2 * psi - psi_nhalf[ii];
+
+        // Typical Angle Update 
+        // psi_nhalf[ii] = 2 * psi - psi_nhalf[ii];
+        
+        // Sphere Center Corrector
+        if (ii != 0){
+          // Lewis and Miller Corrector
+          // psi_nhalf[ii] = 2 * psi - psi_nhalf[ii];
+
+          // Morel and Montry Corrector
+          psi_nhalf[ii] = 1/tau * (psi - (1 - tau) * psi_nhalf[ii]);
+        }
 
       }
     }
 
     else if (mu[n] > 0){
 
-      psi_ihalf = center[N-n-1]; // Reflected at center
-      // psi_ihalf = 0;
+      // psi_ihalf = center[N-n-1]; // Reflected at center
+      psi_ihalf = psi_nhalf[0];      // Corrector from Lewis and Miller
 
       for(int ii=0; ii < LENGTH; ii++){
         psi = (mu[n] * (SA_plus[ii] + SA_minus[ii]) * psi_ihalf + 1/w[n] * (SA_plus[ii] - SA_minus[ii]) 
                * (alpha_plus + alpha_minus) * psi_nhalf[ii] +  source[ii]) / 
               (2 * mu[n] * SA_plus[ii] + 2/w[n] * (SA_plus[ii] - SA_minus[ii]) * 
                   (alpha_plus) + total[ii]);
-        // Update spatial cell at middle
+        
+        // Lewis and Miller Corrector
         if(ii == 0){
-          center[n] = psi;
+          // center[n] = psi;
+          center[n] = 2 * psi - psi_ihalf;
         }
+
         // Update flux
         phi[ii] = phi[ii] + (w[n] * psi);
-        // Update spatial and angle bounds
+        // Update spatial bounds
         psi_ihalf = 2 * psi - psi_ihalf;
-        psi_nhalf[ii] = 2 * psi - psi_nhalf[ii];
+        
+        // Typical Angle Update
+        // psi_nhalf[ii] = 2 * psi - psi_nhalf[ii];
+        
+        // Sphere Center Corrector
+        if (ii != 0){
+          // Lewis and Miller Corrector
+          // psi_nhalf[ii] = 2 * psi - psi_nhalf[ii];
+
+          // Morel and Montry Corrector
+          psi_nhalf[ii] = 1/tau * (psi - (1 - tau) * psi_nhalf[ii]);
+        }
+        
 
       }
     }
   alpha_minus = alpha_plus;
+  // Morel and Montry Corrector
+  mu_minus = mu_plus;
 
   }
 
