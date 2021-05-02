@@ -154,7 +154,6 @@ class Hybrid:
             phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source)
             # Step 5: Update and repeat
             # print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
-            
             if self.ptype in ['Stainless','UraniumStainless','StainlessUranium']: # and t == 0: # kill source after first time step
                 if t < int(0.2*steps):
                     uncollided.lhs *= 1
@@ -301,7 +300,6 @@ class Uncollided:
         psi_next = np.zeros(psi_last.shape)
 
         geo = getattr(Uncollided,geometry)  # Get the specific sweep
-
         if source is None:
             current = self.source.copy()
         else:
@@ -500,7 +498,6 @@ class Tools:
         return splits
 
     def small_2_big(mult_c,delta_u,delta_c,splits):
-
         Gu = len(delta_u)
         size = (mult_c.shape[0],Gu)
         mult_u = np.zeros(size)
@@ -512,18 +509,14 @@ class Tools:
                 factor[ii] /= delta_c[count]
 
         mult_u *= factor
-
-
         return mult_u
 
     def big_2_small(mult_u,delta_u,delta_c,splits):
-
         size = (mult_u.shape[0],len(delta_c))
         mult_c = np.zeros(size)
 
         for count,index in enumerate(splits):
             mult_c[:,count] = np.sum(mult_u[:,index],axis=1) 
-
         return mult_c
 
     def surface_area(rho):

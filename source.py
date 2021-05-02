@@ -180,23 +180,17 @@ class Source:
             for n in range(self.N):
                 mu_plus = mu_minus + 2 * self.w[n]
                 tau = (self.mu[n] - mu_minus) / (mu_plus - mu_minus)
-                # tau = 0
-
                 if n == 0:
                     alpha_minus = ctypes.c_double(0.)
                     psi_nhalf = (Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
-                    # psi_nhalf,inner = Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)
-                    # psi_nhalf = (psi_nhalf).astype('float64')
                 if n == self.N - 1:
                     alpha_plus = ctypes.c_double(0.)
                 else:
                     alpha_plus = ctypes.c_double(alpha_minus - self.mu[n] * self.w[n])
 
-                # psi_ihalf = ctypes.c_double(min(0.,psi_centers[N-n-1],key=abs))
                 if self.mu[n] > 0:
                     # psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
                     psi_ihalf = ctypes.c_double(psi_nhalf[0])
-                    # psi_ihalf = ctypes.c_double(inner)
                 elif self.mu[n] < 0:
                     psi_ihalf = ctypes.c_double(boundary)
 
@@ -205,14 +199,10 @@ class Source:
 
                 psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
-                # before = psi_nhalf[0]
 
                 clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf,ctypes.c_double(tau))
                 # Update angular center corrections
                 # psi_centers[n] = angular[0]
-
-                # after = psi_nhalf[0]
-                # print('before {}\tafter {}'.format(before,after))
                 # Update angular difference coefficients
                 alpha_minus = alpha_plus
                 mu_minus = mu_plus
@@ -261,9 +251,7 @@ class Source:
             an_ptr = ctypes.c_void_p(angular.ctypes.data)
 
             phi = np.zeros((self.I),dtype='float64')
-            # psi_nhalf = (Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
             for n in range(self.N):
-
                 mu_plus = mu_minus + 2 * self.w[n]
                 tau = (self.mu[n] - mu_minus) / (mu_plus - mu_minus)
 
@@ -275,7 +263,6 @@ class Source:
                 else:
                     alpha_plus = ctypes.c_double(alpha_minus - self.mu[n] * self.w[n])
 
-                # psi_ihalf = ctypes.c_double(min(0.,psi_centers[N-n-1],key=abs))
                 if self.mu[n] > 0:
                     # psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
                     psi_ihalf = ctypes.c_double(psi_nhalf[0])
