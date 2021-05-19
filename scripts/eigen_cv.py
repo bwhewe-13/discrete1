@@ -5,7 +5,7 @@ from discrete1.util import nnets
 from tensorflow.keras.layers import Dense,Dropout
 from tensorflow.keras.models import Sequential
 from tensorflow.keras import regularizers
-import argparse, sys
+import argparse, sys, glob
 from sklearn import model_selection
 from sklearn.model_selection import GridSearchCV
 from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
@@ -14,22 +14,26 @@ parser = argparse.ArgumentParser(description='Data Input')
 parser.add_argument('-model',action='store',dest='model')
 usr_input = parser.parse_args()
 
-mymat = np.load('mydata/ae_model_data/{}_carbon.npy'.format(usr_input.model))
+# mymat = np.load('mydata/ae_model_data/{}_carbon.npy'.format(usr_input.model))
+address = np.sort(glob.glob('mydata/ae_model_data/{}_enrich*'.format(usr_input.model)))
+mymat = nnets.randomize(address,150000)
 mymat = nnets.normalize(mymat)
 mymat[np.isnan(mymat)] = 0
 
+print('Data Size',mymat.shape)
+
 train,test = model_selection.train_test_split(mymat,test_size=0.2) #,random_state=47)
 
-dim = 87
-node_label = '40-20'
+dim = 618
+node_label = '300-150'
 
 def create_model(dropout_rate=0.0):
     model = Sequential()
-    model.add(Dense(40,input_shape=(dim,),activation='relu'))
+    model.add(Dense(300,input_shape=(dim,),activation='relu'))
     model.add(Dropout(dropout_rate))
-    model.add(Dense(20,activation='relu'))
+    model.add(Dense(150,activation='relu'))
     model.add(Dropout(dropout_rate))
-    model.add(Dense(40,activation='relu'))
+    model.add(Dense(300,activation='relu'))
     model.add(Dropout(dropout_rate))
     model.add(Dense(dim,activation='sigmoid'))
     model.summary()
@@ -42,7 +46,9 @@ model = KerasClassifier(build_fn=create_model)
 # epochs = [50,100,150,200,250]
 # dropout_rate = [0.0,0.1,0.2,0.3]
 
-batch_size = [20,30,40]
+print('HERE')
+
+batch_size = [50,100,150]
 epochs = [100,200]
 dropout_rate = [0.0,0.1,0.2]
 param_grid = dict(batch_size=batch_size,epochs=epochs,dropout_rate=dropout_rate)

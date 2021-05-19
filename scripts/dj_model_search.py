@@ -7,14 +7,12 @@ from sklearn import model_selection
 import argparse
 import glob, os
 
-parser = argparse.ArgumentParser(description='Which Search')
-parser.add_argument('-xs',action='store',dest='xs')
-parser.add_argument('-label',action='store',dest='label')
-parser.add_argument('-model',action='store',dest='model')
-parser.add_argument('-data',action='store',dest='data')
-parser.add_argument('-gpu',action='store',dest='gpu')
-# parser.add_argument('-source',action='store',dest='source')
-# data can be orig, red, inter
+parser = argparse.ArgumentParser(description='Specific Type of Search')
+parser.add_argument('-xs',action='store',dest='xs')                      # Can be either "fission" or "scatter"
+parser.add_argument('-label',action='store',dest='label')                # Include -label "True" if input is to be labeled data
+parser.add_argument('-model',action='store',dest='model')                # Name of DJINN model to be saved
+parser.add_argument('-data',action='store',dest='data')                  # The specific problem, "multiplastic," "pluto," "carbon"
+parser.add_argument('-gpu',action='store',dest='gpu')                    # Include if using Tensorflow GPU
 usr_input = parser.parse_args()
 
 if usr_input.gpu is None:
@@ -33,54 +31,23 @@ else:
     file1 = usr_input.xs
     
 file2 = usr_input.model+'/'
-
 mymat = np.load('mydata/model_data_djinn/{}_{}_data.npy'.format(usr_input.data,file1))
+
 print(mymat.shape,'shape')
 if usr_input.label is None:
     X = mymat[0,:,1:].copy()
-    # Normalize
-    if 'norm' in usr_input.model:
-        print('Normed, Non Labeled Data')
-        X /= np.linalg.norm(X,axis=1)[:,None]
-        # file2 = 'normed/'
-    else:
-        print('Non Labeled Data')
-        # file2 = ''
     Y = mymat[1,:,1:].copy()
     file3 = '_reg/'
 else:
     print('Labeled Data')
-    if 'norm' in usr_input.model:
-        print('Normed, Labeled Data')
-        tX = mymat[0,:,1:].copy()
-        tX /= np.linalg.norm(tX,axis=1)[:,None]
-        X = np.hstack((mymat[0,:,0][:,None],tX))
-        # file2 = 'normed/'
-    else:
-        print('Labeled Data')
-        X = mymat[0].copy()
-        # file2 = ''
+    X = mymat[0].copy()
     Y = mymat[1,:,1:].copy() # Remove labels
     file3 = '_label/'
 
-# num_trees = [1,3,5]
-num_trees = [3,5] 
-num_depth = [2,6] 
-# num_depth = [2,4,6] 
+num_trees = [1,2,3]
+num_depth = [2,3,4] 
 
-split = 0.2
-try:
-    spatial = np.load('{}_1d/{}spatialShuffleMat.npy'.format(file1,file2))
-except FileNotFoundError:
-    spatial = np.arange(len(X))
-    np.random.shuffle(spatial)
-    np.save('{}_1d/{}spatialShuffleMat'.format(file1,file2),spatial)
-
-index = int(len(spatial)*split)
-x_train = X[spatial[index:]]; y_train = Y[spatial[index:]]
-x_test = X[spatial[:index]]; y_test = Y[spatial[:index]]
-# print(sklearn.__version__)
-# x_train,x_test,y_train,y_test = model_selection.train_test_split(X,Y,test_size=0.2,random_state=47)
+x_train,x_test,y_train,y_test = model_selection.train_test_split(X,Y,test_size=0.2)
 
 for jj in num_trees:
     for ii in num_depth:
@@ -91,7 +58,7 @@ for jj in num_trees:
         model_path = '{}_1d/{}djinn{}'.format(file1,file2,file3)
         ntrees=jj                        # number of trees = number of neural nets in ensemble
         maxdepth=ii                      # max depth of tree -- optimize this for each data set
-        dropout_keep=1.0                # dropout typically set to 1 for non-Bayesian models
+        dropout_keep=1.0                 # dropout typically set to 1 for non-Bayesian models
 
         # initialize the model
         model=djinn.DJINN_Regressor(ntrees,maxdepth,dropout_keep)

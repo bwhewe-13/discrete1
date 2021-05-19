@@ -28,13 +28,25 @@ file1 = '-'.join([str(jj) for jj in usr_input.en])
 
 
 # mymat = np.load('mydata/ae_model_data/{}_{}.npy'.format(usr_input.data,usr_input.model))
-address = np.sort(glob.glob('mydata/ae_model_data/{}_enrich*'.format(usr_input.data)))
-mymat = nnets.randomize(address,150000)
+# address = np.sort(glob.glob('mydata/ae_model_data/scatter_hdpe/{}_enrich*'.format(usr_input.data)))
+mymat = np.load('mydata/ae_model_data/fission_pluto/{}.npy'.format(usr_input.data))
+
+# if usr_input.data == 'phi':
+#     mymat,indices = nnets.randomize(address,150000,index=True)
+#     np.save('autoencoder/{}/indices_001'.format(usr_input.model),indices)
+    
+# elif usr_input.data == 'smult':
+#     indices = np.load('autoencoder/{}/indices_001.npy'.format(usr_input.model))
+#     mymat = nnets.retrieve_randomize(address,150000,indices)
+
+# del indices
 print('SHAPE OF DATA',mymat.shape)
 
 # Normalize the data
 mymat = nnets.normalize(mymat)
-mymat[np.isnan(mymat)] = 0
+# mymat = mymat**(1/3)
+# mymat = np.log(mymat)
+mymat[np.isnan(mymat)] = 0; mymat[np.isinf(mymat)] = 0;
 
 train,test = model_selection.train_test_split(mymat,test_size=0.2)
 
@@ -72,6 +84,5 @@ history = autoencoder.fit(train,train,epochs=100,validation_data=(test,test))
 autoencoder.save('autoencoder/{}/model_{}_{}_autoencoder_001.h5'.format(usr_input.model,file1,usr_input.data))
 encoder.save('autoencoder/{}/model_{}_{}_encoder_001.h5'.format(usr_input.model,file1,usr_input.data))
 decoder.save('autoencoder/{}/model_{}_{}_decoder_001.h5'.format(usr_input.model,file1,usr_input.data))
-np.save('autoencoder/{}/loss_{}_{}_001'.format(usr_input.model,usr_input.data,file1),history.history['loss'])
-np.save('autoencoder/{}/val_loss_{}_{}_001'.format(usr_input.model,usr_input.data,file1),history.history['val_loss'])
-
+np.save('autoencoder/{}/loss_{}_{}_001'.format(usr_input.model,file1,usr_input.data),history.history['loss'])
+np.save('autoencoder/{}/val_loss_{}_{}_001'.format(usr_input.model,file1,usr_input.data),history.history['val_loss'])
