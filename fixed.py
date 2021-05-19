@@ -6,7 +6,6 @@ import numpy as np
 import pkg_resources
 import os
 
-
 DATA_PATH = pkg_resources.resource_filename('discrete1','data/')
 
 # Problems with same energy grid
@@ -55,21 +54,18 @@ class FixedSource:
             ss_vars = list(eval(ptype).steady(G,N,problem.boundary,problem.enrich,problem.edges))
         else:
             ss_vars = list(eval(ptype).steady(G,N,problem.boundary,problem.edges))
-
         # Check if time dependent problem
         if problem.T:
             temp = list(eval(ptype).timed(G,problem.T,problem.dt))
             keys = ['T','dt','v']
             for ii in range(len(keys)):
                 td_vars[keys[ii]] = temp[ii]
-
         # Check if hybrid problem
         if problem.hybrid:
             temp = list(eval(ptype).hybrid(G,problem.hybrid))
             keys = ['delta_e','splits'] # collided
             for ii in range(len(keys)):
                 hy_vars[keys[ii]] = temp[ii]
-
         return ss_vars, {**td_vars,**hy_vars}
 
     @classmethod
@@ -92,14 +88,12 @@ class FixedSource:
             keys = ['T','dt','v']
             for ii in range(len(keys)):
                 td_vars[keys[ii]] = temp[ii]
-
         # Check if hybrid problem
         if problem.hybrid:
             temp = list(eval(ptype).hybrid(G,problem.hybrid))
             keys = ['delta_e','splits'] 
             for ii in range(len(keys)):
                 hy_vars[keys[ii]] = temp[ii]
-
         return {**ss_vars, **td_vars,**hy_vars}
 
 class Reeds:
@@ -162,6 +156,7 @@ class Reeds:
             delta_u = [1/hy_g] * hy_g
             delta_c = [sum(delta_u[ii]) for ii in splits]
             return delta_c, splits
+
 
 class StainlessInfinite:
 
@@ -396,6 +391,7 @@ class UraniumStainless:
             delta_u = np.diff(grid)
             delta_c = [sum(delta_u[ii]) for ii in splits]
             return delta_c, splits
+
 
 class StainlessUranium:
 

@@ -1,13 +1,15 @@
 """ Criticality Eigenvalue Problems """
 
-from .keigenvalue import Problem1, Problem2
+from .keigenvalue import Problem1, Problem2, Problem3
 from .reduction import DJ,AE,DJAE
 
 import numpy as np
 import ctypes
 import warnings
+import os
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
+DATA_PATH = 'discrete1/data/'
 
 class Critical:
     # Keyword Arguments allowed currently
@@ -45,6 +47,8 @@ class Critical:
         for key, value in kwargs.items():
             assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, track, geometry" 
             setattr(self, key, value)
+        Critical.compile(I,N)
+        
 
     @classmethod
     def run(cls,refl,enrich,orient='orig',**kwargs):
@@ -53,6 +57,8 @@ class Critical:
             attributes = Problem1.steady(refl,enrich,orient)
         elif refl in ['pu']:
             attributes = Problem2.steady('hdpe',enrich,orient)
+        elif refl in ['c']:
+            attributes = Problem3.steady('c',enrich,orient)
 
         problem = cls(*attributes)
         problem.saving = '0'
@@ -65,7 +71,7 @@ class Critical:
             attributes = Problem1.steady(refl,enrich,orient)
         elif refl in ['pu']:
             attributes = Problem2.steady('hdpe',enrich,orient)
-        initial = 'discrete1/data/initial_{}.npy'.format(refl)
+        initial = '{}/initial_{}.npy'.format(DATA_PATH,refl)
 
         problem = cls(*attributes)
         problem.saving = '1' # To know when to call DJINN
@@ -84,7 +90,7 @@ class Critical:
             attributes = Problem1.steady(refl,enrich,orient)
         elif refl in ['pu']:
             attributes = Problem2.steady('hdpe',enrich,orient)
-        initial = 'discrete1/data/initial_{}.npy'.format(refl)
+        initial = '{}/initial_{}.npy'.format(DATA_PATH,refl)
 
         problem = cls(*attributes)
         problem.saving = '2'
@@ -103,7 +109,7 @@ class Critical:
             attributes = Problem1.steady(refl,enrich,orient)
         elif refl in ['pu']:
             attributes = Problem2.steady('hdpe',enrich,orient)
-        initial = 'discrete1/data/initial_{}.npy'.format(refl)
+        initial = '{}/initial_{}.npy'.format(DATA_PATH,refl)
 
         problem = cls(*attributes)
         problem.saving = '3' # To know when to call DJINN
@@ -125,7 +131,7 @@ class Critical:
             guess: Initial guess of the scalar flux for a specific energy group (I x L+1)
         Returns:
             phi: a I array  """
-        clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cCritical.so')
+        clibrary = ctypes.cdll.LoadLibrary('./{}/cCritical.so'.format(DATA_PATH))
         sweep = clibrary.reflected
         if self.boundary == 'vacuum':
             print('Vacuum')
@@ -174,7 +180,7 @@ class Critical:
             guess: Initial guess of the scalar flux for a specific energy group (I x L+1)
         Returns:
             phi: a I array  """
-        clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cCriticalSP.so')
+        clibrary = ctypes.cdll.LoadLibrary('./{}/cCriticalSP.so'.format(DATA_PATH))
         sweep = clibrary.vacuum
 
         edges = np.cumsum(np.insert(np.ones((self.I))*1/self.delta,0,0))
@@ -317,6 +323,13 @@ class Critical:
             psi_nhalf[ii] = (2 * psi_plus + delta * source[ii] ) / (2 + total[ii] * delta)
             psi_plus = 2 * psi_nhalf[ii] - psi_plus
         return psi_nhalf
+
+    def compile(I,N):
+        # Compile Slab
+        command = 'gcc -fPIC -shared -o {}cCritical.so {}cCritical.c -DLENGTH={}'.format(DATA_PATH,DATA_PATH,I)
+        # Compile Sphere
+        command = 'gcc -fPIC -shared -o {}cCriticalSP.so {}cCriticalSP.c -DLENGTH={} -DN={}'.format(DATA_PATH,DATA_PATH,I,N)
+        os.system(command)
 
 
     # def tracking_data(self,flux,sources=None):

@@ -6,6 +6,7 @@ from .fixed import FixedSource
 
 import numpy as np
 import ctypes
+from scipy.special import erfc
 
 class Source:
     # Keyword Arguments allowed currently
@@ -58,12 +59,9 @@ class Source:
 
     @classmethod
     def run(cls,ptype,G,N,**kwargs):
-
         attributes,keywords = FixedSource.initialize(ptype,G,N,**kwargs)
-
         problem = cls(*attributes,**keywords)
         problem.problem = ptype
-
         if 'boundary' in kwargs:
             boundary = kwargs['boundary']
             # Currently cannot use reflected boundary with TD problems
@@ -72,7 +70,6 @@ class Source:
                     with Reflected Conditions')
                 boundary = 'vacuum'
             problem.boundary = boundary
-
         if 'geometry' in kwargs:
             geometry = kwargs['geometry']
             problem.geometry = geometry
@@ -86,10 +83,8 @@ class Source:
                 return problem.backward_euler()
             elif problem.td == 'BDF2':
                 return problem.bdf2()
-
         return problem.multi_group()
-
-                
+               
     def slab(self,total_,scatter_,source_,boundary,guess):
         """ Arguments:
             total: I x 1 vector of the total cross section for each spatial cell
@@ -393,24 +388,21 @@ class Source:
         psi_last = np.zeros((self.I,self.N,self.G))
 
         self.speed = 1/(self.v*self.dt); time_phi = []
-
         steps = int(np.ceil(self.T/self.dt))
+        if self.problem in ['Stainless','UraniumStainless','StainlessUranium']:
+            full_lhs = Source.continuous(self.lhs,steps)
+        else:
+            full_lhs = Source.stagnant(self.lhs,steps)
         for t in range(steps):
             # Solve at initial time step
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
-
             # print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Update angular flux
             psi_last = psi_next.copy()
             time_phi.append(phi)
             phi_old = phi.copy()
-
-            if self.problem in ['Stainless','UraniumStainless','StainlessUranium']: # and t > 2:
-                if t < int(0.2*steps):
-                    self.lhs *= 1
-                elif t % int(0.1*steps) == 0:
-                    self.lhs *= 0.5
-
+            
+            self.lhs = full_lhs[t].copy()
         return phi,time_phi
 
     def bdf2(self):
@@ -421,12 +413,14 @@ class Source:
         psi_n1 = psi_n0.copy()
 
         steps = int(np.ceil(self.T/self.dt))
-        # steps = int((self.T/self.dt))
+        if self.problem in ['Stainless','UraniumStainless','StainlessUranium']:
+            full_lhs = Source.continuous(self.lhs,steps)
+        else:
+            full_lhs = Source.stagnant(self.lhs,steps)
         for t in range(steps):
             # Solve at initial time step
             psi_last = 2 * psi_n1 - 0.5 * psi_n0
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
-
             # print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Update angular flux
             time_phi.append(phi)
@@ -434,15 +428,8 @@ class Source:
 
             psi_n0 = psi_n1.copy()
             psi_n1 = psi_next.copy()
-
-            if self.problem in ['Stainless','UraniumStainless','StainlessUranium']: # and t > 2:
-                if t < int(0.2*steps):
-                    self.lhs *= 1
-                elif t % int(0.1*steps) == 0:
-                    print('Reduction by 1/2')
-                    self.lhs *= 0.5
-                    print('Source ',np.sum(self.lhs))
-
+            
+            self.lhs = full_lhs[t].copy()
         return phi,time_phi
 
     def surface_area(rho):
@@ -458,6 +445,40 @@ class Source:
             psi_nhalf[ii] = (2 * psi_plus + delta * source[ii] ) / (2 + total[ii] * delta)
             psi_plus = 2 * psi_nhalf[ii] - psi_plus
         return psi_nhalf
+
+    def stagnant(source,steps):
+        return np.tile(source,(len(steps),1))
+
+    def continuous(source,steps):
+        func = lambda a,b: list(erfc(np.arange(1,4))*a+b)
+        full = np.zeros((steps,len(source)))
+        group = np.argwhere(source != 0)[0,0]
+        source = source[group]
+        for t in range(steps):
+            if t < int(0.2*steps):
+                source *= 1
+                full[t,group] = source
+            elif t % int(0.1*steps) == 0:
+                temp = t
+                full[t:t+3,group] = func(source,0.5*source)
+                source *= 0.5
+            elif t in np.arange(temp+1,temp+3):
+                continue
+            else:
+                full[t,group] = source
+        return full
+
+    def discontinuous(source,steps):
+        full = np.zeros((steps,len(source)))
+        group = np.argwhere(source != 0)[0,0]
+        source = source[group]
+        for t in range(steps):
+            if t < int(0.2*steps):
+                source *= 1
+            elif t % int(0.1*steps) == 0:
+                source *= 0.5
+            full[t,group] = source
+        return full
 
     # def tracking_data(self,flux,sources=None):
     #     from discrete1.util import sn

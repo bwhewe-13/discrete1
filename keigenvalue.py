@@ -84,6 +84,39 @@ class Problem2:
         labels, splits = Tools.create_slices(shape,materials,delta)
         return labels,splits
 
+class Problem3:
+    # 87 Group problem
+    def orientation(refl,enrich,orient='orig'):
+        if orient == 'orig':
+            shape = [10,4,6]
+            materials = [refl,['u',enrich],refl]
+        return shape,materials
+
+    def steady(refl,enrich,orient='orig'):
+        shape,materials = Problem3.orientation(refl,enrich,orient)
+
+        L = 0; R = sum(shape); I = 1000
+        G = 87; N = 32
+        mu,w = np.polynomial.legendre.leggauss(N)
+        w /= np.sum(w)
+        # Take only half (reflective)
+        N = int(0.5*N); mu = mu[N:]; w = w[N:]
+
+        delta = R/I
+
+        xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(materials)
+        layers = [int(ii/delta) for ii in shape]
+
+        total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
+
+        return G,N,mu,w,total_,scatter_,fission_,I,delta
+
+    def labeling(refl,enrich,orient='orig'):
+        """ Returns the labels and splits of materials """
+        shape,materials = Problem3.orientation(refl,enrich,orient)
+        _,_,_,_,_,_,_,_,delta = Problem3.steady(refl,enrich,orient)
+        labels, splits = Tools.create_slices(shape,materials,delta)
+        return labels,splits
 
 
 class Tools:

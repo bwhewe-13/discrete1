@@ -12,7 +12,7 @@ DATA_PATH = pkg_resources.resource_filename('discrete1','xs/')
 class XSGenerate087:
     """ Generating the total, fission, scatter cross sections """
     __allowed = ("enrich") # Currently only keyword
-    __compounds = ("UH3","HDPE","SS440","U") # Materials that we can use
+    __compounds = ("UH3","HDPE","SS440","U","C") # Materials that we can use
     __fissioning = ("UH3","U") # Materials that fission
     # Using the first temperature
     __temp = '00'

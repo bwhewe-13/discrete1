@@ -6,19 +6,17 @@ from .fixed import FixedSource
 
 import numpy as np
 import ctypes
+from scipy.special import erfc
 
 class Hybrid:
     def __init__(self,ptype,G,N):
         """ G and N are lists of [uncollided,collided]  """
-        
         self.ptype = ptype
         self.geometry = 'slab'
-
         if type(G) is list:
             self.Gu = G[0]; self.Gc = G[1]
         else:
             self.Gu = G; self.Gc = G
-
         if type(N) is list:
             self.Nu = N[0]; self.Nc = N[1]
         else:
@@ -46,12 +44,9 @@ class Hybrid:
                 return prob.backward_euler()
             elif prob.td == 'BDF2':
                 return prob.bdf2()
-
-
         return prob.backward_euler()
 
     def backward_euler(self):
-
         if self.enrich:
             un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
             uncollided = Uncollided(*un_attr)
@@ -69,10 +64,15 @@ class Hybrid:
 
         print('Initial Source ',np.sum(uncollided.lhs))
         steps = int(np.ceil(un_keys['T']/un_keys['dt']))
-
+        if self.ptype in ['Stainless','UraniumStainless','StainlessUranium']:
+            # full_lhs = Tools.discontinuous(uncollided.lhs,steps)
+            full_lhs = Tools.continuous(uncollided.lhs,steps)
+        else:
+            full_lhs = Tools.stagnant(uncollided.lhs,steps)
         # Initialize psi to zero
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
-        for t in range(steps): 
+        for t in range(steps):
+            # print('Time Step {}'.format(t))
             # Step 1: Solve Uncollided Equation
             phi_u,_ = uncollided.multi_group(psi_last,speed_u,self.geometry)
             # Step 2: Compute Source for Collided
@@ -93,17 +93,8 @@ class Hybrid:
             phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source)
             # Step 5: Update and repeat
             #print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
-            
-            if self.ptype in ['Stainless','UraniumStainless','StainlessUranium']: # and t == 0: # kill source after first time step
-                if t < int(0.2*steps):
-                    uncollided.lhs *= 1
-                    
-                elif t % int(0.1*steps) == 0:
-                    # t >= int(0.2*steps) and 
-                    print('Reduction by 1/2')
-                    uncollided.lhs *= 0.5
-                    print('Source ',np.sum(uncollided.lhs))
 
+            uncollided.lhs = full_lhs[t].copy()
             psi_last = psi_next.copy(); time_phi.append(phi)
 
         return phi,time_phi
@@ -131,8 +122,14 @@ class Hybrid:
         # Initialize psi to zero
         psi_n0 = np.zeros((uncollided.I,uncollided.N,uncollided.G))
         psi_n1 = psi_n0.copy()
+        if self.ptype in ['Stainless','UraniumStainless','StainlessUranium']:
+            # full_lhs = Tools.discontinuous(uncollided.lhs,steps)
+            full_lhs = Tools.continuous(uncollided.lhs,steps)
+        else:
+            full_lhs = Tools.stagnant(uncollided.lhs,steps)
         
-        for t in range(steps): 
+        for t in range(steps):
+            # print('Time Step {}'.format(t))
             psi_last = 2 * psi_n1 - 0.5 * psi_n0
             # Step 1: Solve Uncollided Equation
             phi_u,_ = uncollided.multi_group(psi_last,speed_u,self.geometry)
@@ -154,16 +151,8 @@ class Hybrid:
             phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source)
             # Step 5: Update and repeat
             # print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
-            if self.ptype in ['Stainless','UraniumStainless','StainlessUranium']: # and t == 0: # kill source after first time step
-                if t < int(0.2*steps):
-                    uncollided.lhs *= 1
-                    
-                elif t % int(0.1*steps) == 0:
-                    # t >= int(0.2*steps) and 
-                    print('Reduction by 1/2')
-                    uncollided.lhs *= 0.5
-                    print('Source ',np.sum(uncollided.lhs))
 
+            uncollided.lhs = full_lhs[t].copy()
             # psi_last = psi_next.copy(); 
             time_phi.append(phi)
 
@@ -488,12 +477,9 @@ class Tools:
             small: collided energy groups, int
         Returns:
             list of slices   """
-
         new_grid = np.ones((small)) * int(big/small)
         new_grid[np.linspace(0,small-1,big % small,dtype=int)] += 1
-
         inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
-
         splits = [slice(ii,jj) for ii,jj in zip(inds[:small],inds[1:])]
         return splits
 
@@ -502,19 +488,16 @@ class Tools:
         size = (mult_c.shape[0],Gu)
         mult_u = np.zeros(size)
         factor = delta_u.copy()
-        
         for count,index in enumerate(splits):
             for ii in np.arange(index.indices(Gu)[0],index.indices(Gu)[1]):
                 mult_u[:,ii] = mult_c[:,count]
                 factor[ii] /= delta_c[count]
-
         mult_u *= factor
         return mult_u
 
     def big_2_small(mult_u,delta_u,delta_c,splits):
         size = (mult_u.shape[0],len(delta_c))
         mult_c = np.zeros(size)
-
         for count,index in enumerate(splits):
             mult_c[:,count] = np.sum(mult_u[:,index],axis=1) 
         return mult_c
@@ -534,3 +517,36 @@ class Tools:
             psi_plus = 2 * psi_nhalf[ii] - psi_plus
         return psi_nhalf
         
+    def stagnant(source,steps):
+        return np.tile(source,(len(steps),1))
+
+    def continuous(source,steps):
+        func = lambda a,b: list(erfc(np.arange(1,4))*a+b)
+        full = np.zeros((steps,len(source)))
+        group = np.argwhere(source != 0)[0,0]
+        source = source[group]
+        for t in range(steps):
+            if t < int(0.2*steps):
+                source *= 1
+                full[t,group] = source
+            elif t % int(0.1*steps) == 0:
+                temp = t
+                full[t:t+3,group] = func(source,0.5*source)
+                source *= 0.5
+            elif t in np.arange(temp+1,temp+3):
+                continue
+            else:
+                full[t,group] = source
+        return full
+
+    def discontinuous(source,steps):
+        full = np.zeros((steps,len(source)))
+        group = np.argwhere(source != 0)[0,0]
+        source = source[group]
+        for t in range(steps):
+            if t < int(0.2*steps):
+                source *= 1
+            elif t % int(0.1*steps) == 0:
+                source *= 0.5
+            full[t,group] = source
+        return full
