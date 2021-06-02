@@ -1,8 +1,8 @@
 
-import numpy as np
 from discrete1.hybrid import Hybrid
 from discrete1.source import Source
-import matplotlib.pyplot as plt
+
+import numpy as np
 import time
 import argparse
 
@@ -29,16 +29,19 @@ if usr_input.problem == 'uranium':
 elif usr_input.problem == 'stainless':
     label = 'stainless'
     part = 'Stainless'
+elif usr_input.problem == 'control':
+    label = 'control_rod'
+    part = 'ControlRod'
 
 # Starting Time 
-if usr_input.geometry == 'sphere':
+if usr_input.problem in ['stainless','uranium']:
     T = 10E-7
-elif usr_input.geometry == 'slab':
-    T = 10E-6
+elif usr_input.problem in ['control']:
+    T = 25E-6
 
 dt = np.round(T/int(usr_input.steps),10)
 Ts = str(usr_input.steps).zfill(4)
-print('dt {}\nTime Label {}\n'.format(dt,Ts))
+print('dt {}\nTime Label {}'.format(dt,Ts))
 
 # Angles
 angle = int(usr_input.angles)
@@ -61,6 +64,10 @@ for gg in groups:
         start = time.time()
         phi,full = Source.run(part,gg,angle,T=T,dt=dt,geometry=usr_input.geometry,td=usr_input.time)
         end = time.time()
+    elif label == 'control_rod':
+        start = time.time()
+        phi,full = Source.run(part,gg,angle,T=T,dt=dt,enrich=0.22,geometry=usr_input.geometry,td=usr_input.time)
+        end = time.time()
     timer.append(end-start)
     # np.save('mydata/{}_{}_ts{}_{}/source_g{}_s{}_auto'.format(usr_input.geometry,label,Ts,usr_input.time.lower(),gg,an),phi)
 
@@ -81,6 +88,10 @@ for gg in groups:
             elif label == 'stainless':
                 start = time.time()
                 _,_ = Source.run(part,gg,angle,T=T,dt=dt,geometry=usr_input.geometry,td=usr_input.time)
+                end = time.time()
+            elif label == 'control_rod':
+                start = time.time()
+                _,_ = Source.run(part,gg,angle,T=T,dt=dt,enrich=0.22,geometry=usr_input.geometry,td=usr_input.time)
                 end = time.time()
             timer.append(end-start)
         np.save('mydata/{}_{}_ts{}_{}/source_g{}_s{}_auto'.format(usr_input.geometry,label,Ts,usr_input.time.lower(),gg,an),timer)
