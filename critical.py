@@ -59,10 +59,12 @@ class Critical:
             attributes = Problem2.steady('hdpe',enrich,orient)
         elif refl in ['c']:
             attributes = Problem3.steady('c',enrich,orient)
-
-        problem = cls(*attributes)
+        print('\n\n========================\nOrient {}\n========================\n\n'.format(orient))
+        boundary = kwargs['boundary'] if 'boundary' in kwargs else 'reflected'
+        problem = cls(*attributes,boundary=boundary)
         problem.saving = '0'
         problem.atype = ''
+        # print('\n\n========================\nGeometry {}\n========================\n\n'.format(problem.geometry))
         return problem.transport()
 
     @classmethod
@@ -115,15 +117,15 @@ class Critical:
         problem.saving = '3' # To know when to call DJINN
         problem.atype = atype
         problem.initial = initial
-
+        print('\n\n========================\nOrient {}\n========================\n\n'.format(orient))
         model = DJAE(dj_models,ae_models,atype,transform,**kwargs)
         model.load_model()
         model.load_problem(refl,enrich,orient)
-
+        # print('\n\n========================\nGeometry {}\n========================\n\n'.format(problem.geometry))
         return problem.transport(models=model)
 
         
-    def slab(self,total_,scatter_,source_,guess,tol=1e-12,MAX_ITS=100):
+    def slab(self,total_,scatter_,source_,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
             total_: I x 1 vector of the total cross section for each spatial cell
             scatter_: I x L+1 array for the scattering of the spatial cell by moment
@@ -132,13 +134,11 @@ class Critical:
         Returns:
             phi: a I array  """
         clibrary = ctypes.cdll.LoadLibrary('./{}/cCritical.so'.format(DATA_PATH))
-        sweep = clibrary.reflected
-        if self.boundary == 'vacuum':
-            print('Vacuum')
-            sweep = clibrary.vacuum
+        sweep = clibrary.reflected if self.boundary == 'reflected' else clibrary.vacuum
+        # if self.boundary == 'vacuum':
+        #     sweep = clibrary.vacuum
         
         phi_old = guess.copy()
-
         source_ = source_.astype('float64')
         ext_ptr = ctypes.c_void_p(source_.ctypes.data)
 
@@ -172,7 +172,7 @@ class Critical:
 
         return phi
 
-    def sphere(self,total_,scatter_,source_,guess,tol=1e-12,MAX_ITS=100):
+    def sphere(self,total_,scatter_,source_,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
             total_: I x 1 vector of the total cross section for each spatial cell
             scatter_: I x L+1 array for the scattering of the spatial cell by moment
@@ -258,7 +258,7 @@ class Critical:
             phi_old = phi.copy()
         return phi
             
-    def transport(self,models=None,tol=1e-16,MAX_ITS=100):
+    def transport(self,models=None,tol=1e-12,MAX_ITS=100):
 
         self.models = models
         # if self.saving != '0': # Running from random

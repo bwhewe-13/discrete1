@@ -17,7 +17,7 @@ class NumberDensity:
     """ Main class for running to create number density
     Returns a dictionary of elements with number densities """
     __allowed = ("enrich")
-    __compounds = ("UH3","HDPE","SS440","U","C")
+    __compounds = ("UH3","HDPE","SS440","U","C","ROD")
 
     def __init__(self,compound,**kwargs):
         assert (compound in self.__class__.__compounds), "Compound not allowed, available: UH3, HDPE, SS440, U"
@@ -43,6 +43,8 @@ class NumberDensity:
             return HDPE().number_density()
         elif self.compound == 'C':
             return C().number_density()
+        elif self.compound == 'ROD':
+            return ROD(self.enrich).number_density()
 
 
 class HDPE:
@@ -67,6 +69,36 @@ class HDPE:
         density_list['cnat'] = (rho * _Constants.avagadro) / hdpe_molar * _Constants.barn   # Add cnat
         density_list['h1'] = (rho * _Constants.avagadro) / hdpe_molar * 3 * _Constants.barn # Add H1
         return density_list 
+
+
+class ROD:
+    __isotopes = ['fe54','fe56','fe57','cr50','cr52','cr53','cr54','si28','si29',
+        'si30','mn55','cnat']
+
+    def __init__(self,enrich=1.0):
+        # Enrichment is the amount of C present
+        self.enrich  = enrich
+
+    def molar_mass(self):
+        ss440_molar = SS440.molar_mass()
+        carb_molar = C.molar_mass()
+        return ss440_molar,carb_molar
+
+    def number_density(self):
+        density_list = {}
+        # Get elements of ss440
+        elements = [re.sub(r'[0-9]','',ii) for ii in self.__class__.__isotopes]
+        # Create new density
+        rho = 1/(self.enrich / _Constants.compound_density['C'][1] + \
+            (1 - self.enrich)/ _Constants.compound_density['SS440'][1])
+        percent = SS440().percentage()
+        # All Stainless Steel
+        for iso,ele in zip(self.__class__.__isotopes,elements):
+            density_list[iso] = (_Constants.isotope_abundance[iso][0]*percent[ele]*rho*_Constants.avagadro)/ \
+                _Constants.isotope_abundance[iso][1]*_Constants.barn*(1-self.enrich)
+        # Add carbon
+        density_list['cnat'] += (rho * _Constants.avagadro) / C().molar_mass() * _Constants.barn * self.enrich
+        return density_list
 
 
 class C:

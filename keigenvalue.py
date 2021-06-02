@@ -54,8 +54,23 @@ class Problem2:
     def orientation(refl,enrich,orient='orig'):
         if orient == 'orig':
             shape = [5,1.5,3.5]
-            # Depleted is 0% Pu-239
-            materials = [refl,['pu',1-enrich],['pu',0]]
+            # materials = [refl,['pu',1-enrich],['pu',0]]
+        # Perturbations
+        elif orient == 'refl_dep_01':  # Refl/Deplete + 0.5
+            shape = [5.5,1,3.5]
+        elif orient == 'refl_dep_02':  # Refl/Deplete - 0.5
+            shape = [4.5,2,3.5]
+        elif orient == 'refl_enr_01':  # Refl/Enrich + 0.5
+            shape = [5.5,1.5,3]
+        elif orient == 'refl_enr_02':  # Refl/Enrich - 0.5
+            shape = [4.5,1.5,4]
+        elif orient == 'dep_enr_01':  # Deplete/Enrich + 0.5
+            shape = [5,2,3]
+        elif orient == 'dep_enr_02':  # Deplete/Enrich - 0.5
+            shape = [5,1,4]
+
+        # Depleted is 0% Pu-239
+        materials = [refl,['pu',1-enrich],['pu',0]]
         return shape,materials
 
     def steady(refl,enrich,orient='orig'):
@@ -67,14 +82,13 @@ class Problem2:
         w /= np.sum(w)
         # Take only half (reflective)
         N = int(0.5*N); mu = mu[N:]; w = w[N:]
+        Tools.recompile(I,N)
 
         delta = R/I
-
         xs_total,xs_scatter,xs_fission = XSGenerate618.cross_section(enrich)
         layers = [int(ii/delta) for ii in shape]
-
+        
         total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
-
         return G,N,mu,w,total_,scatter_,fission_,I,delta
 
     def labeling(refl,enrich,orient='orig'):
@@ -88,19 +102,21 @@ class Problem3:
     # 87 Group problem
     def orientation(refl,enrich,orient='orig'):
         if orient == 'orig':
-            shape = [10,4,6]
-            materials = [refl,['u',enrich],refl]
+            # shape = [10,4,6]
+            # materials = [refl,['u',enrich],refl]
+            shape = [10,4,12,4,10]
+            materials = [refl,['u',enrich],refl,['u',enrich],refl]
         return shape,materials
 
     def steady(refl,enrich,orient='orig'):
         shape,materials = Problem3.orientation(refl,enrich,orient)
 
         L = 0; R = sum(shape); I = 1000
-        G = 87; N = 32
+        G = 87; N = 8
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w)
         # Take only half (reflective)
-        N = int(0.5*N); mu = mu[N:]; w = w[N:]
+        # N = int(0.5*N); mu = mu[N:]; w = w[N:]
 
         delta = R/I
 
