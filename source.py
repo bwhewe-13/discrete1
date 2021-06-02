@@ -2,7 +2,7 @@
 Running Multigroup Source Problems
 """
 
-from .fixed import FixedSource
+from .fixed import FixedSource,ControlRod
 
 import numpy as np
 import ctypes
@@ -73,10 +73,8 @@ class Source:
         if 'geometry' in kwargs:
             geometry = kwargs['geometry']
             problem.geometry = geometry
-        
         if 'T' in kwargs and 'td' not in kwargs:
             kwargs['td'] = 'BE'
-
         if 'td' in kwargs:
             problem.td = kwargs['td']
             if problem.td == 'BE':
@@ -345,21 +343,17 @@ class Source:
         """ Run multi group steady state problem
         Returns:
             phi: scalar flux, numpy array of size (I x G) """
-
         phi_old = np.zeros((self.I,self.G))
         geo = getattr(Source,self.geometry)  # Get the specific sweep
-
         if self.T:
             geo = getattr(Source,'{}_time'.format(self.geometry))  # Get the specific sweep
             psi_last = kwargs['psi_last'].copy()
             psi_next = np.zeros(psi_last.shape)
             phi_old = kwargs['guess'].copy()
-
         tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)  
-
             for g in range(self.G):
                 q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
@@ -368,7 +362,6 @@ class Source:
                     phi[:,g],psi_next[:,:,g] = geo(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],phi_old[:,g],psi_last[:,:,g],self.speed[g])
                 else:
                     phi[:,g] = geo(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],phi_old[:,g])
-
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.5
@@ -376,60 +369,84 @@ class Source:
             #     print('Count',count,'Change',change,'\n===================================')
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
-
             phi_old = phi.copy()
-
         if self.T:
             return phi,psi_next
         return phi
 
     def backward_euler(self):
-        phi_old = np.zeros((self.I,self.G))
+        # Initialize flux and list of fluxes
+        phi_old = np.zeros((self.I,self.G)); time_phi = []
+        # Initialize angular flux
         psi_last = np.zeros((self.I,self.N,self.G))
-
-        self.speed = 1/(self.v*self.dt); time_phi = []
-        steps = int(np.ceil(self.T/self.dt))
+        if self.problem in ['ControlRod']:
+            psi_last = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,self.N,1))
+        # Initialize Speed
+        self.speed = 1/(self.v*self.dt)
+        # For calculating the number of time steps (computer rounding error)
+        steps = int(np.round(self.T/self.dt,5))
+        print('\n\n================\nTime Steps {}\n================\n\n'.format(steps))
+        # Determine source for problem
         if self.problem in ['Stainless','UraniumStainless','StainlessUranium']:
             full_lhs = Source.continuous(self.lhs,steps)
         else:
             full_lhs = Source.stagnant(self.lhs,steps)
         for t in range(steps):
-            # Solve at initial time step
+            if self.problem in ['ControlRod']:
+                # The change of carbon --> stainless in problem
+                switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
+                print('Switch {} Step {}'.format(switch,t))
+                self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.22,switch=switch)
+            # Run the multigroup problem
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
-            # print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
-            # Update angular flux
+            if self.problem in ['ControlRod']:
+                print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            # Update scalar/angular flux
             psi_last = psi_next.copy()
             time_phi.append(phi)
             phi_old = phi.copy()
-            
+            # Update source
             self.lhs = full_lhs[t].copy()
         return phi,time_phi
 
     def bdf2(self):
-        phi_old = np.zeros((self.I,self.G))
-        self.speed = 1/(self.v*self.dt); time_phi = []
-
-        psi_n0 = np.zeros((self.I,self.N,self.G))
-        psi_n1 = psi_n0.copy()
-
-        steps = int(np.ceil(self.T/self.dt))
+        # Initialize flux and list of fluxes
+        phi_old = np.zeros((self.I,self.G)); time_phi = []
+        # Initialize angular flux
+        psi_n0 = np.zeros((self.I,self.N,self.G)); psi_n1 = psi_n0.copy()
+        # Initialize speed
+        self.speed = 1/(self.v*self.dt); 
+        # Initialize ControlRod problem differently
+        if self.problem in ['ControlRod']:
+            psi_n1 = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,self.N,1))
+            self.td = 'BE' # Initial step is BE
+        # For calculating the number of time steps (computer rounding error)
+        steps = int(np.round(self.T/self.dt,5))
+        print('\n\n================\nTime Steps {}\n================\n\n'.format(steps))
+        # Determine source for problem
         if self.problem in ['Stainless','UraniumStainless','StainlessUranium']:
             full_lhs = Source.continuous(self.lhs,steps)
         else:
             full_lhs = Source.stagnant(self.lhs,steps)
         for t in range(steps):
-            # Solve at initial time step
-            psi_last = 2 * psi_n1 - 0.5 * psi_n0
+            if self.problem in ['ControlRod']:
+                # The change of carbon --> stainless in problem
+                switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
+                print('Switch {} Step {}'.format(switch,t))
+                self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.22,switch=switch)
+            # Backward Euler for first step, BDF2 for rest
+            psi_last = psi_n1.copy() if t == 0 else 2 * psi_n1 - 0.5 * psi_n0
+            # Run the multigroup Problem
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
-            # print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
-            # Update angular flux
+            if self.problem in ['ControlRod']:
+                print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            # Update scalar/angular flux
             time_phi.append(phi)
             phi_old = phi.copy()
-
             psi_n0 = psi_n1.copy()
             psi_n1 = psi_next.copy()
-            
-            self.lhs = full_lhs[t].copy()
+            # Update source, change to BDF2 time steps
+            self.lhs = full_lhs[t].copy(); self.td = 'BDF2'
         return phi,time_phi
 
     def surface_area(rho):
@@ -447,7 +464,7 @@ class Source:
         return psi_nhalf
 
     def stagnant(source,steps):
-        return np.tile(source,(len(steps),1))
+        return np.tile(source,(steps,1))
 
     def continuous(source,steps):
         func = lambda a,b: list(erfc(np.arange(1,4))*a+b)

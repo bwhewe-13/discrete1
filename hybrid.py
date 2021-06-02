@@ -2,7 +2,7 @@
 Running Hybrid Problems (time dependent)
 """
 
-from .fixed import FixedSource
+from .fixed import FixedSource, ControlRod
 
 import numpy as np
 import ctypes
@@ -13,31 +13,16 @@ class Hybrid:
         """ G and N are lists of [uncollided,collided]  """
         self.ptype = ptype
         self.geometry = 'slab'
-        if type(G) is list:
-            self.Gu = G[0]; self.Gc = G[1]
-        else:
-            self.Gu = G; self.Gc = G
-        if type(N) is list:
-            self.Nu = N[0]; self.Nc = N[1]
-        else:
-            self.Nu = N; self.Nc = N
+        self.Gu,self.Gc = G if type(G) is list else [G,G]
+        self.Nu,self.Nc = N if type(N) is list else [N,N]
 
     @classmethod
     def run(cls,ptype,G,N,T,dt,**kwargs):
         prob = cls(ptype,G,N)
         prob.T = T; prob.dt = dt
-        if 'edges' in kwargs:
-            prob.edges = kwargs['edges']
-        else:
-            prob.edges = None
-        if 'enrich' in kwargs:
-            prob.enrich = kwargs['enrich']
-        else:
-            prob.enrich = None
-        if 'geometry' in kwargs:
-            prob.geometry = kwargs['geometry']
-        else:
-            prob.geometry = 'slab'
+        prob.edges = kwargs['edges'] if 'edges' in kwargs else None
+        prob.enrich = kwargs['enrich'] if 'enrich' in kwargs else None
+        prob.geometry = kwargs['geometry'] if 'geometry' in kwargs else 'slab'
         if 'td' in kwargs:
             prob.td = kwargs['td']
             if prob.td == 'BE':
@@ -47,32 +32,34 @@ class Hybrid:
         return prob.backward_euler()
 
     def backward_euler(self):
-        if self.enrich:
-            un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
-            uncollided = Uncollided(*un_attr)
-            col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
-            collided = Collided(*col_attr)
-        else:
-            un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,edges=self.edges)
-            uncollided = Uncollided(*un_attr)
-            col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,edges=self.edges)
-            collided = Collided(*col_attr)
-            
-        time_phi = []
-        speed_u = 1/(un_keys['v']*un_keys['dt']); speed_c = 1/(col_keys['v']*col_keys['dt'])
-        phi_c = np.zeros((collided.I,collided.G))
-
-        print('Initial Source ',np.sum(uncollided.lhs))
-        steps = int(np.ceil(un_keys['T']/un_keys['dt']))
+        # Set up Problem
+        un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
+        uncollided = Uncollided(*un_attr)
+        col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
+        collided = Collided(*col_attr)
+        # Initialize Speeds
+        speed_u = 1/(un_keys['v']*un_keys['dt'])
+        speed_c = 1/(col_keys['v']*col_keys['dt'])
+        # Initialize collided scalar flux
+        phi_c = np.zeros((collided.I,collided.G)); time_phi = []
+        psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
+        if self.ptype in ['ControlRod']:
+            psi_last = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,uncollided.N,1))
+        # For calculating the number of time steps (computer rounding error)
+        steps = int(np.round(un_keys['T']/un_keys['dt'],5))
+        # Determining source for problem
         if self.ptype in ['Stainless','UraniumStainless','StainlessUranium']:
             # full_lhs = Tools.discontinuous(uncollided.lhs,steps)
             full_lhs = Tools.continuous(uncollided.lhs,steps)
         else:
             full_lhs = Tools.stagnant(uncollided.lhs,steps)
-        # Initialize psi to zero
-        psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
         for t in range(steps):
-            # print('Time Step {}'.format(t))
+            if self.ptype in ['ControlRod']:
+                # The change of carbon --> stainless in problem
+                switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
+                print('Switch {} Step {}'.format(switch,t))
+                uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=0.22,switch=switch)
+                collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=0.22,switch=switch)
             # Step 1: Solve Uncollided Equation
             phi_u,_ = uncollided.multi_group(psi_last,speed_u,self.geometry)
             # Step 2: Compute Source for Collided
@@ -91,50 +78,50 @@ class Hybrid:
             # Step 4: Calculate next time step
             source = np.einsum('ijk,ik->ij',uncollided.scatter,phi) + uncollided.source + np.einsum('ijk,ik->ij',uncollided.fission,phi)
             phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source)
+            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Step 5: Update and repeat
-            #print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
-
+            psi_last = psi_next.copy()
+            time_phi.append(phi)
             uncollided.lhs = full_lhs[t].copy()
-            psi_last = psi_next.copy(); time_phi.append(phi)
-
         return phi,time_phi
 
     def bdf2(self):
-
-        if self.enrich:
-            un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
-            uncollided = Uncollided(*un_attr,td='BDF2')
-            col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
-            collided = Collided(*col_attr,td='BDF2')
-        else:
-            un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,edges=self.edges)
-            uncollided = Uncollided(*un_attr,td='BDF2')
-            col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,edges=self.edges)
-            collided = Collided(*col_attr,td='BDF2')
-            
-        time_phi = []
-        speed_u = 1/(un_keys['v']*un_keys['dt']); speed_c = 1/(col_keys['v']*col_keys['dt'])
-        phi_c = np.zeros((collided.I,collided.G))
-
-        print('Initial Source ',np.sum(uncollided.lhs))
-        steps = int(np.ceil(un_keys['T']/un_keys['dt']))
-
-        # Initialize psi to zero
-        psi_n0 = np.zeros((uncollided.I,uncollided.N,uncollided.G))
-        psi_n1 = psi_n0.copy()
+        # Set up Problem
+        un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
+        uncollided = Uncollided(*un_attr,td='BDF2')
+        col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
+        collided = Collided(*col_attr,td='BDF2')        
+        # Initialize speed
+        speed_u = 1/(un_keys['v']*un_keys['dt'])
+        speed_c = 1/(col_keys['v']*col_keys['dt'])
+        # Initialize collided scalar flux
+        phi_c = np.zeros((collided.I,collided.G)); time_phi = []
+        psi_n0 = np.zeros((uncollided.I,uncollided.N,uncollided.G)); psi_n1 = psi_n0.copy()        
+        # Initialize ControlRod problem differently
+        if self.ptype in ['ControlRod']:
+            psi_n1 = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,uncollided.N,1))
+            collided.td = 'BE'; uncollided.td = 'BE'
+        # For calculating the number of time steps (computer rounding error)
+        steps = int(np.round(un_keys['T']/un_keys['dt'],5))
+        # Determining source for problem
         if self.ptype in ['Stainless','UraniumStainless','StainlessUranium']:
             # full_lhs = Tools.discontinuous(uncollided.lhs,steps)
             full_lhs = Tools.continuous(uncollided.lhs,steps)
         else:
             full_lhs = Tools.stagnant(uncollided.lhs,steps)
-        
         for t in range(steps):
-            # print('Time Step {}'.format(t))
-            psi_last = 2 * psi_n1 - 0.5 * psi_n0
+            if self.ptype in ['ControlRod']:
+                # The change of carbon --> stainless in problem
+                switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
+                print('Switch {} Step {}'.format(switch,t))
+                uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=0.22,switch=switch)
+                collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=0.22,switch=switch)
+            # Backward Euler for first step, BDF2 for rest
+            psi_last = psi_n1.copy() if t == 0 else 2 * psi_n1 - 0.5 * psi_n0
             # Step 1: Solve Uncollided Equation
             phi_u,_ = uncollided.multi_group(psi_last,speed_u,self.geometry)
             # Step 2: Compute Source for Collided
-            source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u) 
+            source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u)
             # Resizing
             if self.Gu != self.Gc:
                 source_c = Tools.big_2_small(source_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits'])
@@ -150,16 +137,15 @@ class Hybrid:
             source = np.einsum('ijk,ik->ij',uncollided.scatter,phi) + uncollided.source + np.einsum('ijk,ik->ij',uncollided.fission,phi)
             phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source)
             # Step 5: Update and repeat
-            # print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
-
-            uncollided.lhs = full_lhs[t].copy()
-            # psi_last = psi_next.copy(); 
-            time_phi.append(phi)
-
+            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             psi_n0 = psi_n1.copy()
             psi_n1 = psi_next.copy()
-
+            time_phi.append(phi)
+            uncollided.lhs = full_lhs[t].copy()
+            # change to BDF2 time steps
+            collided.td = 'BDF2'; uncollided.td = 'BDF2'
         return phi,time_phi
+
 
 class Uncollided:
     def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,lhs,td='BE'):
@@ -180,17 +166,14 @@ class Uncollided:
             Different variables for collided and uncollided except I and inv_delta 
             psi_last: last time step, of size I x N
             speed: 1/(v*dt)   """
-
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cHybrid.so')
         sweep = clibrary.uncollided
 
         phi = np.zeros((self.I),dtype='float64')
-
         psi_next = np.zeros(psi_last.shape,dtype='float64')
 
         weight = self.mu * self.delta
         lhs = ctypes.c_double(boundary)
-
         for n in range(self.N):
             # Determine the direction
             direction = ctypes.c_int(int(np.sign(self.mu[n])))
@@ -208,18 +191,11 @@ class Uncollided:
             elif self.td == 'BDF2':
                 top_mult = (weight - 0.5 * total_ - 0.75 * speed).astype('float64')
                 bottom_mult = (1/(weight + 0.5 * total_ + 0.75 * speed)).astype('float64')
-
-            # top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
-            # bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64')
             top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
             bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
-
             phi_ptr = ctypes.c_void_p(phi.ctypes.data)
-                
             sweep(phi_ptr,psi_ptr,rhs_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),lhs,direction)
-
             psi_next[:,n] = psi_angle.copy()
-        
         return phi,psi_next
 
     def sphere(self,psi_last,speed,total_,source_,boundary):
@@ -228,10 +204,8 @@ class Uncollided:
         edges = np.cumsum(np.insert(np.ones((self.I))*1/self.delta,0,0))
         SA_plus = Tools.surface_area(edges[1:]).astype('float64')       # Positive surface area
         SAp_ptr = ctypes.c_void_p(SA_plus.ctypes.data)
-
         SA_minus = Tools.surface_area(edges[:self.I]).astype('float64') # Negative surface area
         SAm_ptr = ctypes.c_void_p(SA_minus.ctypes.data)
-
         V = Tools.volume(edges[1:],edges[:self.I])                      # Volume and total
         if self.td == 'BE':
             v_total = (V * total_ + speed).astype('float64')
@@ -243,15 +217,12 @@ class Uncollided:
         psi_centers = np.zeros((self.N),dtype='float64')
 
         mu_minus = -1
-
         angular = np.zeros((self.I),dtype='float64')
         an_ptr = ctypes.c_void_p(angular.ctypes.data)
-
         phi = np.zeros((self.I),dtype='float64')
         for n in range(self.N):
             mu_plus = mu_minus + 2 * self.w[n]
             tau = (self.mu[n] - mu_minus) / (mu_plus - mu_minus)
-
             if n == 0:
                 alpha_minus = ctypes.c_double(0.)
                 psi_nhalf = (Tools.half_angle(boundary,total_,1/self.delta, source_)).astype('float64')
@@ -259,20 +230,16 @@ class Uncollided:
                 alpha_plus = ctypes.c_double(0.)
             else:
                 alpha_plus = ctypes.c_double(alpha_minus - self.mu[n] * self.w[n])
-
             # psi_ihalf = ctypes.c_double(min(0.,psi_centers[N-n-1],key=abs))
             if self.mu[n] > 0:
                 # psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
                 psi_ihalf = ctypes.c_double(psi_nhalf[0])
             elif self.mu[n] < 0:
                 psi_ihalf = ctypes.c_double(boundary)
-
             Q = (V * (source_) + psi_last[:,n] * speed).astype('float64') #+ psi_last[:,n] * speed
             q_ptr = ctypes.c_void_p(Q.ctypes.data)
-
             psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
             phi_ptr = ctypes.c_void_p(phi.ctypes.data)
-
             clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf,ctypes.c_double(tau))
             # Update angular center corrections
             psi_centers[n] = angular[0]
@@ -280,7 +247,6 @@ class Uncollided:
             # Update angular difference coefficients
             alpha_minus = alpha_plus
             mu_minus = mu_plus
-                
         return phi,psi_next
 
     def multi_group(self,psi_last,speed,geometry='slab',source=None):
@@ -293,7 +259,6 @@ class Uncollided:
             current = self.source.copy()
         else:
             current = source.copy()
-
         tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
@@ -329,7 +294,6 @@ class Collided:
 
         clibrary = ctypes.cdll.LoadLibrary('./discrete1/data/cHybrid.so')
         sweep = clibrary.collided
-
         source_ = source_.astype('float64')
         source_ptr = ctypes.c_void_p(source_.ctypes.data)
         
@@ -350,18 +314,12 @@ class Collided:
                 elif self.td == 'BDF2':
                     top_mult = (weight - 0.5 * total_ - 0.75 * speed).astype('float64')
                     bottom_mult = (1/(weight + 0.5 * total_ + 0.75 * speed)).astype('float64')
-                # top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
-                # bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64') 
                 top_ptr = ctypes.c_void_p(top_mult.ctypes.data)
                 bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
-
                 temp_scat = (scatter_ * phi_old).astype('float64')
                 ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
-
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
-                    
                 sweep(phi_ptr,ts_ptr,source_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
-
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.
@@ -376,10 +334,8 @@ class Collided:
         edges = np.cumsum(np.insert(np.ones((self.I))*1/self.delta,0,0))
         SA_plus = Tools.surface_area(edges[1:]).astype('float64')       # Positive surface area
         SAp_ptr = ctypes.c_void_p(SA_plus.ctypes.data)
-
         SA_minus = Tools.surface_area(edges[:self.I]).astype('float64') # Negative surface area
         SAm_ptr = ctypes.c_void_p(SA_minus.ctypes.data)
-
         V = Tools.volume(edges[1:],edges[:self.I])                      # Volume and total
         if self.td == 'BE':
             v_total = (V * total_ + speed).astype('float64')
@@ -399,11 +355,9 @@ class Collided:
             an_ptr = ctypes.c_void_p(angular.ctypes.data)
 
             phi = np.zeros((self.I),dtype='float64')
-            # psi_nhalf = (Tools.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
             for n in range(self.N):
                 mu_plus = mu_minus + 2 * self.w[n]
                 tau = (self.mu[n] - mu_minus) / (mu_plus - mu_minus)
-                
                 if n == 0:
                     alpha_minus = ctypes.c_double(0.)
                     psi_nhalf = (Tools.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
@@ -411,7 +365,6 @@ class Collided:
                     alpha_plus = ctypes.c_double(0.)
                 else:
                     alpha_plus = ctypes.c_double(alpha_minus - self.mu[n] * self.w[n])
-
                 if self.mu[n] > 0:
                     # psi_ihalf = ctypes.c_double(psi_centers[self.N-n-1])
                     psi_ihalf = ctypes.c_double(psi_nhalf[0])
@@ -420,32 +373,26 @@ class Collided:
 
                 Q = (V * (source_ + scatter_ * phi_old)).astype('float64') #+ psi_last[:,n] * speed
                 q_ptr = ctypes.c_void_p(Q.ctypes.data)
-
                 psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
-
                 clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf,ctypes.c_double(tau))
                 # Update angular center corrections
                 psi_centers[n] = angular[0]
                 # Update angular difference coefficients
                 alpha_minus = alpha_plus
                 mu_minus = mu_plus
-                
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
-
         return phi
 
     def update_q(xs,phi,start,stop,g):
         return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
 
     def multi_group(self,speed,source,guess,geometry='slab'):
-        
         assert(source.shape[1] == self.G), 'Wrong Number of Groups'
         phi_old = guess.copy()
-
         geo = getattr(Collided,geometry)  # Get the specific sweep
         
         tol = 1e-12; MAX_ITS = 100
@@ -518,7 +465,7 @@ class Tools:
         return psi_nhalf
         
     def stagnant(source,steps):
-        return np.tile(source,(len(steps),1))
+        return np.tile(source,(steps,1))
 
     def continuous(source,steps):
         func = lambda a,b: list(erfc(np.arange(1,4))*a+b)
