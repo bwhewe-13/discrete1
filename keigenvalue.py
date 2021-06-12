@@ -1,6 +1,7 @@
 """ Setting Up Criticality problems for critical.py """
 
 from .generate import XSGenerate087, XSGenerate618
+from .fixed import Tools as ReduceTools
 
 import numpy as np
 import pkg_resources
@@ -69,6 +70,16 @@ class Problem2:
         elif orient == 'dep_enr_02':  # Deplete/Enrich - 0.5
             shape = [5,1,4]
 
+        elif orient == 'refl_dep_03':  # Refl/Deplete + 0.5
+            shape = [5.2,1.3,3.5]
+        elif orient == 'dep_enr_03':  # Deplete/Enrich - 0.5
+            shape = [5,1.3,3.7]
+
+        elif orient == 'refl_dep_04':  # Refl/Deplete + 0.5
+            shape = [5.4,1.1,3.5]
+        elif orient == 'dep_enr_04':  # Deplete/Enrich - 0.5
+            shape = [5,1.1,3.9]
+
         # Depleted is 0% Pu-239
         materials = [refl,['pu',1-enrich],['pu',0]]
         return shape,materials
@@ -100,19 +111,23 @@ class Problem2:
 
 class Problem3:
     # 87 Group problem
-    def orientation(refl,enrich,orient='orig'):
-        if orient == 'orig':
-            # shape = [10,4,6]
-            # materials = [refl,['u',enrich],refl]
-            shape = [10,4,12,4,10]
-            materials = [refl,['u',enrich],refl,['u',enrich],refl]
+    def orientation(refl,enrich,orient='c'):
+        # if orient == 'orig':  # carbon in middle
+        #     # shape = [10,4,6]
+        #     # materials = [refl,['u',enrich],refl]
+        #     shape = [10,4,12,4,10]
+        #     materials = [refl,['u',enrich],orient,['u',enrich],refl]
+        shape = [10,4,12,4,10]
+        materials = [refl,['u',enrich],orient,['u',enrich],refl]
         return shape,materials
 
-    def steady(refl,enrich,orient='orig'):
+    def steady(refl,enrich,orient='c',groups=87):
         shape,materials = Problem3.orientation(refl,enrich,orient)
 
         L = 0; R = sum(shape); I = 1000
-        G = 87; N = 8
+        G = groups; N = 8
+        reduced = True if G != 87 else False
+
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w)
         # Take only half (reflective)
@@ -122,6 +137,11 @@ class Problem3:
 
         xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(materials)
         layers = [int(ii/delta) for ii in shape]
+
+        if reduced:
+            energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
+            edges = None
+            xs_total,xs_scatter,xs_fission = ReduceTools.group_reduction(G,energy_grid,xs_total,xs_scatter,xs_fission,edges)
 
         total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
 
@@ -196,5 +216,4 @@ class _Constants:
     reflective_materials = ['hdpe','ss440']
     # ['molar mass','density']
     compound_density = json.load(open(DATA_PATH + 'compound_density.json','r'))
-
 

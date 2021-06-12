@@ -329,7 +329,7 @@ class StainlessUranium: # Sphere problem
 
 class ControlRod: # Slab problem
 
-    def steady(G,N,boundary='vacuum',enrich=0.21,edges=None):
+    def steady(G,N,boundary='vacuum',enrich=0.22,edges=None):
         # Checking for energy group collapse
         reduced = True if G != 87 else False
         # Setting up shape problem

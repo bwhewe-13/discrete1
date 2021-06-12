@@ -385,7 +385,7 @@ class Source:
         self.speed = 1/(self.v*self.dt)
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(self.T/self.dt,5))
-        print('\n\n================\nTime Steps {}\n================\n\n'.format(steps))
+        # print('\n\n================\nTime Steps {}\n================\n\n'.format(steps))
         # Determine source for problem
         if self.problem in ['Stainless','UraniumStainless','StainlessUranium']:
             full_lhs = Source.continuous(self.lhs,steps)
@@ -422,7 +422,6 @@ class Source:
             self.td = 'BE' # Initial step is BE
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(self.T/self.dt,5))
-        print('\n\n================\nTime Steps {}\n================\n\n'.format(steps))
         # Determine source for problem
         if self.problem in ['Stainless','UraniumStainless','StainlessUranium']:
             full_lhs = Source.continuous(self.lhs,steps)

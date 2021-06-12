@@ -58,8 +58,9 @@ class Critical:
         elif refl in ['pu']:
             attributes = Problem2.steady('hdpe',enrich,orient)
         elif refl in ['c']:
-            attributes = Problem3.steady('c',enrich,orient)
-        print('\n\n========================\nOrient {}\n========================\n\n'.format(orient))
+            groups = kwargs['G'] if 'G' in kwargs else 87 
+            attributes = Problem3.steady('c',enrich,orient,groups)
+            print('\n\n========================\nOrient {} Groups {}\n========================\n\n'.format(orient,groups))
         boundary = kwargs['boundary'] if 'boundary' in kwargs else 'reflected'
         problem = cls(*attributes,boundary=boundary)
         problem.saving = '0'
@@ -112,12 +113,13 @@ class Critical:
         elif refl in ['pu']:
             attributes = Problem2.steady('hdpe',enrich,orient)
         initial = '{}/initial_{}.npy'.format(DATA_PATH,refl)
-
+        # initial = 'mydata/djinn_pluto_perturb/true_phi_{}_15.npy'.format(orient)
+        # print('\n\n========================\nInitial {}\n========================\n\n'.format(initial))
         problem = cls(*attributes)
         problem.saving = '3' # To know when to call DJINN
         problem.atype = atype
         problem.initial = initial
-        print('\n\n========================\nOrient {}\n========================\n\n'.format(orient))
+        # print('\n\n========================\nOrient {}\n========================\n\n'.format(orient))
         model = DJAE(dj_models,ae_models,atype,transform,**kwargs)
         model.load_model()
         model.load_problem(refl,enrich,orient)
