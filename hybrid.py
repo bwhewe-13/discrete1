@@ -44,7 +44,8 @@ class Hybrid:
         phi_c = np.zeros((collided.I,collided.G)); time_phi = []
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
         if self.ptype in ['ControlRod']:
-            psi_last = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,uncollided.N,1))
+            # psi_last = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,uncollided.N,1))
+            psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/carbon_g87_phi_20.npy'),axis=1),(1,uncollided.N,1))
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(un_keys['T']/un_keys['dt'],5))
         # Determining source for problem
@@ -58,8 +59,8 @@ class Hybrid:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
                 print('Switch {} Step {}'.format(switch,t))
-                uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=0.22,switch=switch)
-                collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=0.22,switch=switch)
+                uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=0.20,switch=switch)
+                collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=0.20,switch=switch)
             # Step 1: Solve Uncollided Equation
             phi_u,_ = uncollided.multi_group(psi_last,speed_u,self.geometry)
             # Step 2: Compute Source for Collided
@@ -99,7 +100,8 @@ class Hybrid:
         psi_n0 = np.zeros((uncollided.I,uncollided.N,uncollided.G)); psi_n1 = psi_n0.copy()        
         # Initialize ControlRod problem differently
         if self.ptype in ['ControlRod']:
-            psi_n1 = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,uncollided.N,1))
+            # psi_n1 = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,uncollided.N,1))
+            psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/carbon_g87_phi_20.npy'),axis=1),(1,uncollided.N,1))
             collided.td = 'BE'; uncollided.td = 'BE'
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(un_keys['T']/un_keys['dt'],5))
@@ -114,8 +116,8 @@ class Hybrid:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
                 print('Switch {} Step {}'.format(switch,t))
-                uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=0.22,switch=switch)
-                collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=0.22,switch=switch)
+                uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=0.20,switch=switch)
+                collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=0.20,switch=witch)
             # Backward Euler for first step, BDF2 for rest
             psi_last = psi_n1.copy() if t == 0 else 2 * psi_n1 - 0.5 * psi_n0
             # Step 1: Solve Uncollided Equation
