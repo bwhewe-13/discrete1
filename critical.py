@@ -13,7 +13,7 @@ DATA_PATH = 'discrete1/data/'
 
 class Critical:
     # Keyword Arguments allowed currently
-    __allowed = ("boundary","track","geometry")
+    __allowed = ("boundary","track","geometry","reduced")
 
     def __init__(self,G,N,mu,w,total,scatter,fission,I,delta,**kwargs):
         """ Deals with Eigenvalue multigroup problems (reflected and vacuum boundaries)
@@ -32,6 +32,7 @@ class Critical:
                 options: 'vacuum', 'reflected'
             track: bool (default False), if track flux change with iteration
             geometry: str (default slab), determines coordinates of sweep ('slab' or 'sphere')
+            reduce: list of cross sections instead of each spatial cell
         """ 
         # Attributes
         self.G = G; self.N = N
@@ -44,8 +45,9 @@ class Critical:
         self.boundary = 'reflected'; self.track = False
         self.atype = ''; self.saving = '0'
         self.geometry = 'slab'
+        self.reduced = None
         for key, value in kwargs.items():
-            assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, track, geometry" 
+            assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, track, geometry, reduced" 
             setattr(self, key, value)
         Critical.compile(I,N)
         
@@ -60,12 +62,10 @@ class Critical:
         elif refl in ['c']:
             groups = kwargs['G'] if 'G' in kwargs else 87 
             attributes = Problem3.steady('c',enrich,orient,groups)
-            print('\n\n========================\nOrient {} Groups {}\n========================\n\n'.format(orient,groups))
         boundary = kwargs['boundary'] if 'boundary' in kwargs else 'reflected'
         problem = cls(*attributes,boundary=boundary)
         problem.saving = '0'
         problem.atype = ''
-        # print('\n\n========================\nGeometry {}\n========================\n\n'.format(problem.geometry))
         return problem.transport()
 
     @classmethod
@@ -127,6 +127,30 @@ class Critical:
         return problem.transport(models=model)
 
         
+    @classmethod
+    def run_reduce(cls,refl,enrich,orient='orig',**kwargs):
+        # This is only for slab problems 
+        attributes = Problem2.steady('hdpe',enrich,orient)
+        _,splits = Problem2.labeling('hdpe',enrich,orient)
+        splits = np.sort(np.array([item for sublist in list(splits.values()) for item in sublist]))
+
+        boundary = kwargs['boundary'] if 'boundary' in kwargs else 'reflected'
+        problem = cls(*attributes,boundary=boundary,reduced=splits)
+        
+        global_indices = [len(range(*ii.indices(problem.I))) for ii in splits]
+        cum_indices = np.insert(np.cumsum(global_indices,dtype=int),0,0)[:-1]
+
+        problem.scatter = problem.scatter[cum_indices].copy()
+        problem.fission = problem.fission[cum_indices].copy()
+        problem.total = problem.total[cum_indices].copy()
+
+        problem.saving = '0'
+        problem.atype = ''
+
+        Critical.reduce_compile(problem.I,global_indices)
+        return problem.transport()
+
+
     def slab(self,total_,scatter_,source_,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
             total_: I x 1 vector of the total cross section for each spatial cell
@@ -137,9 +161,7 @@ class Critical:
             phi: a I array  """
         clibrary = ctypes.cdll.LoadLibrary('./{}/cCritical.so'.format(DATA_PATH))
         sweep = clibrary.reflected if self.boundary == 'reflected' else clibrary.vacuum
-        # if self.boundary == 'vacuum':
-        #     sweep = clibrary.vacuum
-        
+
         phi_old = guess.copy()
         source_ = source_.astype('float64')
         ext_ptr = ctypes.c_void_p(source_.ctypes.data)
@@ -157,7 +179,7 @@ class Critical:
                 bottom_mult = (1/(weight + 0.5 * total_)).astype('float64')
                 bot_ptr = ctypes.c_void_p(bottom_mult.ctypes.data)
 
-                if self.atype in ['scatter','both']:
+                if self.atype in ['scatter','both'] or self.reduced is not None:
                     temp_scat = (scatter_).astype('float64')
                 else:
                     temp_scat = (scatter_ * phi_old).astype('float64')
@@ -165,8 +187,13 @@ class Critical:
                 ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
                 
-                sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
-                
+                if self.reduced is not None:
+                    phi_old = phi_old.astype('float64')
+                    gu_ptr = ctypes.c_void_p(phi_old.ctypes.data)
+                    clibrary.reflected_reduced(phi_ptr,gu_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]))
+                else:
+                    sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
+
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
@@ -230,6 +257,8 @@ class Critical:
 
     
     def update_q(self,phi,start,stop,g):
+        if self.reduced is not None:
+            return np.sum(Critical.repopulate(self.reduced,self.scatter[:,g,start:stop],phi[:,start:stop]),axis=1)
         return np.sum(self.scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
 
     def multi_group(self,source,guess,tol=1e-12,MAX_ITS=100):
@@ -250,10 +279,7 @@ class Critical:
                     q_tilde = source[:,g] + Critical.update_q(self,phi_old,g+1,self.G,g)
                     if g != 0:
                         q_tilde += Critical.update_q(self,phi,0,g,g)
-
-                    # phi[:,g] = Critical.slab(self,self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g])
                     phi[:,g] = geo(self,self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g])
-
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
@@ -280,7 +306,7 @@ class Critical:
             
             keff = np.linalg.norm(phi)
             phi /= keff
-                        
+
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))
             print('Change is',change,'Keff is',keff)
 
@@ -292,6 +318,8 @@ class Critical:
         return phi,keff
 
     def sorting_fission(self,phi,models):
+        if self.reduced is not None:
+            return Critical.repopulate(self.reduced,self.fission,phi)
         if self.saving == '0' or self.atype not in ['both','fission']: # No Reduction
             return np.einsum('ijk,ik->ij',self.fission,phi)
         elif self.saving in ['1','3']:                                 # DJINN / DJINN + Autoencoder
@@ -329,10 +357,23 @@ class Critical:
     def compile(I,N):
         # Compile Slab
         command = 'gcc -fPIC -shared -o {}cCritical.so {}cCritical.c -DLENGTH={}'.format(DATA_PATH,DATA_PATH,I)
+        os.system(command)
         # Compile Sphere
         command = 'gcc -fPIC -shared -o {}cCriticalSP.so {}cCriticalSP.c -DLENGTH={} -DN={}'.format(DATA_PATH,DATA_PATH,I,N)
         os.system(command)
 
+    def reduce_compile(I,materials):
+        # Compile Slab
+        extraneous = ' -DHDPE={} -DPU239={} -DPU240={}'.format(materials[0],materials[1],materials[2])
+        command = 'gcc -fPIC -shared -o {}cCritical.so {}cCritical.c -DLENGTH={}'.format(DATA_PATH,DATA_PATH,I)
+        command += extraneous
+        os.system(command)
+
+    def repopulate(index,xs,phi):
+        # Multiplying full phi by reduced cross section
+        if len(xs.shape) == 2:  # Total cross section
+            return np.concatenate([xs[ii] * phi[index[ii]] for ii in range(len(index))])
+        return np.concatenate([phi[index[ii]] @ xs[ii].T for ii in range(len(index))])
 
     # def tracking_data(self,flux,sources=None):
     #     from discrete1.util import sn
