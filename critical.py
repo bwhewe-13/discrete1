@@ -114,16 +114,13 @@ class Critical:
             attributes = Problem2.steady('hdpe',enrich,orient)
         initial = '{}/initial_{}.npy'.format(DATA_PATH,refl)
         # initial = 'mydata/djinn_pluto_perturb/true_phi_{}_15.npy'.format(orient)
-        # print('\n\n========================\nInitial {}\n========================\n\n'.format(initial))
         problem = cls(*attributes)
         problem.saving = '3' # To know when to call DJINN
         problem.atype = atype
         problem.initial = initial
-        # print('\n\n========================\nOrient {}\n========================\n\n'.format(orient))
         model = DJAE(dj_models,ae_models,atype,transform,**kwargs)
         model.load_model()
         model.load_problem(refl,enrich,orient)
-        # print('\n\n========================\nGeometry {}\n========================\n\n'.format(problem.geometry))
         return problem.transport(models=model)
 
         
@@ -151,7 +148,7 @@ class Critical:
         return problem.transport()
 
 
-    def slab(self,total_,scatter_,source_,guess,tol=1e-08,MAX_ITS=100):
+    def slab(self,total_,scatter_,source_,guess,tol=1e-12,MAX_ITS=100):
         """ Arguments:
             total_: I x 1 vector of the total cross section for each spatial cell
             scatter_: I x L+1 array for the scattering of the spatial cell by moment
@@ -261,7 +258,7 @@ class Critical:
             return np.sum(Critical.repopulate(self.reduced,self.scatter[:,g,start:stop],phi[:,start:stop]),axis=1)
         return np.sum(self.scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
 
-    def multi_group(self,source,guess,tol=1e-12,MAX_ITS=100):
+    def multi_group(self,source,guess,tol=1e-16,MAX_ITS=100):
         phi_old = guess.copy()
 
         geo = getattr(Critical,self.geometry)  # Get the specific sweep
@@ -286,7 +283,7 @@ class Critical:
             phi_old = phi.copy()
         return phi
             
-    def transport(self,models=None,tol=1e-12,MAX_ITS=100):
+    def transport(self,models=None,tol=1e-16,MAX_ITS=100):
 
         self.models = models
         # if self.saving != '0': # Running from random
