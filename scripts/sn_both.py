@@ -4,6 +4,7 @@ import numpy as np
 from discrete1.critical import Critical
 import argparse, os
 import time
+import datetime
 
 parser = argparse.ArgumentParser(description='Enrichment')
 
@@ -16,6 +17,9 @@ parser.add_argument('-iteration',action='store',dest='iters')
 usr_input = parser.parse_args()
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+day = datetime.datetime.now().strftime('%x').replace('/','-')
+print('Today is ',day)
 
 # Enrichment and associated labels
 enrich = [float(jj) for jj in usr_input.en]
@@ -51,15 +55,24 @@ save_file = usr_input.fission[0]
 atype = 'both'
 
 if usr_input.its:
+    key = np.array(['day','time','type','elapsed','enrichment'])
+    ktype = usr_input.fission[0]
     its = int(usr_input.its)
     for ii in range(len(enrich)):
-        timer = []
+        # timer = []
         for tt in range(its):
             start = time.time()
+            hour = datetime.datetime.now().strftime('%X')
             _,_ = Critical.run_djae('pu',enrich[ii],dj_model,ae_model,atype,double=True,label=labeled)
             end = time.time()
-            timer.append(end-start)
-        np.save('{}_time_{}_{}_{:<02}'.format(save_folder,save_file,usr_input.iters,labels[ii]),timer)
+            # timer.append(end-start)
+            key = np.vstack((key,[day,hour,ktype,end-start,labels[ii]]))
+        # np.save('{}_time_{}_{}_{:<02}'.format(save_folder,save_file,usr_input.iters,labels[ii]),timer)
+    # Add to key
+    full_key_name = 'djinn_{}_time.npy'.format(ktype)
+    full_key = np.load(full_key_name)
+    full_key = np.vstack((full_key,key[1:]))
+    np.save(full_key_name,full_key)
 else:
     for ii in range(len(enrich)):
         phi,keff = Critical.run_djae('pu',enrich[ii],dj_model,ae_model,atype,double=True,label=labeled) # focus=usr_input.focus,

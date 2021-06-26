@@ -44,7 +44,8 @@ class Hybrid:
         phi_c = np.zeros((collided.I,collided.G)); time_phi = []
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
         if self.ptype in ['ControlRod']:
-            psi_last = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,uncollided.N,1))
+            # psi_last = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,uncollided.N,1))
+            psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/carbon_g87_phi_20.npy'),axis=1),(1,uncollided.N,1))
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(un_keys['T']/un_keys['dt'],5))
         # Determining source for problem
@@ -99,7 +100,8 @@ class Hybrid:
         psi_n0 = np.zeros((uncollided.I,uncollided.N,uncollided.G)); psi_n1 = psi_n0.copy()        
         # Initialize ControlRod problem differently
         if self.ptype in ['ControlRod']:
-            psi_n1 = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,uncollided.N,1))
+            # psi_n1 = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,uncollided.N,1))
+            psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/carbon_g87_phi_20.npy'),axis=1),(1,uncollided.N,1))
             collided.td = 'BE'; uncollided.td = 'BE'
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(un_keys['T']/un_keys['dt'],5))
