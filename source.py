@@ -395,12 +395,12 @@ class Source:
             if self.problem in ['ControlRod']:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
-                print('Switch {} Step {}'.format(switch,t))
+                #print('Switch {} Step {}'.format(switch,t))
                 self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.22,switch=switch)
             # Run the multigroup problem
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
-            if self.problem in ['ControlRod']:
-                print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            #if self.problem in ['ControlRod']:
+            #    print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Update scalar/angular flux
             psi_last = psi_next.copy()
             time_phi.append(phi)
@@ -432,14 +432,14 @@ class Source:
             if self.problem in ['ControlRod']:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
-                print('Switch {} Step {}'.format(switch,t))
+                #print('Switch {} Step {}'.format(switch,t))
                 self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.22,switch=switch)
             # Backward Euler for first step, BDF2 for rest
             psi_last = psi_n1.copy() if t == 0 else 2 * psi_n1 - 0.5 * psi_n0
             # Run the multigroup Problem
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
-            if self.problem in ['ControlRod']:
-                print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            #if self.problem in ['ControlRod']:
+            #    print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Update scalar/angular flux
             time_phi.append(phi)
             phi_old = phi.copy()

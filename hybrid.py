@@ -57,7 +57,7 @@ class Hybrid:
             if self.ptype in ['ControlRod']:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
-                print('Switch {} Step {}'.format(switch,t))
+                #print('Switch {} Step {}'.format(switch,t))
                 uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=0.22,switch=switch)
                 collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=0.22,switch=switch)
             # Step 1: Solve Uncollided Equation
@@ -78,7 +78,7 @@ class Hybrid:
             # Step 4: Calculate next time step
             source = np.einsum('ijk,ik->ij',uncollided.scatter,phi) + uncollided.source + np.einsum('ijk,ik->ij',uncollided.fission,phi)
             phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source)
-            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            #print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Step 5: Update and repeat
             psi_last = psi_next.copy()
             time_phi.append(phi)
@@ -113,7 +113,7 @@ class Hybrid:
             if self.ptype in ['ControlRod']:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
-                print('Switch {} Step {}'.format(switch,t))
+                #print('Switch {} Step {}'.format(switch,t))
                 uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=0.22,switch=switch)
                 collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=0.22,switch=switch)
             # Backward Euler for first step, BDF2 for rest
@@ -137,7 +137,7 @@ class Hybrid:
             source = np.einsum('ijk,ik->ij',uncollided.scatter,phi) + uncollided.source + np.einsum('ijk,ik->ij',uncollided.fission,phi)
             phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source)
             # Step 5: Update and repeat
-            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            #print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             psi_n0 = psi_n1.copy()
             psi_n1 = psi_next.copy()
             time_phi.append(phi)
