@@ -13,7 +13,7 @@ parser.add_argument('-fission',action='store',dest='fission',nargs='+')
 parser.add_argument('-refl',action='store',dest='refl',nargs='+')
 parser.add_argument('-fuel',action='store',dest='fuel',nargs='+')
 parser.add_argument('-time',action='store',dest='its')
-parser.add_argument('-iteration',action='store',dest='iters')
+# parser.add_argument('-iteration',action='store',dest='iters')
 usr_input = parser.parse_args()
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -69,7 +69,7 @@ if usr_input.its:
             key = np.vstack((key,[day,hour,ktype,end-start,labels[ii]]))
         # np.save('{}_time_{}_{}_{:<02}'.format(save_folder,save_file,usr_input.iters,labels[ii]),timer)
     # Add to key
-    full_key_name = 'djinn_{}_time.npy'.format(ktype)
+    full_key_name = 'mydata/djinn_pluto/djinn_{}_time.npy'.format(ktype)
     full_key = np.load(full_key_name)
     full_key = np.vstack((full_key,key[1:]))
     np.save(full_key_name,full_key)
