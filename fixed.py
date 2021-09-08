@@ -421,19 +421,22 @@ class Tools:
         # assert (orig_size == np.sum(new_source))
         return new_source
 
-    def group_reduction(new_group,grid,total,scatter,fission,inds=None):
+    def group_reduction(new_group,grid,xs_total,xs_scatter,xs_fission,inds=None):
         """ Used to reduce the number of groups for cross sections and energy levels 
         Arguments:
             new_group: the reduction in the number of groups from the original
             grid: the original energy grid
             energy: True/False to return the new energy grid, default is False
             kwargs: 
-                total: total cross section of one spatial cell
-                scatter: scatter cross section of one spatial cell
-                fission: fission cross section of one spatial cell
+                xs_total: total cross section of one spatial cell
+                xs_scatter: scatter cross section of one spatial cell
+                xs_fission: fission cross section of one spatial cell
         Returns:
             The reduced matrices and vectors of the cross sections or energy
             (Specified in the kwargs)   """
+        total = xs_total.copy()
+        scatter = xs_scatter.copy()
+        fission = xs_fission.copy()
         # Calculate the indices while including the left-most (insert)
         inds = Tools.index_generator(len(grid)-1,new_group) if inds is None else inds
         # This is for scaling the new groups properly

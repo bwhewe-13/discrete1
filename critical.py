@@ -1,6 +1,6 @@
 """ Criticality Eigenvalue Problems """
 
-from .keigenvalue import Problem1, Problem2, Problem3
+from .keigenvalue import Problem1, Problem2, Problem3, Problem4
 from .reduction import DJ,AE,DJAE
 
 import numpy as np
@@ -50,7 +50,7 @@ class Critical:
             assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, track, geometry, reduced" 
             setattr(self, key, value)
         Critical.compile(I,N)
-        
+
 
     @classmethod
     def run(cls,refl,enrich,orient='orig',**kwargs):
@@ -60,10 +60,13 @@ class Critical:
         elif refl in ['pu']:
             attributes = Problem2.steady('hdpe',enrich,orient)
         elif refl in ['c']:
-            groups = kwargs['G'] if 'G' in kwargs else 87 
-            attributes = Problem3.steady('c',enrich,orient,groups)
+            groups = kwargs['G'] if 'G' in kwargs else 87
+            attributes = Problem3.steady('hdpe',enrich,orient,groups)
+        elif refl in ['diff']:
+            attributes = Problem4.steady('ss440',enrich,orient,kwargs['sn'])
+
         boundary = kwargs['boundary'] if 'boundary' in kwargs else 'reflected'
-        problem = cls(*attributes,boundary=boundary)
+        problem = cls(*attributes,boundary=boundary,geometry='sphere')
         problem.saving = '0'
         problem.atype = ''
         return problem.transport()
@@ -148,7 +151,7 @@ class Critical:
         return problem.transport()
 
 
-    def slab(self,total_,scatter_,source_,guess,tol=1e-12,MAX_ITS=100):
+    def slab(self,total_,scatter_,source_,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
             total_: I x 1 vector of the total cross section for each spatial cell
             scatter_: I x L+1 array for the scattering of the spatial cell by moment
@@ -186,7 +189,7 @@ class Critical:
                 
                 if self.reduced is not None:
                     phi_old = phi_old.astype('float64')
-                    gu_ptr = ctypes.c_void_p(phi_old.ctypes.data)
+                    gu_ptr = ctypes.c_void_p(phi_old.ctypes.data)                    
                     clibrary.reflected_reduced(phi_ptr,gu_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]))
                 else:
                     sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
@@ -227,7 +230,8 @@ class Critical:
         w = self.w.astype('float64')
         w_ptr = ctypes.c_void_p(w.ctypes.data)
 
-        converged = 0; count = 1; 
+        converged = 0; count = 1;
+
         # psi_nhalf = (Critical.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
         while not (converged):
             phi = np.zeros((self.I),dtype='float64')
@@ -246,9 +250,10 @@ class Critical:
             sweep(phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,mu_ptr,w_ptr)
             
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
-            converged = (change < tol) or (count >= MAX_ITS) 
+            converged = (change < tol) or (count >= MAX_ITS) #or (change == np.nan)
             count += 1
             phi_old = phi.copy()
+            # print(change)
 
         return phi
 
@@ -258,7 +263,7 @@ class Critical:
             return np.sum(Critical.repopulate(self.reduced,self.scatter[:,g,start:stop],phi[:,start:stop]),axis=1)
         return np.sum(self.scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
 
-    def multi_group(self,source,guess,tol=1e-16,MAX_ITS=100):
+    def multi_group(self,source,guess,tol=1e-12,MAX_ITS=100):
         phi_old = guess.copy()
 
         geo = getattr(Critical,self.geometry)  # Get the specific sweep
@@ -272,6 +277,7 @@ class Critical:
                 for g in range(self.G):
                     phi[:,g] = geo(self,self.total[:,g],smult[:,g],source[:,g],phi_old[:,g])
             else:
+                
                 for g in range(self.G):
                     q_tilde = source[:,g] + Critical.update_q(self,phi_old,g+1,self.G,g)
                     if g != 0:
@@ -283,7 +289,7 @@ class Critical:
             phi_old = phi.copy()
         return phi
             
-    def transport(self,models=None,tol=1e-16,MAX_ITS=100):
+    def transport(self,models=None,tol=1e-12,MAX_ITS=100):
 
         self.models = models
         # if self.saving != '0': # Running from random
@@ -292,7 +298,7 @@ class Critical:
         else:
             phi_old = np.random.rand(self.I,self.G)
             phi_old /= np.linalg.norm(phi_old)
-
+            
         converged = 0; count = 1
         while not (converged):
             sources = Critical.sorting_fission(self,phi_old,self.models)

@@ -350,6 +350,7 @@ class Source:
             psi_last = kwargs['psi_last'].copy()
             psi_next = np.zeros(psi_last.shape)
             phi_old = kwargs['guess'].copy()
+
         tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
@@ -379,10 +380,15 @@ class Source:
         phi_old = np.zeros((self.I,self.G)); time_phi = []
         # Initialize angular flux
         psi_last = np.zeros((self.I,self.N,self.G))
-        if self.problem in ['ControlRod']:
-            psi_last = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,self.N,1))
         # Initialize Speed
         self.speed = 1/(self.v*self.dt)
+
+        if self.problem in ['ControlRod']:
+            # temp = np.load('mydata/control_rod_critical/carbon_g87_phi_20.npy')
+            # _,psi_last = Source.multi_group(self,psi_last=psi_last,guess=temp)
+            # psi_last = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,self.N,1))
+            psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/carbon_g87_phi_15.npy'),axis=1),(1,self.N,1))
+
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(self.T/self.dt,5))
         # print('\n\n================\nTime Steps {}\n================\n\n'.format(steps))
@@ -396,7 +402,7 @@ class Source:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
                 print('Switch {} Step {}'.format(switch,t))
-                self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.22,switch=switch)
+                self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.15,switch=switch)
             # Run the multigroup problem
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
             if self.problem in ['ControlRod']:
@@ -432,7 +438,7 @@ class Source:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
                 print('Switch {} Step {}'.format(switch,t))
-                self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.22,switch=switch)
+                self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.20,switch=switch)
             # Backward Euler for first step, BDF2 for rest
             psi_last = psi_n1.copy() if t == 0 else 2 * psi_n1 - 0.5 * psi_n0
             # Run the multigroup Problem

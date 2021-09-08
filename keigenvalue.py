@@ -32,7 +32,7 @@ class Problem1:
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w)
         # Take only half (reflective)
-        N = int(0.5*N); mu = mu[N:]; w = w[N:]
+        # N = int(0.5*N); mu = mu[N:]; w = w[N:]
 
         delta = R/I
 
@@ -81,14 +81,14 @@ class Problem2:
             shape = [5,1.1,3.9]
 
         # Depleted is 0% Pu-239
-        materials = [refl,['pu',1-enrich],['pu',0]]
+        # materials = [refl,['pu',1-enrich],['pu',0]]
         return shape,materials
 
     def steady(refl,enrich,orient='orig'):
         shape,materials = Problem2.orientation(refl,enrich,orient)
 
-        L = 0; R = sum(shape); I = 1000
-        G = 618; N = 8
+        L = 0; R = sum(shape); I = 20
+        G = 618; N = 16
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w)
         # Take only half (reflective)
@@ -118,7 +118,7 @@ class Problem3:
         #     shape = [10,4,12,4,10]
         #     materials = [refl,['u',enrich],orient,['u',enrich],refl]
         shape = [10,4,12,4,10]
-        materials = [refl,['u',enrich],orient,['u',enrich],refl]
+        materials = ['c',['u',enrich],refl,['u',enrich],'c']
         return shape,materials
 
     def steady(refl,enrich,orient='c',groups=87):
@@ -151,6 +151,65 @@ class Problem3:
         """ Returns the labels and splits of materials """
         shape,materials = Problem3.orientation(refl,enrich,orient)
         _,_,_,_,_,_,_,_,delta = Problem3.steady(refl,enrich,orient)
+        labels, splits = Tools.create_slices(shape,materials,delta)
+        return labels,splits
+
+class Problem4:
+    # 87 Group problem
+    def orientation(refl,enrich,orient='orig'):
+        if orient == 'uranium':
+            # shape = [10,5,5]
+            # materials = [refl,['u',enrich],['u',0]]
+            # shape = [10]
+            # materials = [['u',enrich]]
+            shape = [5,5,10]
+            materials = [['u',0],['u',enrich],refl]
+        elif orient == 'hydride':
+            # shape = [10,5,5]
+            # materials = [refl,['uh3',enrich],['uh3',0]]
+            shape = [5,5,10]
+            materials = [['uh3',0],['uh3',enrich],refl]
+        elif orient == 'mix1':
+            shape = [5,5,5,10]
+            materials = [['u',0],['u',0.5],['u',1.0],refl]
+        elif orient == 'mix2':
+            shape = [5,5,5,10]
+            materials = [['u',0],['u',0.3],['u',0.6],refl]
+        elif orient == 'mix3':
+            shape = [5,5,5,10]
+            materials = [['uh3',0],['uh3',0.5],['uh3',1.0],refl]
+        elif orient == 'mix4':
+            shape = [5,5,5,10]
+            materials = [['uh3',0],['uh3',0.3],['uh3',0.6],refl]
+
+        return shape,materials
+
+    def steady(refl,enrich,orient='orig',sn=8):
+        shape,materials = Problem4.orientation(refl,enrich,orient)
+
+        L = 0; R = sum(shape); I = 1000
+        G = 87; N = sn
+
+        mu,w = np.polynomial.legendre.leggauss(N)
+        w /= np.sum(w)
+        # Take only half (reflective)
+        # N = int(0.5*N); mu = mu[N:]; w = w[N:]
+
+        delta = R/I
+
+        xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(materials)
+        layers = [int(ii/delta) for ii in shape]
+
+        assert sum(layers) == I
+
+        total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
+
+        return G,N,mu,w,total_,scatter_,fission_,I,delta
+
+    def labeling(refl,enrich,orient='orig'):
+        """ Returns the labels and splits of materials """
+        shape,materials = Problem4.orientation(refl,enrich,orient)
+        _,_,_,_,_,_,_,_,delta = Problem4.steady(refl,enrich,orient)
         labels, splits = Tools.create_slices(shape,materials,delta)
         return labels,splits
 
