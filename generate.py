@@ -53,6 +53,7 @@ class XSGenerate618:
         pu239_scatter = np.load(DATA_PATH + 'pu239/scatter_000.npy')
         pu240_scatter = np.load(DATA_PATH + 'pu240/scatter_000.npy')
         hdpe_scatter = np.load(DATA_PATH + 'hdpe/scatter_000.npy')
+
         enrich_scatter = pu239_scatter * (1 - enrich) + pu240_scatter * enrich
         scatter_xs = [hdpe_scatter,enrich_scatter,pu240_scatter]
         # Remove excess
@@ -61,16 +62,20 @@ class XSGenerate618:
         pu239_fission = np.load(DATA_PATH + 'pu239/nufission_000.npy')
         pu240_fission = np.load(DATA_PATH + 'pu240/nufission_000.npy')
         hdpe_fission = np.zeros(pu239_fission.shape)
+        
         enrich_fission = pu239_fission * (1 - enrich) + pu240_fission * enrich
         fission_xs = [hdpe_fission,enrich_fission,pu240_fission]
+
         # Remove excess
         del pu239_fission, pu240_fission, hdpe_fission, enrich_fission
         # Total
         pu239_total = np.load(DATA_PATH + 'pu239/vecTotal.npy')
         pu240_total = np.load(DATA_PATH + 'pu240/vecTotal.npy')
         hdpe_total = np.load(DATA_PATH + 'hdpe/vecTotal.npy')
+
         enrich_total = pu239_total * (1 - enrich) + pu240_total * enrich
         total_xs = [hdpe_total,enrich_total,pu240_total]
+        
         # Remove excess
         del pu239_total, pu240_total, hdpe_total, enrich_total
         return total_xs, scatter_xs, fission_xs
