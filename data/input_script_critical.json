@@ -1,0 +1,39 @@
+{
+    "geometry": "slab",
+
+    "problem": "criticality",
+
+    "energy": 87,
+
+    "spatial": 1000,
+
+    "angles": 8,
+
+    "boundaries":   ["vacuum", "reflect"],
+
+    "materials":   [["mat1", "hdpe"],
+                    ["mat2", "uranium 15%"],
+                    ["mat3", "uranium 0%"]],
+
+    "mapping": [["mat1", 45],
+                ["mat2", 35],
+                ["mat3", 20]],
+
+
+    "clock-time": "False",
+
+    "time-dependency": "None",
+     
+    "elapsed-time": 10E-7,
+     
+    "time-step": 100,
+
+
+
+    "research": "None",
+
+    "saving": "False",
+     
+    "track": "None",
+
+}

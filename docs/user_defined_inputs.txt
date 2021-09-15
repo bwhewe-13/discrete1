@@ -1,0 +1,43 @@
+User Defined Inputs:
+================================================================================
+ + angles: int, number of angles
+
+ + boundaries: tuple, (left,right) hand side boundary conditions
+    "reflect", "vacuum", or "source" where "source" is predefined
+
+ + clock-time: str, saves the time for each iteration
+    "True" or "False"
+ 
+ + elapsed-time: float, elapsed time (in seconds) for time-dependent problems
+ 
+ + energy: int, number of energy groups
+
+ + geometry: str, which geometry to run the problem in
+    "slab" or "sphere"
+
+ + mapping: list of lists, gives an identifier and the width of material,
+    ordered from left boundary to right boundary
+    i.e. [["mat1", 5], ["mat2", 3]]
+
+ + materials: list of lists, gives an identifier and the material
+    i.e. [["mat1", "uranium hydride 20%"]]
+
+ + problem: str, type of transport problem to run
+    "criticality" or "fixed source"
+
+ + research: str, different time or data saving measures (beta)
+    "hybrid", "djinn", "autoencoder", "djinn-autoencoder", or "None"
+
+ + saving: str, saves the flux data and input deck with a specific time stamp
+    "True" or "False"
+
+ + spatial: int, number of spatial cells
+ 
+ + track: str, compiles and saves the flux, change, and clock-time for 
+    different iterations.
+    "inner", "outer", or "None"
+
+ + time-step: int, number of time steps to take for time-dependent problems
+
+ + time-dependency: str, determines which time discretization to use
+    "BE", "BDF2", or "None"

@@ -1,0 +1,37 @@
+{
+    "geometry": "slab",
+
+    "problem": "fixed source",
+
+    "energy": 87,
+
+    "spatial": 1000,
+
+    "angles": 8,
+
+    "boundaries":   ["source01", "vacuum"],
+
+    "materials":   [["mat1", "stainless"],
+                    ["mat2", "uranium hydride 20%"]],
+
+    "mapping": [["mat1", 4],
+                ["mat2", 2],
+                ["mat1", 4]],
+
+
+    "clock-time": "False",
+
+    "time-dependency": "BE",
+     
+    "elapsed-time": 10E-7,
+     
+    "time-step": 100,
+
+
+    "research": "None",
+
+    "saving": "False",
+     
+    "track": "None"
+
+}
