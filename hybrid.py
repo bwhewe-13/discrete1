@@ -8,6 +8,8 @@ import numpy as np
 import ctypes
 from scipy.special import erfc
 
+import time
+
 class Hybrid:
     def __init__(self,ptype,G,N):
         """ G and N are lists of [uncollided,collided]  """
@@ -64,14 +66,14 @@ class Hybrid:
                 uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=0.15,switch=switch)
                 collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=0.15,switch=switch)
             # Step 1: Solve Uncollided Equation
-            phi_u,_ = uncollided.multi_group(psi_last,speed_u,self.geometry)
+            phi_u,_ = uncollided.multi_group(psi_last,speed_u,self.geometry,ts=str(t)+'a')
             # Step 2: Compute Source for Collided
             source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u) 
             # Resizing
             if self.Gu != self.Gc:
                 source_c = Tools.big_2_small(source_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits'])
             # Step 3: Solve Collided Equation
-            phi_c = collided.multi_group(speed_c,source_c,phi_c,self.geometry)
+            phi_c = collided.multi_group(speed_c,source_c,phi_c,self.geometry,ts=t)
             # Resize phi_c
             if self.Gu != self.Gc:
                 # phi = Tools.small_2_big(phi_c,self.delta_u,self.delta_c,self.splits) + phi_u
@@ -80,8 +82,8 @@ class Hybrid:
                 phi = phi_c + phi_u
             # Step 4: Calculate next time step
             source = np.einsum('ijk,ik->ij',uncollided.scatter,phi) + uncollided.source + np.einsum('ijk,ik->ij',uncollided.fission,phi)
-            phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source)
-            #print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source,ts=str(t)+'b')
+            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Step 5: Update and repeat
             psi_last = psi_next.copy()
             time_phi.append(phi)
@@ -253,7 +255,7 @@ class Uncollided:
             mu_minus = mu_plus
         return phi,psi_next
 
-    def multi_group(self,psi_last,speed,geometry='slab',source=None):
+    def multi_group(self,psi_last,speed,geometry='slab',source=None,ts=None):
         # G is Gu
         phi_old = np.zeros((self.I,self.G))
         psi_next = np.zeros(psi_last.shape)
@@ -267,11 +269,17 @@ class Uncollided:
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
+
+            start = time.time()
             for g in range(self.G):
                 phi[:,g],psi_next[:,:,g] = geo(self,psi_last[:,:,g],speed[g],self.total[:,g],current[:,g],self.lhs[g])
+
+            end = time.time()
+
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.
+            np.save('testdata/slab_uranium_stainless_ts0100_be/hybrid_uncollided_ts{}_{}'.format(str(ts).zfill(4),str(count).zfill(3)),[['time',end - start],['change',change]])
             # print('Uncollided Change is',change,'\n===================================')
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
@@ -330,6 +338,7 @@ class Collided:
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
+
         return phi
 
     def sphere(self,speed,total_,scatter_,source_,guess_):
@@ -394,23 +403,28 @@ class Collided:
     def update_q(xs,phi,start,stop,g):
         return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
 
-    def multi_group(self,speed,source,guess,geometry='slab'):
+    def multi_group(self,speed,source,guess,geometry='slab',ts=None):
         assert(source.shape[1] == self.G), 'Wrong Number of Groups'
         phi_old = guess.copy()
         geo = getattr(Collided,geometry)  # Get the specific sweep
-        
+
         tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
+
+            start = time.time()
             for g in range(self.G):
                 q_tilde = source[:,g] + Collided.update_q(self.scatter,phi_old,g+1,self.G,g) + Collided.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
                     q_tilde += Collided.update_q(self.scatter,phi,0,g,g) + Collided.update_q(self.fission,phi,0,g,g)
                 phi[:,g] = geo(self,speed[g],self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
+            
+            end = time.time()
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.5
+            np.save('testdata/slab_uranium_stainless_ts0100_be/hybrid_collided_ts{}_{}'.format(str(ts).zfill(4),str(count).zfill(3)),[['time',end - start],['change',change]])
             # print('Collided Change is',change,'\n===================================')
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1

@@ -8,6 +8,8 @@ import numpy as np
 import ctypes
 from scipy.special import erfc
 
+import time
+
 class Source:
     # Keyword Arguments allowed currently
     __allowed = ("T","dt","v","boundary","geometry","td") # ,"hybrid","enrich","track")
@@ -354,7 +356,9 @@ class Source:
         tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
-            phi = np.zeros(phi_old.shape)  
+            phi = np.zeros(phi_old.shape)
+
+            start = time.time() 
             for g in range(self.G):
                 q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
@@ -363,9 +367,12 @@ class Source:
                     phi[:,g],psi_next[:,:,g] = geo(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],phi_old[:,g],psi_last[:,:,g],self.speed[g])
                 else:
                     phi[:,g] = geo(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],phi_old[:,g])
+            
+            end = time.time()
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.5
+            np.save('testdata/slab_uranium_stainless_ts0100_be/source_multigroup_ts{}_{}'.format(str(kwargs['ts']).zfill(4),str(count).zfill(3)),[['time',end - start],['change',change]])
             # if self.T:
             #     print('Count',count,'Change',change,'\n===================================')
             count += 1
@@ -404,9 +411,9 @@ class Source:
                 print('Switch {} Step {}'.format(switch,t))
                 self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.15,switch=switch)
             # Run the multigroup problem
-            phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
+            phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old,ts=t)
             #if self.problem in ['ControlRod']:
-            #    print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Update scalar/angular flux
             psi_last = psi_next.copy()
             time_phi.append(phi)
@@ -437,13 +444,9 @@ class Source:
             if self.problem in ['ControlRod']:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
-<<<<<<< HEAD
-                #print('Switch {} Step {}'.format(switch,t))
-                self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.22,switch=switch)
-=======
                 print('Switch {} Step {}'.format(switch,t))
                 self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.20,switch=switch)
->>>>>>> EigenvalueCleanUp
+
             # Backward Euler for first step, BDF2 for rest
             psi_last = psi_n1.copy() if t == 0 else 2 * psi_n1 - 0.5 * psi_n0
             # Run the multigroup Problem
