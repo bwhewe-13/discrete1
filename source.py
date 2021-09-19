@@ -195,7 +195,9 @@ class Source:
                 psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
 
-                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf,ctypes.c_double(tau))
+                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,\
+                    ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,\
+                    alpha_minus,psi_ihalf,ctypes.c_double(tau))
                 # Update angular center corrections
                 # psi_centers[n] = angular[0]
                 # Update angular difference coefficients
@@ -270,7 +272,9 @@ class Source:
                 psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
 
-                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf,ctypes.c_double(tau))
+                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,\
+                    ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,\
+                    alpha_minus,psi_ihalf,ctypes.c_double(tau))
                 # Update angular center corrections
                 psi_centers[n] = angular[0]
                 psi_next[:,n] = angular.copy()
@@ -325,7 +329,8 @@ class Source:
                 
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
                 
-                sweep(phi_ptr,psi_ptr,ts_ptr,rhs_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),lhs,direction)
+                sweep(phi_ptr,psi_ptr,ts_ptr,rhs_ptr,top_ptr,bot_ptr,\
+                    ctypes.c_double(self.w[n]),lhs,direction)
 
                 psi_next[:,n] = psi_angle.copy()
 
@@ -360,11 +365,14 @@ class Source:
 
             start = time.time() 
             for g in range(self.G):
-                q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) + Source.update_q(self.fission,phi_old,g+1,self.G,g)
+                q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) \
+                    + Source.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
                     q_tilde += Source.update_q(self.scatter,phi_old,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
                 if self.T:
-                    phi[:,g],psi_next[:,:,g] = geo(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],phi_old[:,g],psi_last[:,:,g],self.speed[g])
+                    phi[:,g],psi_next[:,:,g] = geo(self,self.total[:,g],\
+                        self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],\
+                        phi_old[:,g],psi_last[:,:,g],self.speed[g])
                 else:
                     phi[:,g] = geo(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],phi_old[:,g])
             
@@ -372,7 +380,8 @@ class Source:
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.5
-            np.save('testdata/slab_uranium_stainless_ts0100_be/source_multigroup_ts{}_{}'.format(str(kwargs['ts']).zfill(4),str(count).zfill(3)),[['time',end - start],['change',change]])
+            # file = 'testdata/slab_uranium_stainless_ts0100_be/source_multigroup_ts'
+            # np.save(file+'{}_{}'.format(str(kwargs['ts']).zfill(4),str(count).zfill(3)),[['time',end - start],['change',change]])
             # if self.T:
             #     print('Count',count,'Change',change,'\n===================================')
             count += 1
@@ -404,12 +413,24 @@ class Source:
             full_lhs = Source.continuous(self.lhs,steps)
         else:
             full_lhs = Source.stagnant(self.lhs,steps)
+        
+        variable_cross_section = True if self.total.shape[1] != self.G else False
+        if variable_cross_section:
+            xs_total = self.total.copy()
+            xs_scatter = self.scatter.copy()
+            xs_fission = self.fission.copy()
         for t in range(steps):
             if self.problem in ['ControlRod']:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
                 print('Switch {} Step {}'.format(switch,t))
                 self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.15,switch=switch)
+            if variable_cross_section:
+                from discrete1.fixed import Tools
+                # print('Calculating Cross Sections...')
+                ref_flux = np.load('discrete1/data/slab_uranium_stainless_ts0100_be_phi.npz')['ts{}'.format(str(t).zfill(4))]
+                self.total,self.scatter,self.fission = Tools.group_reduction_flux(self.G,\
+                    ref_flux,xs_total,xs_scatter,xs_fission)
             # Run the multigroup problem
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old,ts=t)
             #if self.problem in ['ControlRod']:

@@ -58,7 +58,7 @@ for gg in groups:
     timer = []
     if label == 'uranium_stainless':
         start = time.time()
-        phi,full = Source.run(part,gg,angle,T=T,dt=dt,enrich=0.2,geometry=usr_input.geometry,td=usr_input.time)
+        phi,full = Source.run(part,gg,angle,T=T,dt=dt,enrich=0.2,geometry=usr_input.geometry,td=usr_input.time,xsr=1)
         end = time.time()
     elif label == 'stainless':
         start = time.time()
