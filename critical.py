@@ -66,10 +66,10 @@ class Critical:
             attributes = Problem4.steady('ss440',enrich,orient,kwargs['sn'])
 
         boundary = kwargs['boundary'] if 'boundary' in kwargs else 'reflected'
-        problem = cls(*attributes,boundary=boundary,geometry='sphere')
+        problem = cls(*attributes,boundary=boundary,geometry='slab')
         problem.saving = '0'
         problem.atype = ''
-        return problem.transport()
+        return problem.transport(MAX_ITS=100)
 
     @classmethod
     def run_djinn(cls,refl,enrich,models,atype,orient='orig',**kwargs):
@@ -124,7 +124,7 @@ class Critical:
         model = DJAE(dj_models,ae_models,atype,transform,**kwargs)
         model.load_model()
         model.load_problem(refl,enrich,orient)
-        return problem.transport(models=model)
+        return problem.transport(models=model,MAX_ITS=20)
 
         
     @classmethod

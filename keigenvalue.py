@@ -57,19 +57,22 @@ class Problem2:
             shape = [5,1.5,3.5]
             # materials = [refl,['pu',1-enrich],['pu',0]]
         # Perturbations
-        elif orient == 'refl_dep_01':  # Refl/Deplete + 0.5
-            shape = [5.5,1,3.5]
-        elif orient == 'refl_dep_02':  # Refl/Deplete - 0.5
-            shape = [4.5,2,3.5]
-        elif orient == 'refl_enr_01':  # Refl/Enrich + 0.5
-            shape = [5.5,1.5,3]
-        elif orient == 'refl_enr_02':  # Refl/Enrich - 0.5
-            shape = [4.5,1.5,4]
-        elif orient == 'dep_enr_01':  # Deplete/Enrich + 0.5
-            shape = [5,2,3]
-        elif orient == 'dep_enr_02':  # Deplete/Enrich - 0.5
+        elif orient == 'dep_enr_01':  # Deplete + 0.5 / Enrich - 0.5
             shape = [5,1,4]
+        elif orient == 'dep_enr_02':  # Deplete - 0.5 / Enrich + 0.5
+            shape = [5,2,3]
 
+        elif orient == 'enr_refl_01':  # Enrich + 0.5 / Refl - 0.5
+            shape = [4.5,2,3]
+        elif orient == 'enr_refl_02':  # Enrich - 0.5 / Refl + 0.5
+            shape = [5.5,1,3.5]
+
+        elif orient == 'refl_dep_01':  # Refl + 0.5 / Deplete - 0.5
+            shape = [5.5,1.5,3]
+        elif orient == 'refl_dep_02':  # Refl - 0.5 / Deplete + 0.5
+            shape = [4.5,1.5,4]
+
+        # Have to work on these
         elif orient == 'refl_dep_03':  # Refl/Deplete + 0.5
             shape = [5.2,1.3,3.5]
         elif orient == 'dep_enr_03':  # Deplete/Enrich - 0.5
@@ -81,13 +84,13 @@ class Problem2:
             shape = [5,1.1,3.9]
 
         # Depleted is 0% Pu-239
-        # materials = [refl,['pu',1-enrich],['pu',0]]
+        materials = [refl,['pu',1-enrich],['pu',0]]
         return shape,materials
 
     def steady(refl,enrich,orient='orig'):
         shape,materials = Problem2.orientation(refl,enrich,orient)
 
-        L = 0; R = sum(shape); I = 20
+        L = 0; R = sum(shape); I = 1000
         G = 618; N = 16
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w)
