@@ -279,7 +279,7 @@ class Uncollided:
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.
-            np.save('testdata/slab_uranium_stainless_ts0100_be/hybrid_uncollided_ts{}_{}'.format(str(ts).zfill(4),str(count).zfill(3)),[['time',end - start],['change',change]])
+            np.save('testdata/slab_uranium_stainless_ts0100_be/hybrid_uncollided_ts{}_{}'.format(str(ts).zfill(4),str(count).zfill(3)),[['time',end - start],['change',np.linalg.norm(phi - phi_old)]])
             # print('Uncollided Change is',change,'\n===================================')
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
@@ -339,7 +339,7 @@ class Collided:
             count += 1
             phi_old = phi.copy()
 
-        return phi
+        return phi,count
 
     def sphere(self,speed,total_,scatter_,source_,guess_):
         clib = ctypes.cdll.LoadLibrary('./discrete1/data/cHybridSP.so')
@@ -388,7 +388,8 @@ class Collided:
                 q_ptr = ctypes.c_void_p(Q.ctypes.data)
                 psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
-                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf,ctypes.c_double(tau))
+                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,ctypes.c_double(self.w[n]),\
+                    ctypes.c_double(self.mu[n]),alpha_plus,alpha_minus,psi_ihalf,ctypes.c_double(tau))
                 # Update angular center corrections
                 psi_centers[n] = angular[0]
                 # Update angular difference coefficients
@@ -412,19 +413,20 @@ class Collided:
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
-
+            inner_count = np.zeros(self.G)
             start = time.time()
             for g in range(self.G):
                 q_tilde = source[:,g] + Collided.update_q(self.scatter,phi_old,g+1,self.G,g) + Collided.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
                     q_tilde += Collided.update_q(self.scatter,phi,0,g,g) + Collided.update_q(self.fission,phi,0,g,g)
-                phi[:,g] = geo(self,speed[g],self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
-            
+                phi[:,g],inner_count[g] = geo(self,speed[g],self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
             end = time.time()
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
-            if np.isnan(change) or np.isinf(change):
-                change = 0.5
-            np.save('testdata/slab_uranium_stainless_ts0100_be/hybrid_collided_ts{}_{}'.format(str(ts).zfill(4),str(count).zfill(3)),[['time',end - start],['change',change]])
+            # print('TS {} Count {} Change {}'.format(ts,count,np.linalg.norm(phi - phi_old)))
+            # if np.isnan(change) or np.isinf(change):
+            #     change = 0.5
+            tracking_data = np.array([['time',end - start],['change',np.linalg.norm(phi - phi_old)],['inner_count',inner_count]],dtype=object)
+            np.save('testdata/slab_uranium_stainless_ts0100_be/hybrid_collided_ts{}_{}'.format(str(ts).zfill(4),str(count).zfill(3)),tracking_data)
             # print('Collided Change is',change,'\n===================================')
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1

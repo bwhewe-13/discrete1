@@ -341,7 +341,7 @@ class Source:
             count += 1
             phi_old = phi.copy()
 
-        return phi,psi_next
+        return phi,psi_next,count
 
     def update_q(xs,phi,start,stop,g):
         return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
@@ -362,7 +362,7 @@ class Source:
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
-
+            inner_count = np.zeros(self.G)
             start = time.time() 
             for g in range(self.G):
                 q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) \
@@ -370,7 +370,7 @@ class Source:
                 if g != 0:
                     q_tilde += Source.update_q(self.scatter,phi_old,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
                 if self.T:
-                    phi[:,g],psi_next[:,:,g] = geo(self,self.total[:,g],\
+                    phi[:,g],psi_next[:,:,g],inner_count[g] = geo(self,self.total[:,g],\
                         self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],\
                         phi_old[:,g],psi_last[:,:,g],self.speed[g])
                 else:
@@ -380,8 +380,9 @@ class Source:
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.5
-            # file = 'testdata/slab_uranium_stainless_ts0100_be/source_multigroup_ts'
-            # np.save(file+'{}_{}'.format(str(kwargs['ts']).zfill(4),str(count).zfill(3)),[['time',end - start],['change',change]])
+            file = 'testdata/slab_uranium_stainless_ts0100_be/source_multigroup_ts'
+            tracking_data = np.array([['time',end - start],['change',np.linalg.norm(phi - phi_old)],['inner_count',inner_count]],dtype=object)
+            np.save(file+'{}_{}'.format(str(kwargs['ts']).zfill(4),str(count).zfill(3)),tracking_data)
             # if self.T:
             #     print('Count',count,'Change',change,'\n===================================')
             count += 1
