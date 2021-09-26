@@ -63,7 +63,7 @@ class Problem2:
             shape = [5,2,3]
 
         elif orient == 'enr_refl_01':  # Enrich + 0.5 / Refl - 0.5
-            shape = [4.5,2,3]
+            shape = [4.5,2,3.5]
         elif orient == 'enr_refl_02':  # Enrich - 0.5 / Refl + 0.5
             shape = [5.5,1,3.5]
 
@@ -87,11 +87,13 @@ class Problem2:
         materials = [refl,['pu',1-enrich],['pu',0]]
         return shape,materials
 
-    def steady(refl,enrich,orient='orig'):
+    def steady(refl,enrich,orient='orig',groups=618):
         shape,materials = Problem2.orientation(refl,enrich,orient)
 
         L = 0; R = sum(shape); I = 1000
-        G = 618; N = 16
+        G = groups; N = 16
+        reduced = True if G != 87 else False
+
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w)
         # Take only half (reflective)
@@ -99,9 +101,14 @@ class Problem2:
         Tools.recompile(I,N)
 
         delta = R/I
-        xs_total,xs_scatter,xs_fission = XSGenerate618.cross_section(enrich)
+        # xs_total,xs_scatter,xs_fission = XSGenerate618.cross_section(enrich)
         layers = [int(ii/delta) for ii in shape]
-        
+
+        if reduced:
+            xs_total,xs_scatter,xs_fission = XSGenerate618.cross_section_reduce(G,enrich)
+        else:
+            xs_total,xs_scatter,xs_fission = XSGenerate618.cross_section(enrich)
+
         total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
         return G,N,mu,w,total_,scatter_,fission_,I,delta
 

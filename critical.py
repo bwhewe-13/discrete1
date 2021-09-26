@@ -58,7 +58,8 @@ class Critical:
         if refl in ['hdpe','ss440']:
             attributes = Problem1.steady(refl,enrich,orient)
         elif refl in ['pu']:
-            attributes = Problem2.steady('hdpe',enrich,orient)
+            groups = kwargs['groups'] if 'groups' in kwargs else 618
+            attributes = Problem2.steady('hdpe',enrich,orient,groups)
         elif refl in ['c']:
             groups = kwargs['G'] if 'G' in kwargs else 87
             attributes = Problem3.steady('hdpe',enrich,orient,groups)
@@ -298,7 +299,7 @@ class Critical:
         else:
             phi_old = np.random.rand(self.I,self.G)
             phi_old /= np.linalg.norm(phi_old)
-            
+
         converged = 0; count = 1
         while not (converged):
             sources = Critical.sorting_fission(self,phi_old,self.models)

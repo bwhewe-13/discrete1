@@ -372,7 +372,7 @@ class Source:
                 if self.T:
                     phi[:,g],psi_next[:,:,g],inner_count[g] = geo(self,self.total[:,g],\
                         self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],\
-                        phi_old[:,g],psi_last[:,:,g],self.speed[g])
+                        phi_old[:,g],psi_last[:,:,g],self.speed[:,g])
                 else:
                     phi[:,g] = geo(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],phi_old[:,g])
             
@@ -382,7 +382,7 @@ class Source:
                 change = 0.5
             file = 'testdata/slab_uranium_stainless_ts0100_be/source_multigroup_ts'
             tracking_data = np.array([['time',end - start],['change',np.linalg.norm(phi - phi_old)],['inner_count',inner_count]],dtype=object)
-            np.save(file+'{}_{}'.format(str(kwargs['ts']).zfill(4),str(count).zfill(3)),tracking_data)
+            # np.save(file+'{}_{}'.format(str(kwargs['ts']).zfill(4),str(count).zfill(3)),tracking_data)
             # if self.T:
             #     print('Count',count,'Change',change,'\n===================================')
             count += 1
@@ -420,6 +420,7 @@ class Source:
             xs_total = self.total.copy()
             xs_scatter = self.scatter.copy()
             xs_fission = self.fission.copy()
+
         for t in range(steps):
             if self.problem in ['ControlRod']:
                 # The change of carbon --> stainless in problem

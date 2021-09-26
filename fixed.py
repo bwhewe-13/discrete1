@@ -13,7 +13,7 @@ group87 = ['stainless','uranium', 'uranium stainless']
 
 class FixedSource:
     # Keyword Arguments allowed currently
-    __allowed = ("T","dt","boundary","enrich","hybrid","edges","geometry","td", "xsr")
+    __allowed = ("T","dt","boundary","enrich","hybrid","edges","geometry","td", "xsr","vr")
 
     def __init__(self,ptype,G,N,**kwargs):
         """ Deals with picking the correct variables needed for the function
@@ -40,7 +40,9 @@ class FixedSource:
         # kwargs
         self.T = None; self.dt = None; # self.v = None
         self.boundary = 'vacuum'; self.enrich = None; self.hybrid = None; 
-        self.edges = None; self.xsr = 0
+        self.edges = None; 
+        # Testing
+        self.xsr = 0; self.vr = 0
         for key, value in kwargs.items():
             assert (key in self.__class__.__allowed), "Attribute not allowed, \
             available: T, dt, boundary, enrich, hybrid, edges" 
@@ -63,6 +65,10 @@ class FixedSource:
             else: # 87 Group problems
                 temp = list(Standard87.timed(G,problem.T,problem.dt))
             keys = ['T','dt','v']
+            if len(temp[2].shape) == 1:
+                spatial_cells = ss_vars[8]
+                temp[2] = np.tile(temp[2],(spatial_cells,1))
+            print('Velocity Shape',temp[2].shape)
             for ii in range(len(keys)):
                 td_vars[keys[ii]] = temp[ii]
         # Check if hybrid problem
@@ -187,7 +193,7 @@ class Standard87:
 
     def timed(G,T,dt):
         grid = np.load(DATA_PATH + 'energyGrid.npy')
-        v = Tools.relative_speed(grid,G)
+        v = Tools.relative_speed(G,grid)
         return T, dt, v
 
     def hybrid(G,hy_g):
@@ -261,13 +267,17 @@ class Uranium:
 
         return G,N,mu,w,total_,scatter_,fission_,source_,I,delta,lhs
 
-
+# This is the only one I am testing on
 class UraniumStainless: # Slab problem
 
-    def steady(G,N,boundary='vacuum',enrich=0.2,edges=None,xsr=0):
-        """ xsr (cross section reduced)
-        xsr = 0: original (no flux, static)
-        xsr = 1: flux of 87 group solution at each time step
+    def steady(G,N,boundary='vacuum',enrich=0.2,edges=None,xsr=0,vr=0):
+        """ 
+        xsr (cross section reduced)
+            xsr = 0: original (no flux, static)
+            xsr = 1: flux of 87 group solution at each time step
+        vr (velocity reduction)
+            vr = 0: original (G vector)
+            vr = 1: change velocity at each time step and spatial cell
         """
         # Checking for energy group collapse
         reduced = True if G != 87 else False
@@ -571,31 +581,33 @@ class Tools:
         v = np.sqrt((2 * eV_J * centers)/mass_neutron) * 100
         return v
 
-    def relative_speed(grid,G):
+    def relative_speed(G,grid=None,phi=None):
         """ Convert energy edges to speed at cell centers, Relative Physics
         Arguments:
             grid: energy edges
             G: number of groups to collapse 
         Returns:
             speeds at cell centers (cm/s)   """
+        # Constants
         mass_neutron = 1.67493E-27 # kg
         eV_J = 1.60218E-19 # J
         light = 2.9979246E8 # m/s
-        if len(grid) - 1 == G:
-            centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(range(len(grid)-1),range(1,len(grid)))])
-        else:
-            old_group = len(grid) - 1            
-            # Create array showing the number of groups combined 
-            new_grid = np.ones((G)) * int(old_group/G)
-            # Add the remainder groups to the first x number 
-            new_grid[np.linspace(0,G-1,old_group % G,dtype=int)] += 1
-
-            assert (new_grid.sum() == old_group)
-            # Calculate the indices while including the left-most (insert)
-            inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
-            centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(inds[:len(grid)-1],inds[1:])])
+        if grid is None:
+            grid = np.load(DATA_PATH + 'energyGrid.npy')
+        # Calculate velocity for 87 group
+        centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(range(len(grid)-1),range(1,len(grid)))])
         gamma = (eV_J * centers)/(mass_neutron * light**2) + 1
         v = light/gamma * np.sqrt(gamma**2 - 1) * 100
+        if len(grid) - 1 != G:
+            inds = Tools.index_generator(len(grid)-1,G)
+            if phi is None:  # No flux weighting
+                centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(inds[:len(grid)-1],inds[1:])])
+                gamma = (eV_J * centers)/(mass_neutron * light**2) + 1
+                v = light/gamma * np.sqrt(gamma**2 - 1) * 100
+            else: # Include flux
+                v_flux = np.array([np.sum((v * phi)[:,inds[ii]:inds[ii+1]],axis=1) for ii in range(G)]).T
+                denominator = Tools.vector_reduction(v,inds)
+                v = v_flux / denominator
         return v
 
     def recompile(I):
