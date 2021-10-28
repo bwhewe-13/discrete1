@@ -341,7 +341,7 @@ class Source:
             count += 1
             phi_old = phi.copy()
 
-        return phi,psi_next,count
+        return phi,psi_next
 
     def update_q(xs,phi,start,stop,g):
         return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
@@ -368,7 +368,7 @@ class Source:
                 if g != 0:
                     q_tilde += Source.update_q(self.scatter,phi_old,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
                 if self.T:
-                    phi[:,g],psi_next[:,:,g],inner_count[g] = geo(self,self.total[:,g],\
+                    phi[:,g],psi_next[:,:,g] = geo(self,self.total[:,g],\
                         self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],\
                         phi_old[:,g],psi_last[:,:,g],self.speed[g])
                 else:
