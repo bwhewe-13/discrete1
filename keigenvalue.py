@@ -73,14 +73,14 @@ class Problem2:
             shape = [4.5,1.5,4]
 
         # Have to work on these
-        elif orient == 'refl_dep_03':  # Refl/Deplete + 0.5
+        elif orient == 'enr_refl_03':  # Enrich - 0.2 / Refl + 0.2
             shape = [5.2,1.3,3.5]
-        elif orient == 'dep_enr_03':  # Deplete/Enrich - 0.5
+        elif orient == 'dep_enr_03':   # Deplete + 0.2 / Enrich - 0.2
             shape = [5,1.3,3.7]
 
-        elif orient == 'refl_dep_04':  # Refl/Deplete + 0.5
+        elif orient == 'enr_refl_04':  # Enrich - 0.4 / Refl + 0.4
             shape = [5.4,1.1,3.5]
-        elif orient == 'dep_enr_04':  # Deplete/Enrich - 0.5
+        elif orient == 'dep_enr_04':   # Deplete + 0.4 / Enrich - 0.4
             shape = [5,1.1,3.9]
 
         # Depleted is 0% Pu-239
