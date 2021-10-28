@@ -67,8 +67,8 @@ class FixedSource:
             keys = ['T','dt','v']
             if len(temp[2].shape) == 1:
                 spatial_cells = ss_vars[8]
-                temp[2] = np.tile(temp[2],(spatial_cells,1))
-            print('Velocity Shape',temp[2].shape)
+                # temp[2] = np.tile(temp[2],(spatial_cells,1))
+            # print('Velocity Shape',temp[2].shape)
             for ii in range(len(keys)):
                 td_vars[keys[ii]] = temp[ii]
         # Check if hybrid problem
@@ -267,10 +267,10 @@ class Uranium:
 
         return G,N,mu,w,total_,scatter_,fission_,source_,I,delta,lhs
 
-# This is the only one I am testing on
+
 class UraniumStainless: # Slab problem
 
-    def steady(G,N,boundary='vacuum',enrich=0.2,edges=None,xsr=0,vr=0):
+    def steady(G,N,boundary='vacuum',enrich=0.2,edges=None):
         """ 
         xsr (cross section reduced)
             xsr = 0: original (no flux, static)
@@ -300,9 +300,9 @@ class UraniumStainless: # Slab problem
         lhs = np.zeros((len(energy_grid)-1))
         lhs[g] = 1 # all spatial cells in this group
         if reduced:
-            if xsr == 0:
-                xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,\
-                    xs_total,xs_scatter,xs_fission,edges)
+            # if xsr == 0:
+            #     xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,\
+            #         xs_total,xs_scatter,xs_fission,edges)
             source = Tools.source_reduction(87,G,source,edges)
             lhs = Tools.source_reduction(87,G,lhs,edges)
         # Propogate onto full space 
@@ -445,7 +445,7 @@ class Tools:
         # assert (orig_size == np.sum(new_source))
         return new_source
 
-    def group_reduction_flux(new_group,flux,xs_total,xs_scatter,xs_fission,inds=None):
+    def group_reduction_flux(new_group,flux,grid,xs_total,xs_scatter,xs_fission,inds=None):
         """ Used to reduce the number of groups for cross sections and energy levels 
         Arguments:
             new_group: the reduction in the number of groups from the original
@@ -459,25 +459,25 @@ class Tools:
             The reduced matrices and vectors of the cross sections or energy
             (Specified in the kwargs)   """
         I = xs_total.shape[0]
-        new_total = np.zeros((I,new_group))
+        inds = Tools.index_generator(len(flux[0])-1,new_group) if inds is None else inds
+        diff_grid = np.diff(grid)
+        
+        temp_total = Tools.vector_reduction(xs_total.copy()*diff_grid*flux,inds)
+        new_total = (temp_total / (Tools.vector_reduction(flux*diff_grid,inds))).T
+
+        # new_total = Tools.vector_reduction(xs_total.copy()*diff_grid*flux,inds).T
+        xs_scatter = np.einsum('ijk,ik->ijk',xs_scatter.copy(),flux*diff_grid)
+        xs_fission = np.einsum('ijk,ik->ijk',xs_fission.copy(),flux*diff_grid)
+
         new_scatter = np.zeros((I,new_group,new_group))
         new_fission = np.zeros((I,new_group,new_group))
         # Calculate the indices while including the left-most (insert)
-        inds = Tools.index_generator(len(flux[0])-1,new_group) if inds is None else inds
-        # This is for scaling the new groups properly
         for ii in range(new_group):
-            idx = slice(inds[ii],inds[ii+1])
-            new_total[:,ii] = np.sum(xs_total[:,idx] * flux[:,idx],axis=1) / np.sum(flux[:,idx],axis=1)
+            idx1 = slice(inds[ii],inds[ii+1])
             for jj in range(new_group):
                 idx2 = slice(inds[jj],inds[jj+1])
-                # new_scatter[:,ii,jj] = np.sum(xs_scatter[:,idx,idx2] *\
-                #     flux[:,idx2],axis=(2,1)) / np.sum(flux[:,idx2],axis=1)
-                new_scatter[:,ii,jj] = np.sum(np.einsum('ijk,ik->ij',\
-                    xs_scatter[:,idx,idx2],flux[:,idx2]),axis=1) / np.sum(flux[:,idx2],axis=1)
-                # new_fission[:,ii,jj] = np.sum(xs_fission[:,idx,idx2] *\
-                #      flux[:,idx2],axis=(2,1)) / np.sum(flux[:,idx2],axis=1)
-                new_fission[:,ii,jj] = np.sum(np.einsum('ijk,ik->ij',\
-                    xs_fission[:,idx,idx2],flux[:,idx2]),axis=1) / np.sum(flux[:,idx2],axis=1)
+                new_scatter[:,ii,jj] = np.sum(xs_scatter[:,idx1,idx2],axis=(2,1)) / np.sum(flux[:,idx2]*diff_grid[idx2],axis=1)
+                new_fission[:,ii,jj] = np.sum(xs_fission[:,idx1,idx2],axis=(2,1)) / np.sum(flux[:,idx2]*diff_grid[idx2],axis=1)
         return new_total, new_scatter, new_fission
 
     def group_reduction(new_group,grid,xs_total,xs_scatter,xs_fission,inds=None):
@@ -551,10 +551,13 @@ class Tools:
             indices: the location of which cells will be combined
         Returns:
             a vector of size len(indices) - 1   """
-        # Remove the extra grid boundary
+        # Remove the extra grid boundary    
         new_group = len(indices) - 1
         # Sum the vector
+        if len(vector.shape) == 2:
+            return np.array([np.sum(vector[:,indices[ii]:indices[ii+1]],axis=1) for ii in range(new_group)])
         return np.array([sum(vector[indices[ii]:indices[ii+1]]) for ii in range(new_group)])
+
 
     def classical_speed(grid,G):
         """ Convert energy edges to speed at cell centers, Classical Physics
@@ -598,16 +601,16 @@ class Tools:
         centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(range(len(grid)-1),range(1,len(grid)))])
         gamma = (eV_J * centers)/(mass_neutron * light**2) + 1
         v = light/gamma * np.sqrt(gamma**2 - 1) * 100
-        if len(grid) - 1 != G:
-            inds = Tools.index_generator(len(grid)-1,G)
-            if phi is None:  # No flux weighting
-                centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(inds[:len(grid)-1],inds[1:])])
-                gamma = (eV_J * centers)/(mass_neutron * light**2) + 1
-                v = light/gamma * np.sqrt(gamma**2 - 1) * 100
-            else: # Include flux
-                v_flux = np.array([np.sum((v * phi)[:,inds[ii]:inds[ii+1]],axis=1) for ii in range(G)]).T
-                denominator = Tools.vector_reduction(v,inds)
-                v = v_flux / denominator
+        # if len(grid) - 1 == G:
+        #     return np.tile(v,(1000,1))
+
+        inds = Tools.index_generator(len(grid)-1,G)
+        centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(inds[:len(grid)-1],inds[1:])])
+        gamma = (eV_J * centers)/(mass_neutron * light**2) + 1
+        v = light/gamma * np.sqrt(gamma**2 - 1) * 100        
+        # v_flux = Tools.vector_reduction(v * centers * phi,inds)
+        # v = (v_flux / (Tools.vector_reduction(phi * centers,inds))).T
+        
         return v
 
     def recompile(I):

@@ -362,8 +362,6 @@ class Source:
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
-            inner_count = np.zeros(self.G)
-            start = time.time() 
             for g in range(self.G):
                 q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) \
                     + Source.update_q(self.fission,phi_old,g+1,self.G,g)
@@ -372,16 +370,14 @@ class Source:
                 if self.T:
                     phi[:,g],psi_next[:,:,g],inner_count[g] = geo(self,self.total[:,g],\
                         self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],\
-                        phi_old[:,g],psi_last[:,:,g],self.speed[:,g])
+                        phi_old[:,g],psi_last[:,:,g],self.speed[g])
                 else:
                     phi[:,g] = geo(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],phi_old[:,g])
-            
-            end = time.time()
+
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.5
-            file = 'testdata/slab_uranium_stainless_ts0100_be/source_multigroup_ts'
-            tracking_data = np.array([['time',end - start],['change',np.linalg.norm(phi - phi_old)],['inner_count',inner_count]],dtype=object)
+            # file = 'testdata/slab_uranium_stainless_ts0100_be/source_multigroup_ts'
             # np.save(file+'{}_{}'.format(str(kwargs['ts']).zfill(4),str(count).zfill(3)),tracking_data)
             # if self.T:
             #     print('Count',count,'Change',change,'\n===================================')
@@ -399,43 +395,25 @@ class Source:
         psi_last = np.zeros((self.I,self.N,self.G))
         # Initialize Speed
         self.speed = 1/(self.v*self.dt)
-
         if self.problem in ['ControlRod']:
-            # temp = np.load('mydata/control_rod_critical/carbon_g87_phi_20.npy')
-            # _,psi_last = Source.multi_group(self,psi_last=psi_last,guess=temp)
-            # psi_last = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,self.N,1))
             psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/carbon_g87_phi_15.npy'),axis=1),(1,self.N,1))
 
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(self.T/self.dt,5))
-        # print('\n\n================\nTime Steps {}\n================\n\n'.format(steps))
         # Determine source for problem
         if self.problem in ['Stainless','UraniumStainless','StainlessUranium']:
             full_lhs = Source.continuous(self.lhs,steps)
         else:
             full_lhs = Source.stagnant(self.lhs,steps)
         
-        variable_cross_section = True if self.total.shape[1] != self.G else False
-        if variable_cross_section:
-            xs_total = self.total.copy()
-            xs_scatter = self.scatter.copy()
-            xs_fission = self.fission.copy()
-
         for t in range(steps):
             if self.problem in ['ControlRod']:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
                 print('Switch {} Step {}'.format(switch,t))
                 self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.15,switch=switch)
-            if variable_cross_section:
-                from discrete1.fixed import Tools
-                # print('Calculating Cross Sections...')
-                ref_flux = np.load('discrete1/data/slab_uranium_stainless_ts0100_be_phi.npz')['ts{}'.format(str(t).zfill(4))]
-                self.total,self.scatter,self.fission = Tools.group_reduction_flux(self.G,\
-                    ref_flux,xs_total,xs_scatter,xs_fission)
             # Run the multigroup problem
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old,ts=t)
-            #if self.problem in ['ControlRod']:
             print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Update scalar/angular flux
             psi_last = psi_next.copy()
@@ -533,28 +511,3 @@ class Source:
             full[t,group] = source
         return full
 
-    # def tracking_data(self,flux,sources=None):
-    #     from discrete1.util import sn
-    #     import numpy as np
-    #     # Normalize phi
-    #     phi = flux.copy()
-    #     # phi /= np.linalg.norm(phi)
-    #     # Scatter Tracking - separate phi and add label
-    #     label_scatter = sn.cat(self.enrich,self.splits['scatter_djinn'])
-    #     phi_scatter = sn.cat(phi,self.splits['scatter_djinn'])
-    #     # phi_scatter /= np.linalg.norm(phi_scatter)
-    #     phi_full_scatter = np.hstack((label_scatter[:,None],phi_scatter))
-    #     # Separate scatter multiplier and add label
-    #     multiplier_scatter = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_djinn']),phi_scatter)
-    #     multiplier_full_scatter = np.hstack((label_scatter[:,None],multiplier_scatter))
-    #     scatter_data = np.vstack((phi_full_scatter[None,:,:],multiplier_full_scatter[None,:,:]))
-    #     # Fission Tracking - Separate phi and add label
-    #     label_fission = sn.cat(self.enrich,self.splits['fission_djinn'])
-    #     phi_fission = sn.cat(phi,self.splits['fission_djinn'])
-    #     phi_full_fission = np.hstack((label_fission[:,None],phi_fission))
-    #     # Separate fission multiplier and add label
-    #     # multiplier_fission = sn.cat(sources,self.splits['fission_djinn'])
-    #     multiplier_fission = np.einsum('ijk,ik->ij',sn.cat(self.chiNuFission,self.splits['fission_djinn']),phi_fission)
-    #     multiplier_full_fission = np.hstack((label_fission[:,None],multiplier_fission))
-    #     fission_data = np.vstack((phi_full_fission[None,:,:],multiplier_full_fission[None,:,:]))
-    #     return fission_data, scatter_data

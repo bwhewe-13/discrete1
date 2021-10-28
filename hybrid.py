@@ -3,12 +3,13 @@ Running Hybrid Problems (time dependent)
 """
 
 from .fixed import FixedSource, ControlRod
+# from .fixed import Tools as Extra
 
 import numpy as np
 import ctypes
 from scipy.special import erfc
 
-import time
+# import time
 
 class Hybrid:
     def __init__(self,ptype,G,N):
@@ -37,18 +38,17 @@ class Hybrid:
         # Set up Problem
         un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
         uncollided = Uncollided(*un_attr)
+
         col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
         collided = Collided(*col_attr)
         # Initialize Speeds
         speed_u = 1/(un_keys['v']*un_keys['dt'])
         speed_c = 1/(col_keys['v']*col_keys['dt'])
+
         # Initialize collided scalar flux
         phi_c = np.zeros((collided.I,collided.G)); time_phi = []
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
         if self.ptype in ['ControlRod']:
-            # source = np.load('mydata/control_rod_critical/carbon_g87_phi_15.npy')
-            # _,psi_last = uncollided.multi_group(psi_last,speed_u,self.geometry,source)
-            # psi_last = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,uncollided.N,1))
             psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/carbon_g87_phi_15.npy'),axis=1),(1,uncollided.N,1))
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(un_keys['T']/un_keys['dt'],5))
@@ -58,6 +58,7 @@ class Hybrid:
             full_lhs = Tools.continuous(uncollided.lhs,steps)
         else:
             full_lhs = Tools.stagnant(uncollided.lhs,steps)
+
         for t in range(steps):
             if self.ptype in ['ControlRod']:
                 # The change of carbon --> stainless in problem
@@ -272,14 +273,16 @@ class Uncollided:
 
             start = time.time()
             for g in range(self.G):
-                phi[:,g],psi_next[:,:,g] = geo(self,psi_last[:,:,g],speed[g],self.total[:,g],current[:,g],self.lhs[g])
+                phi[:,g],psi_next[:,:,g] = geo(self,psi_last[:,:,g],speed[:,g],self.total[:,g],current[:,g],self.lhs[g])
 
             end = time.time()
 
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.
-            np.save('testdata/slab_uranium_stainless_ts0100_be/hybrid_uncollided_ts{}_{}'.format(str(ts).zfill(4),str(count).zfill(3)),[['time',end - start],['change',np.linalg.norm(phi - phi_old)]])
+            # file_name = 'testdata/slab_uranium_stainless_ts0100_be/hybrid_uncollided_ts{}_{}'.format(str(ts).zfill(4),str(count).zfill(3))
+            # np.save(file_name,[['time',end - start],['change',np.linalg.norm(phi - phi_old)]])
+            
             # print('Uncollided Change is',change,'\n===================================')
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
@@ -413,20 +416,15 @@ class Collided:
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
-            inner_count = np.zeros(self.G)
-            start = time.time()
             for g in range(self.G):
                 q_tilde = source[:,g] + Collided.update_q(self.scatter,phi_old,g+1,self.G,g) + Collided.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
                     q_tilde += Collided.update_q(self.scatter,phi,0,g,g) + Collided.update_q(self.fission,phi,0,g,g)
-                phi[:,g],inner_count[g] = geo(self,speed[g],self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
-            end = time.time()
+                phi[:,g],inner_count[g] = geo(self,speed[:,g],self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             # print('TS {} Count {} Change {}'.format(ts,count,np.linalg.norm(phi - phi_old)))
             # if np.isnan(change) or np.isinf(change):
             #     change = 0.5
-            tracking_data = np.array([['time',end - start],['change',np.linalg.norm(phi - phi_old)],['inner_count',inner_count]],dtype=object)
-            np.save('testdata/slab_uranium_stainless_ts0100_be/hybrid_collided_ts{}_{}'.format(str(ts).zfill(4),str(count).zfill(3)),tracking_data)
             # print('Collided Change is',change,'\n===================================')
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
