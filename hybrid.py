@@ -271,11 +271,8 @@ class Uncollided:
         while not (converged):
             phi = np.zeros(phi_old.shape)
 
-            start = time.time()
             for g in range(self.G):
-                phi[:,g],psi_next[:,:,g] = geo(self,psi_last[:,:,g],speed[:,g],self.total[:,g],current[:,g],self.lhs[g])
-
-            end = time.time()
+                phi[:,g],psi_next[:,:,g] = geo(self,psi_last[:,:,g],speed[g],self.total[:,g],current[:,g],self.lhs[g])
 
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
@@ -342,7 +339,7 @@ class Collided:
             count += 1
             phi_old = phi.copy()
 
-        return phi,count
+        return phi
 
     def sphere(self,speed,total_,scatter_,source_,guess_):
         clib = ctypes.cdll.LoadLibrary('./discrete1/data/cHybridSP.so')
@@ -420,7 +417,7 @@ class Collided:
                 q_tilde = source[:,g] + Collided.update_q(self.scatter,phi_old,g+1,self.G,g) + Collided.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
                     q_tilde += Collided.update_q(self.scatter,phi,0,g,g) + Collided.update_q(self.fission,phi,0,g,g)
-                phi[:,g],inner_count[g] = geo(self,speed[:,g],self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
+                phi[:,g] = geo(self,speed[g],self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             # print('TS {} Count {} Change {}'.format(ts,count,np.linalg.norm(phi - phi_old)))
             # if np.isnan(change) or np.isinf(change):

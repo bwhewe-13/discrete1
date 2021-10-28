@@ -55,7 +55,7 @@ class FixedSource:
         # calling steady state variables
         if problem.enrich:
             ss_vars = list(eval(ptype).steady(G,N,problem.boundary,problem.enrich,\
-                problem.edges,problem.xsr))
+                problem.edges))
         else:
             ss_vars = list(eval(ptype).steady(G,N,problem.boundary,problem.edges))
         # Check if time dependent problem
