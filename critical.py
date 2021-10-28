@@ -7,6 +7,7 @@ import numpy as np
 import ctypes
 import warnings
 import os
+import time
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
 DATA_PATH = 'discrete1/data/'
@@ -59,7 +60,8 @@ class Critical:
             attributes = Problem1.steady(refl,enrich,orient)
         elif refl in ['pu']:
             groups = kwargs['groups'] if 'groups' in kwargs else 618
-            attributes = Problem2.steady('hdpe',enrich,orient,groups)
+            naive = kwargs['naive'] if 'naive' in kwargs else False
+            attributes = Problem2.steady('hdpe',enrich,orient,groups,naive)
         elif refl in ['c']:
             groups = kwargs['G'] if 'G' in kwargs else 87
             attributes = Problem3.steady('hdpe',enrich,orient,groups)
@@ -70,7 +72,17 @@ class Critical:
         problem = cls(*attributes,boundary=boundary,geometry='slab')
         problem.saving = '0'
         problem.atype = ''
-        return problem.transport(MAX_ITS=100)
+        label_enrichment = str(int(enrich*100)).zfill(3)
+        label_time_iteration = str(kwargs['tt']).zfill(3) if 'tt' in kwargs else 'False'
+        if kwargs['naive']:
+            if kwargs['naive'] == 'naive':
+                label_model = 'Naive'
+            elif kwargs['naive'] == 'known':
+                label_model = 'Known'
+        else:
+            label_model = 'True'
+        func_lab = 'Full{}_TimeIteration{}_Enrich{}'.format(label_model,label_time_iteration,label_enrichment)
+        return problem.transport(func_lab=func_lab,MAX_ITS=20)
 
     @classmethod
     def run_djinn(cls,refl,enrich,models,atype,orient='orig',**kwargs):
@@ -125,13 +137,21 @@ class Critical:
         model = DJAE(dj_models,ae_models,atype,transform,**kwargs)
         model.load_model()
         model.load_problem(refl,enrich,orient)
-        return problem.transport(models=model,MAX_ITS=20)
+        label_enrichment = str(int(enrich*100)).zfill(3)
+        label_time_iteration = str(kwargs['tt']).zfill(3)
+        if 'reg' in dj_models[0][0]:
+            label_model = 'Reg'
+        elif 'label' in dj_models[0][0]:
+            label_model = 'Label'
+        func_lab = 'DJINN{}_TimeIteration{}_Enrich{}'.format(label_model,label_time_iteration,label_enrichment)
+        return problem.transport(func_lab=func_lab,models=model,MAX_ITS=20)
 
-        
     @classmethod
     def run_reduce(cls,refl,enrich,orient='orig',**kwargs):
         # This is only for slab problems 
-        attributes = Problem2.steady('hdpe',enrich,orient)
+        groups = kwargs['groups'] if 'groups' in kwargs else 618
+        naive = kwargs['naive'] if 'naive' in kwargs else False
+        attributes = Problem2.steady('hdpe',enrich,orient,groups,naive)
         _,splits = Problem2.labeling('hdpe',enrich,orient)
         splits = np.sort(np.array([item for sublist in list(splits.values()) for item in sublist]))
 
@@ -149,8 +169,17 @@ class Critical:
         problem.atype = ''
 
         Critical.reduce_compile(problem.I,global_indices)
-        return problem.transport()
-
+        label_enrichment = str(int(enrich*100)).zfill(3)
+        label_time_iteration = str(kwargs['tt']).zfill(3)
+        if kwargs['naive']:
+            if kwargs['naive'] == 'naive':
+                label_model = 'Naive'
+            elif kwargs['naive'] == 'known':
+                label_model = 'Known'
+        else:
+            label_model = 'True'
+        func_lab = 'Reduce{}_TimeIteration{}_Enrich{}'.format(label_model,label_time_iteration,label_enrichment)
+        return problem.transport(func_lab=func_lab,MAX_ITS=20)
 
     def slab(self,total_,scatter_,source_,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
@@ -257,21 +286,21 @@ class Critical:
             # print(change)
 
         return phi
-
     
     def update_q(self,phi,start,stop,g):
         if self.reduced is not None:
             return np.sum(Critical.repopulate(self.reduced,self.scatter[:,g,start:stop],phi[:,start:stop]),axis=1)
         return np.sum(self.scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
 
-    def multi_group(self,source,guess,tol=1e-12,MAX_ITS=100):
+    def multi_group(self,source,guess,pow_it=0,func_lab='',tol=1e-12,MAX_ITS=100):
         phi_old = guess.copy()
 
         geo = getattr(Critical,self.geometry)  # Get the specific sweep
-
+        source_time = []
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
+            start = time.time()
             if self.atype in ['scatter','both']:
                 phi_old[np.isnan(phi_old)] = 0
                 smult = Critical.sorting_scatter(self,phi_old,self.models)
@@ -284,13 +313,18 @@ class Critical:
                     if g != 0:
                         q_tilde += Critical.update_q(self,phi,0,g,g)
                     phi[:,g] = geo(self,self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g])
+            end = time.time()
+            source_time.append(end - start)
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
+        pow_it = str(pow_it).zfill(3)
+        save_file = 'mydata/djinn_pluto_iterations/PowerIteration{}_Groups{}_{}'.format(pow_it,self.G,func_lab)
+        np.save(save_file,source_time)
         return phi
             
-    def transport(self,models=None,tol=1e-12,MAX_ITS=100):
+    def transport(self,models=None,tol=1e-12,MAX_ITS=20,func_lab=''):
 
         self.models = models
         # if self.saving != '0': # Running from random
@@ -306,7 +340,7 @@ class Critical:
             phi_old = Critical.sorting_phi(self,phi_old,self.models)
 
             print('Outer Transport Iteration {}\n==================================='.format(count))
-            phi = Critical.multi_group(self,sources,phi_old)
+            phi = Critical.multi_group(self,sources,phi_old,pow_it=count,func_lab=func_lab)
             
             keff = np.linalg.norm(phi)
             phi /= keff
@@ -314,7 +348,8 @@ class Critical:
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))
             print('Change is',change,'Keff is',keff)
 
-            converged = (change < tol) or (count >= MAX_ITS) 
+            converged = (count >= MAX_ITS)
+            # converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
 
             phi_old = phi.copy()

@@ -207,7 +207,7 @@ class AE:
         return phi
     
 class DJAE:
-    __allowed = ("double","focus","label")
+    __allowed = ("double","focus","label","tt")
 
     def __init__(self,djinn_model,encode_model,atype,transform='cuberoot',**kwargs):
         """ For functions related to using DJINN and approximating phi * sigma
