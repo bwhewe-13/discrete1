@@ -6,12 +6,13 @@
 #
 ################################################################################
 
-from utils import transport_tools
-# import utils
-# .transport_tools
+from discrete1.utils import transport_tools
 
 import numpy as np
 import ctypes
+import pkg_resources
+
+C_PATH = pkg_resources.resource_filename('discrete1','c/')
 
 INNER_TOLERANCE = 1E-12
 OUTER_TOLERANCE = 1E-8
@@ -86,15 +87,15 @@ class Dime:
                 for group g
 
         """
-        clibrary = ctypes.cdll.LoadLibrary('../src/sweep1d.so')
+        clibrary = ctypes.cdll.LoadLibrary(C_PATH + 'sweep1d.so')
         sweep = clibrary.reflected if np.sum(boundary_g) > 0 else clibrary.vacuum
         if np.sum(boundary_g) > 0:
             sweep = clibrary.reflected
-            print('Reflected')
+            # print('Reflected')
         else:
             sweep = clibrary.vacuum
-            print(boundary_g,np.sum(boundary_g))
-            print('Vacuum')
+            # print(boundary_g,np.sum(boundary_g))
+            # print('Vacuum')
 
         scalar_flux_old = scalar_flux_guess.copy()
 
@@ -105,7 +106,7 @@ class Dime:
         count = 1
         while not (converged):
             scalar_flux_g = np.zeros((self.cells),dtype='float64')
-            for n in range(self.angles):
+            for n in range(self.corrected_angles):
                 direction = ctypes.c_int(int(np.sign(self.mu[n])))
                 weight = np.sign(self.mu[n]) * self.mu[n] * self.cell_width
 
@@ -138,8 +139,8 @@ class Dime:
 
             change = np.linalg.norm((scalar_flux_g - scalar_flux_old) \
                                      /scalar_flux_g/(self.cells))
-            if np.isnan(change) or np.isinf(change):
-                change = 0.
+            # if np.isnan(change) or np.isinf(change):
+            #     change = 0.
             converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS) 
             count += 1
             scalar_flux_old = scalar_flux_g.copy()
@@ -169,9 +170,9 @@ class Dime:
                 for group g
 
         """
-        clibrary = ctypes.cdll.LoadLibrary('../src/sweep1d.so')
+        clibrary = ctypes.cdll.LoadLibrary(C_PATH+'sweep1d.so')
 
-        edges = np.cumsum(np.insert(np.ones((self.cells))*1/self.delta,0,0))
+        edges = np.cumsum(np.insert(np.ones((self.cells))*1/self.cell_width,0,0))
         # Positive surface area
         SA_plus = transport_tools.surface_area_calc(edges[1:]).astype('float64')
         SA_plus_ptr = ctypes.c_void_p(SA_plus.ctypes.data)
@@ -191,7 +192,7 @@ class Dime:
         if angular_flux_last is not None:
             angular_flux_next = np.zeros(angular_flux_last.shape,dtype='float64')
 
-        psi_centers = np.zeros((self.N),dtype='float64')
+        psi_centers = np.zeros((self.corrected_angles),dtype='float64')
 
         converged = 0
         count = 1
@@ -200,14 +201,14 @@ class Dime:
             angular_flux = np.zeros((self.cells),dtype='float64')
             angular_flux_ptr = ctypes.c_void_p(angular_flux.ctypes.data)
             scalar_flux_g = np.zeros((self.cells),dtype='float64')
-            for n in range(self.angles):
+            for n in range(self.corrected_angles):
                 mu_plus = mu_minus + 2 * self.w[n]
                 tau = (self.mu[n] - mu_minus) / (mu_plus - mu_minus)
                 if n == 0:
                     alpha_minus = ctypes.c_double(0.)
                     psi_nhalf = (transport_tools.half_angle(boundary,total_g, \
-                        1/self.delta, source_g + scatter_gg * scalar_flux_old)).astype('float64')
-                if n == self.angles - 1:
+                        1/self.cell_width, source_g + scatter_gg * scalar_flux_old)).astype('float64')
+                if n == self.corrected_angles - 1:
                     alpha_plus = ctypes.c_double(0.)
                 else:
                     alpha_plus = ctypes.c_double(alpha_minus - self.mu[n] * self.w[n])
@@ -250,14 +251,12 @@ class Dime:
         return scalar_flux_g
 
     def multigroup(self, time_const=0.5, angular_flux_last=None, \
-                    scalar_flux_old=None):
+                    scalar_flux_old=None, _problem='steady-state'):
         """ Run multi group steady state problem
         Returns:
             scalar_flux: scalar flux, numpy array of size (I x G) """
-        self.angles, self.mu, self.w = transport_tools.creating_weights( \
+        self.corrected_angles, self.mu, self.w = transport_tools.creating_weights( \
                                                     self.angles, self.boundary)
-
-        print('Angles', self.angles)
 
         if angular_flux_last is not None:
             angular_flux_next = np.zeros(angular_flux_last.shape)
@@ -267,8 +266,6 @@ class Dime:
         # else:
         #     scalar_flux_old = np.zeros((self.cells, self.groups))
 
-        # print('Scalar Flux Old', np.sum(scalar_flux_old))
-
         geo = getattr(Dime,self.geometry)  # Get the specific sweep
 
         converged = 0
@@ -276,25 +273,53 @@ class Dime:
         while not (converged):
             scalar_flux = np.zeros(scalar_flux_old.shape)
             for g in range(self.groups):
-                q_tilde = self.source[:,g] + transport_tools.update_q(self.scatter,scalar_flux_old,g+1,self.groups,g) \
-                    + transport_tools.update_q(self.fission,scalar_flux_old,g+1,self.groups,g)
+                q_tilde = self.source[:,g] + transport_tools.update_q(self.scatter,\
+                                             scalar_flux_old, g+1, self.groups, g)
                 if g != 0:
-                    q_tilde += transport_tools.update_q(self.scatter,scalar_flux_old,0,g,g) + transport_tools.update_q(self.fission,scalar_flux,0,g,g)
-                if angular_flux_last is not None:
-                    scalar_flux[:,g], angular_flux_next[:,:,g] = geo(self, self.total[:,g], \
-                        self.scatter[:,g,g] + self.fission[:,g,g], q_tilde, self.boundary[g], \
-                        scalar_flux_old[:,g], angular_flux_last[:,:,g])
-                else:
+                    q_tilde += transport_tools.update_q(self.scatter, scalar_flux, 0, g, g) 
+                if _problem in ['steady-state','time-dependent']:
+                    q_tilde += transport_tools.update_q(self.fission, \
+                                            scalar_flux_old, g+1, self.groups, g)
+                if g != 0 and _problem in ['steady-state', 'time-dependent']:
+                    q_tilde += transport_tools.update_q(self.fission, scalar_flux, 0, g, g)
+
+                # q_tilde = self.source[:,g] + transport_tools.update_q(self.scatter,scalar_flux_old,g+1,self.groups,g) 
+                #     + transport_tools.update_q(self.fission,scalar_flux_old,g+1,self.groups,g)
+                # if g != 0:
+                #     q_tilde += transport_tools.update_q(self.scatter,scalar_flux,0,g,g) + transport_tools.update_q(self.fission,scalar_flux,0,g,g)
+
+
+                if _problem == 'steady-state':
                     scalar_flux[:,g] = geo(self, self.total[:,g], \
                         self.scatter[:,g,g] + self.fission[:,g,g], q_tilde, \
                         self.boundary[g], scalar_flux_old[:,g])
-                  
+                elif _problem == 'time-dependent':
+                    scalar_flux[:,g], angular_flux_next[:,:,g] = geo(self, self.total[:,g], \
+                        self.scatter[:,g,g] + self.fission[:,g,g], q_tilde, self.boundary[g], \
+                        scalar_flux_old[:,g], angular_flux_last[:,:,g])
+                elif _problem == 'k-eigenvalue':
+                    scalar_flux[:,g] = geo(self, self.total[:,g], \
+                        self.scatter[:,g,g], q_tilde, \
+                        self.boundary[g], scalar_flux_old[:,g])
+
+                # if angular_flux_last is not None:
+                #     scalar_flux[:,g], angular_flux_next[:,:,g] = geo(self, self.total[:,g], \
+                #         self.scatter[:,g,g] + self.fission[:,g,g], q_tilde, self.boundary[g], \
+                #         scalar_flux_old[:,g], angular_flux_last[:,:,g])
+                # else:
+                #     # scalar_flux[:,g] = geo(self, self.total[:,g], \
+                #     #     self.scatter[:,g,g] + self.fission[:,g,g], q_tilde, \
+                #     #     self.boundary[g], scalar_flux_old[:,g])
+                #     scalar_flux[:,g] = geo(self, self.total[:,g], \
+                #         self.scatter[:,g,g], q_tilde, \
+                #         self.boundary[g], scalar_flux_old[:,g])
             change = np.linalg.norm((scalar_flux - scalar_flux_old)/scalar_flux/(self.cells))
-            if np.isnan(change) or np.isinf(change):
-                change = 0.5
+            # if np.isnan(change) or np.isinf(change):
+            #     change = 0.5
             count += 1
             converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS) 
             scalar_flux_old = scalar_flux.copy()
+            # print(np.sum(scalar_flux), np.sum(scalar_flux_old))
         if angular_flux_last is not None:
             return scalar_flux, angular_flux_next
         return scalar_flux

@@ -6,8 +6,8 @@
 #
 ################################################################################
 
-from utils import transport_tools
-from steady_state import Dime
+from discrete1.utils import transport_tools
+from discrete1.steady_state import Dime
 
 import numpy as np
 
@@ -55,7 +55,7 @@ class Tide(Dime):
                                     fission, source, boundary, cell_width, \
                                     material_map, geometry)
 
-    def bdf_one(self):
+    def bdf_one(self, display=True):
         # Initialize flux and list of fluxes
         scalar_flux_old = np.zeros((self.cells, self.groups))
         scalar_flux_collection = []
@@ -67,16 +67,18 @@ class Tide(Dime):
         for step in range(self.time_steps):
             # Run the multigroup problem
             scalar_flux, angular_flux_next = Dime.multigroup(self, time_const=0.5, \
-                angular_flux_last=angular_flux_last, scalar_flux_old=scalar_flux_old)
-            print('Time Step',step,'Flux',np.sum(scalar_flux),\
-                '\n===================================')
+                angular_flux_last=angular_flux_last, scalar_flux_old=scalar_flux_old, \
+                _problem='time-dependent')
+            if display:
+                print('Time Step',step,'Flux',np.sum(scalar_flux),\
+                    '\n===================================')
             # Update scalar/angular flux
             angular_flux_last = angular_flux_next.copy()
             scalar_flux_collection.append(scalar_flux)
             scalar_flux_old = scalar_flux.copy()
         return scalar_flux, scalar_flux_collection
 
-    def bdf_two(self):
+    def bdf_two(self, display=True):
         # Initialize flux and list of fluxes
         scalar_flux_old = np.zeros((self.cells, self.groups))
         scalar_flux_collection = []
@@ -92,8 +94,10 @@ class Tide(Dime):
             else:
                 angular_flux_last = 2 * angular_flux_one - 0.5 * angular_flux_zero
             scalar_flux, angular_flux_next = Dime.multigroup(self, time_const=0.75, \
-                angular_flux_last=angular_flux_last, scalar_flux_old=scalar_flux_old)
-            print('Time Step {} Flux {}\n{}'.format(step, np.sum(scalar_flux), '='*35))
+                angular_flux_last=angular_flux_last, scalar_flux_old=scalar_flux_old, \
+                _problem='time-dependent')
+            if display:
+                print('Time Step {} Flux {}\n{}'.format(step, np.sum(scalar_flux), '='*35))
             # Update scalar/angular flux
             angular_flux_zero = angular_flux_one.copy()
             angular_flux_one = angular_flux_next.copy()

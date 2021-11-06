@@ -6,8 +6,8 @@
 #
 ################################################################################
 
-from utils import transport_tools
-from steady_state import Dime
+from discrete1.utils import transport_tools
+from discrete1.steady_state import Dime
 
 import numpy as np
 
@@ -47,7 +47,7 @@ class Keg(Dime):
                                     fission, source, boundary, cell_width, \
                                     material_map, geometry)
 
-    def keffective(self):
+    def keffective(self, display=True):
         scalar_flux_old = np.random.rand(self.cells, self.groups)
         scalar_flux_old /= np.linalg.norm(scalar_flux_old)
 
@@ -55,12 +55,14 @@ class Keg(Dime):
         count = 1
         while not (converged):
             self.source = np.einsum('ijk,ik->ij', self.fission, scalar_flux_old)
-            scalar_flux = Dime.multigroup(self, scalar_flux_old=scalar_flux_old)
+            scalar_flux = Dime.multigroup(self, scalar_flux_old=scalar_flux_old,\
+                                             _problem='k-eigenvalue')
             keff = np.linalg.norm(scalar_flux)
             scalar_flux /= keff
-            change = np.linalg.norm((scalar_flux - scalar_flux_old)/scalar_flux/self.cells )
-            print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
-                     '='*35, change, keff))
+            change = np.linalg.norm((scalar_flux - scalar_flux_old)/scalar_flux/(self.cells))
+            if display:
+                print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
+                         '='*35, change, keff))
             converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
             count += 1
             scalar_flux_old = scalar_flux.copy()
@@ -69,11 +71,13 @@ class Keg(Dime):
 if __name__ == "__main__":
 
     groups = 1
-    angles = 32
+    angles = 16
     cells = 1000
 
-    rad = 1.853722
+    # rad = 1.853722 * 2
+    rad = 2.256751 
     delta = rad / cells
+    # delta = cells / rad
 
     fission = np.array([2.84*0.0816])
     fission = np.tile(fission, (cells, groups, groups))
@@ -84,7 +88,7 @@ if __name__ == "__main__":
     scatter = np.array([0.225216])
     scatter = np.tile(scatter, (cells, groups, groups))
 
-    reflected = np.array([[0,1]])
+    reflected = np.array([[1,0]])
     vacuum = np.array([[0,0]])
     problem = Keg(groups, cells, angles, total, scatter, fission, None, \
                 reflected,delta,None,'slab')
