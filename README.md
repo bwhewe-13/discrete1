@@ -3,7 +3,6 @@
 ## Machine Learning Methods are used to reduce the data requirements of Scattering and Fission Cross-Sections
 
 ### Current Work
-- [ ] Add Testing Functions with pytest
 - [ ] Clean up criticality (k-eigenvalue problems)
 - [ ] Make time-dependent source problems for source.py
 - [ ] Update the Benchmark File
