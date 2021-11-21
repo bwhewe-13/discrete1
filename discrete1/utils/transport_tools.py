@@ -1,6 +1,6 @@
 
 import numpy as np
-import numpy.ctypeslib as npct
+# import numpy.ctypeslib as npct
 import ctypes
 
 def update_q(xs, phi, start, stop, g):
@@ -31,25 +31,78 @@ def creating_weights(angles, boundary=[0,0]):
     return angles, mu, w
 
 
-# class CFunctions:
+############################
+# Sources
+############################
+def stagnant(source,steps):
+    return np.tile(source,(steps,1))
 
-#     def __init__(self,groups,cells,materials):
-#         self.groups = groups
-#         self.cells = cells
-#         self.materials = materials
+def continuous(source,steps):
+    func = lambda a,b: list(erfc(np.arange(1,4))*a+b)
+    full = np.zeros((steps,len(source)))
+    group = np.argwhere(source != 0)[0,0]
+    source = source[group]
+    for t in range(steps):
+        if t < int(0.2*steps):
+            source *= 1
+            full[t,group] = source
+        elif t % int(0.1*steps) == 0:
+            temp = t
+            full[t:t+3,group] = func(source,0.5*source)
+            source *= 0.5
+        elif t in np.arange(temp+1,temp+3):
+            continue
+        else:
+            full[t,group] = source
+    return full
 
-#     class xs_vector:
-#         _fields_ = [("array", (ctypes.c_double * self.materials) * self.groups)]
+def discontinuous(source,steps):
+    full = np.zeros((steps,len(source)))
+    group = np.argwhere(source != 0)[0,0]
+    source = source[group]
+    for t in range(steps):
+        if t < int(0.2*steps):
+            source *= 1
+        elif t % int(0.1*steps) == 0:
+            source *= 0.5
+        full[t,group] = source
+    return full
 
-#     class xs_matrix:
-#         _fields_ = [("array", ((ctypes.c_double * self.groups) * self.groups) * \
-#                         self.materials)]
 
-#     class boundary_edges:
-#         _fields_ = [("array", (ctypes.c_double * 2) * self.groups)]
+############################
+# Collapsing Groups
+############################
+def energy_distribution(big,small):
+    """ List of slices for different energy sizes
+    Arguments:
+        big: uncollided energy groups, int
+        small: collided energy groups, int
+    Returns:
+        list of slices   """
+    new_grid = np.ones((small)) * int(big/small)
+    new_grid[np.linspace(0,small-1,big % small,dtype=int)] += 1
+    inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
+    splits = [slice(ii,jj) for ii,jj in zip(inds[:small],inds[1:])]
+    return splits
 
-#     class spatial_energy:
-#         _fields_ = [("array", (ctypes.c_double * self.cells) * self.groups)]
+def small_2_big(mult_c,delta_u,delta_c,splits):
+    Gu = len(delta_u)
+    size = (mult_c.shape[0],Gu)
+    mult_u = np.zeros(size)
+    factor = delta_u.copy()
+    for count,index in enumerate(splits):
+        for ii in np.arange(index.indices(Gu)[0],index.indices(Gu)[1]):
+            mult_u[:,ii] = mult_c[:,count]
+            factor[ii] /= delta_c[count]
+    mult_u *= factor
+    return mult_u
 
-#     def c_sweeps(self):
-#         ...
+def big_2_small(mult_u,delta_u,delta_c,splits):
+    # size = (mult_u.shape[0],len(delta_c))
+    size = mult_u.shape[:len(mult_u.shape)-1] + np.array(delta_c).shape
+    mult_c = np.zeros(size)
+    # Have to change this
+    for count,index in enumerate(splits):
+        # mult_c[:,:,count] = np.sum(mult_u[:,:,index],axis=2) 
+        mult_c[:,count] = np.sum(mult_u[:,index],axis=1) 
+    return mult_c

@@ -3,6 +3,7 @@ Running Multigroup Source Problems
 """
 
 from .fixed import FixedSource,ControlRod
+from discrete1.utils import transport_tools as tools
 
 import numpy as np
 import ctypes
@@ -15,7 +16,7 @@ C_PATH = pkg_resources.resource_filename('discrete1','c/')
 
 class Source:
     # Keyword Arguments allowed currently
-    __allowed = ("T","dt","v","boundary","geometry","td") # ,"hybrid","enrich","track")
+    __allowed = ("T","dt","v","boundary","geometry","td", "delta_e", "splits")
 
     def __init__(self,G,N,mu,w,total,scatter,fission,source,I,delta,lhs,**kwargs): 
         """ Deals with Source multigroup problems (time dependent, steady state,
@@ -57,7 +58,7 @@ class Source:
         self.T = None; self.dt = None; self.v = None
         self.boundary = 'vacuum'; self.problem = None
         self.geometry = 'slab'; self.td = 'BE'
-        #self.enrich = None; self.time = False
+        self.enrich = None; self.time = False
         for key, value in kwargs.items():
             assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, time, geometry" 
             setattr(self, key, value)
@@ -152,13 +153,13 @@ class Source:
         clib = ctypes.cdll.LoadLibrary(C_PATH_+'cSourceSP.so')
 
         edges = np.cumsum(np.insert(np.ones((self.I))*1/self.delta,0,0))
-        SA_plus = Source.surface_area(edges[1:]).astype('float64')       # Positive surface area
+        SA_plus = tools.surface_area_calc(edges[1:]).astype('float64')       # Positive surface area
         SAp_ptr = ctypes.c_void_p(SA_plus.ctypes.data)
 
-        SA_minus = Source.surface_area(edges[:self.I]).astype('float64') # Negative surface area
+        SA_minus = tools.surface_area_calc(edges[:self.I]).astype('float64') # Negative surface area
         SAm_ptr = ctypes.c_void_p(SA_minus.ctypes.data)
 
-        V = Source.volume(edges[1:],edges[:self.I])                      # Volume and total
+        V = tools.volume_calc(edges[1:],edges[:self.I])                      # Volume and total
         v_total = (V * total_).astype('float64')
         v_ptr = ctypes.c_void_p(v_total.ctypes.data)
 
@@ -174,13 +175,13 @@ class Source:
             an_ptr = ctypes.c_void_p(angular.ctypes.data)
 
             phi = np.zeros((self.I),dtype='float64')
-            # psi_nhalf = (Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
+            # psi_nhalf = (tools.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
             for n in range(self.N):
                 mu_plus = mu_minus + 2 * self.w[n]
                 tau = (self.mu[n] - mu_minus) / (mu_plus - mu_minus)
                 if n == 0:
                     alpha_minus = ctypes.c_double(0.)
-                    psi_nhalf = (Source.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
+                    psi_nhalf = (tools.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
                 if n == self.N - 1:
                     alpha_plus = ctypes.c_double(0.)
                 else:
@@ -225,13 +226,13 @@ class Source:
         clib = ctypes.cdll.LoadLibrary(C_PATH+'cSourceSP.so')
 
         edges = np.cumsum(np.insert(np.ones((self.I))*1/self.delta,0,0))
-        SA_plus = Source.surface_area(edges[1:]).astype('float64')       # Positive surface area
+        SA_plus = tools.surface_area_calc(edges[1:]).astype('float64')       # Positive surface area
         SAp_ptr = ctypes.c_void_p(SA_plus.ctypes.data)
 
-        SA_minus = Source.surface_area(edges[:self.I]).astype('float64') # Negative surface area
+        SA_minus = tools.surface_area_calc(edges[:self.I]).astype('float64') # Negative surface area
         SAm_ptr = ctypes.c_void_p(SA_minus.ctypes.data)
 
-        V = Source.volume(edges[1:],edges[:self.I])                      # Volume and total
+        V = tools.volume_calc(edges[1:],edges[:self.I])                      # Volume_calc and total
         if self.td == 'BE':
             v_total = (V * total_ + speed).astype('float64')
         elif self.td == 'BDF2':
@@ -257,7 +258,7 @@ class Source:
 
                 if n == 0:
                     alpha_minus = ctypes.c_double(0.)
-                    psi_nhalf = (Source.half_angle(boundary,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
+                    psi_nhalf = (tools.half_angle(boundary,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
                 if n == self.N - 1:
                     alpha_plus = ctypes.c_double(0.)
                 else:
@@ -346,9 +347,6 @@ class Source:
 
         return phi,psi_next
 
-    def update_q(xs,phi,start,stop,g):
-        return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
-
     def multi_group(self,**kwargs):
         """ Run multi group steady state problem
         Returns:
@@ -361,19 +359,30 @@ class Source:
             psi_next = np.zeros(psi_last.shape)
             phi_old = kwargs['guess'].copy()
 
+        if 'known_flux' in kwargs:
+            scalar_flux = np.einsum('ijk,ik->ij',self.scatter,kwargs['guess']) + \
+                np.einsum('ijk,ik->ij',self.fission,kwargs['guess']) 
+
         tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
+            phi = phi_old.copy()
             for g in range(self.G):
-                q_tilde = self.source[:,g] + Source.update_q(self.scatter,phi_old,g+1,self.G,g) \
-                    + Source.update_q(self.fission,phi_old,g+1,self.G,g)
+                q_tilde = self.source[:,g] + tools.update_q(self.scatter,phi_old,g+1,self.G,g) \
+                    + tools.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
-                    q_tilde += Source.update_q(self.scatter,phi_old,0,g,g) + Source.update_q(self.fission,phi,0,g,g)
+                    q_tilde += tools.update_q(self.scatter,phi_old,0,g,g) + tools.update_q(self.fission,phi,0,g,g)
                 if self.T:
-                    phi[:,g],psi_next[:,:,g] = geo(self,self.total[:,g],\
-                        self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],\
-                        phi_old[:,g],psi_last[:,:,g],self.speed[g])
+                    if 'known_flux' in kwargs:
+                        _, psi_next[:,:,g] = geo(self,self.total[:,g],\
+                            0,scalar_flux[:,g],self.lhs[g],\
+                            phi_old[:,g]*0,psi_last[:,:,g],self.speed[g])
+                        phi = kwargs['guess'].copy()
+                    else:
+                        phi[:,g],psi_next[:,:,g] = geo(self,self.total[:,g],\
+                            self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],\
+                            phi_old[:,g],psi_last[:,:,g],self.speed[g])
                 else:
                     phi[:,g] = geo(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.lhs[g],phi_old[:,g])
 
@@ -383,7 +392,7 @@ class Source:
             # file = 'testdata/slab_uranium_stainless_ts0100_be/source_multigroup_ts'
             # np.save(file+'{}_{}'.format(str(kwargs['ts']).zfill(4),str(count).zfill(3)),tracking_data)
             # if self.T:
-            #     print('Count',count,'Change',change,'\n===================================')
+            #     print('Count',count,'Change',change, np.sum(phi), np.sum(phi_old),'\n===================================')
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
             phi_old = phi.copy()
@@ -399,22 +408,33 @@ class Source:
         # Initialize Speed
         self.speed = 1/(self.v*self.dt)
         if self.problem in ['ControlRod']:
-            psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/carbon_g87_phi_15.npy'),axis=1),(1,self.N,1))
+            # self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.20,switch=0)
+            scalar_flux = np.load('mydata/control_rod_critical/carbon_g87_phi_15.npy')
+            attributes, keys = FixedSource.initialize('ControlRod',87,self.N,T=self.T,dt=self.dt,enrich=0.2,hybrid=87)
+            initial = Source(*attributes, **keys)
+            initial.speed = 1/(initial.v*initial.dt)
+            _, psi_last = initial.multi_group(psi_last=np.zeros((initial.I,initial.N,initial.G)),guess=scalar_flux,ts=0,known_flux='True')
+            if initial.G != self.G:
+                _, keys2 = FixedSource.initialize('ControlRod',self.G,self.N,T=self.T,dt=self.dt,enrich=0.2,hybrid=87)
+                psi_last = tools.big_2_small(psi_last,keys['delta_e'],keys2['delta_e'],keys2['splits'])
+                print(psi_last.shape)
+            del scalar_flux
+            # psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/stainless_g87_phi_20.npy'),axis=1),(1,self.N,1))
 
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(self.T/self.dt,5))
         # Determine source for problem
         if self.problem in ['Stainless','UraniumStainless','StainlessUranium']:
-            full_lhs = Source.continuous(self.lhs,steps)
+            full_lhs = tools.continuous(self.lhs,steps)
         else:
-            full_lhs = Source.stagnant(self.lhs,steps)
-        
+            full_lhs = tools.stagnant(self.lhs,steps)
+
         for t in range(steps):
             if self.problem in ['ControlRod']:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
                 print('Switch {} Step {}'.format(switch,t))
-                self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.15,switch=switch)
+                self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.20,switch=switch)
             # Run the multigroup problem
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old,ts=t)
             print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
@@ -441,9 +461,9 @@ class Source:
         steps = int(np.round(self.T/self.dt,5))
         # Determine source for problem
         if self.problem in ['Stainless','UraniumStainless','StainlessUranium']:
-            full_lhs = Source.continuous(self.lhs,steps)
+            full_lhs = tools.continuous(self.lhs,steps)
         else:
-            full_lhs = Source.stagnant(self.lhs,steps)
+            full_lhs = tools.stagnant(self.lhs,steps)
         for t in range(steps):
             if self.problem in ['ControlRod']:
                 # The change of carbon --> stainless in problem
@@ -465,52 +485,3 @@ class Source:
             # Update source, change to BDF2 time steps
             self.lhs = full_lhs[t].copy(); self.td = 'BDF2'
         return phi,time_phi
-
-    def surface_area(rho):
-        return 4 * np.pi * rho**2
-
-    def volume(plus,minus):
-        return 4 * np.pi / 3 * (plus**3 - minus**3)
-
-    def half_angle(psi_plus,total,delta,source):
-        """ This is for finding the half angle (N = 1/2) at cell i """
-        psi_nhalf = np.zeros((len(total)))
-        for ii in range(len(total)-1,-1,-1):
-            psi_nhalf[ii] = (2 * psi_plus + delta * source[ii] ) / (2 + total[ii] * delta)
-            psi_plus = 2 * psi_nhalf[ii] - psi_plus
-        return psi_nhalf
-
-    def stagnant(source,steps):
-        return np.tile(source,(steps,1))
-
-    def continuous(source,steps):
-        func = lambda a,b: list(erfc(np.arange(1,4))*a+b)
-        full = np.zeros((steps,len(source)))
-        group = np.argwhere(source != 0)[0,0]
-        source = source[group]
-        for t in range(steps):
-            if t < int(0.2*steps):
-                source *= 1
-                full[t,group] = source
-            elif t % int(0.1*steps) == 0:
-                temp = t
-                full[t:t+3,group] = func(source,0.5*source)
-                source *= 0.5
-            elif t in np.arange(temp+1,temp+3):
-                continue
-            else:
-                full[t,group] = source
-        return full
-
-    def discontinuous(source,steps):
-        full = np.zeros((steps,len(source)))
-        group = np.argwhere(source != 0)[0,0]
-        source = source[group]
-        for t in range(steps):
-            if t < int(0.2*steps):
-                source *= 1
-            elif t % int(0.1*steps) == 0:
-                source *= 0.5
-            full[t,group] = source
-        return full
-

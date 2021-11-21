@@ -10,6 +10,7 @@ from discrete1.utils import transport_tools
 from discrete1.steady_state import Dime
 
 import numpy as np
+from tqdm import tqdm
 
 class Tide(Dime):
 
@@ -64,7 +65,7 @@ class Tide(Dime):
         # Initialize Speed
         self.speed = 1/(self.velocity * self.time_width)
         # For calculating the number of time steps (computer rounding error)
-        for step in range(self.time_steps):
+        for step in tqdm(range(self.time_steps), desc='Time Steps', disable=display):
             # Run the multigroup problem
             scalar_flux, angular_flux_next = Dime.multigroup(self, time_const=0.5, \
                 angular_flux_last=angular_flux_last, scalar_flux_old=scalar_flux_old, \
@@ -76,7 +77,7 @@ class Tide(Dime):
             angular_flux_last = angular_flux_next.copy()
             scalar_flux_collection.append(scalar_flux)
             scalar_flux_old = scalar_flux.copy()
-        return scalar_flux, scalar_flux_collection
+        return np.array(scalar_flux_collection)
 
     def bdf_two(self, display=True):
         # Initialize flux and list of fluxes
@@ -88,7 +89,8 @@ class Tide(Dime):
         # angular_flux_last = np.zeros((self.cells, self.angles, self.groups))
         # Initialize speed
         self.speed = 1/(self.velocity * self.time_width)
-        for step in range(self.time_steps):
+
+        for step in tqdm(range(self.time_steps), desc='Time Steps', disable=display):
             if step == 0:
                 angular_flux_last = angular_flux_one.copy()
             else:
@@ -103,7 +105,7 @@ class Tide(Dime):
             angular_flux_one = angular_flux_next.copy()
             scalar_flux_collection.append(scalar_flux)
             scalar_flux_old = scalar_flux.copy()
-        return scalar_flux, scalar_flux_collection
+        return np.array(scalar_flux_collection)
 
 
 if __name__ == '__main__':
@@ -138,15 +140,17 @@ if __name__ == '__main__':
     dt = 1
     steps = 100
     time_dependent = Tide(G,I,N,total_,scatter_,fission_,source_,[0,0],delta,None,'slab',T,steps,dt,v)
-    bdf_one_phi, time_phi = time_dependent.bdf_one()
-    bdf_two_phi, time_phi = time_dependent.bdf_two()
+    print('Running...')
+    bdf_one_phi = time_dependent.bdf_one(display=False)
+    print('Finished Backward Euler...')
+    bdf_two_phi = time_dependent.bdf_two(display=False)
 
     # print('\n{}\n'.format(np.sum(np.fabs(steady_phi - final_phi))))
 
     plt.figure()
     xspace = np.linspace(0,16,1000,endpoint=False)
-    plt.plot(xspace,bdf_one_phi,label='Backward Euler - Time Dependent', c='r', alpha=0.6)
-    plt.plot(xspace,bdf_two_phi,label='BDF2 - Time Dependent', c='b', alpha=0.6)
+    plt.plot(xspace,bdf_one_phi[-1],label='Backward Euler - Time Dependent', c='r', alpha=0.6)
+    plt.plot(xspace,bdf_two_phi[-1],label='BDF2 - Time Dependent', c='b', alpha=0.6)
     plt.plot(xspace,steady_phi,label='Time Independent',c='k',ls='--')
     plt.legend(loc=0); plt.grid()
     plt.xlabel('Distance (cm)'); plt.ylabel('Flux')

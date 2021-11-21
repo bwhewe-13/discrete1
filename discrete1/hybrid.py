@@ -4,6 +4,7 @@ Running Hybrid Problems (time dependent)
 
 from .fixed import FixedSource, ControlRod
 # from .fixed import Tools as Extra
+from discrete1.utils import transport_tools as tools
 
 import numpy as np
 import ctypes
@@ -49,37 +50,46 @@ class Hybrid:
         # Initialize collided scalar flux
         phi_c = np.zeros((collided.I,collided.G)); time_phi = []
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
+        
+        uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=self.enrich,switch=0)
+        collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=self.enrich,switch=0)
+
         if self.ptype in ['ControlRod']:
-            psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/carbon_g87_phi_15.npy'),axis=1),(1,uncollided.N,1))
+            scalar_flux = np.load('mydata/control_rod_critical/stainless_g87_phi_{}.npy'.format(str(int(self.enrich*100)).zfill(2)))
+            source_q = np.einsum('ijk,ik->ij',uncollided.scatter,scalar_flux) + np.einsum('ijk,ik->ij',uncollided.fission,scalar_flux) 
+            temp,psi_last = uncollided.multi_group(psi_last, speed_u, source=source_q, ts=0)
+            print(np.sum(temp), np.sum(scalar_flux), np.isclose(temp, scalar_flux).sum())
+            del scalar_flux, temp, source_q
+            # psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/carbon_g87_phi_15.npy'),axis=1),(1,uncollided.N,1))
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(un_keys['T']/un_keys['dt'],5))
         # Determining source for problem
         if self.ptype in ['Stainless','UraniumStainless','StainlessUranium']:
-            # full_lhs = Tools.discontinuous(uncollided.lhs,steps)
-            full_lhs = Tools.continuous(uncollided.lhs,steps)
+            # full_lhs = tools.discontinuous(uncollided.lhs,steps)
+            full_lhs = tools.continuous(uncollided.lhs,steps)
         else:
-            full_lhs = Tools.stagnant(uncollided.lhs,steps)
+            full_lhs = tools.stagnant(uncollided.lhs,steps)
 
         for t in range(steps):
-            if self.ptype in ['ControlRod']:
-                # The change of carbon --> stainless in problem
-                switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
-                print('Switch {} Step {}'.format(switch,t))
-                uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=0.15,switch=switch)
-                collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=0.15,switch=switch)
+            # if self.ptype in ['ControlRod']:
+            #     # The change of carbon --> stainless in problem
+            #     switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
+            #     print('Switch {} Step {}'.format(switch,t))
+            #     uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=0.15,switch=switch)
+            #     collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=0.15,switch=switch)
             # Step 1: Solve Uncollided Equation
             phi_u,_ = uncollided.multi_group(psi_last,speed_u,self.geometry,ts=str(t)+'a')
             # Step 2: Compute Source for Collided
             source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u) 
             # Resizing
             if self.Gu != self.Gc:
-                source_c = Tools.big_2_small(source_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits'])
+                source_c = tools.big_2_small(source_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits'])
             # Step 3: Solve Collided Equation
             phi_c = collided.multi_group(speed_c,source_c,phi_c,self.geometry,ts=t)
             # Resize phi_c
             if self.Gu != self.Gc:
-                # phi = Tools.small_2_big(phi_c,self.delta_u,self.delta_c,self.splits) + phi_u
-                phi = Tools.small_2_big(phi_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits']) + phi_u
+                # phi = tools.small_2_big(phi_c,self.delta_u,self.delta_c,self.splits) + phi_u
+                phi = tools.small_2_big(phi_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits']) + phi_u
             else:
                 phi = phi_c + phi_u
             # Step 4: Calculate next time step
@@ -113,10 +123,10 @@ class Hybrid:
         steps = int(np.round(un_keys['T']/un_keys['dt'],5))
         # Determining source for problem
         if self.ptype in ['Stainless','UraniumStainless','StainlessUranium']:
-            # full_lhs = Tools.discontinuous(uncollided.lhs,steps)
-            full_lhs = Tools.continuous(uncollided.lhs,steps)
+            # full_lhs = tools.discontinuous(uncollided.lhs,steps)
+            full_lhs = tools.continuous(uncollided.lhs,steps)
         else:
-            full_lhs = Tools.stagnant(uncollided.lhs,steps)
+            full_lhs = tools.stagnant(uncollided.lhs,steps)
         for t in range(steps):
             if self.ptype in ['ControlRod']:
                 # The change of carbon --> stainless in problem
@@ -132,13 +142,13 @@ class Hybrid:
             source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u)
             # Resizing
             if self.Gu != self.Gc:
-                source_c = Tools.big_2_small(source_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits'])
+                source_c = tools.big_2_small(source_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits'])
             # Step 3: Solve Collided Equation
             phi_c = collided.multi_group(speed_c,source_c,phi_c,self.geometry)
             # Resize phi_c
             if self.Gu != self.Gc:
-                # phi = Tools.small_2_big(phi_c,self.delta_u,self.delta_c,self.splits) + phi_u
-                phi = Tools.small_2_big(phi_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits']) + phi_u
+                # phi = tools.small_2_big(phi_c,self.delta_u,self.delta_c,self.splits) + phi_u
+                phi = tools.small_2_big(phi_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits']) + phi_u
             else:
                 phi = phi_c + phi_u
             # Step 4: Calculate next time step
@@ -207,14 +217,14 @@ class Uncollided:
         return phi,psi_next
 
     def sphere(self,psi_last,speed,total_,source_,boundary):
-        clib = ctypes.cdll.LoadLibrary(C_PATH+'HybridSP.so')
+        clib = ctypes.cdll.LoadLibrary(C_PATH+'cHybridSP.so')
 
         edges = np.cumsum(np.insert(np.ones((self.I))*1/self.delta,0,0))
-        SA_plus = Tools.surface_area(edges[1:]).astype('float64')       # Positive surface area
+        SA_plus = tools.surface_area_calc(edges[1:]).astype('float64')       # Positive surface area
         SAp_ptr = ctypes.c_void_p(SA_plus.ctypes.data)
-        SA_minus = Tools.surface_area(edges[:self.I]).astype('float64') # Negative surface area
+        SA_minus = tools.surface_area_calc(edges[:self.I]).astype('float64') # Negative surface area
         SAm_ptr = ctypes.c_void_p(SA_minus.ctypes.data)
-        V = Tools.volume(edges[1:],edges[:self.I])                      # Volume and total
+        V = tools.volume_calc(edges[1:],edges[:self.I])                      # Volume_calc and total
         if self.td == 'BE':
             v_total = (V * total_ + speed).astype('float64')
         elif self.td == 'BDF2':
@@ -233,7 +243,7 @@ class Uncollided:
             tau = (self.mu[n] - mu_minus) / (mu_plus - mu_minus)
             if n == 0:
                 alpha_minus = ctypes.c_double(0.)
-                psi_nhalf = (Tools.half_angle(boundary,total_,1/self.delta, source_)).astype('float64')
+                psi_nhalf = (tools.half_angle(boundary,total_,1/self.delta, source_)).astype('float64')
             if n == self.N - 1:
                 alpha_plus = ctypes.c_double(0.)
             else:
@@ -346,11 +356,11 @@ class Collided:
         clib = ctypes.cdll.LoadLibrary(C_PATH+'cHybridSP.so')
 
         edges = np.cumsum(np.insert(np.ones((self.I))*1/self.delta,0,0))
-        SA_plus = Tools.surface_area(edges[1:]).astype('float64')       # Positive surface area
+        SA_plus = tools.surface_area_calc(edges[1:]).astype('float64')       # Positive surface area
         SAp_ptr = ctypes.c_void_p(SA_plus.ctypes.data)
-        SA_minus = Tools.surface_area(edges[:self.I]).astype('float64') # Negative surface area
+        SA_minus = tools.surface_area_calc(edges[:self.I]).astype('float64') # Negative surface area
         SAm_ptr = ctypes.c_void_p(SA_minus.ctypes.data)
-        V = Tools.volume(edges[1:],edges[:self.I])                      # Volume and total
+        V = tools.volume_calc(edges[1:],edges[:self.I])                      # Volume_calc and total
         if self.td == 'BE':
             v_total = (V * total_ + speed).astype('float64')
         elif self.td == 'BDF2':
@@ -374,7 +384,7 @@ class Collided:
                 tau = (self.mu[n] - mu_minus) / (mu_plus - mu_minus)
                 if n == 0:
                     alpha_minus = ctypes.c_double(0.)
-                    psi_nhalf = (Tools.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
+                    psi_nhalf = (tools.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
                 if n == self.N - 1:
                     alpha_plus = ctypes.c_double(0.)
                 else:
@@ -402,9 +412,6 @@ class Collided:
             phi_old = phi.copy()
         return phi
 
-    def update_q(xs,phi,start,stop,g):
-        return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
-
     def multi_group(self,speed,source,guess,geometry='slab',ts=None):
         assert(source.shape[1] == self.G), 'Wrong Number of Groups'
         phi_old = guess.copy()
@@ -415,9 +422,9 @@ class Collided:
         while not (converged):
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
-                q_tilde = source[:,g] + Collided.update_q(self.scatter,phi_old,g+1,self.G,g) + Collided.update_q(self.fission,phi_old,g+1,self.G,g)
+                q_tilde = source[:,g] + tools.update_q(self.scatter,phi_old,g+1,self.G,g) + tools.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
-                    q_tilde += Collided.update_q(self.scatter,phi,0,g,g) + Collided.update_q(self.fission,phi,0,g,g)
+                    q_tilde += tools.update_q(self.scatter,phi,0,g,g) + tools.update_q(self.fission,phi,0,g,g)
                 phi[:,g] = geo(self,speed[g],self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,phi_old[:,g])
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             # print('TS {} Count {} Change {}'.format(ts,count,np.linalg.norm(phi - phi_old)))
@@ -429,87 +436,3 @@ class Collided:
             phi_old = phi.copy()
 
         return phi
-
-
-class Tools:
-
-    def energy_distribution(big,small):
-        """ List of slices for different energy sizes
-        Arguments:
-            big: uncollided energy groups, int
-            small: collided energy groups, int
-        Returns:
-            list of slices   """
-        new_grid = np.ones((small)) * int(big/small)
-        new_grid[np.linspace(0,small-1,big % small,dtype=int)] += 1
-        inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
-        splits = [slice(ii,jj) for ii,jj in zip(inds[:small],inds[1:])]
-        return splits
-
-    def small_2_big(mult_c,delta_u,delta_c,splits):
-        Gu = len(delta_u)
-        size = (mult_c.shape[0],Gu)
-        mult_u = np.zeros(size)
-        factor = delta_u.copy()
-        for count,index in enumerate(splits):
-            for ii in np.arange(index.indices(Gu)[0],index.indices(Gu)[1]):
-                mult_u[:,ii] = mult_c[:,count]
-                factor[ii] /= delta_c[count]
-        mult_u *= factor
-        return mult_u
-
-    def big_2_small(mult_u,delta_u,delta_c,splits):
-        size = (mult_u.shape[0],len(delta_c))
-        mult_c = np.zeros(size)
-        for count,index in enumerate(splits):
-            mult_c[:,count] = np.sum(mult_u[:,index],axis=1) 
-        return mult_c
-
-    def surface_area(rho):
-        return 4 * np.pi * rho**2
-
-    def volume(plus,minus):
-        return 4 * np.pi / 3 * (plus**3 - minus**3)
-
-    def half_angle(psi_plus,total,delta,source):
-        """ This is for finding the half angle (N = 1/2) at cell i """
-        # return (2 * psi_plus + delta * source ) / (2 + total * delta)
-        psi_nhalf = np.zeros((len(total)))
-        for ii in range(len(total)-1,-1,-1):
-            psi_nhalf[ii] = (2 * psi_plus + delta * source[ii] ) / (2 + total[ii] * delta)
-            psi_plus = 2 * psi_nhalf[ii] - psi_plus
-        return psi_nhalf
-        
-    def stagnant(source,steps):
-        return np.tile(source,(steps,1))
-
-    def continuous(source,steps):
-        func = lambda a,b: list(erfc(np.arange(1,4))*a+b)
-        full = np.zeros((steps,len(source)))
-        group = np.argwhere(source != 0)[0,0]
-        source = source[group]
-        for t in range(steps):
-            if t < int(0.2*steps):
-                source *= 1
-                full[t,group] = source
-            elif t % int(0.1*steps) == 0:
-                temp = t
-                full[t:t+3,group] = func(source,0.5*source)
-                source *= 0.5
-            elif t in np.arange(temp+1,temp+3):
-                continue
-            else:
-                full[t,group] = source
-        return full
-
-    def discontinuous(source,steps):
-        full = np.zeros((steps,len(source)))
-        group = np.argwhere(source != 0)[0,0]
-        source = source[group]
-        for t in range(steps):
-            if t < int(0.2*steps):
-                source *= 1
-            elif t % int(0.1*steps) == 0:
-                source *= 0.5
-            full[t,group] = source
-        return full
