@@ -3,12 +3,11 @@ Running Hybrid Problems (time dependent)
 """
 
 from .fixed import FixedSource, ControlRod
-# from .fixed import Tools as Extra
+from .fixed import Tools as Extra
 from discrete1.utils import transport_tools as tools
 
 import numpy as np
 import ctypes
-from scipy.special import erfc
 import pkg_resources
 
 C_PATH = pkg_resources.resource_filename('discrete1','c/')
@@ -47,18 +46,30 @@ class Hybrid:
         speed_u = 1/(un_keys['v']*un_keys['dt'])
         speed_c = 1/(col_keys['v']*col_keys['dt'])
 
+        idx = Extra.index_generator(87,self.Gc)
+        print('Used Average')
+        velocity = np.array([np.mean(un_keys['v'][idx[ii]:idx[ii+1]]) for ii in range(len(idx)-1)])
+        print(np.array_equal(col_keys['v'],velocity))
+        # col_keys['v'] = 0.5*(col_keys['v'] + velocity)
+        col_keys['v'] = velocity.copy()
+        # col_keys['v'] = np.ones(velocity.shape)*100
+        speed_c = 1/(col_keys['v']*col_keys['dt'])
+        # speed_c *= 0
+
         # Initialize collided scalar flux
         phi_c = np.zeros((collided.I,collided.G)); time_phi = []
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
         
-        uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=self.enrich,switch=0)
-        collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=self.enrich,switch=0)
+        # uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=self.enrich,switch=0)
+        # collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=self.enrich,switch=0)
 
         if self.ptype in ['ControlRod']:
-            scalar_flux = np.load('mydata/control_rod_critical/stainless_g87_phi_{}.npy'.format(str(int(self.enrich*100)).zfill(2)))
+            scalar_flux = np.load('mydata/control_rod_critical/carbon_g87_phi_{}.npy'.format(str(int(self.enrich*100)).zfill(2)))
+            
             source_q = np.einsum('ijk,ik->ij',uncollided.scatter,scalar_flux) + np.einsum('ijk,ik->ij',uncollided.fission,scalar_flux) 
             temp,psi_last = uncollided.multi_group(psi_last, speed_u, source=source_q, ts=0)
             print(np.sum(temp), np.sum(scalar_flux), np.isclose(temp, scalar_flux).sum())
+
             del scalar_flux, temp, source_q
             # psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/carbon_g87_phi_15.npy'),axis=1),(1,uncollided.N,1))
         # For calculating the number of time steps (computer rounding error)
@@ -71,12 +82,12 @@ class Hybrid:
             full_lhs = tools.stagnant(uncollided.lhs,steps)
 
         for t in range(steps):
-            # if self.ptype in ['ControlRod']:
-            #     # The change of carbon --> stainless in problem
-            #     switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
-            #     print('Switch {} Step {}'.format(switch,t))
-            #     uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=0.15,switch=switch)
-            #     collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=0.15,switch=switch)
+            if self.ptype in ['ControlRod']:
+                # The change of carbon --> stainless in problem
+                switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
+                print('Switch {} Step {}'.format(switch,t))
+                uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=self.enrich,switch=switch)
+                collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=self.enrich,switch=switch)
             # Step 1: Solve Uncollided Equation
             phi_u,_ = uncollided.multi_group(psi_last,speed_u,self.geometry,ts=str(t)+'a')
             # Step 2: Compute Source for Collided

@@ -2,6 +2,7 @@
 import numpy as np
 # import numpy.ctypeslib as npct
 import ctypes
+from scipy.special import erfc
 
 def update_q(xs, phi, start, stop, g):
     return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
@@ -106,3 +107,4 @@ def big_2_small(mult_u,delta_u,delta_c,splits):
         # mult_c[:,:,count] = np.sum(mult_u[:,:,index],axis=2) 
         mult_c[:,count] = np.sum(mult_u[:,index],axis=1) 
     return mult_c
+    
