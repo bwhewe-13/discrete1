@@ -87,7 +87,7 @@ class Problem2:
         materials = [refl,['pu',1-enrich],['pu',0]]
         return shape,materials
 
-    def steady(refl,enrich,orient='orig',groups=618):
+    def steady(refl,enrich,orient='orig',groups=618,naive=False):
         shape,materials = Problem2.orientation(refl,enrich,orient)
 
         L = 0; R = sum(shape); I = 1000
@@ -104,12 +104,17 @@ class Problem2:
         # xs_total,xs_scatter,xs_fission = XSGenerate618.cross_section(enrich)
         layers = [int(ii/delta) for ii in shape]
 
-        if reduced:
+        if reduced and naive == 'naive':
             xs_total,xs_scatter,xs_fission = XSGenerate618.cross_section_reduce(G,enrich)
         else:
             xs_total,xs_scatter,xs_fission = XSGenerate618.cross_section(enrich)
 
         total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
+        if reduced and naive == 'known':
+            ref_flux = np.load('discrete1/data/pluto_phi_{}.npy'.format(str(int(enrich*100)).zfill(2)))
+            grid = np.load('discrete1/data/energy_edges_618G.npy')
+            total_, scatter_, fission_ = Tools.group_reduction_flux(G, ref_flux, grid, \
+                                              total_, scatter_, fission_)
         return G,N,mu,w,total_,scatter_,fission_,I,delta
 
     def labeling(refl,enrich,orient='orig'):
@@ -225,6 +230,40 @@ class Problem4:
 
 
 class Tools:
+
+    def index_generator(big,small):
+        new_grid = np.ones((small)) * int(big / small)
+        new_grid[np.linspace(0,small-1,big % small,dtype=int)] += 1
+        assert (new_grid.sum() == big)
+        return np.cumsum(np.insert(new_grid,0,0),dtype=int)
+
+    def vector_reduction(vector,idx):
+        new_group = len(idx) - 1
+        if len(vector.shape) == 2:
+            return np.array([np.sum(vector[:,idx[ii]:idx[ii+1]],axis=1) for ii in range(new_group)])
+        return np.array([sum(vector[idx[ii]:idx[ii+1]]) for ii in range(new_group)])
+
+    def group_reduction_flux(new_group,flux,grid,xs_total,xs_scatter,xs_fission,inds=None):
+        I = xs_total.shape[0]
+        inds = Tools.index_generator(len(flux[0])-1,new_group) if inds is None else inds
+        diff_grid = np.diff(grid)
+        
+        temp_total = Tools.vector_reduction(xs_total.copy()*diff_grid*flux,inds)
+        new_total = (temp_total / (Tools.vector_reduction(flux*diff_grid,inds))).T
+        
+        xs_scatter = np.einsum('ijk,ik->ijk',xs_scatter.copy(), flux*diff_grid)
+        xs_fission = np.einsum('ijk,ik->ijk',xs_fission.copy(), flux*diff_grid)
+        
+        new_scatter = np.zeros((I,new_group,new_group))
+        new_fission = np.zeros((I,new_group,new_group))
+        
+        for ii in range(new_group):
+            idx1 = slice(inds[ii],inds[ii+1])
+            for jj in range(new_group):
+                idx2 = slice(inds[jj],inds[jj+1])
+                new_scatter[:,ii,jj] = np.sum(xs_scatter[:,idx1,idx2],axis=(2,1)) / np.sum(flux[:,idx2]*diff_grid[idx2],axis=1)
+                new_fission[:,ii,jj] = np.sum(xs_fission[:,idx1,idx2],axis=(2,1)) / np.sum(flux[:,idx2]*diff_grid[idx2],axis=1)
+        return new_total, new_scatter, new_fission
 
     def populate_xs_list(materials):
         """ Populate list with cross sections of different materials """
