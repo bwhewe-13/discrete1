@@ -207,7 +207,7 @@ class Uncollided:
         return phi,psi_next
 
     def sphere(self,psi_last,speed,total_,source_,boundary):
-        clib = ctypes.cdll.LoadLibrary(C_PATH+'HybridSP.so')
+        clib = ctypes.cdll.LoadLibrary(C_PATH+'cHybridSP.so')
 
         edges = np.cumsum(np.insert(np.ones((self.I))*1/self.delta,0,0))
         SA_plus = Tools.surface_area(edges[1:]).astype('float64')       # Positive surface area

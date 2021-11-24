@@ -1,12 +1,16 @@
-Metadata-Version: 2.1
+Metadata-Version: 1.0
 Name: discrete1
 Version: 1.0
-Summary: One Dimensional Neutron Transport Equation for both fixed sources         and criticality problems. The discrete ordinates (SN) method discretizes         the angles, finite difference (diamond difference) discretizes the         spatial dimensions, and BDF1/BDF2 for the temporal dimensions. Spatial          geometries can be slab or sphere. Machine learning techniques and C code          functions are used for acceleration.         
+Summary: One Dimensional Neutron Transport Equation for both fixed sources
+        and criticality problems. The discrete ordinates (SN) method discretizes
+        the angles, finite difference (diamond difference) discretizes the
+        spatial dimensions, and BDF1/BDF2 for the temporal dimensions. Spatial 
+        geometries can be slab or sphere. Machine learning techniques and C code 
+        functions are used for acceleration.
+        
 Home-page: https://github.com
 Author: Ben Whewell
 Author-email: ben.whewell@pm.me
 License: UNKNOWN
+Description: UNKNOWN
 Platform: UNKNOWN
-
-UNKNOWN
-
