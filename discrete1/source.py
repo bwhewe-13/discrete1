@@ -427,7 +427,7 @@ class Source:
             _, psi_last = initial.multi_group(psi_last=np.zeros((initial.I,initial.N,initial.G)),guess=scalar_flux,ts=0,known_flux='True')
             if initial.G != self.G:
                 _, keys2 = FixedSource.initialize('ControlRod',self.G,self.N,T=self.T,dt=self.dt,enrich=0.2,hybrid=87)
-                psi_last = tools.big_2_small(psi_last,keys['delta_e'],keys2['delta_e'],keys2['splits'])
+                psi_last = tools.big_2_small2(psi_last,keys['delta_e'],keys2['delta_e'],keys2['splits'])
                 print(psi_last.shape)
             del scalar_flux
             # psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/stainless_g87_phi_20.npy'),axis=1),(1,self.N,1))
