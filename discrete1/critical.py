@@ -2,6 +2,7 @@
 
 from .keigenvalue import Problem1, Problem2, Problem3, Problem4
 from .reduction import DJ,AE,DJAE
+from discrete1.utils import transport_tools
 
 import numpy as np
 import ctypes
@@ -54,7 +55,6 @@ class Critical:
             setattr(self, key, value)
         Critical.compile(I,N)
 
-
     @classmethod
     def run(cls,refl,enrich,orient='orig',**kwargs):
         # This is for running the preset eigenvalue problems
@@ -66,7 +66,7 @@ class Critical:
             attributes = Problem2.steady('hdpe',enrich,orient,groups,naive)
         elif refl in ['c']:
             groups = kwargs['G'] if 'G' in kwargs else 87
-            attributes = Problem3.steady('hdpe',enrich,orient,groups)
+            attributes = Problem3.steady('ss440',enrich,orient,groups)
         elif refl in ['diff']:
             attributes = Problem4.steady('ss440',enrich,orient,kwargs['sn'])
 
@@ -139,15 +139,8 @@ class Critical:
         model = DJAE(dj_models,ae_models,atype,transform,**kwargs)
         model.load_model()
         model.load_problem(refl,enrich,orient)
-        label_enrichment = str(int(enrich*100)).zfill(3)
-        label_time_iteration = str(kwargs['tt']).zfill(3)
-        if 'reg' in dj_models[0][0]:
-            label_model = 'Reg'
-        elif 'label' in dj_models[0][0]:
-            label_model = 'Label'
-        func_lab = 'DJINN{}_TimeIteration{}_Enrich{}'.format(label_model,label_time_iteration,label_enrichment)
-        return problem.transport(func_lab=func_lab,models=model,MAX_ITS=20)
-
+        return problem.transport(models=model,MAX_ITS=20)
+        
     @classmethod
     def run_reduce(cls,refl,enrich,orient='orig',**kwargs):
         # This is only for slab problems 
@@ -191,7 +184,7 @@ class Critical:
             guess: Initial guess of the scalar flux for a specific energy group (I x L+1)
         Returns:
             phi: a I array  """
-        clibrary = ctypes.cdll.LoadLibrary('./{}/cCritical.so'.format(C_PATH))
+        clibrary = ctypes.cdll.LoadLibrary('{}cCritical.so'.format(C_PATH))
         sweep = clibrary.reflected if self.boundary == 'reflected' else clibrary.vacuum
 
         phi_old = guess.copy()
@@ -241,17 +234,17 @@ class Critical:
             guess: Initial guess of the scalar flux for a specific energy group (I x L+1)
         Returns:
             phi: a I array  """
-        clibrary = ctypes.cdll.LoadLibrary('./{}/cCriticalSP.so'.format(C_PATH))
+        clibrary = ctypes.cdll.LoadLibrary('{}cCriticalSP.so'.format(C_PATH))
         sweep = clibrary.vacuum
 
         edges = np.cumsum(np.insert(np.ones((self.I))*1/self.delta,0,0))
-        SA_plus = Critical.surface_area(edges[1:]).astype('float64')       # Positive surface area
+        SA_plus = transport_tools.surface_area_calc(edges[1:]).astype('float64')       # Positive surface area
         SAp_ptr = ctypes.c_void_p(SA_plus.ctypes.data)
 
-        SA_minus = Critical.surface_area(edges[:self.I]).astype('float64') # Negative surface area
+        SA_minus = transport_tools.surface_area_calc(edges[:self.I]).astype('float64') # Negative surface area
         SAm_ptr = ctypes.c_void_p(SA_minus.ctypes.data)
 
-        V = Critical.volume(edges[1:],edges[:self.I])                      # Volume and total
+        V = transport_tools.volume_calc(edges[1:],edges[:self.I])                      # Volume and total
         v_total = (V * total_).astype('float64')
         v_ptr = ctypes.c_void_p(v_total.ctypes.data)
 
@@ -264,14 +257,14 @@ class Critical:
 
         converged = 0; count = 1;
 
-        # psi_nhalf = (Critical.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
+        # psi_nhalf = (transport_tools.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
         while not (converged):
             phi = np.zeros((self.I),dtype='float64')
             if self.atype in ['scatter','both']:
                 temp = scatter_
             else:
                 temp = scatter_ * phi_old
-            psi_nhalf = (Critical.half_angle(0,total_,1/self.delta, source_ + temp)).astype('float64')
+            psi_nhalf = (transport_tools.half_angle(0,total_,1/self.delta, source_ + temp)).astype('float64')
 
             Q = (V * (source_ + temp)).astype('float64')
             q_ptr = ctypes.c_void_p(Q.ctypes.data)
@@ -309,7 +302,6 @@ class Critical:
                 for g in range(self.G):
                     phi[:,g] = geo(self,self.total[:,g],smult[:,g],source[:,g],phi_old[:,g])
             else:
-                
                 for g in range(self.G):
                     q_tilde = source[:,g] + Critical.update_q(self,phi_old,g+1,self.G,g)
                     if g != 0:
@@ -325,9 +317,8 @@ class Critical:
         save_file = 'mydata/djinn_pluto_iterations/PowerIteration{}_Groups{}_{}'.format(pow_it,self.G,func_lab)
         np.save(save_file,source_time)
         return phi
-            
-    def transport(self,models=None,tol=1e-12,MAX_ITS=20,func_lab=''):
 
+    def transport(self,models=None,tol=1e-12,MAX_ITS=100):
         self.models = models
         # if self.saving != '0': # Running from random
         if self.saving not in ['0','2']:
@@ -381,20 +372,6 @@ class Critical:
         else:
             return phi
 
-    def surface_area(rho):
-        return 4 * np.pi * rho**2
-
-    def volume(plus,minus):
-        return 4 * np.pi / 3 * (plus**3 - minus**3)
-
-    def half_angle(psi_plus,total,delta,source):
-        """ This is for finding the half angle (N = 1/2) at cell i """
-        psi_nhalf = np.zeros((len(total)))
-        for ii in range(len(total)-1,-1,-1):            
-            psi_nhalf[ii] = (2 * psi_plus + delta * source[ii] ) / (2 + total[ii] * delta)
-            psi_plus = 2 * psi_nhalf[ii] - psi_plus
-        return psi_nhalf
-
     def compile(I,N):
         # Compile Slab
         command = 'gcc -fPIC -shared -o {}cCritical.so {}cCritical.c -DLENGTH={}'.format(C_PATH,C_PATH,I)
@@ -415,27 +392,3 @@ class Critical:
         if len(xs.shape) == 2:  # Total cross section
             return np.concatenate([xs[ii] * phi[index[ii]] for ii in range(len(index))])
         return np.concatenate([phi[index[ii]] @ xs[ii].T for ii in range(len(index))])
-
-    # def tracking_data(self,flux,sources=None):
-    #     from discrete1.util import sn
-    #     import numpy as np
-    #     phi = flux.copy()
-    #     # Scatter Tracking - separate phi and add label
-    #     label_scatter = sn.cat(self.enrich,self.splits['scatter_djinn'])
-    #     phi_scatter = sn.cat(phi,self.splits['scatter_djinn'])
-    #     # Do not do this, results are inaccurate when normalized
-    #     # phi_scatter /= np.linalg.norm(phi_scatter)
-    #     phi_full_scatter = np.hstack((label_scatter[:,None],phi_scatter))
-    #     # Separate scatter multiplier and add label
-    #     multiplier_scatter = np.einsum('ijk,ik->ij',sn.cat(self.scatter,self.splits['scatter_djinn']),phi_scatter)
-    #     multiplier_full_scatter = np.hstack((label_scatter[:,None],multiplier_scatter))
-    #     scatter_data = np.vstack((phi_full_scatter[None,:,:],multiplier_full_scatter[None,:,:]))
-    #     # Fission Tracking - Separate phi and add label
-    #     label_fission = sn.cat(self.enrich,self.splits['fission_djinn'])
-    #     phi_fission = sn.cat(phi,self.splits['fission_djinn'])
-    #     phi_full_fission = np.hstack((label_fission[:,None],phi_fission))
-    #     # Separate fission multiplier and add label
-    #     multiplier_fission = sn.cat(sources,self.splits['fission_djinn'])
-    #     multiplier_full_fission = np.hstack((label_fission[:,None],multiplier_fission))
-    #     fission_data = np.vstack((phi_full_fission[None,:,:],multiplier_full_fission[None,:,:]))
-    #     return fission_data, scatter_data

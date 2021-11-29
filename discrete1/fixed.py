@@ -352,7 +352,7 @@ class StainlessUranium: # Sphere problem
 
 class ControlRod: # Slab problem
 
-    def steady(G,N,boundary='vacuum',enrich=0.22,edges=None):
+    def steady(G,N,boundary='vacuum',enrich=0.20,edges=None):
         # Checking for energy group collapse
         reduced = True if G != 87 else False
         # Setting up shape problem
@@ -559,7 +559,6 @@ class Tools:
             return np.array([np.sum(vector[:,indices[ii]:indices[ii+1]],axis=1) for ii in range(new_group)])
         return np.array([sum(vector[indices[ii]:indices[ii+1]]) for ii in range(new_group)])
 
-
     def classical_speed(grid,G):
         """ Convert energy edges to speed at cell centers, Classical Physics
         Arguments:
@@ -599,20 +598,18 @@ class Tools:
         if grid is None:
             grid = np.load(DATA_PATH + 'energyGrid.npy')
         # Calculate velocity for 87 group
-        centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(range(len(grid)-1),range(1,len(grid)))])
+        centers = 0.5 * (grid[1:] + grid[:-1])
+        idx = Tools.index_generator(len(grid)-1, G)
+        # This is for new centers (previously used)
+        # centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(idx[:len(grid)-1],idx[1:])])
         gamma = (eV_J * centers)/(mass_neutron * light**2) + 1
-        v = light/gamma * np.sqrt(gamma**2 - 1) * 100
-        # if len(grid) - 1 == G:
-        #     return np.tile(v,(1000,1))
-
-        inds = Tools.index_generator(len(grid)-1,G)
-        centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(inds[:len(grid)-1],inds[1:])])
-        gamma = (eV_J * centers)/(mass_neutron * light**2) + 1
-        v = light/gamma * np.sqrt(gamma**2 - 1) * 100        
-        # v_flux = Tools.vector_reduction(v * centers * phi,inds)
-        # v = (v_flux / (Tools.vector_reduction(phi * centers,inds))).T
-        
-        return v
+        velocity = light/gamma * np.sqrt(gamma**2 - 1) * 100
+        # Take mean of collapsed groups
+        # velocity *= np.diff(grid)
+        # new_velocity = Tools.vector_reduction(velocity, idx)
+        # new_velocity /= np.array([grid[idx[ii+1]]-grid[idx[ii]] for ii in range(G)])
+        velocity = np.array([np.mean(velocity[idx[ii]:idx[ii+1]]) for ii in range(len(idx)-1)])
+        return velocity
 
     def recompile(I):
         # Recompile cSource
