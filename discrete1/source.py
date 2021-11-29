@@ -58,7 +58,7 @@ class Source:
         self.T = None; self.dt = None; self.v = None
         self.boundary = 'vacuum'; self.problem = None
         self.geometry = 'slab'; self.td = 'BE'
-        self.enrich = 0.2; self.time = False
+        self.enrich = 0.20; self.time = False
         for key, value in kwargs.items():
             assert (key in self.__class__.__allowed), "Attribute not allowed, available: boundary, time, geometry" 
             setattr(self, key, value)
@@ -406,18 +406,8 @@ class Source:
         # Initialize angular flux
         psi_last = np.zeros((self.I,self.N,self.G))
         # Initialize Speed
-        velocity87 = Extra.relative_speed(87)
-        idx = Extra.index_generator(87,self.G)
-        # print('Used Average')
-        velocity = np.array([np.mean(velocity87[idx[ii]:idx[ii+1]]) for ii in range(len(idx)-1)])
-        print(np.array_equal(velocity87,velocity))
-        # col_keys['v'] = 0.5*(col_keys['v'] + velocity)
-        print(np.sum(self.v))
-        print('Used Average', np.array_equal(self.v, velocity))
-        self.v = velocity.copy()
-        print(np.sum(self.v))
-
         self.speed = 1/(self.v*self.dt)
+
         if self.problem in ['ControlRod']:
             # self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.20,switch=0)
             scalar_flux = np.load('mydata/control_rod_critical/carbon_g87_phi_{}.npy'.format(str(int(self.enrich*100)).zfill(2)))

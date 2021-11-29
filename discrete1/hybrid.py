@@ -46,16 +46,6 @@ class Hybrid:
         speed_u = 1/(un_keys['v']*un_keys['dt'])
         speed_c = 1/(col_keys['v']*col_keys['dt'])
 
-        idx = Extra.index_generator(87,self.Gc)
-        print('Used Average')
-        velocity = np.array([np.mean(un_keys['v'][idx[ii]:idx[ii+1]]) for ii in range(len(idx)-1)])
-        print(np.array_equal(col_keys['v'],velocity))
-        # col_keys['v'] = 0.5*(col_keys['v'] + velocity)
-        col_keys['v'] = velocity.copy()
-        # col_keys['v'] = np.ones(velocity.shape)*100
-        speed_c = 1/(col_keys['v']*col_keys['dt'])
-        # speed_c *= 0
-
         # Initialize collided scalar flux
         phi_c = np.zeros((collided.I,collided.G)); time_phi = []
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
@@ -65,13 +55,9 @@ class Hybrid:
 
         if self.ptype in ['ControlRod']:
             scalar_flux = np.load('mydata/control_rod_critical/carbon_g87_phi_{}.npy'.format(str(int(self.enrich*100)).zfill(2)))
-            
             source_q = np.einsum('ijk,ik->ij',uncollided.scatter,scalar_flux) + np.einsum('ijk,ik->ij',uncollided.fission,scalar_flux) 
             temp,psi_last = uncollided.multi_group(psi_last, speed_u, source=source_q, ts=0)
-            print(np.sum(temp), np.sum(scalar_flux), np.isclose(temp, scalar_flux).sum())
-
             del scalar_flux, temp, source_q
-            # psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/carbon_g87_phi_15.npy'),axis=1),(1,uncollided.N,1))
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(un_keys['T']/un_keys['dt'],5))
         # Determining source for problem
