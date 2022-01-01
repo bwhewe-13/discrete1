@@ -3,7 +3,8 @@
 // #define LENGTH 1000
 
 
-void reflected(void *flux, void *scatter, void *external, void *numerator, void *denominator, double weight, double boundary, int direction){
+void reflected(void *flux, void *scatter, void *external, void *numerator, 
+               void *denominator, double weight, double boundary, int direction){
     double psi_top;
     double psi_bottom = boundary;
     
@@ -34,7 +35,8 @@ void reflected(void *flux, void *scatter, void *external, void *numerator, void 
 
 
 
-void vacuum(void *flux, void *scatter, void *external, void *numerator, void *denominator, double weight, double boundary, int direction){
+void vacuum(void *flux, void *scatter, void *external, void *numerator, 
+            void *denominator, double weight, double boundary, int direction){
     double psi_top;
     double psi_bottom = 0.0;
 
@@ -69,7 +71,9 @@ void vacuum(void *flux, void *scatter, void *external, void *numerator, void *de
 }
 
 // Time Dependent One Group (Vacuum)
-void time_vacuum(void *flux, void *psi_angle, void *scatter, void *external, void *numerator, void *denominator, double weight, double boundary, int direction){
+void time_vacuum(void *flux, void *psi_angle, void *scatter, void *external, 
+                 void *numerator, void *denominator, double weight, double boundary, 
+                 int direction){
     double psi_top;
     double psi_bottom = 0.0;
     

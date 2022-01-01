@@ -4,7 +4,8 @@
 
 
 // Uncollided One Group
-void uncollided(void *flux, void *psi_angle, void *external, void *numerator, void *denominator, double weight, double boundary, int direction){
+void uncollided(void *flux, void *psi_angle, void *external, void *numerator, 
+                void *denominator, double weight, double boundary, int direction){
     double psi_top;
     double psi_bottom = 0.0;
     
@@ -43,7 +44,8 @@ void uncollided(void *flux, void *psi_angle, void *external, void *numerator, vo
 }
 
 
-void collided(void *flux, void *scatter, void *external, void *numerator, void *denominator, double weight, int direction){
+void collided(void *flux, void *scatter, void *external, void *numerator, 
+              void *denominator, double weight, int direction){
     double psi_top;
     double psi_bottom = 0.0;
     
