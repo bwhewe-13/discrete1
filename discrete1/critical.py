@@ -234,30 +234,22 @@ class Critical:
             guess: Initial guess of the scalar flux for a specific energy group (I x L+1)
         Returns:
             phi: a I array  """
-        clibrary = ctypes.cdll.LoadLibrary('{}cCriticalSP.so'.format(C_PATH))
+        clibrary = ctypes.cdll.LoadLibrary(C_PATH + 'cCriticalSP.so')
         sweep = clibrary.vacuum
 
         edges = np.cumsum(np.insert(np.ones((self.I))*1/self.delta,0,0))
-        SA_plus = transport_tools.surface_area_calc(edges[1:]).astype('float64')       # Positive surface area
-        SAp_ptr = ctypes.c_void_p(SA_plus.ctypes.data)
-
-        SA_minus = transport_tools.surface_area_calc(edges[:self.I]).astype('float64') # Negative surface area
-        SAm_ptr = ctypes.c_void_p(SA_minus.ctypes.data)
-
-        V = transport_tools.volume_calc(edges[1:],edges[:self.I])                      # Volume and total
+        V = transport_tools.volume_calc(edges[1:],edges[:self.I])
         v_total = (V * total_).astype('float64')
         v_ptr = ctypes.c_void_p(v_total.ctypes.data)
 
         phi_old = guess.copy()
 
-        mu = self.mu.astype('float64')                                     # Angle and weight
+        mu = self.mu.astype('float64')
         mu_ptr = ctypes.c_void_p(mu.ctypes.data)
         w = self.w.astype('float64')
         w_ptr = ctypes.c_void_p(w.ctypes.data)
 
         converged = 0; count = 1;
-
-        # psi_nhalf = (transport_tools.half_angle(0,total_,1/self.delta, source_ + scatter_ * phi_old)).astype('float64')
         while not (converged):
             phi = np.zeros((self.I),dtype='float64')
             if self.atype in ['scatter','both']:
@@ -272,10 +264,11 @@ class Critical:
             psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
             phi_ptr = ctypes.c_void_p(phi.ctypes.data)
 
-            sweep(phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,mu_ptr,w_ptr)
+            # sweep(phi_ptr,psi_ptr,q_ptr,v_ptr,SAp_ptr,SAm_ptr,mu_ptr,w_ptr)
+            sweep(phi_ptr,psi_ptr,q_ptr,v_ptr,mu_ptr,w_ptr, ctypes.c_double(1/self.delta))
             
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
-            converged = (change < tol) or (count >= MAX_ITS) #or (change == np.nan)
+            converged = (change < tol) or (count >= MAX_ITS)
             count += 1
             phi_old = phi.copy()
             # print(change)
