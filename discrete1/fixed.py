@@ -7,6 +7,7 @@ import pkg_resources
 import os
 
 DATA_PATH = pkg_resources.resource_filename('discrete1','data/')
+XS_PATH = pkg_resources.resource_filename('discrete1','xs/')
 C_PATH = pkg_resources.resource_filename('discrete1','c/')
 
 # Problems with same energy grid
@@ -185,7 +186,7 @@ class Standard87:
         if boundary == 'reflected':
             N = int(0.5 * N)
             mu = mu[N:]; w = w[N:]
-        energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
+        energy_grid = np.load(DATA_PATH + 'energy_edges_087G.npy')
         g = np.argmin(abs(energy_grid-14.1E6))
         source = np.zeros((len(energy_grid)-1))
         # source[g] = 1 
@@ -193,12 +194,12 @@ class Standard87:
         print('Not usable yet')
 
     def timed(G,T,dt):
-        grid = np.load(DATA_PATH + 'energyGrid.npy')
+        grid = np.load(DATA_PATH + 'energy_edges_087G.npy')
         v = Tools.relative_speed(G,grid)
         return T, dt, v
 
     def hybrid(G,hy_g):
-        grid = np.load(DATA_PATH + 'energyGrid.npy')
+        grid = np.load(DATA_PATH + 'energy_edges_087G.npy')
         if hy_g == G:
             delta_u = np.diff(grid)
             return delta_u, None
@@ -210,66 +211,8 @@ class Standard87:
             return delta_c, splits
 
 
-class Stainless:
-
-    def steady(G,N,boundary='vacuum',edges=None):
-        # Checking for energy group collapse
-        reduced = True if G != 87 else False
-        # Angles
-        L = 0; R = 10.; I = 1000 # R = 1000 for infinite
-        mu,w = np.polynomial.legendre.leggauss(N)
-        w /= np.sum(w); 
-        delta = R/I
-        xs_total,xs_scatter,xs_fission = XSGenerate087('SS440').cross_section()
-        # Create source in 14.1 MeV group
-        energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
-        g = np.argmin(abs(energy_grid-14.1E6))
-        source = np.zeros((len(energy_grid)-1))
-        # source[g] = 1
-        lhs = np.zeros((len(energy_grid)-1))
-        lhs[g] = 1 # all spatial cells in this group
-        if reduced:
-            xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,
-                xs_total,xs_scatter,xs_fission,edges)
-            source = Tools.source_reduction(87,G,source,edges)
-            lhs = Tools.source_reduction(87,G,lhs,edges)
-        total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,I)
-        source_ = np.tile(source,(I,1))     
-        Tools.recompile(I)
-
-        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta,lhs
-
-
-class Uranium:
-
-    def steady(G,N,boundary='vacuum',enrich=0.007):
-        # Checking for energy group collapse
-        reduced = True if G != 87 else False
-        # Angles
-        L = 0; R = 10; I = 1000
-        mu,w = np.polynomial.legendre.leggauss(N)
-        w /= np.sum(w); 
-        delta = R/I
-        xs_total,xs_scatter,xs_fission = XSGenerate087('U',enrich=enrich).cross_section()
-        # Create source in 14.1 MeV group
-        energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
-        g = np.argmin(abs(energy_grid-14.1E6))
-        source = np.zeros((len(energy_grid)-1))
-        source[g] = 1 # all spatial cells in this group
-        lhs = np.zeros((len(enegyr_grid)-1))
-        if reduced:
-            xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,xs_total,xs_scatter,xs_fission)
-            source = Tools.source_reduction(87,G,source)
-            lhs = Tools.source_reduction(87,G,lhs)
-        # Progagate for all groups
-        total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,I)
-        source_ = np.tile(source,(I,1))
-        Tools.recompile(I)
-
-        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta,lhs
-
-
 class UraniumStainless: # Slab problem
+    _original_groups = 87
 
     def steady(G,N,boundary='vacuum',enrich=0.2,edges=None):
         """ 
@@ -281,111 +224,123 @@ class UraniumStainless: # Slab problem
             vr = 1: change velocity at each time step and spatial cell
         """
         # Checking for energy group collapse
-        reduced = True if G != 87 else False
+        reduced = True if G != UraniumStainless._original_groups else False
         # Setting up shape problem
         shape = [4,2,4]
         materials = ['ss440',['u',enrich],'ss440']
         # Angles
-        L = 0; R = sum(shape); I = 1000
+        I = 1000
+        delta = sum(shape)/I
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w); 
-        delta = R/I
         # Get list of xs for each material
-        xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(materials)
+        xs_total, xs_scatter, xs_fission = Tools.populate_xs_list(materials)
         # Get sizes of each material
         layers = [int(ii/delta) for ii in shape]
         # Source term
-        energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
+        energy_grid = np.load(DATA_PATH + 'energy_edges_087G.npy')
         g = np.argmin(abs(energy_grid-14.1E6))
-        source = np.zeros((len(energy_grid)-1))
-        lhs = np.zeros((len(energy_grid)-1))
-        lhs[g] = 1 # all spatial cells in this group
+        external_source = np.zeros((UraniumStainless._original_groups))
+        point_source = np.zeros((UraniumStainless._original_groups))
+        point_source[g] = 1 # all spatial cells in this group
         if reduced:
-            # if xsr == 0:
             xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,\
                 xs_total,xs_scatter,xs_fission,edges)
-            source = Tools.source_reduction(87,G,source,edges)
-            lhs = Tools.source_reduction(87,G,lhs,edges)
+            external_source = Tools.source_reduction(UraniumStainless._original_groups, \
+                                                     G, external_source, edges)
+            point_source = Tools.source_reduction(UraniumStainless._original_groups, \
+                G, point_source, edges)
         # Propogate onto full space 
-        total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
-        source_ = np.tile(source,(I,1))
+        total_,scatter_,fission_ = Tools.populate_full_space(xs_total, xs_scatter, \
+                                                             xs_fission, layers)
+        point_source_loc = 0
+        point_source = [point_source_loc, point_source]
+        external_source_ = np.tile(external_source,(I,1))
         Tools.recompile(I)
-
-        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta,lhs
+        return G, N, mu, w, total_, scatter_, fission_, external_source_, I, \
+               delta, point_source
 
 
 class StainlessUranium: # Sphere problem
+    _original_groups = 87
 
     def steady(G,N,boundary='vacuum',enrich=0.2,edges=None):
         # Checking for energy group collapse
-        reduced = True if G != 87 else False
+        reduced = True if G != StainlessUranium._original_groups else False
         # Setting up shape problem
         shape = [4,2,4]
         materials = [['u',enrich],['u',0],'ss440']
         # Angles
-        L = 0; R = sum(shape); I = 1000
+        I = 1000
+        delta = sum(shape)/I
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w); 
-        delta = R/I
         # Get list of xs for each material
-        xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(materials)
+        xs_total, xs_scatter, xs_fission = Tools.populate_xs_list(materials)
         # Get sizes of each material
         layers = [int(ii/delta) for ii in shape]
         # Source term
-        energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
+        energy_grid = np.load(DATA_PATH + 'energy_edges_087G.npy')
         g = np.argmin(abs(energy_grid-14.1E6))
-        source = np.zeros((len(energy_grid)-1))
-        lhs = np.zeros((len(energy_grid)-1))
-        lhs[g] = 1 # all spatial cells in this group
+        external_source = np.zeros((StainlessUranium._original_groups))
+        point_source = np.zeros((StainlessUranium._original_groups))
+        point_source[g] = 1 # all spatial cells in this group
         if reduced:
-            xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,\
-                xs_total,xs_scatter,xs_fission,edges)
-            source = Tools.source_reduction(87,G,source,edges)
-            lhs = Tools.source_reduction(87,G,lhs,edges)
+            xs_total, xs_scatter, xs_fission = Tools.group_reduction(G, energy_grid,\
+                xs_total, xs_scatter, xs_fission, edges)
+            external_source = Tools.source_reduction(StainlessUranium._original_groups, \
+                                                     G, external_source, edges)
+            point_source = Tools.source_reduction(87,G,point_source,edges)
         # Propogate onto full space 
-        total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
-        source_ = np.tile(source,(I,1))
+        total_, scatter_, fission_ = Tools.populate_full_space(xs_total, \
+                                                xs_scatter, xs_fission, layers)
+        point_source_loc = 1000
+        point_source = [point_source_loc, point_source]
+        external_source_ = np.tile(external_source,(I,1))
         Tools.recompile(I)
-
-        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta,lhs
+        return G, N, mu, w, total_, scatter_, fission_, external_source_, I, \
+               delta, point_source
 
 
 class ControlRod: # Slab problem
+    _original_groups = 87
 
     def steady(G,N,boundary='vacuum',enrich=0.20,edges=None):
         # Checking for energy group collapse
-        reduced = True if G != 87 else False
+        reduced = True if G != ControlRod._original_groups else False
         # Setting up shape problem
         shape = [10,4,12,4,10]
         materials = ['c',['u',enrich],'c',['u',enrich],'c']
         # Angles
-        L = 0; R = sum(shape); I = 1000
+        I = 1000
+        delta = sum(shape)/I
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w); 
-        delta = R/I
         # Get list of xs for each material
         xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(materials)
         # Get sizes of each material
         layers = [int(ii/delta) for ii in shape]
-        # Source term
-        energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
+        # External and Point Source
+        energy_grid = np.load(DATA_PATH + 'energy_edges_087G.npy')
         g = np.argmin(abs(energy_grid-14.1E6))
-        source = np.zeros((len(energy_grid)-1))
-        # source_ = np.load(DATA_PATH + 'initial_rod.npy')
-        lhs = np.zeros((len(energy_grid)-1))
-        # lhs[g] = 1 # all spatial cells in this group
+        external_source = np.zeros((ControlRod._original_groups))
+        point_source = np.zeros((ControlRod._original_groups))
+        point_source_loc = 0
         if reduced:
             xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,\
                 xs_total,xs_scatter,xs_fission,edges)
             # source_ = Tools.source_reduction(87,G,source_.T,edges).T
-            source = Tools.source_reduction(87,G,source)
-            lhs = Tools.source_reduction(87,G,lhs,edges)
-        source_ = np.tile(source,(I,1))
+            source = Tools.source_reduction(ControlRod._original_groups, G, external_source)
+            point_source = Tools.source_reduction(ControlRod._original_groups, G, \
+                point_source, edges)
+        external_source_ = np.tile(external_source,(I,1))
+        point_source = [point_source_loc, point_source]
         # Propogate onto full space
-        total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
+        total_, scatter_, fission_ = Tools.populate_full_space(xs_total, xs_scatter, \
+            xs_fission, layers)
         Tools.recompile(I)
-
-        return G,N,mu,w,total_,scatter_,fission_,source_,I,delta,lhs
+        return G, N, mu, w, total_, scatter_, fission_, external_source_, I, \
+            delta, point_source
 
     def xs_update(G,enrich,switch,edges=None):
         reduced = True if G != 87 else False
@@ -399,13 +354,67 @@ class ControlRod: # Slab problem
         xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(materials)
         # Get sizes of each material
         layers = [int(ii/delta) for ii in shape]
-        energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
+        energy_grid = np.load(DATA_PATH + 'energy_edges_087G.npy')
         if reduced:
             xs_total,xs_scatter,xs_fission = Tools.group_reduction(G,energy_grid,\
                 xs_total,xs_scatter,xs_fission,edges)
         # Propogate onto full space 
         total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
         return total_,scatter_,fission_
+
+
+class SHEM: # Slab problem
+    _original_groups = 361
+
+    def steady(G,N,boundary='vacuum',enrich=0.2,edges=None):
+        # Checking for energy group collapse
+        reduced = True if G != SHEM._original_groups else False
+        print('Groups',SHEM._original_groups)
+        # Spatial
+        R = 38.364868961274624 # Critical
+        I = 1000
+        delta = R/I
+        # Angles
+        mu,w = np.polynomial.legendre.leggauss(N)
+        w /= np.sum(w); 
+        # Cross Sections        
+        xs_total = np.load(XS_PATH + 'shem/vecTotal.npy')
+        xs_scatter = np.load(XS_PATH + 'shem/scatter_000.npy')
+        xs_fission = np.load(XS_PATH + 'shem/nufission_000.npy')
+        # Point and External Source
+        edges_idx = np.load(DATA_PATH + 'group_indices_361G.npz')[str(G).zfill(3)]
+        point_source = SHEM.AmBe_source(G, edges_idx)
+        point_source_loc = 500
+        point_source = [point_source_loc, point_source]
+        energy_grid = np.load(DATA_PATH + 'energy_edges_361G.npy')
+        external_source = np.zeros((SHEM._original_groups))
+        if reduced:
+            xs_total,xs_scatter,xs_fission = Tools.group_reduction(G, energy_grid,\
+                xs_total, xs_scatter, xs_fission, edges_idx)
+            source = Tools.source_reduction(SHEM._original_groups, G, \
+                external_source,edges_idx)
+        # Propogate onto full space 
+        total_ = np.tile(xs_total,(I, 1))
+        scatter_ = np.tile(xs_scatter,(I, 1, 1))
+        fission_ = np.tile(xs_fission,(I, 1, 1))
+        external_source_ = np.tile(external_source, (I, 1))
+        Tools.recompile(I)
+        return G, N, mu, w, total_, scatter_, fission_, external_source_, I, \
+                delta, point_source
+
+    def AmBe_source(G, edges_idx):
+        AmBe = np.load(DATA_PATH + 'AmBe_source_050G.npz')
+        # Make sure to convert energy to MeV
+        energy_edges = np.load(DATA_PATH + 'energy_edges_361G.npy') * 1E-6
+        energy_edges = energy_edges[edges_idx].copy()
+        energy_centers = 0.5 * (energy_edges[1:] + energy_edges[:-1])
+        locs = lambda xmin, xmax: np.argwhere((energy_centers > xmin) & \
+                                (energy_centers <= xmax)).flatten()
+        source = np.zeros((G))
+        for center in range(len(AmBe['magnitude'])):
+            idx = locs(AmBe['edges'][center], AmBe['edges'][center+1])
+            source[idx] = AmBe['magnitude'][center]
+        return source
 
 
 class Tools:
@@ -596,7 +605,7 @@ class Tools:
         eV_J = 1.60218E-19 # J
         light = 2.9979246E8 # m/s
         if grid is None:
-            grid = np.load(DATA_PATH + 'energyGrid.npy')
+            grid = np.load(DATA_PATH + 'energy_edges_087G.npy')
         # Calculate velocity for 87 group
         centers = 0.5 * (grid[1:] + grid[:-1])
         idx = Tools.index_generator(len(grid)-1, G)

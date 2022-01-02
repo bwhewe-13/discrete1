@@ -5,7 +5,8 @@
 
 // Uncollided One Group
 void uncollided(void *flux, void *psi_angle, void *external, void *numerator, 
-                void *denominator, double weight, double boundary, int direction){
+                void *denominator, double weight, double point_source,
+                int point_source_loc, int direction){
     double psi_top;
     double psi_bottom = 0.0;
     
@@ -17,15 +18,18 @@ void uncollided(void *flux, void *psi_angle, void *external, void *numerator,
     double * bottom_mult = (double *) denominator; 
 
     if(direction == 1){
-        psi_bottom = boundary; // source enters from LHS
+        // psi_bottom = point_source; // source enters from LHS
         for(int ii=0; ii < LENGTH; ii++){
-           psi_top = (source[ii] + psi_bottom * top_mult[ii]) * bottom_mult[ii];
-           // Write psi to variable
-           psi[ii] = 0.5 * (psi_top + psi_bottom);
-           // Write flux to variable
-           phi[ii] += (weight * 0.5 * (psi_top + psi_bottom));
-           // Move to next cell
-           psi_bottom = psi_top; 
+            if (ii == point_source_loc){
+                psi_bottom += point_source;
+            }            
+            psi_top = (source[ii] + psi_bottom * top_mult[ii]) * bottom_mult[ii];
+            // Write psi to variable
+            psi[ii] = 0.5 * (psi_top + psi_bottom);
+            // Write flux to variable
+            phi[ii] += (weight * 0.5 * (psi_top + psi_bottom));
+            // Move to next cell
+            psi_bottom = psi_top; 
         }
     }
 
@@ -33,6 +37,9 @@ void uncollided(void *flux, void *psi_angle, void *external, void *numerator,
         for(unsigned ii = (LENGTH); ii-- > 0; ){
             // Start at i = I
             psi_top = psi_bottom;
+            if ((ii + 1) == point_source_loc){
+                psi_top += point_source;
+            }
             psi_bottom = (source[ii] + psi_top * top_mult[ii]) * bottom_mult[ii];
             // Write psi to variable
             psi[ii] = 0.5 * (psi_top + psi_bottom);
@@ -40,7 +47,6 @@ void uncollided(void *flux, void *psi_angle, void *external, void *numerator,
             phi[ii] += (weight * 0.5 * (psi_top + psi_bottom));
         }
     }
-
 }
 
 
@@ -58,13 +64,13 @@ void collided(void *flux, void *scatter, void *external, void *numerator,
 
     if(direction == 1){
         for(int ii=0; ii < LENGTH; ii++){
-           psi_top = (temp_scat[ii] + source[ii] + psi_bottom * top_mult[ii]) * bottom_mult[ii];
-           // Write psi to variable
-           // psi[ii] = 0.5* (psi_top + psi_bottom);
-           // Write flux to variable
-           phi[ii] += (weight * 0.5 * (psi_top + psi_bottom));
-           // Move to next cell
-           psi_bottom = psi_top; 
+            psi_top = (temp_scat[ii] + source[ii] + psi_bottom * top_mult[ii]) * bottom_mult[ii];
+            // Write psi to variable
+            // psi[ii] = 0.5* (psi_top + psi_bottom);
+            // Write flux to variable
+            phi[ii] += (weight * 0.5 * (psi_top + psi_bottom));
+            // Move to next cell
+            psi_bottom = psi_top; 
         }
     }
 
@@ -79,5 +85,4 @@ void collided(void *flux, void *scatter, void *external, void *numerator,
             phi[ii] += (weight * 0.5 * (psi_top + psi_bottom));
         }
     }
-
 }
