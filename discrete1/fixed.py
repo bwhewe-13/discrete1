@@ -65,7 +65,7 @@ class FixedSource:
             if ptype in ['Reeds']:
                 temp = list(eval(ptype).timed(G,problem.T,problem.dt))
             else: # 87 Group problems
-                temp = list(Standard87.timed(G,problem.T,problem.dt))
+                temp = list(Standard.timed(G,problem.T,problem.dt))
             keys = ['T','dt','v']
             if len(temp[2].shape) == 1:
                 spatial_cells = ss_vars[8]
@@ -78,7 +78,7 @@ class FixedSource:
             if ptype in ['Reeds']:
                 temp = list(eval(ptype).hybrid(G,problem.hybrid))
             else: # 87 Group problems
-                temp = list(Standard87.hybrid(G,problem.hybrid))
+                temp = list(Standard.hybrid(G,problem.hybrid))
             keys = ['delta_e','splits'] # collided
             for ii in range(len(keys)):
                 hy_vars[keys[ii]] = temp[ii]
@@ -105,7 +105,7 @@ class FixedSource:
             if ptype in ['Reeds']:
                 temp = list(eval(ptype).timed(G,problem.T,problem.dt))
             else: # 87 Group problems
-                temp = list(Standard87.timed(G,problem.T,problem.dt))
+                temp = list(Standard.timed(G,problem.T,problem.dt))
             keys = ['T','dt','v']
             for ii in range(len(keys)):
                 td_vars[keys[ii]] = temp[ii]
@@ -114,7 +114,7 @@ class FixedSource:
             if ptype in ['Reeds']:
                 temp = list(eval(ptype).hybrid(G,problem.hybrid))
             else: # 87 Group problems
-                temp = list(Standard87.hybrid(G,problem.hybrid))
+                temp = list(Standard.hybrid(G,problem.hybrid))
             keys = ['delta_e','splits'] 
             for ii in range(len(keys)):
                 hy_vars[keys[ii]] = temp[ii]
@@ -173,7 +173,7 @@ class Reeds:
             return delta_c, splits
 
 
-class Standard87:
+class Standard:
     # Steady is a work in progress
     def steady(G,N,boundary='vacuum',**kwargs):
         # Checking keyword arguments
@@ -193,19 +193,29 @@ class Standard87:
         lhs = np.zeros((len(energy_grid)-1))
         print('Not usable yet')
 
-    def timed(G,T,dt):
-        grid = np.load(DATA_PATH + 'energy_edges_087G.npy')
-        v = Tools.relative_speed(G,grid)
+    def timed(G, T, dt):
+        try:
+            grid = np.load(DATA_PATH + 'energy_edges_{}G.npy'.format(str(G).zfill(3)))
+            idx = None
+        except FileNotFoundError:
+            grid = np.load(DATA_PATH + 'energy_edges_361G.npy')
+            idx = np.load(DATA_PATH + 'group_indices_361G.npz')[str(G).zfill(3)]
+        v = Tools.relative_speed(G, grid, idx)
         return T, dt, v
 
-    def hybrid(G,hy_g):
-        grid = np.load(DATA_PATH + 'energy_edges_087G.npy')
+    def hybrid(G, hy_g):
+        try:
+            grid = np.load(DATA_PATH + 'energy_edges_{}G.npy'.format(str(hy_g).zfill(3)))
+            idx = None
+        except FileNotFoundError:
+            grid = np.load(DATA_PATH + 'energy_edges_361G.npy')
+            idx = np.load(DATA_PATH + 'group_indices_361G.npz')[str(G).zfill(3)]
         if hy_g == G:
             delta_u = np.diff(grid)
             return delta_u, None
         # Will return uncollided delta_e
         elif hy_g > G:
-            splits = Tools.energy_distribution(hy_g,G)
+            splits = Tools.energy_distribution(hy_g, G, idx)
             delta_u = np.diff(grid)
             delta_c = [sum(delta_u[ii]) for ii in splits]
             return delta_c, splits
@@ -369,9 +379,9 @@ class SHEM: # Slab problem
     def steady(G,N,boundary='vacuum',enrich=0.2,edges=None):
         # Checking for energy group collapse
         reduced = True if G != SHEM._original_groups else False
-        print('Groups',SHEM._original_groups)
         # Spatial
         R = 38.364868961274624 # Critical
+        R = 38.36485 # Critical
         I = 1000
         delta = R/I
         # Angles
@@ -385,19 +395,22 @@ class SHEM: # Slab problem
         edges_idx = np.load(DATA_PATH + 'group_indices_361G.npz')[str(G).zfill(3)]
         point_source = SHEM.AmBe_source(G, edges_idx)
         point_source_loc = 500
-        point_source = [point_source_loc, point_source]
+        # point_source = [point_source_loc, point_source]
         energy_grid = np.load(DATA_PATH + 'energy_edges_361G.npy')
         external_source = np.zeros((SHEM._original_groups))
         if reduced:
             xs_total,xs_scatter,xs_fission = Tools.group_reduction(G, energy_grid,\
                 xs_total, xs_scatter, xs_fission, edges_idx)
-            source = Tools.source_reduction(SHEM._original_groups, G, \
+            external_source = Tools.source_reduction(SHEM._original_groups, G, \
                 external_source,edges_idx)
+            point_source = Tools.source_reduction(SHEM._original_groups, G, \
+                point_source,edges_idx)
         # Propogate onto full space 
         total_ = np.tile(xs_total,(I, 1))
         scatter_ = np.tile(xs_scatter,(I, 1, 1))
         fission_ = np.tile(xs_fission,(I, 1, 1))
         external_source_ = np.tile(external_source, (I, 1))
+        point_source = [point_source_loc, point_source]
         Tools.recompile(I)
         return G, N, mu, w, total_, scatter_, fission_, external_source_, I, \
                 delta, point_source
@@ -406,11 +419,11 @@ class SHEM: # Slab problem
         AmBe = np.load(DATA_PATH + 'AmBe_source_050G.npz')
         # Make sure to convert energy to MeV
         energy_edges = np.load(DATA_PATH + 'energy_edges_361G.npy') * 1E-6
-        energy_edges = energy_edges[edges_idx].copy()
+        # energy_edges = energy_edges[edges_idx].copy()
         energy_centers = 0.5 * (energy_edges[1:] + energy_edges[:-1])
         locs = lambda xmin, xmax: np.argwhere((energy_centers > xmin) & \
                                 (energy_centers <= xmax)).flatten()
-        source = np.zeros((G))
+        source = np.zeros((SHEM._original_groups))
         for center in range(len(AmBe['magnitude'])):
             idx = locs(AmBe['edges'][center], AmBe['edges'][center+1])
             source[idx] = AmBe['magnitude'][center]
@@ -419,15 +432,16 @@ class SHEM: # Slab problem
 
 class Tools:
 
-    def energy_distribution(big,small):
+    def energy_distribution(big, small, idx=None):
         """ List of slices for different energy sizes
         Arguments:
             big: uncollided energy groups, int
             small: collided energy groups, int
         Returns:
             list of slices   """
-        inds = Tools.index_generator(big,small)
-        return [slice(ii,jj) for ii,jj in zip(inds[:small],inds[1:])]
+        if idx is None:
+            idx = Tools.index_generator(big,small)
+        return [slice(ii,jj) for ii,jj in zip(idx[:small],idx[1:])]
 
     def index_generator(big,small):
         """  Get the indices for resizing matrices
@@ -593,7 +607,7 @@ class Tools:
         v = np.sqrt((2 * eV_J * centers)/mass_neutron) * 100
         return v
 
-    def relative_speed(G,grid=None,phi=None):
+    def relative_speed(G, grid=None, phi=None, idx=None):
         """ Convert energy edges to speed at cell centers, Relative Physics
         Arguments:
             grid: energy edges
@@ -608,7 +622,8 @@ class Tools:
             grid = np.load(DATA_PATH + 'energy_edges_087G.npy')
         # Calculate velocity for 87 group
         centers = 0.5 * (grid[1:] + grid[:-1])
-        idx = Tools.index_generator(len(grid)-1, G)
+        if idx is None:
+            idx = Tools.index_generator(len(grid)-1, G)
         # This is for new centers (previously used)
         # centers = np.array([float(grid[ii]+grid[jj])*0.5 for ii,jj in zip(idx[:len(grid)-1],idx[1:])])
         gamma = (eV_J * centers)/(mass_neutron * light**2) + 1

@@ -400,11 +400,21 @@ class Source:
         # Determine source for problem
         if self.problem in ['Stainless','UraniumStainless','StainlessUranium']:
             point_source_full = tools.continuous(self.point_source, steps)
-        else:
+        elif self.problem not in ['SHEM']:
             point_source_full = tools.stagnant(self.point_source, steps)
+        point_source_full = self.point_source.copy()
 
         for t in range(steps):
-            if self.problem in ['ControlRod']:
+            if (self.problem in ['SHEM']):
+                if (int(t*0.05) % 2 == 0):
+                    print('Source On!',np.sum(self.point_source))
+                    self.point_source = point_source_full.copy()
+                else:
+                    print('Source Off!',np.sum(self.point_source))
+                    self.point_source *= 0
+            # if (self.problem in ['SHEM']) and (t > 60):
+            #     self.point_source *= 0
+            elif self.problem in ['ControlRod']:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
                 print('Switch {} Step {}'.format(switch,t))
@@ -417,7 +427,8 @@ class Source:
             time_phi.append(phi)
             phi_old = phi.copy()
             # Update source
-            self.point_source = point_source_full[t].copy()
+            if self.problem not in ['SHEM']:
+                self.point_source = point_source_full[t].copy()
         return phi,time_phi
 
     def bdf2(self):
@@ -436,15 +447,16 @@ class Source:
         # Determine source for problem
         if self.problem in ['Stainless','UraniumStainless','StainlessUranium']:
             point_source_full = tools.continuous(self.point_source,steps)
-        else:
+        elif self.problem not in ['SHEM']:
             point_source_full = tools.stagnant(self.point_source,steps)
         for t in range(steps):
-            if self.problem in ['ControlRod']:
+            if (self.problem in ['SHEM']) and (t == 100):
+                self.point_source *= 0
+            elif self.problem in ['ControlRod']:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
                 print('Switch {} Step {}'.format(switch,t))
                 self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.20,switch=switch)
-
             # Backward Euler for first step, BDF2 for rest
             psi_last = psi_n1.copy() if t == 0 else 2 * psi_n1 - 0.5 * psi_n0
             # Run the multigroup Problem
@@ -457,6 +469,7 @@ class Source:
             psi_n0 = psi_n1.copy()
             psi_n1 = psi_next.copy()
             # Update source, change to BDF2 time steps
-            self.point_source = point_source_full[t].copy()
+            if self.problem not in ['SHEM']:
+                self.point_source = point_source_full[t].copy()
             self.td = 'BDF2'
         return phi,time_phi

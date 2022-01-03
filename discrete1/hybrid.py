@@ -64,10 +64,18 @@ class Hybrid:
         if self.ptype in ['Stainless','UraniumStainless','StainlessUranium']:
             # full_point_source = tools.discontinuous(uncollided.point_source,steps)
             full_point_source = tools.continuous(uncollided.point_source,steps)
-        else:
+        elif self.ptype not in ['SHEM']:
             full_point_source = tools.stagnant(uncollided.point_source,steps)
+        point_source_full = uncollided.point_source.copy()
 
         for t in range(steps):
+            if (self.ptype in ['SHEM']):
+                if (int(t*0.05) % 2 == 0):
+                    print('Source On!',np.sum(uncollided.point_source))
+                    uncollided.point_source = point_source_full.copy()
+                else:
+                    print('Source Off!',np.sum(uncollided.point_source))
+                    uncollided.point_source *= 0
             if self.ptype in ['ControlRod']:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
@@ -98,7 +106,8 @@ class Hybrid:
             # Step 5: Update and repeat
             psi_last = psi_next.copy()
             time_phi.append(phi)
-            uncollided.point_source = full_point_source[t].copy()
+            if self.ptype not in ['SHEM']:
+                uncollided.point_source = full_point_source[t].copy()
         return phi,time_phi
 
     def bdf2(self):
