@@ -76,9 +76,9 @@ class FixedSource:
         # Check if hybrid problem
         if problem.hybrid:
             if ptype in ['Reeds']:
-                temp = list(eval(ptype).hybrid(G,problem.hybrid))
+                temp = list(eval(ptype).hybrid(G, problem.hybrid))
             else: # 87 Group problems
-                temp = list(Standard.hybrid(G,problem.hybrid))
+                temp = list(Standard.hybrid(G, problem.hybrid))
             keys = ['delta_e','splits'] # collided
             for ii in range(len(keys)):
                 hy_vars[keys[ii]] = temp[ii]
@@ -200,12 +200,12 @@ class Standard:
         except FileNotFoundError:
             grid = np.load(DATA_PATH + 'energy_edges_361G.npy')
             idx = np.load(DATA_PATH + 'group_indices_361G.npz')[str(G).zfill(3)]
-        v = Tools.relative_speed(G, grid, idx)
+        v = Tools.relative_speed(G, grid, idx=idx)
         return T, dt, v
 
     def hybrid(G, hy_g):
         try:
-            grid = np.load(DATA_PATH + 'energy_edges_{}G.npy'.format(str(hy_g).zfill(3)))
+            grid = np.load(DATA_PATH + 'energy_edges_{}G.npy'.format(str(G).zfill(3)))
             idx = None
         except FileNotFoundError:
             grid = np.load(DATA_PATH + 'energy_edges_361G.npy')
@@ -214,6 +214,7 @@ class Standard:
             delta_u = np.diff(grid)
             return delta_u, None
         # Will return uncollided delta_e
+
         elif hy_g > G:
             splits = Tools.energy_distribution(hy_g, G, idx)
             delta_u = np.diff(grid)
@@ -381,7 +382,7 @@ class SHEM: # Slab problem
         reduced = True if G != SHEM._original_groups else False
         # Spatial
         R = 38.364868961274624 # Critical
-        R = 38.36485 # Critical
+        R = 38.36485*2 # Critical
         I = 1000
         delta = R/I
         # Angles
@@ -394,7 +395,7 @@ class SHEM: # Slab problem
         # Point and External Source
         edges_idx = np.load(DATA_PATH + 'group_indices_361G.npz')[str(G).zfill(3)]
         point_source = SHEM.AmBe_source(G, edges_idx)
-        point_source_loc = 500
+        point_source_loc = int(0.5 * I)
         # point_source = [point_source_loc, point_source]
         energy_grid = np.load(DATA_PATH + 'energy_edges_361G.npy')
         external_source = np.zeros((SHEM._original_groups))
@@ -599,7 +600,6 @@ class Tools:
             new_grid = np.ones((G)) * int(old_group/G)
             # Add the remainder groups to the first x number 
             new_grid[np.linspace(0,G-1,old_group % G,dtype=int)] += 1
-
             assert (new_grid.sum() == old_group)
             # Calculate the indices while including the left-most (insert)
             inds = np.cumsum(np.insert(new_grid,0,0),dtype=int)
@@ -607,7 +607,7 @@ class Tools:
         v = np.sqrt((2 * eV_J * centers)/mass_neutron) * 100
         return v
 
-    def relative_speed(G, grid=None, phi=None, idx=None):
+    def relative_speed(G, grid=None, idx=None):
         """ Convert energy edges to speed at cell centers, Relative Physics
         Arguments:
             grid: energy edges
@@ -637,16 +637,16 @@ class Tools:
 
     def recompile(I):
         # Recompile cSource
-        command = 'gcc -fPIC -shared -o {}cSource.so {}cSource.c -DLENGTH={}'.format(C_PATH,C_PATH,I)
+        command = f'gcc -fPIC -shared -o {C_PATH}cSource.so {C_PATH}cSource.c -DLENGTH={I}'
         os.system(command)
         # Recompile cHybrid
-        command = 'gcc -fPIC -shared -o {}cHybrid.so {}cHybrid.c -DLENGTH={}'.format(C_PATH,C_PATH,I)
+        command = f'gcc -fPIC -shared -o {C_PATH}cHybrid.so {C_PATH}cHybrid.c -DLENGTH={I}'
         os.system(command)
         # cSource sphere
-        command = 'gcc -fPIC -shared -o {}cSourceSP.so {}cSourceSP.c -DLENGTH={}'.format(C_PATH,C_PATH,I)
+        command = f'gcc -fPIC -shared -o {C_PATH}cSourceSP.so {C_PATH}cSourceSP.c -DLENGTH={I}'
         os.system(command)
         # cHybrid sphere
-        command = 'gcc -fPIC -shared -o {}cHybridSP.so {}cHybridSP.c -DLENGTH={}'.format(C_PATH,C_PATH,I)
+        command = f'gcc -fPIC -shared -o {C_PATH}cHybridSP.so {C_PATH}cHybridSP.c -DLENGTH={I}'
         os.system(command)
 
     def populate_xs_list(materials):

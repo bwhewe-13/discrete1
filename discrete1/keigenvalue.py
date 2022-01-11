@@ -9,6 +9,7 @@ import json
 import os
 
 DATA_PATH = pkg_resources.resource_filename('discrete1','data/')
+C_PATH = pkg_resources.resource_filename('discrete1','c/')
 
 class Problem1:
     # 87 Group problem
@@ -26,21 +27,16 @@ class Problem1:
 
     def steady(refl,enrich,orient='orig'):
         shape,materials = Problem1.orientation(refl,enrich,orient)
-
         L = 0; R = sum(shape); I = 1000
         G = 87; N = 8
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w)
         # Take only half (reflective)
         # N = int(0.5*N); mu = mu[N:]; w = w[N:]
-
         delta = R/I
-
         xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(materials)
         layers = [int(ii/delta) for ii in shape]
-
         total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
-
         return G,N,mu,w,total_,scatter_,fission_,I,delta
 
     def labeling(refl,enrich,orient='orig'):
@@ -157,9 +153,7 @@ class Problem3:
             energy_grid = np.load(DATA_PATH + 'energyGrid.npy')
             edges = None
             xs_total,xs_scatter,xs_fission = ReduceTools.group_reduction(G,energy_grid,xs_total,xs_scatter,xs_fission,edges)
-
         total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
-
         return G,N,mu,w,total_,scatter_,fission_,I,delta
 
     def labeling(refl,enrich,orient='orig'):
@@ -201,24 +195,17 @@ class Problem4:
 
     def steady(refl,enrich,orient='orig',sn=8):
         shape,materials = Problem4.orientation(refl,enrich,orient)
-
         L = 0; R = sum(shape); I = 1000
         G = 87; N = sn
-
         mu,w = np.polynomial.legendre.leggauss(N)
         w /= np.sum(w)
         # Take only half (reflective)
         # N = int(0.5*N); mu = mu[N:]; w = w[N:]
-
         delta = R/I
-
         xs_total,xs_scatter,xs_fission = Tools.populate_xs_list(materials)
         layers = [int(ii/delta) for ii in shape]
-
         assert sum(layers) == I
-
         total_,scatter_,fission_ = Tools.populate_full_space(xs_total,xs_scatter,xs_fission,layers)
-
         return G,N,mu,w,total_,scatter_,fission_,I,delta
 
     def labeling(refl,enrich,orient='orig'):
@@ -313,10 +300,10 @@ class Tools:
 
     def recompile(I,N):
         # Recompile cCritical
-        command = 'gcc -fPIC -shared -o {}cCritical.so {}cCritical.c -DLENGTH={}'.format(DATA_PATH,DATA_PATH,I,N)
+        command = f'gcc -fPIC -shared -o {C_PATH}cCritical.so {C_PATH}cCritical.c -DLENGTH={I}'
         os.system(command)
         # Recompile cCriticalSP
-        command = 'gcc -fPIC -shared -o {}cCriticalSP.so {}cCriticalSP.c -DLENGTH={} -DN={}'.format(DATA_PATH,DATA_PATH,I,N)
+        command = f'gcc -fPIC -shared -o {C_PATH}cCriticalSP.so {C_PATH}cCriticalSP.c -DLENGTH={I} -DN={N}'
         os.system(command)
 
 

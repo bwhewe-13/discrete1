@@ -36,23 +36,20 @@ class Hybrid:
         return prob.backward_euler()
 
     def backward_euler(self):
-        # Set up Problem
-        un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
+        # Uncollided Attributes
+        un_attr, un_keys = FixedSource.initialize(self.ptype, self.Gu, self.Nu, \
+            T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
         uncollided = Uncollided(*un_attr)
-
-        col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
+        # Collided Attributes
+        col_attr, col_keys = FixedSource.initialize(self.ptype, self.Gc, self.Nc, \
+            T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
         collided = Collided(*col_attr)
         # Initialize Speeds
         speed_u = 1/(un_keys['v']*un_keys['dt'])
         speed_c = 1/(col_keys['v']*col_keys['dt'])
-
         # Initialize collided scalar flux
         phi_c = np.zeros((collided.I,collided.G)); time_phi = []
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
-        
-        # uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=self.enrich,switch=0)
-        # collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=self.enrich,switch=0)
-
         if self.ptype in ['ControlRod']:
             scalar_flux = np.load('mydata/control_rod_critical/carbon_g87_phi_{}.npy'.format(str(int(self.enrich*100)).zfill(2)))
             source_q = np.einsum('ijk,ik->ij',uncollided.scatter,scalar_flux) + np.einsum('ijk,ik->ij',uncollided.fission,scalar_flux) 
@@ -67,15 +64,7 @@ class Hybrid:
         elif self.ptype not in ['SHEM']:
             full_point_source = tools.stagnant(uncollided.point_source,steps)
         point_source_full = uncollided.point_source.copy()
-
         for t in range(steps):
-            if (self.ptype in ['SHEM']):
-                if (int(t*0.05) % 2 == 0):
-                    print('Source On!',np.sum(uncollided.point_source))
-                    uncollided.point_source = point_source_full.copy()
-                else:
-                    print('Source Off!',np.sum(uncollided.point_source))
-                    uncollided.point_source *= 0
             if self.ptype in ['ControlRod']:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
@@ -83,32 +72,32 @@ class Hybrid:
                 uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=self.enrich,switch=switch)
                 collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=self.enrich,switch=switch)
             # Step 1: Solve Uncollided Equation
-            phi_u,_ = uncollided.multi_group(psi_last,speed_u,self.geometry,ts=str(t)+'a')
+            phi_u, _ = uncollided.multi_group(psi_last,speed_u,self.geometry,ts=str(t)+'a')
             # Step 2: Compute Source for Collided
-            source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u) 
+            source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u)
             # Resizing
             if self.Gu != self.Gc:
-                source_c = tools.big_2_small(source_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits'])
+                source_c = tools.big_2_small(source_c, phi_c.shape, col_keys['splits'])
             # Step 3: Solve Collided Equation
             phi_c = collided.multi_group(speed_c,source_c,phi_c,self.geometry,ts=t)
             # Resize phi_c
             if self.Gu != self.Gc:
-                # phi = tools.small_2_big(phi_c,self.delta_u,self.delta_c,self.splits) + phi_u
-                phi = tools.small_2_big(phi_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits']) + phi_u
+                phi = tools.small_2_big(phi_c, un_keys['delta_e'], col_keys['delta_e'], \
+                                         col_keys['splits']) + phi_u
             else:
                 phi = phi_c + phi_u
             # Step 4: Calculate next time step
             source = np.einsum('ijk,ik->ij',uncollided.scatter,phi) + \
                      uncollided.external_source + \
                      np.einsum('ijk,ik->ij',uncollided.fission,phi)
-            phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source,ts=str(t)+'b')
+            phi, psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source,ts=str(t)+'b')
             print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
             # Step 5: Update and repeat
             psi_last = psi_next.copy()
             time_phi.append(phi)
             if self.ptype not in ['SHEM']:
                 uncollided.point_source = full_point_source[t].copy()
-        return phi,time_phi
+        return phi, time_phi
 
     def bdf2(self):
         # Set up Problem
@@ -212,7 +201,6 @@ class Uncollided:
             # Source Terms
             rhs = (source_ + psi_last[:,n] * speed).astype('float64')
             rhs_ptr = ctypes.c_void_p(rhs.ctypes.data)
-
             if self.td == 'BE':
                 top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
                 bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64')
@@ -274,7 +262,6 @@ class Uncollided:
     def multi_group(self, psi_last, speed, geometry='slab', source=None, ts=None):
         phi_old = np.zeros((self.I,self.G))
         psi_next = np.zeros(psi_last.shape)
-
         geo = getattr(Uncollided,geometry)  # Get the specific sweep
         if source is None:
             current = self.external_source.copy()
@@ -296,7 +283,7 @@ class Uncollided:
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
             phi_old = phi.copy()
-        return phi,psi_next
+        return phi, psi_next
 
 
 class Collided:
@@ -320,8 +307,7 @@ class Collided:
         source_ptr = ctypes.c_void_p(source_.ctypes.data)
         
         phi_old = guess_.copy()
-
-        tol = 1e-8; MAX_ITS = 100
+        tol = 1e-08; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros((self.I),dtype='float64')
@@ -329,7 +315,6 @@ class Collided:
                 # Determine the direction
                 direction = ctypes.c_int(int(np.sign(self.mu[n])))
                 weight = np.sign(self.mu[n]) * self.mu[n] * self.delta
-
                 if self.td == 'BE':
                     top_mult = (weight - 0.5 * total_ - 0.5 * speed).astype('float64')
                     bottom_mult = (1/(weight + 0.5 * total_ + 0.5 * speed)).astype('float64')
@@ -341,14 +326,14 @@ class Collided:
                 temp_scat = (scatter_ * phi_old).astype('float64')
                 ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
-                sweep(phi_ptr,ts_ptr,source_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
+                sweep(phi_ptr, ts_ptr, source_ptr, top_ptr, bot_ptr, \
+                        ctypes.c_double(self.w[n]), direction)
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
-
         return phi
 
     def sphere(self, speed, total_, scatter_, source_, guess_):
@@ -410,7 +395,7 @@ class Collided:
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
                 q_tilde = source[:,g] + tools.update_q(self.scatter,phi_old,g+1,self.G,g) + \
-                          tools.update_q(self.fission,phi_old,g+1,self.G,g)
+                          tools.update_q(self.fission,phi_old,g+1,self.G,g) 
                 if g != 0:
                     q_tilde += tools.update_q(self.scatter,phi,0,g,g) + \
                                tools.update_q(self.fission,phi,0,g,g)

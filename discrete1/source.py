@@ -109,12 +109,9 @@ class Source:
             sweep = clibrary.reflected
 
         phi_old = guess.copy()
-        
         source_ = source_.astype('float64')
         source_ptr = ctypes.c_void_p(source_.ctypes.data)
-
         point_source = ctypes.c_double(boundary)
-
         tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
@@ -275,7 +272,7 @@ class Source:
 
         point_source = ctypes.c_double(boundary)
 
-        tol = 1e-8; MAX_ITS = 100
+        tol = 1e-08; MAX_ITS = 100
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros((self.I),dtype='float64')
@@ -402,19 +399,9 @@ class Source:
             point_source_full = tools.continuous(self.point_source, steps)
         elif self.problem not in ['SHEM']:
             point_source_full = tools.stagnant(self.point_source, steps)
-        point_source_full = self.point_source.copy()
-
+        
         for t in range(steps):
-            if (self.problem in ['SHEM']):
-                if (int(t*0.05) % 2 == 0):
-                    print('Source On!',np.sum(self.point_source))
-                    self.point_source = point_source_full.copy()
-                else:
-                    print('Source Off!',np.sum(self.point_source))
-                    self.point_source *= 0
-            # if (self.problem in ['SHEM']) and (t > 60):
-            #     self.point_source *= 0
-            elif self.problem in ['ControlRod']:
+            if self.problem in ['ControlRod']:
                 # The change of carbon --> stainless in problem
                 switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
                 print('Switch {} Step {}'.format(switch,t))

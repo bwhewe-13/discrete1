@@ -69,22 +69,11 @@ class Critical:
             attributes = Problem3.steady('ss440',enrich,orient,groups)
         elif refl in ['diff']:
             attributes = Problem4.steady('ss440',enrich,orient,kwargs['sn'])
-
         boundary = kwargs['boundary'] if 'boundary' in kwargs else 'reflected'
         problem = cls(*attributes,boundary=boundary,geometry='slab')
         problem.saving = '0'
         problem.atype = ''
-        label_enrichment = str(int(enrich*100)).zfill(3)
-        label_time_iteration = str(kwargs['tt']).zfill(3) if 'tt' in kwargs else 'False'
-        if kwargs['naive']:
-            if kwargs['naive'] == 'naive':
-                label_model = 'Naive'
-            elif kwargs['naive'] == 'known':
-                label_model = 'Known'
-        else:
-            label_model = 'True'
-        func_lab = 'Full{}_TimeIteration{}_Enrich{}'.format(label_model,label_time_iteration,label_enrichment)
-        return problem.transport(func_lab=func_lab,MAX_ITS=20)
+        return problem.transport(MAX_ITS=100)
 
     @classmethod
     def run_djinn(cls,refl,enrich,models,atype,orient='orig',**kwargs):
@@ -98,11 +87,9 @@ class Critical:
         problem.saving = '1' # To know when to call DJINN
         problem.atype = atype
         problem.initial = initial
-
         model = DJ(models,atype,**kwargs)
         model.load_model()
         model.load_problem(refl,enrich,orient)
-
         return problem.transport(models=model)
 
     @classmethod
@@ -112,16 +99,13 @@ class Critical:
         elif refl in ['pu']:
             attributes = Problem2.steady('hdpe',enrich,orient)
         initial = '{}/initial_{}.npy'.format(C_PATH,refl)
-
         problem = cls(*attributes)
         problem.saving = '2'
         problem.atype = atype
         problem.initial = initial
-
         model = AE(models,atype,transform,**kwargs)
         model.load_model()
         model.load_problem(refl,enrich,orient)
-
         return problem.transport(models=model)
 
     @classmethod
@@ -159,22 +143,12 @@ class Critical:
         problem.scatter = problem.scatter[cum_indices].copy()
         problem.fission = problem.fission[cum_indices].copy()
         problem.total = problem.total[cum_indices].copy()
-
         problem.saving = '0'
         problem.atype = ''
-
         Critical.reduce_compile(problem.I,global_indices)
         label_enrichment = str(int(enrich*100)).zfill(3)
         label_time_iteration = str(kwargs['tt']).zfill(3)
-        if kwargs['naive']:
-            if kwargs['naive'] == 'naive':
-                label_model = 'Naive'
-            elif kwargs['naive'] == 'known':
-                label_model = 'Known'
-        else:
-            label_model = 'True'
-        func_lab = 'Reduce{}_TimeIteration{}_Enrich{}'.format(label_model,label_time_iteration,label_enrichment)
-        return problem.transport(func_lab=func_lab,MAX_ITS=20)
+        return problem.transport(MAX_ITS=100)
 
     def slab(self,total_,scatter_,source_,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
@@ -280,7 +254,7 @@ class Critical:
             return np.sum(Critical.repopulate(self.reduced,self.scatter[:,g,start:stop],phi[:,start:stop]),axis=1)
         return np.sum(self.scatter[:,g,start:stop]*phi[:,start:stop],axis=1)
 
-    def multi_group(self,source,guess,pow_it=0,func_lab='',tol=1e-12,MAX_ITS=100):
+    def multi_group(self,source,guess,tol=1e-12,MAX_ITS=100):
         phi_old = guess.copy()
 
         geo = getattr(Critical,self.geometry)  # Get the specific sweep
@@ -306,9 +280,6 @@ class Critical:
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
-        pow_it = str(pow_it).zfill(3)
-        save_file = 'mydata/djinn_pluto_iterations/PowerIteration{}_Groups{}_{}'.format(pow_it,self.G,func_lab)
-        np.save(save_file,source_time)
         return phi
 
     def transport(self,models=None,tol=1e-12,MAX_ITS=100):
@@ -319,27 +290,19 @@ class Critical:
         else:
             phi_old = np.random.rand(self.I,self.G)
             phi_old /= np.linalg.norm(phi_old)
-
         converged = 0; count = 1
         while not (converged):
             sources = Critical.sorting_fission(self,phi_old,self.models)
             phi_old = Critical.sorting_phi(self,phi_old,self.models)
-
             print('Outer Transport Iteration {}\n==================================='.format(count))
-            phi = Critical.multi_group(self,sources,phi_old,pow_it=count,func_lab=func_lab)
-            
+            phi = Critical.multi_group(self,sources,phi_old)
             keff = np.linalg.norm(phi)
             phi /= keff
-
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))
             print('Change is',change,'Keff is',keff)
-
-            converged = (count >= MAX_ITS)
-            # converged = (change < tol) or (count >= MAX_ITS) 
+            converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
-
             phi_old = phi.copy()
-
         return phi,keff
 
     def sorting_fission(self,phi,models):
@@ -367,16 +330,17 @@ class Critical:
 
     def compile(I,N):
         # Compile Slab
-        command = 'gcc -fPIC -shared -o {}cCritical.so {}cCritical.c -DLENGTH={}'.format(C_PATH,C_PATH,I)
+        command = f'gcc -fPIC -shared -o {C_PATH}cCritical.so {C_PATH}cCritical.c -DLENGTH={I}'
         os.system(command)
         # Compile Sphere
-        command = 'gcc -fPIC -shared -o {}cCriticalSP.so {}cCriticalSP.c -DLENGTH={} -DN={}'.format(C_PATH,C_PATH,I,N)
+        command = f'gcc -fPIC -shared -o {C_PATH}cCriticalSP.so {C_PATH}cCriticalSP.c -DLENGTH={I} -DN={N}'
         os.system(command)
 
     def reduce_compile(I,materials):
         # Compile Slab
-        extraneous = ' -DHDPE={} -DPU239={} -DPU240={}'.format(materials[0],materials[1],materials[2])
-        command = 'gcc -fPIC -shared -o {}cCritical.so {}cCritical.c -DLENGTH={}'.format(C_PATH,C_PATH,I)
+        # materials = [HDPE, Pu-239, Pu-240]
+        extraneous = ' -DHDPE={} -DPU239={} -DPU240={}'.format(*materials)
+        command = f'gcc -fPIC -shared -o {C_PATH}cCritical.so {C_PATH}cCritical.c -DLENGTH={I}'
         command += extraneous
         os.system(command)
 

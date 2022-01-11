@@ -98,22 +98,8 @@ def small_2_big(mult_c,delta_u,delta_c,splits):
     mult_u *= factor
     return mult_u
 
-def big_2_small(mult_u,delta_u,delta_c,splits):
-    # size = (mult_u.shape[0],len(delta_c))
-    size = mult_u.shape[:len(mult_u.shape)-1] + np.array(delta_c).shape
-    mult_c = np.zeros(size)
-    # Have to change this
+def big_2_small(mult_u, shape, splits):
+    mult_c = np.zeros(shape)
     for count,index in enumerate(splits):
-        # mult_c[:,:,count] = np.sum(mult_u[:,:,index],axis=2) 
         mult_c[:,count] = np.sum(mult_u[:,index],axis=1) 
-    return mult_c
-    
-def big_2_small2(mult_u,delta_u,delta_c,splits):
-    # size = (mult_u.shape[0],len(delta_c))
-    size = mult_u.shape[:len(mult_u.shape)-1] + np.array(delta_c).shape
-    mult_c = np.zeros(size)
-    # Have to change this
-    for count,index in enumerate(splits):
-        mult_c[:,:,count] = np.sum(mult_u[:,:,index],axis=2) 
-        # mult_c[:,count] = np.sum(mult_u[:,index],axis=1) 
     return mult_c
