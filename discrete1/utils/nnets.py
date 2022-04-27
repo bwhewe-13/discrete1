@@ -1,7 +1,10 @@
 """ Tools for autoencoders and neural networks """
+import numpy as np
+import glob
+import re
+
 def phi_normalize(matrix,maxi,mini):
     data = matrix.copy()
-    import numpy as np
     if np.argwhere(maxi == 0).shape[0] > 0:
         ind = np.argwhere(maxi != 0).flatten()
         norm = np.zeros((data.shape))
@@ -12,7 +15,6 @@ def phi_normalize(matrix,maxi,mini):
 
 def phi_normalize_single(matrix,maxi,mini):
     data = matrix.copy()
-    import numpy as np
     if maxi == 0:
         norm = data
     else:
@@ -21,7 +23,6 @@ def phi_normalize_single(matrix,maxi,mini):
 
 def randomize(address,number,index=False):
     """ To be used with autoencoder """
-    import numpy as np
     if index:
         index = []
     dataset = []
@@ -37,8 +38,7 @@ def randomize(address,number,index=False):
     return np.concatenate((dataset))
 
 def retrieve_randomize(address,number,index):
-    """ To be used with autoencoder """
-    import numpy as np
+    """ To be used with autoencoder """  
     dataset = []
     for ind,add in zip(index,address):
         temp = np.load(add)
@@ -46,10 +46,8 @@ def retrieve_randomize(address,number,index):
         del temp
     return np.concatenate((dataset))
 
-
 def normalize(matrix,verbose=False,angle=False):
     data = matrix.copy()
-    import numpy as np
     maxi = np.max(data,axis=1)
     mini = np.min(data,axis=1)
     # if angle:
@@ -67,7 +65,6 @@ def normalize(matrix,verbose=False,angle=False):
     return norm
 
 def scale_back(scale,data):
-    import numpy as np
     if np.argwhere(scale == 0).shape[0] > 0:
         ind = np.argwhere(scale != 0).flatten()
         scale_data = np.zeros((data.shape))
@@ -77,7 +74,6 @@ def scale_back(scale,data):
 
 
 def normalize_single(data,verbose=False,angle=False):
-    import numpy as np
     maxi = np.max(data); mini = np.min(data)
     # if angle:
     #     mini += 1e-20
@@ -90,7 +86,6 @@ def normalize_single(data,verbose=False,angle=False):
     return norm
 
 def unnormalize(data,maxi,mini):
-    import numpy as np
     if np.argwhere(maxi == 0).shape[0] > 0:
         ind = np.argwhere(maxi != 0).flatten()
         unnorm = np.zeros((data.shape))
@@ -134,8 +129,6 @@ def djinn_metric(loc,metric='MSE',score=False,clean=False):
         loc: string location of DJINN model errors
             i.e. y_djinn_errors/model_ntrees*
     Returns None   '''
-    import numpy as np
-    import glob
     address = np.sort(glob.glob(loc))
     error_data = []
     # gets list of all data errors
@@ -162,6 +155,5 @@ def djinn_metric(loc,metric='MSE',score=False,clean=False):
     if score:
         print(tots[np.argmin(tots)])
     if clean:
-        import re
         return ''.join(re.findall('\d{3}',address[np.argmin(tots)]))
     return address[np.argmin(tots)]

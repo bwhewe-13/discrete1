@@ -1,6 +1,7 @@
+import numpy as np
+
 """ Tools for discrete ordinates codes (dimensional purposes/convergence) """
 def group_reduction(new_group,grid,energy=False,**kwargs):
-    import numpy as np
     """ Used to reduce the number of groups for cross sections and energy levels
     Arguments:
         new_group: the reduction in the number of groups from the original
@@ -70,7 +71,6 @@ def group_reduction(new_group,grid,energy=False,**kwargs):
 
 
 def matrix_reduction(matrix,indices):
-    import numpy as np
     """ Sum the matrix according to the indicies
     Arguments:
         matrix: the full size matrix that will be reduced
@@ -84,7 +84,6 @@ def matrix_reduction(matrix,indices):
     return reduced
 
 def vector_reduction(vector,indices):
-    import numpy as np
     """ Sum the vector according to the indicies
     Arguments:
         vector: the full size matrix that will be reduced
@@ -99,11 +98,9 @@ def vector_reduction(vector,indices):
     return reduced
 
 def cat(lst,splits):
-    import numpy as np
     return np.concatenate(([lst[ii] for ii in splits]))
 
 def enrich_list(length,enrich,splits):
-    import numpy as np
     lst = np.zeros((length))
     # Ensuring lists
     # if type(enrich) != list:
@@ -119,7 +116,6 @@ def enrich_list(length,enrich,splits):
     return lst
 
 def enriche(phi,model_sca,model_fis,dtype,splits,enrich=None):
-    import numpy as np
     # Remove L+1 dimension
     normed = sn.cat(phi[:,0],splits)
     if enrich is not None:
@@ -139,7 +135,6 @@ def enriche(phi,model_sca,model_fis,dtype,splits,enrich=None):
     return djinn_scatter_ns,djinn_fission_ns
 
 def enrich_locs(layers,zones):
-    import numpy as np
     full = np.zeros(np.sum(layers))
     ind = np.cumsum(layers)
     for ii in zones:
@@ -150,7 +145,6 @@ def enrich_locs(layers,zones):
     return full.astype(int)
 
 def layer_slice(layers,half=True):
-    import numpy as np
     # if half:
     #     split = int(len(layers)*0.5)
     #     layers[split:split+1] = [int(layers[split]*0.5)]*2
@@ -159,7 +153,6 @@ def layer_slice(layers,half=True):
     return [slice(bounds[ii],bounds[ii+1]) for ii in range(len(bounds)-1)]
 
 def layer_slice_dict(layers,djinn,half=True):
-    import numpy as np
     splitDic = {}
     keep = np.arange(len(layers))
     keep = keep[~np.in1d(keep,djinn)]
@@ -212,7 +205,6 @@ def pops_robust(xs,shape,keep,djinn,splits):
     keep: reduced non-DJINN predicted matrix
     djinn: redcued DJINN predicted matrix
     splits: dictionary of splits    """
-    import numpy as np
     full = np.zeros((shape))
     for ii in range(len(splits['{}_keep'.format(xs)])):
         full[splits['{}_keep'.format(xs)][ii]] = keep[splits['{}_keep_short'.format(xs)][ii]]
@@ -221,7 +213,6 @@ def pops_robust(xs,shape,keep,djinn,splits):
     return full
 
 def propagate(xs=None,G=None,I=None,N=None,L=None,dtype='total'):
-    import numpy as np
     if dtype == 'total':
         return np.repeat(xs.reshape(1,G),I,axis=0)
     elif dtype == 'scatter':
@@ -242,7 +233,6 @@ def mixed_propagate(xs,layers,G=None,L=None,dtype='total'):
     ''' xs - list of cross sections
         layers - list of layer sizes
     '''
-    import numpy as np
     if dtype == 'total':
         total = np.empty((0,G))
         for c,ii in enumerate(layers):
@@ -266,7 +256,6 @@ def mixed_propagate(xs,layers,G=None,L=None,dtype='total'):
     return 'Incorrect dtype or cross section format'
 
 def svd(A,r=None,full=True):
-    import numpy as np
     u,s,v = np.linalg.svd(A)
     if full:
         sigma = np.zeros((A.shape[0],A.shape[1]))
@@ -284,7 +273,6 @@ def wynnepsilon(lst, r):
         r: rank of system
     Returns:
         2D Array where diagonal is convergence """
-    import numpy as np
     r = int(r)
     n = 2 * r + 1
     e = np.zeros(shape=(n + 1, n + 1))
@@ -297,7 +285,6 @@ def wynnepsilon(lst, r):
     return er
 
 def totalFissionRate(fission,phi,splits=None):
-    import numpy as np
     if splits is not None:
         from discrete1.util import sn
         phi = sn.cat(phi,splits['djinn'])
@@ -305,7 +292,6 @@ def totalFissionRate(fission,phi,splits=None):
     return np.sum(phi*np.sum(fission,axis=1),axis=1)
 
 def totalRateShort(fission,phi,splits):
-    import numpy as np
     density = np.zeros((phi.shape))
     for ii in range(len(splits)):
         density[splits[ii]] = phi[splits[ii]] * np.sum(fission[ii],axis=0)
@@ -313,7 +299,6 @@ def totalRateShort(fission,phi,splits):
 
 
 def djinnFissionRate(model,phi,fission,label=None):
-    import numpy as np
     if label is not None:
         phi2 = np.hstack((label[:,None],phi))
     else:
