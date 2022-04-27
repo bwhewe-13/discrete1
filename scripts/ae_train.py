@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import numpy as np
-from discrete1.util import nnets
-# import tensorflow as tf
+from discrete1.utils import nnets
+import tensorflow as tf
 # from tensorflow import keras
 from tensorflow.keras.layers import Input,Dense
 from tensorflow.keras.models import Model
@@ -26,25 +26,29 @@ else:
 nodes = [int(jj) for jj in usr_input.en]
 file1 = '-'.join([str(jj) for jj in usr_input.en])
 
+tf.keras.backend.set_floatx('float64')
 
 # mymat = np.load('mydata/ae_model_data/{}_{}.npy'.format(usr_input.data,usr_input.model))
-# address = np.sort(glob.glob('mydata/ae_model_data/scatter_hdpe/{}_enrich*'.format(usr_input.data)))
-mymat = np.load('mydata/ae_model_data/fission_pluto/{}.npy'.format(usr_input.data))
+address = np.sort(glob.glob('mydata/ae_model_data/scatter_pluto/{}_enrich*'.format(usr_input.data)))
 
-# if usr_input.data == 'phi':
-#     mymat,indices = nnets.randomize(address,150000,index=True)
-#     np.save('autoencoder/{}/indices_001'.format(usr_input.model),indices)
-    
-# elif usr_input.data == 'smult':
-#     indices = np.load('autoencoder/{}/indices_001.npy'.format(usr_input.model))
-#     mymat = nnets.retrieve_randomize(address,150000,indices)
+# mymat = np.load('mydata/ae_model_data/fission_pluto/{}.npy'.format(usr_input.data))
+
+indices = np.load('autoencoder/{}/indices_001.npy'.format(usr_input.model))
+if usr_input.data == 'phi':
+    mymat = nnets.retrieve_randomize(address, 150000, indices)
+    # mymat,indices = nnets.randomize(address, 150000, index=True)
+    # np.save('autoencoder/{}/indices_001'.format(usr_input.model),indices)    
+elif usr_input.data == 'smult':
+    # indices = np.load('autoencoder/{}/indices_001.npy'.format(usr_input.model))
+    mymat = nnets.retrieve_randomize(address, 150000, indices)
 
 # del indices
 print('SHAPE OF DATA',mymat.shape)
 
 # Normalize the data
-mymat = nnets.normalize(mymat)
-# mymat = mymat**(1/3)
+# mymat = nnets.normalize(mymat)
+# mymat = np.log(mymat)
+mymat = mymat**(1/3)
 # mymat = np.log(mymat)
 mymat[np.isnan(mymat)] = 0; mymat[np.isinf(mymat)] = 0;
 

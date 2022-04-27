@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 import numpy as np
-from discrete1.util import nnets
+from discrete1.utils import nnets
 from tensorflow import keras
 import argparse, os, glob
 from sklearn import model_selection
+import tensorflow as tf
 from tensorflow.keras import Sequential,Model
 from tensorflow.keras.layers import Input,concatenate
 
@@ -30,25 +31,29 @@ prev_label = str(int(usr_input.count) - 1).zfill(3)
 curr_label = str(usr_input.count).zfill(3)
 print('Training Iteration {} from Iteration {}'.format(curr_label,prev_label))
 
-# address = np.sort(glob.glob('mydata/ae_model_data/scatter_hdpe/{}_enrich*'.format(usr_input.data)))
-# if usr_input.data == 'phi':
-#     mymat,indices = nnets.randomize(address,150000,index=True)
-#     np.save('autoencoder/{}/indices_{}'.format(usr_input.model,curr_label),indices)
-    
-# elif usr_input.data == 'smult':
-#     indices = np.load('autoencoder/{}/indices_{}.npy'.format(usr_input.model,prev_label))
-#     mymat = nnets.retrieve_randomize(address,150000,indices)
-# del indices
-mymat = np.load('mydata/ae_model_data/fission_pluto/{}.npy'.format(usr_input.data))
+tf.keras.backend.set_floatx('float64')
+
+address = np.sort(glob.glob('mydata/ae_model_data/scatter_pluto/{}_enrich*'.format(usr_input.data)))
+indices = np.load('autoencoder/{}/indices_{}.npy'.format(usr_input.model,prev_label))
+if usr_input.data == 'phi':
+    mymat = nnets.retrieve_randomize(address, 150000, indices)
+    # mymat,indices = nnets.randomize(address,150000,index=True)
+    # np.save('autoencoder/{}/indices_{}'.format(usr_input.model,curr_label),indices)
+elif usr_input.data == 'smult':
+    # indices = np.load('autoencoder/{}/indices_{}.npy'.format(usr_input.model,prev_label))
+    mymat = nnets.retrieve_randomize(address, 150000, indices)
+del indices
+
+# mymat = np.load('mydata/ae_model_data/fission_pluto/{}.npy'.format(usr_input.data))
 
 # mymat = nnets.randomize(address,150000); 
 dim = 618
 
 # mymat = np.load('mydata/ae_model_data/{}_{}.npy'.format(usr_input.data,usr_input.model)); dim = 87
 # Normalize the data
-# mymat = mymat**(1/3)
-# mymat = -0.01 * np.log(mymat)
-mymat = nnets.normalize(mymat)
+mymat = mymat**(1/3)
+# mymat = np.log(mymat)
+# mymat = nnets.normalize(mymat)
 mymat[np.isnan(mymat)] = 0; mymat[np.isinf(mymat)] = 0;
 
 train,test = model_selection.train_test_split(mymat,test_size=0.2)
