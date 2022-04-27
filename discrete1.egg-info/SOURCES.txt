@@ -1,16 +1,6 @@
 MANIFEST.in
 README.md
 setup.py
-data/cCritical.so
-data/cCriticalSP.so
-data/cHybrid.so
-data/cHybridSP.so
-data/cSource.so
-data/cSourceSP.so
-data/cfunctions.so
-data/phi_pluto_true_12.npy
-data/phi_pluto_true_15.npy
-data/phi_pluto_true_27.npy
 discrete1/__init__.py
 discrete1/chemistry.py
 discrete1/critical.py

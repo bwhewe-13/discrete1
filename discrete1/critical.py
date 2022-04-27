@@ -14,6 +14,7 @@ import pkg_resources
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
 C_PATH = pkg_resources.resource_filename('discrete1','c/')
+DATA_PATH = pkg_resources.resource_filename("discrete1", "data/")
 
 class Critical:
     # Keyword Arguments allowed currently
@@ -81,7 +82,7 @@ class Critical:
             attributes = Problem1.steady(refl,enrich,orient)
         elif refl in ['pu']:
             attributes = Problem2.steady('hdpe',enrich,orient)
-        initial = '{}/initial_{}.npy'.format(C_PATH,refl)
+        initial = '{}/initial_{}.npy'.format(DATA_PATH,refl)
 
         problem = cls(*attributes)
         problem.saving = '1' # To know when to call DJINN
@@ -98,7 +99,7 @@ class Critical:
             attributes = Problem1.steady(refl,enrich,orient)
         elif refl in ['pu']:
             attributes = Problem2.steady('hdpe',enrich,orient)
-        initial = '{}/initial_{}.npy'.format(C_PATH,refl)
+        initial = '{}/initial_{}.npy'.format(DATA_PATH,refl)
         problem = cls(*attributes)
         problem.saving = '2'
         problem.atype = atype
@@ -114,7 +115,7 @@ class Critical:
             attributes = Problem1.steady(refl,enrich,orient)
         elif refl in ['pu']:
             attributes = Problem2.steady('hdpe',enrich,orient)
-        initial = '{}/initial_{}.npy'.format(C_PATH,refl)
+        initial = '{}/initial_{}.npy'.format(DATA_PATH,refl)
         # initial = 'mydata/djinn_pluto_perturb/true_phi_{}_15.npy'.format(orient)
         problem = cls(*attributes)
         problem.saving = '3' # To know when to call DJINN
@@ -282,7 +283,7 @@ class Critical:
             phi_old = phi.copy()
         return phi
 
-    def transport(self,models=None,tol=1e-12,MAX_ITS=100):
+    def transport(self,models=None,tol=1e-12,MAX_ITS=20):
         self.models = models
         # if self.saving != '0': # Running from random
         if self.saving not in ['0','2']:
@@ -314,16 +315,19 @@ class Critical:
             # return np.einsum('ijk,ik->ij',self.fission,phi)
             return models.predict_fission(phi)
         elif self.saving in ['2']:                                     # Autoencoder Squeeze
+            # print("\nHere - Sorting Fission\n")
             return models.squeeze(np.einsum('ijk,ik->ij',self.fission,phi))
 
     def sorting_scatter(self,phi,models):
         if self.saving in ['1','3']:                      # DJINN / DJINN + Autoencoder
             return models.predict_scatter(phi)
         elif self.saving in ['2']:                        # Autoencoder Squeeze
+            # print("\nHere - Sorting Scatter\n")
             return models.squeeze(np.einsum('ijk,ik->ij',self.scatter,phi))
 
     def sorting_phi(self,phi,models):
         if self.saving in ['2'] and self.atype == 'phi':
+            # print("\nHere - Sorting Phi\n")
             return models.squeeze(phi)
         else:
             return phi

@@ -156,14 +156,23 @@ class AE:
     def load_model(self):
         """ Load the autoencoder model """
         if self.double:
-            self.fuel_model = keras.models.load_model('{}_autoencoder.h5'.format(self.model_name[0]))
-            self.refl_model = keras.models.load_model('{}_autoencoder.h5'.format(self.model_name[1]))
+            self.fuel_model = keras.models.load_model('{}.h5'.format(self.model_name[0]))
+            self.refl_model = keras.models.load_model('{}.h5'.format(self.model_name[1]))
         elif self.focus == 'fuel':
-            self.fuel_model = keras.models.load_model('{}_autoencoder.h5'.format(self.model_name))
+            self.fuel_model = keras.models.load_model('{}.h5'.format(self.model_name))
             self.refl_model = None
         elif self.focus == 'refl':
             self.fuel_model = None;
-            self.refl_model = keras.models.load_model('{}_autoencoder.h5'.format(self.model_name))
+            self.refl_model = keras.models.load_model('{}.h5'.format(self.model_name))        
+        # if self.double:
+        #     self.fuel_model = keras.models.load_model('{}_autoencoder.h5'.format(self.model_name[0]))
+        #     self.refl_model = keras.models.load_model('{}_autoencoder.h5'.format(self.model_name[1]))
+        # elif self.focus == 'fuel':
+        #     self.fuel_model = keras.models.load_model('{}_autoencoder.h5'.format(self.model_name))
+        #     self.refl_model = None
+        # elif self.focus == 'refl':
+        #     self.fuel_model = None;
+        #     self.refl_model = keras.models.load_model('{}_autoencoder.h5'.format(self.model_name))
         print('Autoencoder Loaded')
         
 
@@ -180,11 +189,9 @@ class AE:
         """ predict phi * sigma_s """
         if np.sum(phi) == 0:
             return phi
-
         # Separate into refl and fuel
         phi_hot = Tools.concat(phi,self.splits['fuel'])
         phi_cold = Tools.concat(phi,self.splits['refl'])
-
         # Working with fuel
         if self.double or self.focus == 'fuel':
             scale_hot = np.sum(phi_hot,axis=1)                                           # Scale
@@ -192,7 +199,6 @@ class AE:
             phi_hot = self.fuel_model.predict(phi_hot)                                   # Predict
             phi_hot = Tools.detransformation(phi_hot,maxi_hot,mini_hot,self.transform)   # Untransform
             phi_hot = (scale_hot/np.sum(phi_hot,axis=1))[:,None] * phi_hot               # Unscale
-
         # Working with refl
         if self.double or self.focus == 'refl':
             scale_cold = np.sum(phi_cold,axis=1)                                           # Scale
@@ -200,10 +206,8 @@ class AE:
             phi_cold = self.refl_model.predict(phi_cold)                                   # Predict
             phi_cold = Tools.detransformation(phi_cold,maxi_cold,mini_cold,self.transform) # Untransform
             phi_cold = (scale_cold/np.sum(phi_cold,axis=1))[:,None] * phi_cold             # Unscale
-
         # Repopulate matrix
         phi = Tools.repopulate(phi_hot,phi_cold,self.splits)
-
         return phi
     
 class DJAE:
@@ -363,11 +367,9 @@ class Tools:
     def encoder_load_driver(model_,atype):
         model_fission_encoder = None; model_fission_decoder = None
         model_scatter_encoder = None; model_scatter_decoder = None
-
         if atype == 'both':
             model_scatter_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(model_[0]))
             model_scatter_decoder = keras.models.load_model('{}_smult_decoder.h5'.format(model_[0]))
-
             model_fission_encoder = keras.models.load_model('{}_phi_encoder.h5'.format(model_[1]))
             model_fission_decoder = keras.models.load_model('{}_fmult_decoder.h5'.format(model_[1]))
         elif atype == 'scatter':
@@ -389,7 +391,6 @@ class Tools:
         splits: dictionary of splits    
         """
         phi = np.zeros((len(hot) + len(cold),hot.shape[1]))
-
         for mat,ele in zip(['refl','fuel'],[cold,hot]):
             start = 0
             for ind in splits[mat]:
@@ -409,7 +410,7 @@ class Tools:
             reduced = reduced**(1/3)
         elif ttype == 'log':
             reduced = np.log(reduced)
-
+        # print("Transform", np.array_equal(reduced, matrix))
         reduced[np.isnan(reduced)] = 0; reduced[np.isinf(reduced)] = 0
         return reduced,maxi,mini
 
@@ -421,7 +422,5 @@ class Tools:
             reduced = reduced**3
         elif ttype == 'log':
             reduced = np.exp(reduced)
-
         reduced[np.isnan(reduced)] = 0; reduced[np.isinf(reduced)] = 0
         return reduced
-

@@ -8,3 +8,6 @@ slab_uranium_stainless_ts0100_be_phi.npz
 # Cross Section Data
 xs/
 pkg_xtr/
+
+*.egg-info/
+*.egg
