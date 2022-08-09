@@ -411,7 +411,9 @@ class SHEM: # Slab problem
         scatter_ = np.tile(xs_scatter,(I, 1, 1))
         fission_ = np.tile(xs_fission,(I, 1, 1))
         external_source_ = np.tile(external_source, (I, 1))
-        point_source = [point_source_loc, point_source]
+        external_source_[499] = 0.5 / delta * point_source
+        external_source_[500] = 0.5 / delta * point_source
+        point_source = [point_source_loc, point_source * 0]
         Tools.recompile(I)
         return G, N, mu, w, total_, scatter_, fission_, external_source_, I, \
                 delta, point_source
