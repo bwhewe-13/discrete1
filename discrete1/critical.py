@@ -47,7 +47,7 @@ class Critical:
         self.fission = fission
         self.I = I
         self.delta = 1/delta
-        self.boundary = 'reflected'; self.track = False
+        self.boundary = 'vacuum'; self.track = False
         self.atype = ''; self.saving = '0'
         self.geometry = 'slab'
         self.reduced = None
@@ -161,12 +161,11 @@ class Critical:
             phi: a I array  """
         clibrary = ctypes.cdll.LoadLibrary('{}cCritical.so'.format(C_PATH))
         sweep = clibrary.reflected if self.boundary == 'reflected' else clibrary.vacuum
-
         phi_old = guess.copy()
         source_ = source_.astype('float64')
         ext_ptr = ctypes.c_void_p(source_.ctypes.data)
 
-        converged = 0; count = 1 
+        converged = 0; count = 1
         while not(converged):
             phi = np.zeros((self.I),dtype='float64')
             for n in range(self.N):
@@ -193,7 +192,7 @@ class Critical:
                     clibrary.reflected_reduced(phi_ptr,gu_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]))
                 else:
                     sweep(phi_ptr,ts_ptr,ext_ptr,top_ptr,bot_ptr,ctypes.c_double(self.w[n]),direction)
-
+            # print("Angles", count, np.sum(phi))
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
@@ -263,7 +262,7 @@ class Critical:
         converged = 0; count = 1
         while not (converged):
             phi = np.zeros(phi_old.shape)
-            start = time.time()
+            # start = time.time()
             if self.atype in ['scatter','both']:
                 phi_old[np.isnan(phi_old)] = 0
                 smult = Critical.sorting_scatter(self,phi_old,self.models)
@@ -274,32 +273,40 @@ class Critical:
                     q_tilde = source[:,g] + Critical.update_q(self,phi_old,g+1,self.G,g)
                     if g != 0:
                         q_tilde += Critical.update_q(self,phi,0,g,g)
+                    # print(count, "flux\t", np.sum(phi), "old\t", np.sum(phi_old), "q\t", np.sum(Critical.update_q(self,phi_old,g+1,self.G,g) + Critical.update_q(self,phi,0,g,g)))
                     phi[:,g] = geo(self,self.total[:,g],self.scatter[:,g,g],q_tilde,phi_old[:,g])
-            end = time.time()
-            source_time.append(end - start)
+            # end = time.time()
+            # source_time.append(end - start)
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            # print("Count {} Change {} Sum {}".format(count, change, np.sum(phi)))
+            # if np.isnan(change) or np.isinf(change):
+            #     change = 0.
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
         return phi
 
-    def transport(self,models=None,tol=1e-12,MAX_ITS=20):
+    def transport(self,models=None,tol=1e-12,MAX_ITS=100):
         self.models = models
         # if self.saving != '0': # Running from random
         if self.saving not in ['0','2']:
             phi_old = np.load(self.initial)
         else:
+            np.random.seed(42)
             phi_old = np.random.rand(self.I,self.G)
             phi_old /= np.linalg.norm(phi_old)
+            phi = np.zeros((self.I, self.G))
         converged = 0; count = 1
         while not (converged):
             sources = Critical.sorting_fission(self,phi_old,self.models)
             phi_old = Critical.sorting_phi(self,phi_old,self.models)
-            print('Outer Transport Iteration {}\n==================================='.format(count))
+            # print(np.sum(sources), np.sum(phi), np.sum(phi_old))
+            # print('Outer Transport Iteration {}\n==================================='.format(count))
             phi = Critical.multi_group(self,sources,phi_old)
             keff = np.linalg.norm(phi)
             phi /= keff
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))
+            print('Outer Transport Iteration {}\n==================================='.format(count))            
             print('Change is',change,'Keff is',keff)
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1

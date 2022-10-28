@@ -38,11 +38,13 @@ class Hybrid:
     def backward_euler(self):
         # Uncollided Attributes
         un_attr, un_keys = FixedSource.initialize(self.ptype, self.Gu, self.Nu, \
-            T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
+                                    T=self.T, dt=self.dt, hybrid=self.Gu, \
+                                    enrich=self.enrich, edges=self.edges)
         uncollided = Uncollided(*un_attr)
         # Collided Attributes
         col_attr, col_keys = FixedSource.initialize(self.ptype, self.Gc, self.Nc, \
-            T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
+                                    T=self.T, dt=self.dt, hybrid=self.Gu, \
+                                    enrich=self.enrich, edges=self.edges)
         collided = Collided(*col_attr)
         # Initialize Speeds
         speed_u = 1/(un_keys['v']*un_keys['dt'])
@@ -50,11 +52,6 @@ class Hybrid:
         # Initialize collided scalar flux
         phi_c = np.zeros((collided.I,collided.G)); time_phi = []
         psi_last = np.zeros((uncollided.I,uncollided.N,uncollided.G))
-        if self.ptype in ['ControlRod']:
-            scalar_flux = np.load('mydata/control_rod_critical/carbon_g87_phi_{}.npy'.format(str(int(self.enrich*100)).zfill(2)))
-            source_q = np.einsum('ijk,ik->ij',uncollided.scatter,scalar_flux) + np.einsum('ijk,ik->ij',uncollided.fission,scalar_flux) 
-            temp,psi_last = uncollided.multi_group(psi_last, speed_u, source=source_q, ts=0)
-            del scalar_flux, temp, source_q
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(un_keys['T']/un_keys['dt'],5))
         # Determining source for problem
@@ -65,16 +62,11 @@ class Hybrid:
             full_point_source = tools.stagnant(uncollided.point_source,steps)
         point_source_full = uncollided.point_source.copy()
         for t in range(steps):
-            if self.ptype in ['ControlRod']:
-                # The change of carbon --> stainless in problem
-                switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
-                print('Switch {} Step {}'.format(switch,t))
-                uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=self.enrich,switch=switch)
-                collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=self.enrich,switch=switch)
             # Step 1: Solve Uncollided Equation
             phi_u, _ = uncollided.multi_group(psi_last,speed_u,self.geometry,ts=str(t)+'a')
             # Step 2: Compute Source for Collided
-            source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u)
+            source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) \
+                        + np.einsum('ijk,ik->ij',uncollided.fission,phi_u)
             # Resizing
             if self.Gu != self.Gc:
                 source_c = tools.big_2_small(source_c, phi_c.shape, col_keys['splits'])
@@ -90,8 +82,9 @@ class Hybrid:
             source = np.einsum('ijk,ik->ij',uncollided.scatter,phi) + \
                      uncollided.external_source + \
                      np.einsum('ijk,ik->ij',uncollided.fission,phi)
-            phi, psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source,ts=str(t)+'b')
-            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            phi, psi_next = uncollided.multi_group(psi_last,speed_u, \
+                                        self.geometry,source,ts=str(t)+'b')
+            print("Time Step {} Flux {}\n{}".format(t, np.sum(phi), 35*"="))
             # Step 5: Update and repeat
             psi_last = psi_next.copy()
             time_phi.append(phi)
@@ -101,21 +94,22 @@ class Hybrid:
 
     def bdf2(self):
         # Set up Problem
-        un_attr,un_keys = FixedSource.initialize(self.ptype,self.Gu,self.Nu,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
+        un_attr,un_keys = FixedSource.initialize(self.ptype, self.Gu, self.Nu, \
+                                T=self.T, dt=self.dt, hybrid=self.Gu, \
+                                enrich=self.enrich, edges=self.edges)
         uncollided = Uncollided(*un_attr,td='BDF2')
-        col_attr,col_keys = FixedSource.initialize(self.ptype,self.Gc,self.Nc,T=self.T,dt=self.dt,hybrid=self.Gu,enrich=self.enrich,edges=self.edges)
+        col_attr,col_keys = FixedSource.initialize(self.ptype, self.Gc, self.Nc, \
+                                T=self.T, dt=self.dt, hybrid=self.Gu, \
+                                enrich=self.enrich, edges=self.edges)
         collided = Collided(*col_attr,td='BDF2')        
         # Initialize speed
         speed_u = 1/(un_keys['v']*un_keys['dt'])
         speed_c = 1/(col_keys['v']*col_keys['dt'])
         # Initialize collided scalar flux
-        phi_c = np.zeros((collided.I,collided.G)); time_phi = []
-        psi_n0 = np.zeros((uncollided.I,uncollided.N,uncollided.G)); psi_n1 = psi_n0.copy()        
-        # Initialize ControlRod problem differently
-        if self.ptype in ['ControlRod']:
-            # psi_n1 = np.tile(np.expand_dims(np.load('discrete1/data/initial_rod.npy'),axis=1),(1,uncollided.N,1))
-            psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/carbon_g87_phi_20.npy'),axis=1),(1,uncollided.N,1))
-            collided.td = 'BE'; uncollided.td = 'BE'
+        phi_c = np.zeros((collided.I,collided.G))
+        time_phi = []
+        psi_n0 = np.zeros((uncollided.I,uncollided.N,uncollided.G))
+        psi_n1 = psi_n0.copy()
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(un_keys['T']/un_keys['dt'],5))
         # Determining source for problem
@@ -125,34 +119,32 @@ class Hybrid:
         else:
             full_point_source = tools.stagnant(uncollided.point_source,steps)
         for t in range(steps):
-            if self.ptype in ['ControlRod']:
-                # The change of carbon --> stainless in problem
-                switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(un_keys['T']/1E-6)))-1) * t,2),0),1)
-                #print('Switch {} Step {}'.format(switch,t))
-                uncollided.total,uncollided.scatter,uncollided.fission = ControlRod.xs_update(uncollided.G,enrich=0.22,switch=switch)
-                collided.total,collided.scatter,collided.fission = ControlRod.xs_update(collided.G,enrich=0.22,switch=switch)
             # Backward Euler for first step, BDF2 for rest
             psi_last = psi_n1.copy() if t == 0 else 2 * psi_n1 - 0.5 * psi_n0
             # Step 1: Solve Uncollided Equation
             phi_u,_ = uncollided.multi_group(psi_last,speed_u,self.geometry)
             # Step 2: Compute Source for Collided
-            source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) + np.einsum('ijk,ik->ij',uncollided.fission,phi_u)
+            source_c = np.einsum('ijk,ik->ij',uncollided.scatter,phi_u) \
+                        + np.einsum('ijk,ik->ij',uncollided.fission,phi_u)
             # Resizing
             if self.Gu != self.Gc:
-                source_c = tools.big_2_small(source_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits'])
+                source_c = tools.big_2_small(source_c, un_keys['delta_e'], \
+                                    col_keys['delta_e'], col_keys['splits'])
             # Step 3: Solve Collided Equation
             phi_c = collided.multi_group(speed_c,source_c,phi_c,self.geometry)
             # Resize phi_c
             if self.Gu != self.Gc:
                 # phi = tools.small_2_big(phi_c,self.delta_u,self.delta_c,self.splits) + phi_u
-                phi = tools.small_2_big(phi_c,un_keys['delta_e'],col_keys['delta_e'],col_keys['splits']) + phi_u
+                phi = tools.small_2_big(phi_c,un_keys['delta_e'], \
+                             col_keys['delta_e'], col_keys['splits']) + phi_u
             else:
                 phi = phi_c + phi_u
             # Step 4: Calculate next time step
-            source = np.einsum('ijk,ik->ij',uncollided.scatter,phi) + uncollided.source + np.einsum('ijk,ik->ij',uncollided.fission,phi)
+            source = np.einsum('ijk,ik->ij',uncollided.scatter,phi) \
+                    + uncollided.source + np.einsum('ijk,ik->ij',uncollided.fission,phi)
             phi,psi_next = uncollided.multi_group(psi_last,speed_u,self.geometry,source)
             # Step 5: Update and repeat
-            #print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            print("Time Step {} Flux {}\n{}".format(t, np.sum(phi), 35*"="))
             psi_n0 = psi_n1.copy()
             psi_n1 = psi_next.copy()
             time_phi.append(phi)
@@ -213,7 +205,7 @@ class Uncollided:
             sweep(phi_ptr, psi_ptr, rhs_ptr, top_ptr, bot_ptr, ctypes.c_double(self.w[n]), \
                   point_source, ctypes.c_int(self.point_source_loc), direction)
             psi_next[:,n] = psi_angle.copy()
-        return phi,psi_next
+        return phi, psi_next, 1
 
     def sphere(self, psi_last, speed, total_, source_, boundary):
         clib = ctypes.cdll.LoadLibrary(C_PATH + 'cHybridSP.so')
@@ -269,20 +261,26 @@ class Uncollided:
             current = source.copy()
         tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
+        counter = []
+        temp_total = 0
         while not (converged):
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
-                phi[:,g],psi_next[:,:,g] = geo(self, psi_last[:,:,g], speed[g], \
+                phi[:,g],psi_next[:,:,g], temp = geo(self, psi_last[:,:,g], speed[g], \
                             self.total[:,g], current[:,g], self.point_source[g])
+                temp_total += temp
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.
             # file_name = 'testdata/slab_uranium_stainless_ts0100_be/hybrid_uncollided_ts{}_{}'.format(str(ts).zfill(4),str(count).zfill(3))
             # np.save(file_name,[['time',end - start],['change',np.linalg.norm(phi - phi_old)]])
             # print('Uncollided Change is',change,'\n===================================')
+            counter.append(temp_total)
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
             phi_old = phi.copy()
+        np.save("average_data/uranium-slab-iteration/hybrid_usi_{}_ts{}".format(\
+                    ts[-1], ts[:-1].zfill(3)), counter)
         return phi, psi_next
 
 
@@ -334,7 +332,7 @@ class Collided:
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
-        return phi
+        return phi, count
 
     def sphere(self, speed, total_, scatter_, source_, guess_):
         clib = ctypes.cdll.LoadLibrary(C_PATH + 'cHybridSP.so')
@@ -391,6 +389,8 @@ class Collided:
         geo = getattr(Collided,geometry)  # Get the specific sweep
         tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
+        counter = []
+        temp_total = 0
         while not (converged):
             phi = np.zeros(phi_old.shape)
             for g in range(self.G):
@@ -399,10 +399,14 @@ class Collided:
                 if g != 0:
                     q_tilde += tools.update_q(self.scatter,phi,0,g,g) + \
                                tools.update_q(self.fission,phi,0,g,g)
-                phi[:,g] = geo(self, speed[g], self.total[:,g], self.scatter[:,g,g] +\
+                phi[:,g], temp = geo(self, speed[g], self.total[:,g], self.scatter[:,g,g] +\
                                self.fission[:,g,g], q_tilde, phi_old[:,g])
+                temp_total += temp
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
+            counter.append(temp_total)
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1
             phi_old = phi.copy()
+        np.save("average_data/uranium-slab-iteration/hybrid_csi_ts{}".format(\
+                    str(ts).zfill(3)), counter)
         return phi
