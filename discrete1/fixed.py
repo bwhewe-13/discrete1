@@ -194,13 +194,14 @@ class Standard:
         print('Not usable yet')
 
     def timed(G, T, dt):
-        try:
-            # grid = np.load(DATA_PATH + 'energy_edges_{}G.npy'.format(str(G).zfill(3)))
-            grid = np.load(DATA_PATH + "energy_edges_087G.npy")
-            idx = Tools.index_generator(87, G)
-        except FileNotFoundError:
-            grid = np.load(DATA_PATH + 'energy_edges_361G.npy')
-            idx = np.load(DATA_PATH + 'group_indices_361G.npz')[str(G).zfill(3)]
+        # try:
+        #     grid = np.load(DATA_PATH + 'energy_edges_87G.npy'.format(str(G).zfill(3)))
+        #     idx = None
+        # except FileNotFoundError:
+        #     grid = np.load(DATA_PATH + 'energy_edges_361G.npy')
+        #     idx = np.load(DATA_PATH + 'group_indices_361G.npz')[str(G).zfill(3)]
+        grid = np.load(DATA_PATH + 'energy_edges_087G.npy'.format(str(G).zfill(3)))
+        idx = Tools.index_generator(87, 43)
         v = Tools.relative_speed(G, grid, idx=idx)
         return T, dt, v
 

@@ -130,7 +130,7 @@ class Source:
                 ts_ptr = ctypes.c_void_p(temp_scat.ctypes.data)
                 
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
-                
+
                 sweep(phi_ptr, ts_ptr, source_ptr, top_ptr, bot_ptr, \
                     ctypes.c_double(self.w[n]), point_source, \
                     ctypes.c_int(self.point_source_loc), direction)

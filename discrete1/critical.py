@@ -13,14 +13,16 @@ import pkg_resources
 
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
-C_PATH = pkg_resources.resource_filename('discrete1','c/')
+SRC_PATH = pkg_resources.resource_filename("discrete1", "src/")
 DATA_PATH = pkg_resources.resource_filename("discrete1", "data/")
 
 class Critical:
     # Keyword Arguments allowed currently
     __allowed = ("boundary","track","geometry","reduced")
 
-    def __init__(self,G,N,mu,w,total,scatter,fission,I,delta,**kwargs):
+    def __init__(self, xs_total, xs_scatter, xs_fission, medium_map, \
+                delta_x, angle_x, angle_w, **kwargs):
+        # cells_x, angles, groups, angle_x, angle_w, ,N,mu,w,total,scatter,fission,I,delta,**kwargs):
         """ Deals with Eigenvalue multigroup problems (reflected and vacuum boundaries)
         Attributes:
             G: Number of energy groups, int
@@ -40,11 +42,16 @@ class Critical:
             reduce: list of cross sections instead of each spatial cell
         """ 
         # Attributes
-        self.G = G; self.N = N
-        self.mu = mu; self.w = w
-        self.total = total
-        self.scatter = scatter
-        self.fission = fission
+
+
+        self.xs_total = xs_total
+        self.xs_scatter = xs_scatter
+        self.xs_fission = xs_fission
+
+        self.medium_map = medium_map
+        self.cells_x = medium_map.shape[0]
+        self.delta_x = delta_x
+
         self.I = I
         self.delta = 1/delta
         self.boundary = 'vacuum'; self.track = False
@@ -150,6 +157,11 @@ class Critical:
         label_enrichment = str(int(enrich*100)).zfill(3)
         label_time_iteration = str(kwargs['tt']).zfill(3)
         return problem.transport(MAX_ITS=100)
+
+    def discrete_ordinates(self, xs_total, xs_scatter, source, guess):
+        clibrary = ctypes.cdll.LoadLibrary('{}cCritical.so'.format(C_PATH))
+        sweep = clibrary.reflected if self.boundary == 'reflected' else clibrary.vacuum
+
 
     def slab(self,total_,scatter_,source_,guess,tol=1e-08,MAX_ITS=100):
         """ Arguments:
@@ -306,7 +318,7 @@ class Critical:
             keff = np.linalg.norm(phi)
             phi /= keff
             change = np.linalg.norm((phi-phi_old)/phi/(self.I))
-            print('Outer Transport Iteration {}\n==================================='.format(count))            
+            print('Outer Transport Iteration {}\n==================================='.format(count))
             print('Change is',change,'Keff is',keff)
             converged = (change < tol) or (count >= MAX_ITS) 
             count += 1

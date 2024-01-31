@@ -13,13 +13,24 @@ def surface_area_calc(rho):
 def volume_calc(plus, minus):
     return 4 * np.pi / 3 * (plus**3 - minus**3)
 
-def half_angle(psi_plus, total, delta, source):
+# def half_angle(psi_plus, total, delta, source):
+#     """ This is for finding the half angle (N = 1/2) at cell i """
+#     psi_nhalf = np.zeros((len(total)))
+#     for ii in range(len(total)-1,-1,-1):
+#         psi_nhalf[ii] = (2 * psi_plus + delta * source[ii] ) / \
+#             (2 + total[ii] * delta)
+#         psi_plus = 2 * psi_nhalf[ii] - psi_plus
+#     return psi_nhalf
+
+def half_angle(xs_total, boundary_x, delta_x, source):
     """ This is for finding the half angle (N = 1/2) at cell i """
-    psi_nhalf = np.zeros((len(total)))
-    for ii in range(len(total)-1,-1,-1):
-        psi_nhalf[ii] = (2 * psi_plus + delta * source[ii] ) / \
-            (2 + total[ii] * delta)
-        psi_plus = 2 * psi_nhalf[ii] - psi_plus
+    cells_x = delta_x.shape[0]
+    edge1 = boundary_x
+    psi_nhalf = np.zeros((cells_x, ))
+    for ii in range(cells_x - 1, -1, -1):
+        psi_nhalf[ii] = (2 * edge1 + delta_x[ii] * source[ii] ) \
+                        / (2 + xs_total * delta_x[ii])
+        edge1 = 2 * psi_nhalf[ii] - edge1
     return psi_nhalf
 
 def creating_weights(angles, boundary=[0,0]):
