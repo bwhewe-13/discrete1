@@ -195,8 +195,9 @@ class Standard:
 
     def timed(G, T, dt):
         try:
-            grid = np.load(DATA_PATH + 'energy_edges_{}G.npy'.format(str(G).zfill(3)))
-            idx = None
+            # grid = np.load(DATA_PATH + 'energy_edges_{}G.npy'.format(str(G).zfill(3)))
+            grid = np.load(DATA_PATH + "energy_edges_087G.npy")
+            idx = Tools.index_generator(87, G)
         except FileNotFoundError:
             grid = np.load(DATA_PATH + 'energy_edges_361G.npy')
             idx = np.load(DATA_PATH + 'group_indices_361G.npz')[str(G).zfill(3)]
@@ -205,8 +206,9 @@ class Standard:
 
     def hybrid(G, hy_g):
         try:
-            grid = np.load(DATA_PATH + 'energy_edges_{}G.npy'.format(str(G).zfill(3)))
-            idx = None
+            # grid = np.load(DATA_PATH + 'energy_edges_{}G.npy'.format(str(G).zfill(3)))
+            grid = np.load(DATA_PATH + "energy_edges_087G.npy")
+            idx = Tools.index_generator(87, G)
         except FileNotFoundError:
             grid = np.load(DATA_PATH + 'energy_edges_361G.npy')
             idx = np.load(DATA_PATH + 'group_indices_361G.npz')[str(G).zfill(3)]
@@ -279,8 +281,10 @@ class StainlessUranium: # Sphere problem
         # Checking for energy group collapse
         reduced = True if G != StainlessUranium._original_groups else False
         # Setting up shape problem
-        shape = [4,2,4]
-        materials = [['u',enrich],['u',0],'ss440']
+        # shape = [4,2,4]
+        # materials = [['u',enrich],['u',0],'ss440']
+        shape = [6, 4, 4, 6]
+        materials = [["u", 0.5], ["u", 0.25], ["u", 0.0], "ss440"]
         # Angles
         I = 1000
         delta = sum(shape)/I
@@ -290,6 +294,7 @@ class StainlessUranium: # Sphere problem
         xs_total, xs_scatter, xs_fission = Tools.populate_xs_list(materials)
         # Get sizes of each material
         layers = [int(ii/delta) for ii in shape]
+        print("layers", layers, np.sum(layers))
         # Source term
         energy_grid = np.load(DATA_PATH + 'energy_edges_087G.npy')
         g = np.argmin(abs(energy_grid-14.1E6))
@@ -411,7 +416,9 @@ class SHEM: # Slab problem
         scatter_ = np.tile(xs_scatter,(I, 1, 1))
         fission_ = np.tile(xs_fission,(I, 1, 1))
         external_source_ = np.tile(external_source, (I, 1))
-        point_source = [point_source_loc, point_source]
+        external_source_[499] = 0.5 / delta * point_source
+        external_source_[500] = 0.5 / delta * point_source
+        point_source = [point_source_loc, point_source * 0]
         Tools.recompile(I)
         return G, N, mu, w, total_, scatter_, fission_, external_source_, I, \
                 delta, point_source

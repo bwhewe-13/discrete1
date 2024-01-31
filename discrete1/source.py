@@ -245,9 +245,11 @@ class Source:
                 q_ptr = ctypes.c_void_p(Q.ctypes.data)
                 psi_ptr = ctypes.c_void_p(psi_nhalf.ctypes.data)
                 phi_ptr = ctypes.c_void_p(phi.ctypes.data)
-                clib.sweep(an_ptr,phi_ptr,psi_ptr,q_ptr,v_ptr,ctypes.c_double(1/self.delta),\
-                    ctypes.c_double(self.w[n]),ctypes.c_double(self.mu[n]),alpha_plus,\
-                    alpha_minus,ctypes.c_double(boundary), ctypes.c_int(self.point_source_loc),ctypes.c_double(tau))
+                clib.sweep(an_ptr, phi_ptr, psi_ptr, q_ptr, v_ptr, \
+                            ctypes.c_double(1/self.delta), ctypes.c_double(self.w[n]), \
+                            ctypes.c_double(self.mu[n]), alpha_plus,\
+                            alpha_minus,ctypes.c_double(boundary), \
+                            ctypes.c_int(self.point_source_loc), ctypes.c_double(tau))
                 # Update angular center corrections
                 psi_centers[n] = angular[0]
                 psi_next[:,n] = angular.copy()
@@ -315,7 +317,7 @@ class Source:
             count += 1
             phi_old = phi.copy()
 
-        return phi,psi_next
+        return phi, psi_next, count
 
     def multi_group(self,**kwargs):
         """ Run multi group steady state problem
@@ -328,44 +330,48 @@ class Source:
             psi_last = kwargs['psi_last'].copy()
             psi_next = np.zeros(psi_last.shape)
             phi_old = kwargs['guess'].copy()
-
         if 'known_flux' in kwargs:
             scalar_flux = np.einsum('ijk,ik->ij',self.scatter,kwargs['guess']) + \
                 np.einsum('ijk,ik->ij',self.fission,kwargs['guess']) 
-
         tol = 1e-12; MAX_ITS = 100
         converged = 0; count = 1
+        counter = []
+        temp_total = 0
         while not (converged):
             phi = np.zeros(phi_old.shape)
             phi = phi_old.copy()
             for g in range(self.G):
-                q_tilde = self.external_source[:,g] + tools.update_q(self.scatter,phi_old,g+1,self.G,g) \
-                    + tools.update_q(self.fission,phi_old,g+1,self.G,g)
+                q_tilde = self.external_source[:,g] \
+                          + tools.update_q(self.scatter,phi_old,g+1,self.G,g) \
+                          + tools.update_q(self.fission,phi_old,g+1,self.G,g)
                 if g != 0:
-                    q_tilde += tools.update_q(self.scatter,phi_old,0,g,g) + tools.update_q(self.fission,phi,0,g,g)
+                    q_tilde += tools.update_q(self.scatter,phi_old,0,g,g) \
+                             + tools.update_q(self.fission,phi,0,g,g)
                 if self.T:
                     if 'known_flux' in kwargs:
-                        _, psi_next[:,:,g] = geo(self,self.total[:,g],\
-                            0,scalar_flux[:,g],self.point_source[g],\
-                            phi_old[:,g]*0,psi_last[:,:,g],self.speed[g])
+                        _, psi_next[:,:,g] = geo(self, self.total[:,g], 0, \
+                                    scalar_flux[:,g], self.point_source[g],\
+                                    phi_old[:,g] * 0, psi_last[:,:,g], self.speed[g])
                         phi = kwargs['guess'].copy()
                     else:
-                        phi[:,g],psi_next[:,:,g] = geo(self,self.total[:,g],\
-                            self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.point_source[g],\
-                            phi_old[:,g],psi_last[:,:,g],self.speed[g])
+                        phi[:,g],psi_next[:,:,g], temp = geo(self, self.total[:,g], \
+                                    self.scatter[:,g,g] + self.fission[:,g,g],\
+                                    q_tilde, self.point_source[g], phi_old[:,g], \
+                                    psi_last[:,:,g], self.speed[g])
+                        temp_total += temp
                 else:
-                    phi[:,g] = geo(self,self.total[:,g],self.scatter[:,g,g]+self.fission[:,g,g],q_tilde,self.point_source[g],phi_old[:,g])
-
+                    phi[:,g] = geo(self, self.total[:,g], self.scatter[:,g,g] \
+                                    + self.fission[:,g,g], q_tilde, \
+                                    self.point_source[g], phi_old[:,g])
             change = np.linalg.norm((phi - phi_old)/phi/(self.I))
             if np.isnan(change) or np.isinf(change):
                 change = 0.5
-            # file = 'testdata/slab_uranium_stainless_ts0100_be/source_multigroup_ts'
-            # np.save(file+'{}_{}'.format(str(kwargs['ts']).zfill(4),str(count).zfill(3)),tracking_data)
-            # if self.T:
-            #     print('Count',count,'Change',change, np.sum(phi), np.sum(phi_old),'\n===================================')
+            counter.append(temp_total)
             count += 1
             converged = (change < tol) or (count >= MAX_ITS) 
             phi_old = phi.copy()
+        np.save("average_data/uranium-slab-iteration/multigroup_si_ts{}".format(\
+                                        str(kwargs["ts"]).zfill(3)), counter)
         if self.T:
             return phi,psi_next
         return phi
@@ -377,46 +383,35 @@ class Source:
         psi_last = np.zeros((self.I,self.N,self.G))
         # Initialize Speed
         self.speed = 1/(self.v*self.dt)
-
-        if self.problem in ['ControlRod']:
-            # self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.20,switch=0)
-            scalar_flux = np.load('mydata/control_rod_critical/carbon_g87_phi_{}.npy'.format(str(int(self.enrich*100)).zfill(2)))
-            attributes, keys = FixedSource.initialize('ControlRod',87,self.N,T=self.T,dt=self.dt,enrich=self.enrich,hybrid=87)
-            initial = Source(*attributes, **keys)
-            initial.speed = 1/(initial.v*initial.dt)
-            _, psi_last = initial.multi_group(psi_last=np.zeros((initial.I,initial.N,initial.G)),guess=scalar_flux,ts=0,known_flux='True')
-            if initial.G != self.G:
-                _, keys2 = FixedSource.initialize('ControlRod',self.G,self.N,T=self.T,dt=self.dt,enrich=0.2,hybrid=87)
-                psi_last = tools.big_2_small2(psi_last,keys['delta_e'],keys2['delta_e'],keys2['splits'])
-                print(psi_last.shape)
-            del scalar_flux
-            # psi_last = np.tile(np.expand_dims(np.load('mydata/control_rod_critical/stainless_g87_phi_20.npy'),axis=1),(1,self.N,1))
-
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(self.T/self.dt,5))
         # Determine source for problem
         if self.problem in ['Stainless','UraniumStainless','StainlessUranium']:
             point_source_full = tools.continuous(self.point_source, steps)
+
         elif self.problem not in ['SHEM']:
             point_source_full = tools.stagnant(self.point_source, steps)
-        
+        self.point_source = self.point_source.copy()
+
         for t in range(steps):
-            if self.problem in ['ControlRod']:
-                # The change of carbon --> stainless in problem
-                switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
-                print('Switch {} Step {}'.format(switch,t))
-                self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.20,switch=switch)
             # Run the multigroup problem
-            phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old,ts=t)
-            print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            phi, psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old,ts=t)
+            print("Time Step {} Flux {} {}\n{}".format(t, np.sum(phi), \
+                    np.sum(self.point_source), 35*"="))
             # Update scalar/angular flux
+            # np.save("angular-flux-ambe/angular_flux_ts{}".format(str(t).zfill(4)), psi_next)
+            # np.save("angular-flux-sphere-super/angular_flux_200_ts{}".format(str(t).zfill(4)), psi_next)
             psi_last = psi_next.copy()
             time_phi.append(phi)
             phi_old = phi.copy()
             # Update source
             if self.problem not in ['SHEM']:
                 self.point_source = point_source_full[t].copy()
-        return phi,time_phi
+            # if t >= 10:
+            #     self.point_source *= 0
+            # if t >= 2:
+            #     self.point_source *= 0
+        return phi, time_phi
 
     def bdf2(self):
         # Initialize flux and list of fluxes
@@ -425,10 +420,6 @@ class Source:
         psi_n0 = np.zeros((self.I,self.N,self.G)); psi_n1 = psi_n0.copy()
         # Initialize speed
         self.speed = 1/(self.v*self.dt); 
-        # Initialize ControlRod problem differently
-        if self.problem in ['ControlRod']:
-            psi_n1 = np.tile(np.expand_dims(np.load(DATA_PATH+'initial_rod.npy'),axis=1),(1,self.N,1))
-            self.td = 'BE' # Initial step is BE
         # For calculating the number of time steps (computer rounding error)
         steps = int(np.round(self.T/self.dt,5))
         # Determine source for problem
@@ -439,17 +430,12 @@ class Source:
         for t in range(steps):
             if (self.problem in ['SHEM']) and (t == 100):
                 self.point_source *= 0
-            elif self.problem in ['ControlRod']:
-                # The change of carbon --> stainless in problem
-                switch = min(max(np.round(1 - 10**-(len(str(steps))-1)*10**(len(str(int(self.T/1E-6)))-1) * t,2),0),1)
-                print('Switch {} Step {}'.format(switch,t))
-                self.total,self.scatter,self.fission = ControlRod.xs_update(self.G,enrich=0.20,switch=switch)
             # Backward Euler for first step, BDF2 for rest
             psi_last = psi_n1.copy() if t == 0 else 2 * psi_n1 - 0.5 * psi_n0
             # Run the multigroup Problem
             phi,psi_next = Source.multi_group(self,psi_last=psi_last,guess=phi_old)
-            #if self.problem in ['ControlRod']:
-            #    print('Time Step',t,'Flux',np.sum(phi),'\n===================================')
+            print("Time Step {} Flux {} {}\n{}".format(t, np.sum(phi), \
+                    np.sum(self.point_source), 35*"="))
             # Update scalar/angular flux
             time_phi.append(phi)
             phi_old = phi.copy()
