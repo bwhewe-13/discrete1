@@ -3,6 +3,8 @@
 import numpy as np
 import pkg_resources
 
+from discrete1.constants import *
+
 DATA_PATH = pkg_resources.resource_filename("discrete1","sources/")
 
 ########################################################################

@@ -58,7 +58,7 @@ saving techniques related to the neutron transport equation.
 
 3. HYBRID separates the collided and uncollided terms to be used with
     different numbers of ordinates (N) and energy groups (G) for
-    time-dependent problems<sup>1</sup>.
+    time-dependent problems<sup>2</sup>.
 
 
 
