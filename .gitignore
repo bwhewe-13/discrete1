@@ -1,13 +1,17 @@
+# Python
 __pycache__/
 *.py[cod]
-*.so
-*.Rhistory
 *.ipynb
-slab_uranium_stainless_ts0100_be_phi.npz
+
+# C/C++
+*.so
 
 # Cross Section Data
-xs/
-pkg_xtr/
+sources/
 
+# Packaging
 *.egg-info/
 *.egg
+
+# Sphinx documentation
+docs/_build/
