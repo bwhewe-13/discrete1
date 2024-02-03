@@ -10,7 +10,7 @@ from discrete1.multi_group import source_iteration
 cells_x = 160
 angles = 4
 groups = 1
-bc_x = [1, 0]
+bc_x = [0, 1]
 
 
 # Spatial
@@ -20,7 +20,7 @@ edges_x = np.linspace(0, length_x, cells_x+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Angular
-angle_x, angle_w = discrete1.angular_x(angles)#, bc_x)
+angle_x, angle_w = discrete1.angular_x(angles, bc_x)
 
 # Layout and Materials
 if bc_x == [0, 0]:
@@ -42,6 +42,7 @@ xs_fission = np.array([[[0.0]], [[0.0]], [[0.0]], [[0.0]]])
 external = discrete1.external1d.reeds(edges_x, bc_x)
 boundary = np.zeros((2, 1, 1))
 
+
 # print(boundary.shape, external.shape)
 flux_old = np.zeros((cells_x, groups))
 flux = source_iteration(flux_old, xs_total, xs_scatter, external, \
@@ -49,6 +50,6 @@ flux = source_iteration(flux_old, xs_total, xs_scatter, external, \
                     bc_x, geometry=1)
 
 fig, ax = plt.subplots()
-ax.plot(flux.flatten(), c="r")
+ax.plot(centers_x, flux.flatten(), c="r")
 ax.grid(which="both")
 plt.show()
