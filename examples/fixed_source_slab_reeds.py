@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 import discrete1
-from discrete1.multi_group import source_iteration
+from discrete1.fixed1d import source_iteration
 
 
 cells_x = 160
@@ -44,10 +44,8 @@ boundary = np.zeros((2, 1, 1))
 
 
 # print(boundary.shape, external.shape)
-flux_old = np.zeros((cells_x, groups))
-flux = source_iteration(flux_old, xs_total, xs_scatter, external, \
-                    boundary, medium_map, delta_x, angle_x, angle_w, \
-                    bc_x, geometry=1)
+flux = source_iteration(xs_total, xs_scatter, external, boundary, \
+                medium_map, delta_x, angle_x, angle_w, bc_x, geometry=1)
 
 fig, ax = plt.subplots()
 ax.plot(centers_x, flux.flatten(), c="r")

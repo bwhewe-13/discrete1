@@ -33,6 +33,94 @@ def reflector_corrector(reflector, angle_x, edge, nn, bc_x):
         reflector[reflected_idx] = edge
 
 
+@numba.jit("void(f8[:,:,:], f8[:,:], f8[:,:,:], i4[:], f8[:,:,:])", \
+            nopython=True, cache=True)
+def _source_total(source, flux, xs_scatter, medium_map, external):
+    # Get parameters
+    cells_x, angles, groups = source.shape
+    ii = numba.int32
+    nn = numba.int32
+    nn_q = numba.int32
+    mat = numba.int32
+    og = numba.int32
+    og_q = numba.int32
+    ig = numba.int32
+    one_group = numba.float64
+    # Zero out previous source term
+    source *= 0.0
+    # Iterate over cells, angles, groups
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+
+        # Iterate over groups
+        for og in range(groups):
+            og_q = 0 if external.shape[2] == 1 else og
+            one_group = 0.0
+            for ig in range(groups):
+                one_group += flux[ii,ig] * xs_scatter[mat,og,ig]
+
+            # Iterate over angles
+            for nn in range(angles):
+                nn_q = 0 if external.shape[1] == 1 else nn
+                source[ii,nn,og] = one_group + external[ii,nn_q,og_q]
+
+
+########################################################################
+# Multigroup functions - DMD
+########################################################################
+
+def _svd_dmd(A, K):
+    residual = 1e-09
+
+    # Compute SVD
+    U, S, V = np.linalg.svd(A, full_matrices=False)
+
+    # Find the non-zero singular values
+    if (S[(1-np.cumsum(S)/np.sum(S)) > residual].size >= 1):
+        spos = S[(1 - np.cumsum(S) / np.sum(S)) > residual].copy()
+    else:
+        spos = S[S > 0].copy()
+
+    # Create diagonal matrix
+    mat_size = np.min([K, len(spos)])
+    S = np.zeros((mat_size, mat_size))
+
+    # Select the u and v that correspond with the nonzero singular values
+    U = U[:, :mat_size].copy()
+    V = V[:mat_size, :].copy()
+
+    # S will be the inverse of the singular value diagonal matrix
+    S[np.diag_indices(mat_size)] = 1 / spos
+
+    return U, S, V
+
+
+# @numba.jit("f8[:,:](f8[:,:], f8[:,:,:], f8[:,:,:], i4)", nopython=True, cache=True)
+def dmd(flux_old, y_minus, y_plus, K):
+    # Collect dimensions
+    cells_x, groups = flux_old.shape
+
+    # Flatten y_minus, y_plus
+    y_minus = y_minus.reshape(cells_x * groups, K - 1)
+    y_plus = y_plus.reshape(cells_x * groups, K - 1)
+
+    # Call SVD
+    U, S, V = _svd_dmd(y_minus, K)
+
+    # Calculate Atilde
+    Atilde = U.T @ y_plus @ V.T @ S.T
+
+    # Calculate delta_y
+    I = np.identity(Atilde.shape[0])
+    delta_y = np.linalg.solve(I - Atilde, (U.T @ y_plus[:,-1]).T)
+
+    # Estimate new flux
+    flux = (flux_old.flatten() - y_plus[:,K-2]) + (U @ delta_y).T
+    flux = flux.reshape(cells_x, groups)
+
+    return flux
+
+
 ########################################################################
 # K-eigenvalue functions
 ########################################################################

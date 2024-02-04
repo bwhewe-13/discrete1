@@ -9,6 +9,7 @@ discrete1/critical1d.py
 discrete1/djinn1d.py
 discrete1/external1d.py
 discrete1/fixed.py
+discrete1/fixed1d.py
 discrete1/generate.py
 discrete1/hybrid.py
 discrete1/main.py
@@ -25,7 +26,11 @@ discrete1.egg-info/top_level.txt
 discrete1/utils/__init__.py
 discrete1/utils/hybrid.py
 discrete1/utils/machine_learning.py
+discrete1/utils/manufactured.py
 discrete1/utils/sn.py
 discrete1/utils/transport_tools.py
+tests/__init__.py
 tests/conftest.py
+tests/problems.py
 tests/test_critical.py
+tests/test_spatial_accuracy.py

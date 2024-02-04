@@ -2,8 +2,11 @@
 import numpy as np
 
 from discrete1 import tools
-from discrete1.spatial_sweep import discrete_ordinates, sn_known_scatter
-
+from discrete1.spatial_sweep import (
+    discrete_ordinates,
+    _known_scatter,
+    _known_source
+)
 
 count_gg = 100
 change_gg = 1e-08
@@ -48,6 +51,120 @@ def source_iteration(flux_old, xs_total, xs_scatter, external, boundary, \
 
     return flux
 
+
+def dynamic_mode_decomp(flux_old, xs_total, xs_scatter, external, \
+        boundary, medium_map, delta_x, angle_x, angle_w, bc_x, geometry, \
+        R, K):
+
+    cells_x, groups = flux_old.shape
+    flux = np.zeros((cells_x, groups))
+    off_scatter = np.zeros((cells_x,))
+
+    # Initialize Y_plus and Y_minus
+    y_plus = np.zeros((cells_x, groups, K - 1))
+    y_minus = np.zeros((cells_x, groups, K - 1))
+
+    converged = False
+    change = 0.0
+
+    for rk in range(R + K):
+
+        # Return flux if there is convergence
+        if converged:
+            return flux
+
+        flux *= 0.0
+
+        for gg in range(groups):
+            # Check for sizes
+            qq = 0 if external.shape[2] == 1 else gg
+            bc = 0 if boundary.shape[2] == 1 else gg
+
+            # Update off scatter source
+            tools._off_scatter(flux, flux_old, medium_map, xs_scatter, \
+                                off_scatter, gg)
+
+            # Run discrete ordinates for one group
+            flux[:,gg] = discrete_ordinates(flux_old[:,gg], xs_total[:,gg], \
+                                        xs_scatter[:,gg,gg], off_scatter, \
+                                        external[:,:,qq], boundary[:,:,bc], \
+                                        medium_map, delta_x, angle_x, \
+                                        angle_w, bc_x, geometry)
+
+        # Check for convergence
+        change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        converged = (change < change_gg)
+
+        # Collect difference for DMD on K iterations
+        if rk >= R:
+            kk = rk - R
+            if kk < (K - 1):
+                y_minus[:,:,kk] = flux - flux_old
+            if kk > 0:
+                y_plus[:,:,kk-1] = flux - flux_old
+
+        flux_old = flux.copy()
+
+    # Perform DMD
+    flux = tools.dmd(flux, y_minus, y_plus, K)
+
+    return flux
+
+
+########################################################################
+# Multigroup Known Source Problems
+########################################################################
+
+def known_source_angular(xs_total, source, boundary, medium_map, delta_x, \
+        angle_x, angle_w, bc_x, geometry, edges):
+
+    cells_x, angles, groups = source.shape
+
+    # Initialize scalar flux
+    angular_flux = np.zeros((cells_x + edges, angles, groups))
+
+    # Initialize dummy variable
+    zero = np.zeros((cells_x + edges))
+
+    for gg in range(groups):
+
+        qq = 0 if source.shape[2] == 1 else gg
+        bc = 0 if boundary.shape[2] == 1 else gg
+
+        _known_source(angular_flux[:,:,gg], xs_total[:,gg], zero, source[:,:,qq], \
+                     boundary[:,:,bc], medium_map, delta_x, angle_x, angle_w, \
+                     bc_x, geometry, edges)
+
+    return angular_flux
+
+
+def known_source_scalar(xs_total, source, boundary, medium_map, delta_x, \
+        angle_x, angle_w, bc_x, geometry, edges):
+
+    cells_x, angles, groups = source.shape
+
+    # Initialize scalar flux
+    scalar_flux = np.zeros((cells_x + edges, groups, 1))
+
+    # Initialize dummy variable
+    # zero = 1e-15 * np.ones((cells_x + edges))
+    zero = np.zeros((cells_x + edges))
+
+    for gg in range(groups):
+
+        qq = 0 if source.shape[2] == 1 else gg
+        bc = 0 if boundary.shape[2] == 1 else gg
+
+        _known_source(scalar_flux[:,gg], xs_total[:,gg], zero, source[:,:,qq], \
+                     boundary[:,:,bc], medium_map, delta_x, angle_x, angle_w, \
+                     bc_x, geometry, edges)
+
+    return scalar_flux[:,:,0]
+
+
+########################################################################
+# Multigroup DJINN Problems
+########################################################################
 
 def source_iteration_collect(flux_old, xs_total, xs_scatter, external, \
         boundary, medium_map, delta_x, angle_x, angle_w, bc_x, geometry, \
@@ -122,7 +239,7 @@ def source_iteration_djinn(flux_old, xs_total, xs_scatter, external, \
             bc = 0 if boundary.shape[2] == 1 else gg
 
             # Run discrete ordinates for one group
-            flux[:,gg] = sn_known_scatter(xs_total[:,gg], scatter_source[:,gg], \
+            flux[:,gg] = _known_scatter(xs_total[:,gg], scatter_source[:,gg], \
                                 external[:,:,qq], boundary[:,:,bc], medium_map, \
                                 delta_x, angle_x, angle_w, bc_x, geometry)
 

@@ -1,1 +1,2 @@
 discrete1
+tests
