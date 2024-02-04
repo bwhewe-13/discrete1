@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-// #define LENGTH 1000
+// #define LENGTH 10
 #define PI 3.141592653589793
 
 void surface_area_calc(double surface_area[], double delta){
@@ -37,6 +37,7 @@ void sweep(void *psif, void *flux, void *half, void *external, void *v_total,
             if (ii == point_source_loc){
                 psi_ihalf += point_source;
             }
+
             // psi = (mu * (SA_plus[ii] + SA_minus[ii]) * psi_ihalf + 1/w * (SA_plus[ii] - SA_minus[ii]) 
             //       * (alpha_plus + alpha_minus) * psi_nhalf[ii] + source[ii]) /
             //       (2 * mu * SA_plus[ii] + 2/w * (SA_plus[ii] - SA_minus[ii]) * 
@@ -58,7 +59,7 @@ void sweep(void *psif, void *flux, void *half, void *external, void *v_total,
                 // Lewis and Miller Corrector
                 // psi_nhalf[ii] = 2 * psi - psi_nhalf[ii];
                 // Morel and Montry Corrector
-                psi_nhalf[ii] = 1/tau * (psi - (1 - tau) * psi_nhalf[ii]);        
+                psi_nhalf[ii] = 1/tau * (psi - (1 - tau) * psi_nhalf[ii]);
             }
         }
     }
@@ -72,10 +73,12 @@ void sweep(void *psif, void *flux, void *half, void *external, void *v_total,
             if ((ii + 1) == point_source_loc){
                 psi_ihalf += point_source;
             }
+
             psi = (-1 * mu * (SA[ii+1] + SA[ii]) * psi_ihalf + 1/w * (SA[ii+1] - SA[ii]) 
                     * (alpha_plus + alpha_minus) * psi_nhalf[ii] + source[ii]) /
                     (-2 * mu * SA[ii] + 2/w * (SA[ii+1] - SA[ii]) * 
                     (alpha_plus) + total[ii]);
+
             // Collecting Angular Flux
             angular[ii] = psi;
             // Update flux

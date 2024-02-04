@@ -15,7 +15,8 @@
 #endif
 
 
-void reflected(void *flux, void *scatter, void *external, void *numerator, void *denominator, double weight, int direction){
+void reflected(void *flux, void *scatter, void *external, void *numerator, \
+               void *denominator, double weight, int direction){
     double psi_top;
     double psi_bottom = 0.0;
     
@@ -45,7 +46,8 @@ void reflected(void *flux, void *scatter, void *external, void *numerator, void 
 }
 
 
-void reflected_reduced(void *flux, void *guess, void *scatter, void *external, void *numerator, void *denominator, double weight){
+void reflected_reduced(void *flux, void *guess, void *scatter, void *external, \
+                       void *numerator, void *denominator, double weight){
     double psi_top;
     double psi_bottom = 0.0;
     
@@ -89,7 +91,8 @@ void reflected_reduced(void *flux, void *guess, void *scatter, void *external, v
 }
 
 
-void vacuum(void *flux, void *scatter, void *external, void *numerator, void *denominator, double weight, int direction){
+void vacuum(void *flux, void *scatter, void *external, void *numerator, \
+            void *denominator, double weight, int direction){
     double psi_top;
     double psi_bottom = 0.0;
     
