@@ -96,7 +96,7 @@ def gamma_time_steps(edges_t, gamma=0.5, half_step=True):
     return combined_steps
 
 
-def spatial1d(layers, edges_x):
+def spatial1d(layers, edges_x, labels=False):
     """ Creating one-dimensional medium map
 
     :param layers: list of lists where each layer is a new material. A
@@ -109,8 +109,12 @@ def spatial1d(layers, edges_x):
     :return: One-dimensional array of length I, identifying the locations
         of the materials
     """
-    # Initialize medium_map
-    medium_map = np.ones((len(edges_x) - 1), dtype=np.int32) * -1
+    if labels:
+        # Initialize label map
+        medium_map = -1 * np.ones((len(edges_x) - 1)) * -1
+    else:
+        # Initialize medium_map
+        medium_map = -1 * np.ones((len(edges_x) - 1), dtype=np.int32)
     # Iterate over all layers
     for layer in layers:
         for region in layer[2].split(","):

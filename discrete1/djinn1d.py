@@ -6,7 +6,7 @@ import numpy as np
 from discrete1 import multi_group as mg
 from discrete1 import tools
 
-count_kk = 100
+count_kk = 200
 change_kk = 1e-06
 
 
@@ -18,12 +18,14 @@ def collection(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
 
     # Initialize and normalize flux
     cells_x = medium_map.shape[0]
-    flux_old = np.random.rand(cells_x, xs_total.shape[1])
+    groups = xs_total.shape[1]
+
+    flux_old = np.random.rand(cells_x, groups)
     keff = np.linalg.norm(flux_old)
     flux_old /= np.linalg.norm(keff)
 
     # Initialize power source
-    source = np.zeros((cells_x, 1, xs_total.shape[1]))
+    source = np.zeros((cells_x, 1, groups))
     tracked_flux = np.zeros((count_kk, cells_x, groups))
 
     converged = False
