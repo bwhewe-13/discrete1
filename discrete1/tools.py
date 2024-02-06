@@ -174,11 +174,14 @@ def _update_keffective(flux, flux_old, xs_fission, medium_map, keff):
 ########################################################################
 
 def _djinn_source_predict(flux, xs_matrix, source, models, model_map, \
-        model_labels=None):
+        model_labels=None, keff=1):
     # Zero out previous source
     source *= 0.0
     # Iterate over models
     for nn, model in enumerate(models):
+        # Check if model available
+        if isinstance(model, int) and (model == 0):
+            continue
         # Find which cells model is predicting
         model_idx = np.argwhere(model_map == nn).flatten()
         # Separate predicting flux
@@ -187,15 +190,16 @@ def _djinn_source_predict(flux, xs_matrix, source, models, model_map, \
         if np.sum(predictor) == 0:
             continue
         # Get scaling factor
-        scale = np.sum(predictor * xs_matrix[nn], axis=1)
+        scale = np.sum(predictor * xs_matrix[nn,:,0], axis=1)
         # Check for labels and predict
         if model_labels is not None:
-            predictor = np.hstack((labels[model_idx][:,None], predictor))
+            predictor = np.hstack((model_labels[model_idx][:,None], predictor))
             predictor = model.predict(predictor)
         else:
             predictor = model.predict(predictor)
         # Scale back and add to source
-        source[model_idx] = predictor * (scale / np.sum(predictor, axis=1))[:,None]
+        source[model_idx,0] = predictor / keff * \
+                            (scale / np.sum(predictor, axis=1))[:,None]
 
 
 @numba.jit("void(f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], f8, i4[:])", \
@@ -213,7 +217,7 @@ def _djinn_fission_pass(flux, xs_fission, source, medium_map, keff, model_map):
     # Iterate over cells and groups
     for ii in range(cells_x):
         # Check if there is a model to run
-        if model_map[ii] == -1:
+        if model_map[ii]:
             continue
         # Calculate material
         mat = medium_map[ii]
@@ -236,7 +240,7 @@ def _djinn_scatter_pass(flux, xs_scatter, source, medium_map, model_map):
     # Iterate over cells and groups
     for ii in range(cells_x):
         # Check if there is a model to run
-        if model_map[ii] == -1:
+        if model_map[ii]:
             continue
         # Calculate material
         mat = medium_map[ii]

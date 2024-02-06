@@ -111,7 +111,7 @@ def spatial1d(layers, edges_x, labels=False):
     """
     if labels:
         # Initialize label map
-        medium_map = -1 * np.ones((len(edges_x) - 1)) * -1
+        medium_map = -1 * np.ones((len(edges_x) - 1))
     else:
         # Initialize medium_map
         medium_map = -1 * np.ones((len(edges_x) - 1), dtype=np.int32)

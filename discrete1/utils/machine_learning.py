@@ -4,6 +4,8 @@
 import numpy as np
 from glob import glob
 import itertools
+import os
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 from djinn import djinn
 
@@ -13,17 +15,12 @@ def _combine_flux_reaction(flux, xs_matrix, medium_map, labels):
     iterations, cells_x, groups = flux.shape
     # Initialize training data
     data = np.zeros((2, iterations, cells_x, groups + 1))
-    # Initialize counter
-    count = 0
     # Iterate over iterations and spatial cells
     for cc in range(iterations):
         for ii in range(cells_x):
             mat = medium_map[ii]
-            if np.sum(xs_matrix[mat]) == 0.0:
-                count += 1
-                continue
             # Add labels
-            data[:,cc,ii,0] = labels[mat]
+            data[:,cc,ii,0] = labels[ii]
             # Add flux (x variable)
             data[0,cc,ii,1:] = flux[cc,ii].copy()
             # Add reaction rate (y variable)
@@ -33,17 +30,38 @@ def _combine_flux_reaction(flux, xs_matrix, medium_map, labels):
     # Remove zero values
     idx = np.argwhere(np.sum(data[...,1:], axis=(0,2)) != 0)
     data = data[:,idx.flatten(),:].copy()
-    assert (data.shape[1] + count) == (iterations * cells_x), "Need to equal"
     return data
 
 
-def clean_data_fission(path, labels):
+def _split_by_material(training_data, path, xs, splits):
+    # Splits is list([string name, [float labels]])
+    # i.e. [["hdpe", [15.04]], ["uh3", [0.0, 0.15]]]
+
+    # Initialize counter
+    counts = 0
+    # Iterate over splits
+    for name, label in splits:
+        # Identify location of labels
+        idx = np.argwhere(np.isin(training_data[0,:,0], label)).flatten()
+        # Separate data
+        split_data = training_data[:,idx].copy()
+        # Keeping track of data points
+        counts += split_data.shape[1]
+        # Save data
+        np.save(path + f"{xs}_{name}_training_data", split_data)
+    # Making sure no data was lost
+    assert counts == training_data.shape[1], "Need to equal"
+
+
+def clean_data_fission(path, labels, splits=None):
     """ Takes the flux before the fission rates are calculated (x data),
     calculates the reaction rates (y data), and adds a label for the
     enrichment level (G+1). Also removes non-fissioning materials.
     Arguments:
         path (str): location of all files named in djinn1d.collections()
         labels (float [materials]): labels for each of the materials
+        splits (list [name, [labels]]): splitting training data into 
+                                    fissible and non-fissible materials
     Returns:
         Processed data saved to path
     """
@@ -52,17 +70,22 @@ def clean_data_fission(path, labels):
     xs_fission = np.load(path + "fission_cross_sections.npy")
     medium_map = np.load(path + "medium_map.npy")
     training_data = _combine_flux_reaction(flux, xs_fission, medium_map, labels)
-    np.save(path + "fission_training_data", training_data)
+    if splits is not None:
+        _split_by_material(training_data, path, "fission", splits)
+    else:
+        np.save(path + "fission_training_data", training_data)
     # return training_data
 
 
-def clean_data_scatter(path, labels):
+def clean_data_scatter(path, labels, splits=None):
     """ Takes the flux before the scattering rates are calculated (x data),
     calculates the reaction rates (y data), and adds a label for the
     enrichment level (G+1).
     Arguments:
         path (str): location of all files named in djinn1d.collections()
         labels (float [materials]): labels for each of the materials
+        splits (list [name, [labels]]): splitting training data into 
+                                    fissible and non-fissible materials
     Returns:
         Processed data saved to path
     """
@@ -76,7 +99,10 @@ def clean_data_scatter(path, labels):
         single_iteration = _combine_flux_reaction(flux, xs_scatter, \
                                                   medium_map, labels)
         training_data = np.hstack((training_data, single_iteration))
-    np.save(path + "scatter_training_data", training_data)
+    if splits is not None:
+        _split_by_material(training_data, path, "scatter", splits)
+    else:
+        np.save(path + "scatter_training_data", training_data)
     # return training_data
 
 
@@ -113,13 +139,17 @@ def root_mean_squared_error(y_true, y_pred):
 
 
 def explained_variance_score(y_true, y_pred):
-    return 1 - np.var(y_true - y_pred, axis=-1) / np.var(y_true, axis=-1)
+    evs = 1 - np.var(y_true - y_pred, axis=-1) / np.var(y_true, axis=-1)
+    np.nan_to_num(evs, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+    return evs
 
 
 def r2_score(y_true, y_pred):
     numerator = np.sum((y_true - y_pred)**2, axis=-1)
     denominator = np.sum((y_true - np.mean(y_true, axis=1)[:,None])**2, axis=-1)
-    return 1 - numerator / denominator
+    r2 = 1 - numerator / denominator
+    np.nan_to_num(r2, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+    return r2
 
 
 def train_model(x_train, x_test, y_train, y_test, path, trees, depth, \
@@ -165,3 +195,29 @@ def train_model(x_train, x_test, y_train, y_test, path, trees, depth, \
 
         # close model
         model.close_model()
+
+
+def load_djinn_models(model_path):
+    print("Loading DJINN Models...\n{}".format("="*30))
+    if isinstance(model_path, str):
+        return djinn.load(model_name=model_path)
+    models = []
+    for path in model_path:
+        if path == 0:
+            models.append(0)
+        else:
+            models.append(djinn.load(model_name=path))
+    print("Loading Complete\n{}\n".format("="*30))
+    return models
+
+
+def update_cross_sections(xs_matrix, model_idx):
+    # Summing the cross sections over a specific axis while keeping the 
+    # same shape for DJINN models
+    updated_xs = np.zeros(xs_matrix.shape)
+    for mat in range(xs_matrix.shape[0]):
+        if mat in model_idx:
+            updated_xs[mat,:,0] = np.sum(xs_matrix[mat], axis=0)
+        else:
+            updated_xs[mat] = xs_matrix[mat].copy()
+    return updated_xs

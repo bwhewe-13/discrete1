@@ -91,7 +91,7 @@ def power_iteration(flux_old, xs_total, xs_scatter, xs_fission, \
     while not (converged):
         # Update power source term
         tools._djinn_source_predict(flux_old, xs_fission, fission_source, \
-                            fission_models, fission_map, fission_labels)
+                        fission_models, fission_map, fission_labels, keff)
         tools._djinn_fission_pass(flux_old, xs_fission, fission_source, \
                             medium_map, keff, fission_map)
 
