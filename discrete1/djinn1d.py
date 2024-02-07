@@ -68,11 +68,11 @@ def collection(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
 
     return flux, keff
 
-# xs_scatter and xs_fission are tuples and not lists
+
 def power_iteration(flux_old, xs_total, xs_scatter, xs_fission, \
         medium_map, delta_x, angle_x, angle_w, bc_x, geometry, \
-        fission_models=[], scatter_models=[], fission_map=[], \
-        scatter_map=[], fission_labels=None, scatter_labels=None):
+        fission_models=[], scatter_models=[], fission_labels=None, \
+        scatter_labels=None):
 
     # Set boundary source
     boundary = np.zeros((2, 1, 1))
@@ -90,23 +90,28 @@ def power_iteration(flux_old, xs_total, xs_scatter, xs_fission, \
 
     while not (converged):
         # Update power source term
-        tools._djinn_source_predict(flux_old, xs_fission, fission_source, \
-                        fission_models, fission_map, fission_labels, keff)
-        tools._djinn_fission_pass(flux_old, xs_fission, fission_source, \
-                            medium_map, keff, fission_map)
+        # No Fission DJINN predictions
+        if len(fission_models) == 0:
+            tools._fission_source(flux_old, xs_fission, fission_source, \
+                                  medium_map, keff)
+
+        # Fission DJINN predictions
+        else:
+            tools._djinn_fission_predict(flux_old, xs_fission, fission_source, \
+                        medium_map, keff, fission_models, fission_labels)
 
         # Solve for scalar flux
-        # No DJINN predictions
+        # No Scatter DJINN predictions
         if len(scatter_models) == 0:
             flux = mg.source_iteration(flux_old, xs_total, xs_scatter, \
                                     fission_source, boundary, medium_map, \
                                     delta_x, angle_x, angle_w, bc_x, geometry)
-        # DJINN predictions
+        # Scatter DJINN predictions
         else:
             flux = mg.source_iteration_djinn(flux_old, xs_total, xs_scatter, \
-                            fission_source, boundary, medium_map, delta_x, \
-                            angle_x, angle_w, bc_x, geometry, scatter_models, \
-                            scatter_map, scatter_labels)
+                                    fission_source, boundary, medium_map, \
+                                    delta_x, angle_x, angle_w, bc_x, geometry, \
+                                    scatter_models, scatter_labels)
 
         # Update keffective
         keff = tools._update_keffective(flux, flux_old, xs_fission, \
@@ -117,7 +122,7 @@ def power_iteration(flux_old, xs_total, xs_scatter, xs_fission, \
 
         # Check for convergence
         change = np.linalg.norm((flux - flux_old) / flux / cells_x)
-        print(f"Count: {count:>2}\tKeff: {keff:.8f}", end="\r")
+        print(f"Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}", end="\r")
         converged = (change < change_kk) or (count >= count_kk)
         count += 1
 

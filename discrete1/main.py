@@ -96,7 +96,7 @@ def gamma_time_steps(edges_t, gamma=0.5, half_step=True):
     return combined_steps
 
 
-def spatial1d(layers, edges_x, labels=False):
+def spatial1d(layers, edges_x, labels=False, check=True):
     """ Creating one-dimensional medium map
 
     :param layers: list of lists where each layer is a new material. A
@@ -123,5 +123,7 @@ def spatial1d(layers, edges_x, labels=False):
             idx2 = np.argmin(np.fabs(float(stop) - edges_x))
             medium_map[idx1:idx2] = layer[0]
     # Verify all cells are filled
-    assert np.all(medium_map != -1)
+    if check:
+        assert np.all(medium_map != -1)
+
     return medium_map

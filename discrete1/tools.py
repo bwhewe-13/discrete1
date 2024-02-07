@@ -139,6 +139,8 @@ def _fission_source(flux, xs_fission, source, medium_map, keff):
     # Iterate over cells and groups
     for ii in range(cells_x):
         mat = medium_map[ii]
+        if xs_fission[mat].sum() == 0.0:
+            continue
         for og in range(groups):
             # source[ii,0,og] = np.sum(flux[ii] @ xs_fission[mat,og]) / keff
             for ig in range(groups):
@@ -162,6 +164,8 @@ def _update_keffective(flux, flux_old, xs_fission, medium_map, keff):
     # Iterate over cells and groups
     for ii in range(cells_x):
         mat = medium_map[ii]
+        if xs_fission[mat].sum() == 0.0:
+            continue
         for og in range(groups):
             for ig in range(groups):
                 rate_new += flux[ii,ig] * xs_fission[mat,og,ig]
@@ -172,25 +176,34 @@ def _update_keffective(flux, flux_old, xs_fission, medium_map, keff):
 ########################################################################
 # DJINN functions
 ########################################################################
+# Fission source is of size (I x 1 x G) - for source iteration dimensions
+# Scatter source is of size (I x G) - for discrete ordinates dimensions
 
-def _djinn_source_predict(flux, xs_matrix, source, models, model_map, \
-        model_labels=None, keff=1):
+
+def _djinn_fission_predict(flux, xs_fission, source, medium_map, keff, \
+        models, model_labels=None):
     # Zero out previous source
     source *= 0.0
+    
     # Iterate over models
     for nn, model in enumerate(models):
-        # Check if model available
-        if isinstance(model, int) and (model == 0):
-            continue
         # Find which cells model is predicting
-        model_idx = np.argwhere(model_map == nn).flatten()
+        model_idx = np.argwhere(medium_map == nn).flatten()
+
+        # Check if model available
+        if isinstance(model, int):
+            # Calculate standard source
+            _fission_source(flux[model_idx], xs_fission, source[model_idx], \
+                            medium_map[model_idx], keff)
+            continue
+
         # Separate predicting flux
         predictor = flux[model_idx].copy()
         # Check for zero values
         if np.sum(predictor) == 0:
             continue
         # Get scaling factor
-        scale = np.sum(predictor * xs_matrix[nn,:,0], axis=1)
+        scale = np.sum(predictor * xs_fission[nn,:,0], axis=1)
         # Check for labels and predict
         if model_labels is not None:
             predictor = np.hstack((model_labels[model_idx][:,None], predictor))
@@ -202,49 +215,160 @@ def _djinn_source_predict(flux, xs_matrix, source, models, model_map, \
                             (scale / np.sum(predictor, axis=1))[:,None]
 
 
-@numba.jit("void(f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], f8, i4[:])", \
-            nopython=True, cache=True)
-def _djinn_fission_pass(flux, xs_fission, source, medium_map, keff, model_map):
+def _djinn_scatter_predict(flux, xs_scatter, source, medium_map, models, \
+        model_labels=None):
+    # Zero out previous source
+    source *= 0.0
+
+    # Iterate over models
+    for nn, model in enumerate(models):
+        # Find which cells model is predicting
+        model_idx = np.argwhere(medium_map == nn).flatten()
+
+        # Check if model available
+        if isinstance(model, int):
+            # Calculate standard source
+            _scatter_source(flux[model_idx], xs_scatter, source[model_idx], \
+                            medium_map[model_idx])
+            continue
+
+        # Separate predicting flux
+        predictor = flux[model_idx].copy()
+        # Check for zero values
+        if np.sum(predictor) == 0:
+            continue
+        # Get scaling factor
+        scale = np.sum(predictor * xs_scatter[nn,:,0], axis=1)
+        # Check for labels and predict
+        if model_labels is not None:
+            predictor = np.hstack((model_labels[model_idx][:,None], predictor))
+            predictor = model.predict(predictor)
+        else:
+            predictor = model.predict(predictor)
+        # Scale back and add to source
+        source[model_idx] = predictor * (scale / np.sum(predictor, axis=1))[:,None]
+
+
+@numba.jit("void(f8[:,:], f8[:,:,:], f8[:,:], i4[:])", nopython=True, cache=True)
+def _scatter_source(flux, xs_scatter, source, medium_map):
     # Get parameters
     cells_x, groups = flux.shape
     ii = numba.int32
     mat = numba.int32
     og = numba.int32
     ig = numba.int32
-    # Check for zero flux
-    if flux.sum() == 0.0:
-        return
     # Iterate over cells and groups
     for ii in range(cells_x):
-        # Check if there is a model to run
-        if model_map[ii]:
-            continue
         # Calculate material
         mat = medium_map[ii]
-        # Iterate over groups
-        for og in range(groups):
-            for ig in range(groups):
-                source[ii,0,og] += flux[ii,ig] * xs_fission[mat,og,ig]
-            source[ii,0,og] /= keff
-
-
-@numba.jit("void(f8[:,:], f8[:,:,:], f8[:,:], i4[:], i4[:])", \
-            nopython=True, cache=True)
-def _djinn_scatter_pass(flux, xs_scatter, source, medium_map, model_map):
-    # Get parameters
-    cells_x, groups = flux.shape
-    ii = numba.int32
-    mat = numba.int32
-    og = numba.int32
-    ig = numba.int32
-    # Iterate over cells and groups
-    for ii in range(cells_x):
-        # Check if there is a model to run
-        if model_map[ii]:
+        if xs_scatter[mat].sum() == 0.0:
             continue
-        # Calculate material
-        mat = medium_map[ii]
         # Iterate over groups
         for og in range(groups):
             for ig in range(groups):
                 source[ii,og] += flux[ii,ig] * xs_scatter[mat,og,ig]
+
+
+# def _djinn_fission_predict(flux, xs_fission, fission_source, keff, models, \
+#         model_map, model_labels=None):
+#     # Zero out previous source
+#     fission_source *= 0.0
+#     # Iterate over models
+#     for nn, model in enumerate(models):
+#         # Check if model available
+#         if isinstance(model, int) and (model == 0):
+#             continue
+#         # Find which cells model is predicting
+#         model_idx = np.argwhere(model_map == nn).flatten()
+#         # Separate predicting flux
+#         predictor = flux[model_idx].copy()
+#         # Check for zero values
+#         if np.sum(predictor) == 0:
+#             continue
+#         # Get scaling factor
+#         scale = np.sum(predictor * xs_fission[nn,:,0], axis=1)
+#         # Check for labels and predict
+#         if model_labels is not None:
+#             predictor = np.hstack((model_labels[model_idx][:,None], predictor))
+#             predictor = model.predict(predictor)
+#         else:
+#             predictor = model.predict(predictor)
+#         # Scale back and add to source
+#         fission_source[model_idx,0] = predictor / keff * \
+#                             (scale / np.sum(predictor, axis=1))[:,None]
+
+
+# @numba.jit("void(f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], f8, i4[:])", \
+#             nopython=True, cache=True)
+# def _djinn_fission_pass(flux, xs_fission, source, medium_map, keff, model_map):
+#     # Get parameters
+#     cells_x, groups = flux.shape
+#     ii = numba.int32
+#     mat = numba.int32
+#     og = numba.int32
+#     ig = numba.int32
+#     # Check for zero flux
+#     if flux.sum() == 0.0:
+#         return
+#     # Iterate over cells and groups
+#     for ii in range(cells_x):
+#         # Check if there is a model to run
+#         if model_map[ii] > -1:
+#             continue
+#         # Calculate material
+#         mat = medium_map[ii]
+#         # Iterate over groups
+#         for og in range(groups):
+#             for ig in range(groups):
+#                 source[ii,0,og] += flux[ii,ig] * xs_fission[mat,og,ig]
+#             source[ii,0,og] /= keff
+
+
+# def _djinn_scatter_predict(flux, xs_matrix, scatter_source, models, \
+#         model_map, model_labels=None):
+#     # Zero out previous source
+#     scatter_source *= 0.0
+#     # Iterate over models
+#     for nn, model in enumerate(models):
+#         # Check if model available
+#         if isinstance(model, int) and (model == 0):
+#             continue
+#         # Find which cells model is predicting
+#         model_idx = np.argwhere(model_map == nn).flatten()
+#         # Separate predicting flux
+#         predictor = flux[model_idx].copy()
+#         # Check for zero values
+#         if np.sum(predictor) == 0:
+#             continue
+#         # Get scaling factor
+#         scale = np.sum(predictor * xs_matrix[nn,:,0], axis=1)
+#         # Check for labels and predict
+#         if model_labels is not None:
+#             predictor = np.hstack((model_labels[model_idx][:,None], predictor))
+#             predictor = model.predict(predictor)
+#         else:
+#             predictor = model.predict(predictor)
+#         # Scale back and add to source
+#         scatter_source[model_idx] = predictor * (scale / np.sum(predictor, axis=1))[:,None]
+
+
+# @numba.jit("void(f8[:,:], f8[:,:,:], f8[:,:], i4[:], i4[:])", \
+#             nopython=True, cache=True)
+# def _djinn_scatter_pass(flux, xs_scatter, source, medium_map, model_map):
+#     # Get parameters
+#     cells_x, groups = flux.shape
+#     ii = numba.int32
+#     mat = numba.int32
+#     og = numba.int32
+#     ig = numba.int32
+#     # Iterate over cells and groups
+#     for ii in range(cells_x):
+#         # Check if there is a model to run
+#         if model_map[ii] > -1:
+#             continue
+#         # Calculate material
+#         mat = medium_map[ii]
+#         # Iterate over groups
+#         for og in range(groups):
+#             for ig in range(groups):
+#                 source[ii,og] += flux[ii,ig] * xs_scatter[mat,og,ig]

@@ -215,7 +215,7 @@ def source_iteration_collect(flux_old, xs_total, xs_scatter, external, \
 
 def source_iteration_djinn(flux_old, xs_total, xs_scatter, external, \
         boundary, medium_map, delta_x, angle_x, angle_w, bc_x, geometry, \
-        scatter_models=[], scatter_map=[], scatter_labels=None):
+        scatter_models=[], scatter_labels=None):
 
     cells_x, groups = flux_old.shape
     flux = np.zeros((cells_x, groups))
@@ -228,10 +228,8 @@ def source_iteration_djinn(flux_old, xs_total, xs_scatter, external, \
     while not (converged):
         flux *= 0.0
 
-        tools._djinn_source_predict(flux_old, xs_scatter, scatter_source, \
-                        scatter_models, scatter_map, scatter_labels)
-        tools._djinn_scatter_pass(flux_old, xs_scatter, scatter_source, \
-                        medium_map, scatter_map)
+        tools._djinn_scatter_predict(flux_old, xs_scatter, scatter_source, \
+                                medium_map, scatter_models, scatter_labels)
 
         for gg in range(groups):
             # Check for sizes
