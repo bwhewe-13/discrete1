@@ -33,4 +33,5 @@ tests/__init__.py
 tests/conftest.py
 tests/problems.py
 tests/test_critical.py
+tests/test_machine_learning.py
 tests/test_spatial_accuracy.py
