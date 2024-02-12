@@ -644,7 +644,7 @@ def sphere_ordinates_scatter(xs_total, scatter_source, external, boundary, \
 
         # Iterate from I -> 0
         elif angle_x[nn] < 0.0:
-            sphere_backward_scatter(flux, flux_old, half_angle, xs_total, \
+            sphere_backward_scatter(flux, half_angle, xs_total, \
                     scatter_source, external[:,qq], boundary[1,bc], \
                     medium_map, delta_x, angle_x[nn], angle_w[nn], \
                     angle_w[nn], tau, alpha_plus, alpha_minus)

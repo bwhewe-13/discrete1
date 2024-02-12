@@ -9,6 +9,9 @@ from discrete1 import tools
 count_kk = 200
 change_kk = 1e-06
 
+# count_kk = 50
+# change_kk = 1e-05
+
 
 def collection(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
         angle_x, angle_w, bc_x, filepath, geometry=1):
@@ -79,26 +82,27 @@ def power_iteration(flux_old, xs_total, xs_scatter, xs_fission, \
 
     # Initialize keff
     cells_x = medium_map.shape[0]
-    keff = 0.95
+    keff_old = 0.95
 
     # Initialize power source
     fission_source = np.zeros((cells_x, 1, xs_total.shape[1]))
 
     converged = False
     count = 0
-    change = 0.0
+    change_old = 100.
+    change_new = 0.0
 
     while not (converged):
         # Update power source term
         # No Fission DJINN predictions
         if len(fission_models) == 0:
             tools._fission_source(flux_old, xs_fission, fission_source, \
-                                  medium_map, keff)
+                                  medium_map, keff_old)
 
         # Fission DJINN predictions
         else:
             tools._djinn_fission_predict(flux_old, xs_fission, fission_source, \
-                        medium_map, keff, fission_models, fission_labels)
+                        medium_map, keff_old, fission_models, fission_labels)
 
         # Solve for scalar flux
         # No Scatter DJINN predictions
@@ -115,18 +119,26 @@ def power_iteration(flux_old, xs_total, xs_scatter, xs_fission, \
 
         # Update keffective
         keff = tools._update_keffective(flux, flux_old, xs_fission, \
-                                        medium_map, keff)
+                                        medium_map, keff_old)
 
         # Normalize flux
         flux /= np.linalg.norm(flux)
 
         # Check for convergence
         change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        # Early exit
+        if (change > change_old) and (count > 5):
+            print(f"\nConvergence: {change_old:2.6e}")
+            return flux_old, keff_old
+
+                
         print(f"Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}", end="\r")
         converged = (change < change_kk) or (count >= count_kk)
         count += 1
 
         flux_old = flux.copy()
+        change_old = change
+        keff_old = keff
 
     print(f"\nConvergence: {change:2.6e}")
     return flux, keff

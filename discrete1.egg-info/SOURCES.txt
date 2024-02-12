@@ -24,6 +24,7 @@ discrete1.egg-info/SOURCES.txt
 discrete1.egg-info/dependency_links.txt
 discrete1.egg-info/top_level.txt
 discrete1/utils/__init__.py
+discrete1/utils/display.py
 discrete1/utils/hybrid.py
 discrete1/utils/machine_learning.py
 discrete1/utils/manufactured.py

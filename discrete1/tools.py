@@ -125,7 +125,7 @@ def dmd(flux_old, y_minus, y_plus, K):
 # K-eigenvalue functions
 ########################################################################
 
-@numba.jit("void(f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], f8)", \
+@numba.jit("f8[:,:,:](f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], f8)", \
             nopython=True, cache=True)
 def _fission_source(flux, xs_fission, source, medium_map, keff):
     # Get parameters
@@ -134,6 +134,7 @@ def _fission_source(flux, xs_fission, source, medium_map, keff):
     mat = numba.int32
     og = numba.int32
     ig = numba.int32
+    one_group = numba.float64
     # Zero out previous source
     source *= 0.0
     # Iterate over cells and groups
@@ -143,9 +144,12 @@ def _fission_source(flux, xs_fission, source, medium_map, keff):
             continue
         for og in range(groups):
             # source[ii,0,og] = np.sum(flux[ii] @ xs_fission[mat,og]) / keff
+            one_group = 0.0
             for ig in range(groups):
-                source[ii,0,og] += flux[ii,ig] * xs_fission[mat,og,ig]
-            source[ii,0,og] /= keff
+                one_group += flux[ii,ig] * xs_fission[mat,og,ig]
+            source[ii,0,og] = one_group / keff
+    # Return matrix vector product
+    return source
 
 
 
@@ -193,8 +197,8 @@ def _djinn_fission_predict(flux, xs_fission, source, medium_map, keff, \
         # Check if model available
         if isinstance(model, int):
             # Calculate standard source
-            _fission_source(flux[model_idx], xs_fission, source[model_idx], \
-                            medium_map[model_idx], keff)
+            source[model_idx] = _fission_source(flux[model_idx], xs_fission, \
+                            source[model_idx], medium_map[model_idx], keff)
             continue
 
         # Separate predicting flux
@@ -228,8 +232,8 @@ def _djinn_scatter_predict(flux, xs_scatter, source, medium_map, models, \
         # Check if model available
         if isinstance(model, int):
             # Calculate standard source
-            _scatter_source(flux[model_idx], xs_scatter, source[model_idx], \
-                            medium_map[model_idx])
+            source[model_idx] = _scatter_source(flux[model_idx], xs_scatter, \
+                                    source[model_idx], medium_map[model_idx])
             continue
 
         # Separate predicting flux
@@ -249,7 +253,7 @@ def _djinn_scatter_predict(flux, xs_scatter, source, medium_map, models, \
         source[model_idx] = predictor * (scale / np.sum(predictor, axis=1))[:,None]
 
 
-@numba.jit("void(f8[:,:], f8[:,:,:], f8[:,:], i4[:])", nopython=True, cache=True)
+@numba.jit("f8[:,:](f8[:,:], f8[:,:,:], f8[:,:], i4[:])", nopython=True, cache=True)
 def _scatter_source(flux, xs_scatter, source, medium_map):
     # Get parameters
     cells_x, groups = flux.shape
@@ -257,6 +261,7 @@ def _scatter_source(flux, xs_scatter, source, medium_map):
     mat = numba.int32
     og = numba.int32
     ig = numba.int32
+    one_group = numba.float64
     # Iterate over cells and groups
     for ii in range(cells_x):
         # Calculate material
@@ -265,8 +270,12 @@ def _scatter_source(flux, xs_scatter, source, medium_map):
             continue
         # Iterate over groups
         for og in range(groups):
+            one_group = 0.0
             for ig in range(groups):
-                source[ii,og] += flux[ii,ig] * xs_scatter[mat,og,ig]
+                one_group += flux[ii,ig] * xs_scatter[mat,og,ig]
+            source[ii,og] = one_group
+    # Return matrix vector product
+    return source
 
 
 # def _djinn_fission_predict(flux, xs_fission, fission_source, keff, models, \
