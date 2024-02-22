@@ -9,8 +9,8 @@ from discrete1 import tools
 count_kk = 200
 change_kk = 1e-06
 
-# count_kk = 50
-# change_kk = 1e-05
+count_pp = 50
+change_pp = 1e-05
 
 
 def collection(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
@@ -133,7 +133,10 @@ def power_iteration(flux_old, xs_total, xs_scatter, xs_fission, \
 
                 
         print(f"Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}", end="\r")
-        converged = (change < change_kk) or (count >= count_kk)
+        if (len(fission_models) == 0) and (len(scatter_models) == 0):
+            converged = (change < change_kk) or (count >= count_kk)
+        else:
+            converged = (change < change_pp) or (count >= count_pp)
         count += 1
 
         flux_old = flux.copy()
