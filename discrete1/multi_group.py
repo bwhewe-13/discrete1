@@ -11,6 +11,9 @@ from discrete1.spatial_sweep import (
 count_gg = 100
 change_gg = 1e-08
 
+count_pp = 50
+change_pp = 1e-08
+
 
 def source_iteration(flux_old, xs_total, xs_scatter, external, boundary, \
         medium_map, delta_x, angle_x, angle_w, bc_x, geometry):
@@ -243,7 +246,7 @@ def source_iteration_djinn(flux_old, xs_total, xs_scatter, external, \
 
         # Check for convergence
         change = np.linalg.norm((flux - flux_old) / flux / cells_x)
-        converged = (change < change_gg) or (count >= count_gg)
+        converged = (change < change_pp) or (count >= count_pp)
         count += 1
 
         # Update old flux and tracked flux

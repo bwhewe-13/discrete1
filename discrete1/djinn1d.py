@@ -9,7 +9,7 @@ from discrete1 import tools
 count_kk = 200
 change_kk = 1e-06
 
-count_pp = 50
+count_pp = 20
 change_pp = 1e-05
 
 
@@ -82,7 +82,7 @@ def power_iteration(flux_old, xs_total, xs_scatter, xs_fission, \
 
     # Initialize keff
     cells_x = medium_map.shape[0]
-    keff_old = 0.95
+    keff_old = 1.0
 
     # Initialize power source
     fission_source = np.zeros((cells_x, 1, xs_total.shape[1]))
@@ -102,7 +102,7 @@ def power_iteration(flux_old, xs_total, xs_scatter, xs_fission, \
         # Fission DJINN predictions
         else:
             tools._djinn_fission_predict(flux_old, xs_fission, fission_source, \
-                        medium_map, keff_old, fission_models, fission_labels)
+                        medium_map, 1.0, fission_models, fission_labels)
 
         # Solve for scalar flux
         # No Scatter DJINN predictions
@@ -117,12 +117,15 @@ def power_iteration(flux_old, xs_total, xs_scatter, xs_fission, \
                                     delta_x, angle_x, angle_w, bc_x, geometry, \
                                     scatter_models, scatter_labels)
 
-        # Update keffective
-        keff = tools._update_keffective(flux, flux_old, xs_fission, \
-                                        medium_map, keff_old)
+        # Update keffective and normalize flux
+        if len(fission_models) == 0:
+            keff = tools._update_keffective(flux, flux_old, xs_fission, \
+                                            medium_map, keff_old)
+            flux /= np.linalg.norm(flux)
 
-        # Normalize flux
-        flux /= np.linalg.norm(flux)
+        else:
+            keff = np.linalg.norm(flux)
+            flux /= keff        
 
         # Check for convergence
         change = np.linalg.norm((flux - flux_old) / flux / cells_x)
@@ -131,7 +134,6 @@ def power_iteration(flux_old, xs_total, xs_scatter, xs_fission, \
             print(f"\nConvergence: {change_old:2.6e}")
             return flux_old, keff_old
 
-                
         print(f"Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}", end="\r")
         if (len(fission_models) == 0) and (len(scatter_models) == 0):
             converged = (change < change_kk) or (count >= count_kk)

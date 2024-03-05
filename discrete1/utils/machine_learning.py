@@ -43,6 +43,9 @@ def _split_by_material(training_data, path, xs, splits):
     for name, label in splits:
         # Identify location of labels
         idx = np.argwhere(np.isin(training_data[0,:,0], label)).flatten()
+        # Continue for non-existant labels
+        if len(idx) == 0:
+            continue
         # Separate data
         split_data = training_data[:,idx].copy()
         # Keeping track of data points
@@ -70,6 +73,7 @@ def clean_data_fission(path, labels, splits=None):
     xs_fission = np.load(path + "fission_cross_sections.npy")
     medium_map = np.load(path + "medium_map.npy")
     training_data = _combine_flux_reaction(flux, xs_fission, medium_map, labels)
+
     if splits is not None:
         _split_by_material(training_data, path, "fission", splits)
     else:
