@@ -35,7 +35,7 @@
 from setuptools import setup, find_packages
 
 setup(
-        name='discrete1',
+        name="discrete1",
         description=
         """
         One Dimensional Neutron Transport Equation for both fixed sources
@@ -45,11 +45,24 @@ setup(
         temporal dimensions. Spatial geometries can be slab or sphere.
         Machine learning techniques and numba are used for acceleration.
         """,
-        version='1.0',
-        author='Ben Whewell',
-        author_email='ben.whewell@pm.me',
-        url='https://github.com',
+        version="0.1.0",
+        author="Ben Whewell",
+        author_email="ben.whewell@pm.me",
+        url="https://github.com",
 
         packages=find_packages(),
-        include_package_data=True
+        include_package_data=True, 
+        install_requires=[
+            "numpy", 
+            "numba", 
+            "scipy", 
+            "pkg_resources",
+            "glob", 
+            "itertools"
+        ], 
+        extras_requires={
+            "test": ["pytest", "sklearn>=1.4.0"], 
+            "ml": ["tensorflow>=2.4.0", 
+                   "pip install git+ssh://git@github.com:bwhewe-13/DJINN.git"]
+        }
 )
