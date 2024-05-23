@@ -22,6 +22,7 @@ discrete1/tools.py
 discrete1.egg-info/PKG-INFO
 discrete1.egg-info/SOURCES.txt
 discrete1.egg-info/dependency_links.txt
+discrete1.egg-info/requires.txt
 discrete1.egg-info/top_level.txt
 discrete1/utils/__init__.py
 discrete1/utils/display.py

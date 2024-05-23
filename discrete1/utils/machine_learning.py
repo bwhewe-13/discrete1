@@ -6,6 +6,7 @@ from glob import glob
 import itertools
 import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+import tensorflow as tf
 
 from djinn import djinn
 
@@ -225,3 +226,25 @@ def update_cross_sections(xs_matrix, model_idx):
         else:
             updated_xs[mat] = xs_matrix[mat].copy()
     return updated_xs
+
+
+class AutoDJINN:
+
+    def __init__(self, file_encoder, file_djinn, file_decoder, transformer, \
+            detransformer, optimizer="adam", loss="mse"):
+
+        self.encoder = tf.keras.models.load_model(file_encoder)
+        self.encoder.compile(optimizer=optimizer, loss=loss)
+
+        self.model_djinn = djinn.load(model_name=file_djinn)
+
+        self.decoder = tf.keras.models.load_model(file_decoder)
+        self.decoder.compile(optimizer=optimizer, loss=loss)
+        
+        self.transformer = transformer
+        self.detransformer = detransformer
+
+    def predict(self, flux):
+        encoded = self.encoder.predict(self.transformer(flux), verbose=0)
+        latent = self.model_djinn.predict(encoded)
+        return self.detransformer(self.decoder.predict(latent, verbose=0))

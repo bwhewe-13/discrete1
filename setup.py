@@ -55,10 +55,7 @@ setup(
         install_requires=[
             "numpy", 
             "numba", 
-            "scipy", 
-            "pkg_resources",
-            "glob", 
-            "itertools"
+            "scipy"
         ], 
         extras_requires={
             "test": ["pytest", "sklearn>=1.4.0"], 
