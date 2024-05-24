@@ -231,7 +231,7 @@ def update_cross_sections(xs_matrix, model_idx):
 class AutoDJINN:
 
     def __init__(self, file_encoder, file_djinn, file_decoder, transformer, \
-            detransformer, optimizer="adam", loss="mse"):
+            detransformer, groups, optimizer="adam", loss="mse"):
 
         self.encoder = tf.keras.models.load_model(file_encoder)
         self.encoder.compile(optimizer=optimizer, loss=loss)
@@ -243,8 +243,16 @@ class AutoDJINN:
         
         self.transformer = transformer
         self.detransformer = detransformer
+        self.groups = groups
 
     def predict(self, flux):
-        encoded = self.encoder.predict(self.transformer(flux), verbose=0)
-        latent = self.model_djinn.predict(encoded)
-        return self.detransformer(self.decoder.predict(latent, verbose=0))
+        # Non-labeled model
+        if (flux.shape[1] == self.groups):        
+            encoded = self.encoder.predict(self.transformer(flux), verbose=0)
+            latent = self.model_djinn.predict(encoded)
+            return self.detransformer(self.decoder.predict(latent, verbose=0))
+        # Labeled model
+        else:
+            encoded = self.encoder.predict(self.transformer(flux[:,1:]), verbose=0)
+            latent = self.model_djinn.predict(np.hstack((flux[:,0:1], encoded)))
+            return self.detransformer(self.decoder.predict(latent, verbose=0))
