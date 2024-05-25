@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 import discrete1
 from discrete1.fixed1d import source_iteration
-
+from discrete1.timed1d import backward_euler, bdf2
 
 cells_x = 160
 angles = 4
@@ -42,10 +42,23 @@ xs_fission = np.array([[[0.0]], [[0.0]], [[0.0]], [[0.0]]])
 external = discrete1.external1d.reeds(edges_x, bc_x)
 boundary = np.zeros((2, 1, 1))
 
-flux = source_iteration(xs_total, xs_scatter, xs_fission, external, boundary, \
-                medium_map, delta_x, angle_x, angle_w, bc_x, geometry=1)
+ss_flux = source_iteration(xs_total, xs_scatter, xs_fission, external, boundary, \
+                    medium_map, delta_x, angle_x, angle_w, bc_x, geometry=1)
+
+# Make boundary and external time-dependent
+external = external[None,:,:,:].copy()
+boundary = boundary[None,:,:,:].copy()
+
+flux_last = np.zeros((cells_x, angles, groups))
+velocity = np.ones((groups,))
+td_flux = backward_euler(flux_last, xs_total, xs_scatter, xs_fission, velocity, \
+                        external, boundary, medium_map, delta_x, angle_x, \
+                        angle_w, bc_x, steps=100, dt=1, geometry=1)
+
 
 fig, ax = plt.subplots()
-ax.plot(centers_x, flux.flatten(), c="r")
+ax.plot(centers_x, ss_flux.flatten(), c="k", ls=":", label="Steady State")
+ax.plot(centers_x, td_flux[-1,:,0], c="r", alpha=0.6, label="Backward Euler")
 ax.grid(which="both")
+ax.legend(loc=0, framealpha=1)
 plt.show()

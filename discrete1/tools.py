@@ -65,6 +65,27 @@ def _source_total(source, flux, xs_scatter, medium_map, external):
                 source[ii,nn,og] = one_group + external[ii,nn_q,og_q]
 
 
+@numba.jit("void(f8[:,:,:], f8[:,:], f8[:,:,:], i4[:])", nopython=True, cache=True)
+def _time_right_side(q_star, flux, xs_scatter, medium_map):
+    # Create (sigma_s + sigma_f) * phi + external + 1/(v*dt) * psi function
+    # Get parameters
+    cells_x, angles, groups = q_star.shape
+    ii = numba.int32
+    mat = numba.int32
+    og = numba.int32
+    ig = numba.int32
+    one_group = numba.float64
+    # Iterate over cells and groups
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+        # Iterate over groups
+        for og in range(groups):
+            one_group = 0.0
+            for ig in range(groups):
+                one_group += flux[ii,ig] * xs_scatter[mat,og,ig]
+            q_star[ii,:,og] += one_group
+
+
 ########################################################################
 # Multigroup functions - DMD
 ########################################################################
@@ -182,7 +203,6 @@ def _update_keffective(flux, flux_old, xs_fission, medium_map, keff):
 ########################################################################
 # Fission source is of size (I x 1 x G) - for source iteration dimensions
 # Scatter source is of size (I x G) - for discrete ordinates dimensions
-
 
 def _djinn_fission_predict(flux, xs_fission, source, medium_map, keff, \
         models, model_labels=None):

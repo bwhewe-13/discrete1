@@ -3,7 +3,6 @@
 
 import numpy as np
 
-
 def solution_ss_01(x, angle_x):
     """ One material, single direction """
     flux = np.zeros((len(x), len(angle_x)))
@@ -53,6 +52,21 @@ def solution_ss_05(x, angle_x):
         flux[x > 1,n] = length_x * np.exp(mu) * x[x > 1] + length_x**2 * (length_x - np.exp(mu))
     return flux
 
+
+def solution_td_01(x, angle_x, edges_t):
+    flux = np.zeros((edges_t.shape[0], x.shape[0], angle_x.shape[0], 1))
+    for cc, tt in enumerate(edges_t):
+        for nn, mu in enumerate(angle_x):
+            flux[cc,:,nn,0] = (-x) * (x - 2) * np.sin(x - 0.1 * tt) + 2
+    return flux
+
+
+def solution_td_02(x, angle_x, edges_t):
+    flux = np.zeros((edges_t.shape[0], x.shape[0], angle_x.shape[0], 1))
+    for cc, tt in enumerate(edges_t):
+        for nn, mu in enumerate(angle_x):
+            flux[cc,:,nn,0] = 1 + np.sin(x - 0.5 * tt) + np.cos(mu)
+    return flux
 
 
 ########################################################################
