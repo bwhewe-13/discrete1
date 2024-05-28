@@ -4,6 +4,7 @@ import numpy as np
 import pkg_resources
 
 from discrete1.utils.hybrid import energy_coarse_index
+from discrete1.constants import *
 
 DATA_PATH = pkg_resources.resource_filename("discrete1","sources/energy/")
 
@@ -22,7 +23,7 @@ def angular_x(angles, bc_x=[0, 0]):
     return angle_x, angle_w
 
 
-def energy_grid(grid, groups_fine, groups_coarse=None):
+def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
     """
     Calculate energy grid bounds (MeV) and index for coarsening
     Arguments:
@@ -34,29 +35,49 @@ def energy_grid(grid, groups_fine, groups_coarse=None):
     """
     # Create energy grid
     if grid in [87, 361, 618]:
-        edges_g = np.load(DATA_PATH + "energy_bounds.npz")[str(grid)]
-    else:
-        edges_g = np.arange(groups_fine + 1, dtype=float)
+        edges_g = np.load(DATA_PATH + "energy_grids.npz")[str(grid)]
+        
+        # Collect grid boundary indices
+        fgrid = str(grid).zfill(3)
+        edges_data = np.load(DATA_PATH + f"G{fgrid}_grid_index.npz")
 
-    # Calculate the indicies for the specific grid
-    if grid == 361:
-        label_fine = str(groups_fine).zfill(3)
-        label_coarse = str(groups_coarse).zfill(3)
-        edges_data = np.load(DATA_PATH + "G361_grid_index.npz")
-        edges_gidx_fine = edges_data[label_fine]
-        edges_gidx_coarse = edges_data[label_coarse]
+    # Calculate the indices for the specific fine grid
+    if (grid in [87, 361, 618]) and (optimize):
+        # Predefined fine grid index
+        try:
+            label_fine = str(groups_fine).zfill(3)
+            edges_gidx_fine = edges_data[label_fine].copy()
+
+        except KeyError:
+            edges_gidx_fine = energy_coarse_index(len(edges_g)-1, groups_fine)
+    
     else:
         edges_gidx_fine = energy_coarse_index(len(edges_g)-1, groups_fine)
+
     # Convert to correct type
     edges_gidx_fine = edges_gidx_fine.astype(np.int32)
 
-    # Check for multiple energy groups
-    if groups_coarse is not None:
-        edges_gidx_coarse = energy_coarse_index(groups_fine, groups_coarse)
-        edges_gidx_coarse = edges_gidx_coarse.astype(np.int32)
-        return edges_g, edges_gidx_fine, edges_gidx_coarse
+    if groups_coarse is None:
+        return edges_g, edges_gidx_fine
 
-    return edges_g, edges_gidx_fine
+    # Calculate the indices for the specific coarse grid
+    if (grid in [87, 361, 618]) and (optimize):
+        # Predefined coarse grid index
+        try:
+            label_coarse = str(groups_coarse).zfill(3)
+            edges_gidx_coarse = edges_data[label_coarse].copy()
+        
+        except KeyError:
+            edges_gidx_coarse = energy_coarse_index(groups_fine, groups_coarse)
+
+    else:
+        edges_gidx_coarse = energy_coarse_index(groups_fine, groups_coarse)
+    
+    # Convert to correct type
+    edges_gidx_coarse = edges_gidx_coarse.astype(np.int32)
+    
+    return edges_g, edges_gidx_fine, edges_gidx_coarse
+
 
 
 def energy_velocity(groups, edges_g=None):

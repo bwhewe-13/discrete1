@@ -107,7 +107,10 @@ def slab_ordinates(flux_old, xs_total, xs_scatter, off_scatter, external, \
             tools.reflector_corrector(reflector, angle_x, edge1, nn, bc_x)
 
         # Check for convergence
-        change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        try:
+            change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        except RuntimeWarning:
+            change = 0.0
         converged = (change < change_nn) or (count >= count_nn)
         count += 1
 

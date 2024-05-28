@@ -46,7 +46,10 @@ def source_iteration(flux_old, xs_total, xs_scatter, external, boundary, \
                                         angle_w, bc_x, geometry)
 
         # Check for convergence
-        change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        try:
+            change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        except RuntimeWarning:
+            change = 0.0
         converged = (change < change_gg) or (count >= count_gg)
         count += 1
 

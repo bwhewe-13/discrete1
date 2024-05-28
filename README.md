@@ -39,8 +39,8 @@ criticality problems.
 
 
 - **Spatial Discretization**: Diamond Difference
-- **Temporal Discretization**: Backward Euler
-- **Multigroup Convergence**: Source Iteration
+- **Temporal Discretization**: Backward Euler, BDF2
+- **Multigroup Convergence**: Source Iteration, DMD
 - **K-eigenvalue Convergence**: Power Iteration
 
 

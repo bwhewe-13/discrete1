@@ -1,5 +1,5 @@
 
-# Called for fixed source problems
+# Called for time dependent source problems
 
 import numpy as np
 from tqdm import tqdm
@@ -22,7 +22,7 @@ def backward_euler(flux_last, xs_total, xs_scatter, xs_fission, velocity, \
     xs_matrix = xs_scatter + xs_fission
 
     # Create xs_total_star
-    xs_total += 1 / (velocity * dt)
+    xs_total_v = xs_total + 1 / (velocity * dt)
 
     # Iterate over time steps
     for step in tqdm(range(steps), desc="BDF1 ", ascii=True):
@@ -34,7 +34,7 @@ def backward_euler(flux_last, xs_total, xs_scatter, xs_fission, velocity, \
         q_star = external[qq] + 1 / (velocity * dt) * flux_last
 
         # Run source iteration for scalar flux centers
-        flux_time[step] = mg.source_iteration(flux_old, xs_total, xs_matrix, \
+        flux_time[step] = mg.source_iteration(flux_old, xs_total_v, xs_matrix, \
                                     q_star, boundary[bb], medium_map, delta_x, \
                                     angle_x, angle_w, bc_x, geometry)
 
@@ -43,7 +43,7 @@ def backward_euler(flux_last, xs_total, xs_scatter, xs_fission, velocity, \
         tools._time_right_side(q_star, flux_old, xs_matrix, medium_map)
 
         # Solve for angular flux
-        flux_last = mg.known_source_angular(xs_total, q_star, boundary[bb], \
+        flux_last = mg.known_source_angular(xs_total_v, q_star, boundary[bb], \
                                             medium_map, delta_x, angle_x, \
                                             angle_w, bc_x, geometry, edges=0)
 

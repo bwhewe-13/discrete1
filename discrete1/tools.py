@@ -296,3 +296,48 @@ def _scatter_source(flux, xs_scatter, source, medium_map):
             source[ii,og] = one_group
     # Return matrix vector product
     return source
+
+########################################################################
+# Hybrid functions
+########################################################################
+@numba.jit("void(f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], i4[:])", nopython=True, cache=True)
+def _hybrid_source_collided(flux_u, xs_scatter, source_c, medium_map, coarse_idx):
+    # Get parameters
+    cells_x, groups = flux_u.shape
+    ii = numba.int32
+    mat = numba.int32
+    og = numba.int32
+    ig = numba.int32
+    # Zero out previous source
+    source_c *= 0.0
+    # Iterate over all spatial cells
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+        for og in range(groups):
+            for ig in range(groups):
+                source_c[ii,0,coarse_idx[og]] += flux_u[ii,ig] * xs_scatter[mat,og,ig]
+
+
+@numba.jit("void(f8[:,:], f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], i4[:], f8[:])", \
+            nopython=True, cache=True)
+def _hybrid_source_total(flux_u, flux_c, xs_scatter_u, q_star, medium_map, \
+        coarse_idx, factor):
+    # Get parameters
+    cells_x, angles, groups = q_star.shape
+    ii = numba.int32
+    mat = numba.int32
+    nn = numba.int32
+    og = numba.int32
+    ig = numba.int32
+    one_group = numba.float64
+    # Assume that source is already (Qu + 1 / (v * dt) * psi^{\ell-1})
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+        for og in range(groups):
+            flux_u[ii,og] = flux_u[ii,og] + flux_c[ii,coarse_idx[og]] * factor[og]
+        for og in range(groups):
+            one_group = 0.0
+            for ig in range(groups):
+                one_group += flux_u[ii,ig] * xs_scatter_u[mat,og,ig]
+            for nn in range(angles):
+                q_star[ii,nn,og] += one_group
