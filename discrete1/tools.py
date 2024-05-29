@@ -300,6 +300,7 @@ def _scatter_source(flux, xs_scatter, source, medium_map):
 ########################################################################
 # Hybrid functions
 ########################################################################
+
 @numba.jit("void(f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], i4[:])", nopython=True, cache=True)
 def _hybrid_source_collided(flux_u, xs_scatter, source_c, medium_map, coarse_idx):
     # Get parameters
@@ -341,3 +342,19 @@ def _hybrid_source_total(flux_u, flux_c, xs_scatter_u, q_star, medium_map, \
                 one_group += flux_u[ii,ig] * xs_scatter_u[mat,og,ig]
             for nn in range(angles):
                 q_star[ii,nn,og] += one_group
+
+
+########################################################################
+# Display Options
+########################################################################
+
+def reaction_rates(flux, xs_matrix, medium_map):
+    # Flux parameters
+    cells_x, groups = flux.shape
+    # Initialize reaction rate data
+    rate = np.zeros((cells_x, groups))
+    # Iterate over spatial cells
+    for ii, mat in enumerate(medium_map):
+        rate[ii] = flux[ii] @ xs_matrix[mat].T
+    # return reaction rate
+    return rate

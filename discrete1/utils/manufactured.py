@@ -104,3 +104,25 @@ def order_accuracy(error1, error2, ratio):
         Order of accuracy
     """
     return np.log(error1 / error2) / np.log(ratio)
+
+
+def wynn_epsilon(lst, rank):
+    """ Perform Wynn Epsilon Convergence Algorithm
+    Arguments:
+        lst: list of values for convergence
+        rank: rank of system
+    Returns:
+        2D Array where diagonal is convergence
+    """
+    N = 2 * rank + 1
+    error = np.zeros((N + 1, N + 1))
+    for ii in range(1, N + 1):
+        error[ii, 1] = lst[ii - 1]
+    for ii in range(3, N + 2):
+        for jj in range(3, ii + 1):
+            if (error[ii-1,jj-2] - error[ii-2,jj-2]) == 0.0:
+                error[ii-1,jj-1] = error[ii-2,jj-3]
+            else:
+                error[ii-1,jj-1] = error[ii-2,jj-3] \
+                            + 1 / (error[ii-1,jj-2] - error[ii-2,jj-2])
+    return abs(error[-1,-1])
