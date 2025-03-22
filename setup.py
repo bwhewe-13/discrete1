@@ -55,11 +55,11 @@ setup(
         install_requires=[
             "numpy", 
             "numba", 
-            "scipy"
-        ], 
-        extras_requires={
-            "test": ["pytest", "sklearn>=1.4.0"], 
-            "ml": ["tensorflow>=2.4.0", 
-                   "pip install git+ssh://git@github.com:bwhewe-13/DJINN.git"]
-        }
+            "scipy",
+            "pytest",
+            "tqdm",
+            "scikit-learn>=1.4.0",
+            "tensorflow>=2.4.0",
+            "djinnml @ git+https://git@github.com/bwhewe-13/DJINN.git"
+        ]
 )

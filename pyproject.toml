@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "discrete1"
+version = "0.1.0"
+dependencies = [
+    "numpy",
+    "numba",
+    "scipy",
+    "pytest",
+    "tqdm",
+    "scikit-learn>=1.4.0",
+    "tensorflow>=2.4.0",
+    "djinnml @ git+https://git@github.com/bwhewe-13/DJINN.git"
+]
+authors = [
+    {name = "Ben Whewell", email = "ben.whewell@pm.me"}
+]
+description = "1D Discrete Ordinates Multigroup Neutron Transport"
+readme = "README.md"
+license = "MIT"
+keywords = ["neutron transport", "machine learning", "DJINN"]
