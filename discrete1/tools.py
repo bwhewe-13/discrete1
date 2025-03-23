@@ -358,3 +358,58 @@ def reaction_rates(flux, xs_matrix, medium_map):
         rate[ii] = flux[ii] @ xs_matrix[mat].T
     # return reaction rate
     return rate
+
+
+########################################################################
+# Spatially Independent Functions
+########################################################################
+
+@numba.jit("f8(f8[:], f8[:], f8[:,:], i4)", nopython=True, cache=True)
+def _off_scatter_0d(flux, flux_old, xs_scatter, gg):
+    # Get parameters
+    groups = flux.shape[0]
+    off_scatter = numba.float64
+    off_scatter = 0.0
+    og = numba.int32
+    # Iterate over groups
+    for og in range(0, gg):
+        off_scatter += xs_scatter[gg,og] * flux[og]
+    for og in range(gg+1, groups):
+        off_scatter += xs_scatter[gg,og] * flux_old[og]
+    return off_scatter
+
+
+@numba.jit("f8[:,:](f8[:], f8[:,:], f8[:,:], f8)", nopython=True, cache=True)
+def _fission_source_0d(flux, xs_fission, source, keff):
+    # Get parameters
+    groups = flux.shape[0]
+    og = numba.int32
+    ig = numba.int32
+    one_group = numba.float64
+    # Zero out previous source
+    source *= 0.0
+    # Iterate over groups
+    for og in range(groups):
+        one_group = 0.0
+        for ig in range(groups):
+            one_group += flux[ig] * xs_fission[og,ig]
+        source[0,og] = one_group / keff
+    # Return matrix vector product
+    return source
+
+
+@numba.jit("f8(f8[:], f8[:], f8[:,:], f8)", nopython=True, cache=True)
+def _update_keffective_0d(flux, flux_old, xs_fission, keff):
+    # Get iterables
+    groups = flux.shape[0]
+    og = numba.int32
+    ig = numba.int32
+    # Initialize fission rates
+    rate_new = 0.0
+    rate_old = 0.0
+    # Iterate over groups
+    for og in range(groups):
+        for ig in range(groups):
+            rate_new += flux[ig] * xs_fission[og,ig]
+            rate_old += flux_old[ig] * xs_fission[og,ig]
+    return (rate_new * keff) / rate_old
