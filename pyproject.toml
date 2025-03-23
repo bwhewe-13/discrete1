@@ -9,7 +9,6 @@ version = "0.1.0"
 dependencies = [
     "numpy",
     "numba",
-    "scipy",
     "pytest",
     "tqdm",
     "scikit-learn>=1.4.0",

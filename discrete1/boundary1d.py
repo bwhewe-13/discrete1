@@ -1,9 +1,6 @@
-
 # Built in boundary conditions
-
+import math
 import numpy as np
-from scipy.special import erfc
-
 
 def manufactured_ss_03(angle_x):
     # One group, angle dependent boundary
@@ -12,7 +9,6 @@ def manufactured_ss_03(angle_x):
     boundary_x[1,:,0] = 0.5 + 0.25 * np.exp(angle_x)
     return boundary_x
 
-
 def manufactured_ss_04():
     # One group, angle independent boundary
     length_x = 2.
@@ -20,14 +16,12 @@ def manufactured_ss_04():
     boundary_x[1] = 0.5 * length_x**2 + 0.125 * length_x
     return boundary_x
 
-
 def manufactured_ss_05():
     # One group, angle independent boundary
     length_x = 2.
     boundary_x = np.zeros((2, 1, 1))
     boundary_x[1] = length_x**3
     return boundary_x
-
 
 def manufactured_td_02(angle_x, edges_t):
     # Time dependent, one group, angle dependent boundary
@@ -39,14 +33,12 @@ def manufactured_td_02(angle_x, edges_t):
             boundary_x[cc,1,nn,0] = 1 + np.sin(length_x - 0.5 * tt) + np.cos(mu)
     return boundary_x
 
-
 def deuterium_deuterium(location, edges_g):
     # Source entering from 2.45 MeV
     group = np.argmin(abs(edges_g - 2.45E6))
     boundary_x = np.zeros((2, 1, edges_g.shape[0] - 1))
     boundary_x[(location, ..., group)] = 1.0
     return boundary_x
-
 
 def deuterium_tritium(location, edges_g):
     # Source entering from 14.1 MeV
@@ -55,10 +47,8 @@ def deuterium_tritium(location, edges_g):
     boundary_x[(location, ..., group)] = 1.0
     return boundary_x
 
-
 def time_dependence_constant(boundary_x):
     return boundary_x[None,...]
-
 
 def time_dependence_decay_01(boundary_x, edges_t, off_time):
     # Turn off boundary at specific step
@@ -68,8 +58,9 @@ def time_dependence_decay_01(boundary_x, edges_t, off_time):
     boundary_x[loc,...] *= 0.0
     return boundary_x
 
-
 def time_dependence_decay_02(boundary_x, edges_t):
+    # Complementary Error Function
+    erfc = lambda x: 1 - math.erf(x)
     # Turn off boundary by decay
     steps = edges_t.shape[0] - 1
     # Find where boundary != 0

@@ -55,7 +55,6 @@ setup(
         install_requires=[
             "numpy", 
             "numba", 
-            "scipy",
             "pytest",
             "tqdm",
             "scikit-learn>=1.4.0",
