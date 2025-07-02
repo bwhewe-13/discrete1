@@ -119,7 +119,6 @@ def bdf2(
     angle_xu,
     angle_wu,
     bc_x,
-    fine_idx,
     coarse_idx,
     factor,
     edges_gidx_c,
@@ -164,8 +163,8 @@ def bdf2(
         else:
             q_star = (
                 external_u[qq]
-                + 2 * star_coef_u * flux_last_1
-                - 0.5 * star_coef_u * flux_last_2
+                + 4 / 3.0 * star_coef_u * flux_last_1
+                - 1 / 3.0 * star_coef_u * flux_last_2
             )
 
         # Run hybrid method
