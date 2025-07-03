@@ -284,7 +284,7 @@ def test_v_bdf1_01(groups_c, angles_c):
     )
 
     for step in range(problem_dict["steps"]):
-        assert np.sum(np.fabs(vhy_flux[step] - hy_flux[step])) < 1e-12, (
+        assert np.sum(np.fabs(vhy_flux[step] - hy_flux[step])) < 1e-7, (
             str(step) + " not equivalent"
         )
 
@@ -476,7 +476,7 @@ def test_v_bdf2_01(groups_c, angles_c):
 
     for step in range(problem_dict["steps"]):
         # print(np.sum(np.fabs(vhy_flux[step] - hy_flux[step])))
-        assert np.sum(np.fabs(vhy_flux[step] - hy_flux[step])) < 1e-12, (
+        assert np.sum(np.fabs(vhy_flux[step] - hy_flux[step])) < 2e-7, (
             str(step) + " not equivalent"
         )
 

@@ -121,8 +121,8 @@ def backward_euler(
     xs_matrix_c = xs_scatter_c + xs_fission_c
 
     # Create xs_total_star
-    xs_total_u += 1 / (velocity_u * dt)
-    xs_total_c += 1 / (velocity_c * dt)
+    xs_total_vu = xs_total_u + 1 / (velocity_u * dt)
+    xs_total_vc = xs_total_c + 1 / (velocity_c * dt)
 
     # Initialize collided source and boundary
     source_c = np.zeros((medium_map.shape[0], 1, xs_total_c.shape[1]))
@@ -141,8 +141,8 @@ def backward_euler(
         _hybrid_method(
             flux_u,
             flux_c,
-            xs_total_u,
-            xs_total_c,
+            xs_total_vu,
+            xs_total_vc,
             xs_matrix_u,
             xs_matrix_c,
             q_star,
@@ -164,7 +164,7 @@ def backward_euler(
 
         # Solve for angular flux
         flux_last = mg.known_source_angular(
-            xs_total_u,
+            xs_total_vu,
             q_star,
             boundary_u[bb],
             medium_map,

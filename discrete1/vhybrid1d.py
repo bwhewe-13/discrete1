@@ -268,6 +268,9 @@ def _variable_hybrid_method(
     delta_coarse = np.diff(np.asarray(edges_g)[edges_gidx_c])
     delta_fine = np.diff(edges_g)
 
+    # Give good estimate for time step
+    tools._coarsen_flux(flux_u, flux_c, edges_gidx_c)
+
     flux_c = mg.variable_source_iteration(
         flux_c,
         xs_total_u,

@@ -1,6 +1,7 @@
 import numpy as np
 import numba
 
+from discrete1.utils import hybrid as hytools
 
 ########################################################################
 # Multigroup functions
@@ -28,7 +29,7 @@ def _off_scatter(flux, flux_old, medium_map, xs_scatter, off_scatter, gg):
 
 
 @numba.jit(
-    "void(f8[:,:], f8[:,:], i4[:], f8[:,:,:], f8[:], i4, i4[:], f8[:], f8[:])",
+    "void(f8[:,:], f8[:,:], i4[:], f8[:,:,:], f8[:], i4, i4[:])",
     nopython=True,
     cache=True,
 )
@@ -40,15 +41,12 @@ def _variable_off_scatter(
     off_scatter,
     gg,
     edges_gidx_c,
-    delta_fine,
-    delta_coarse,
 ):
     # Get parameters
     cells_x, groups_c = flux.shape
     ii = numba.int32
     mat = numba.int32
     og = numba.int32
-    idx1, idx2, idx3, idx4 = numba.int32, numba.int32, numba.int32, numba.int32
 
     # Zero out previous off scatter term
     off_scatter *= 0.0
@@ -59,30 +57,33 @@ def _variable_off_scatter(
         idx1 = edges_gidx_c[og]
         idx2 = edges_gidx_c[og + 1]
 
-        idx3 = edges_gidx_c[gg]
-        idx4 = edges_gidx_c[gg + 1]
-
         if og < gg:
             for ii in range(cells_x):
                 mat = medium_map[ii]
-                off_scatter[ii] += (
-                    np.sum(
-                        xs_scatter[mat, idx3:idx4, idx1:idx2] * delta_fine[idx1:idx2]
-                    )
-                    / delta_coarse[og]
-                ) * flux[ii, og]
+                off_scatter[ii] += np.sum(xs_scatter[mat, :, idx1:idx2]) * flux[ii, og]
 
         elif og > gg:
             for ii in range(cells_x):
                 mat = medium_map[ii]
                 off_scatter[ii] += (
-                    np.sum(
-                        xs_scatter[mat, idx3:idx4, idx1:idx2] * delta_fine[idx1:idx2]
-                    )
-                    / delta_coarse[og]
-                ) * flux_old[ii, og]
+                    np.sum(xs_scatter[mat, :, idx1:idx2]) * flux_old[ii, og]
+                )
+
         elif og == gg:
             continue
+
+
+@numba.jit("void(f8[:,:], f8[:,:], i4[:])", nopython=True, cache=True)
+def _coarsen_flux(fine_flux, coarse_flux, edges_gidx_c):
+    # Get parameters
+    _, groups_c = coarse_flux.shape
+    gg = numba.int32
+
+    # Iterate over collided groups
+    for gg in range(groups_c):
+        coarse_flux[:, gg] = np.sum(
+            fine_flux[:, edges_gidx_c[gg] : edges_gidx_c[gg + 1]], axis=1
+        )
 
 
 def reflector_corrector(reflector, angle_x, edge, nn, bc_x):

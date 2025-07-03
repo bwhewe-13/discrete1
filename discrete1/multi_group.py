@@ -116,6 +116,7 @@ def variable_source_iteration(
                 )
                 / delta_coarse[gg]
             )
+
             xs_total_c = (
                 np.sum(xs_total[:, idx1:idx2] * delta_fine[idx1:idx2], axis=1)
                 / delta_coarse[gg]
@@ -124,15 +125,13 @@ def variable_source_iteration(
 
             # Update off scatter source
             tools._variable_off_scatter(
-                flux,
-                flux_old,
+                flux / delta_coarse,
+                flux_old / delta_coarse,
                 medium_map,
-                xs_scatter,
+                xs_scatter[:, edges_gidx_c[gg] : edges_gidx_c[gg + 1]] * delta_fine,
                 off_scatter,
                 gg,
                 edges_gidx_c,
-                delta_fine,
-                delta_coarse,
             )
 
             # Run discrete ordinates for one group
