@@ -146,6 +146,32 @@ def _time_right_side(q_star, flux, xs_scatter, medium_map):
                 one_group += flux[ii, ig] * xs_scatter[mat, og, ig]
             q_star[ii, :, og] += one_group
 
+########################################################################
+# Anisotropic Scattering
+########################################################################
+
+def legendre_polynomial(moment, x):
+    # Legendre polynomial using polynomial degree (moment) and
+    # evaluation point (mu)
+    if moment == 0:
+        return 1
+    elif moment == 1:
+        return mu
+    else:
+        return ((2 * moment - 1) * mu * legendre_polynomial(moment - 1, mu) \
+                - (moment - 1) * legendre_polynomial(moment - 2, mu)) / moment
+
+
+@numba.jit("f8(f8, f8[:], f8, f8)", nopython=True, cache=True)
+def anisotropic_scattering(angular_flux, xs_scatter, angle_x, angle_w):
+    moment = numba.int32
+    source = numba.float64(0.0)
+    for moment in range(xs_scatter.shape[0]):
+        source += (2 * moment + 1) * xs_scatter[moment] * angle_w \
+                    * legendre_polynomial(moment, angle_x) * angular_flux
+    return source
+
+
 
 ########################################################################
 # Multigroup functions - DMD

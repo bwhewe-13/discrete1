@@ -11,6 +11,10 @@ Description-Content-Type: text/markdown
 License-File: LICENSE
 Requires-Dist: numpy
 Requires-Dist: numba
+<<<<<<< Updated upstream
+=======
+Requires-Dist: scipy
+>>>>>>> Stashed changes
 Requires-Dist: pytest
 Requires-Dist: tqdm
 Requires-Dist: scikit-learn>=1.4.0
