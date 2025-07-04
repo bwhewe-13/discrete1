@@ -5,7 +5,10 @@ setup.py
 discrete1/__init__.py
 discrete1/boundary1d.py
 discrete1/constants.py
+<<<<<<< Updated upstream
 discrete1/critical0d.py
+=======
+>>>>>>> Stashed changes
 discrete1/critical1d.py
 discrete1/djinn1d.py
 discrete1/external1d.py
@@ -14,7 +17,10 @@ discrete1/hybrid1d.py
 discrete1/main.py
 discrete1/materials.py
 discrete1/multi_group.py
+<<<<<<< Updated upstream
 discrete1/multi_group_0d.py
+=======
+>>>>>>> Stashed changes
 discrete1/spatial_sweep.py
 discrete1/timed1d.py
 discrete1/tools.py

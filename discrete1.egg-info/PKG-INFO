@@ -9,6 +9,7 @@ License-Expression: MIT
 Keywords: neutron transport,machine learning,DJINN
 Description-Content-Type: text/markdown
 License-File: LICENSE
+<<<<<<< Updated upstream
 Requires-Dist: numpy
 Requires-Dist: numba
 <<<<<<< Updated upstream
@@ -96,3 +97,5 @@ saving techniques related to the neutron transport equation.
     (2023). Multigroup Neutron Transport Using a Collision-Based Hybrid Method,
     Nuclear Science and Engineering, 197:7, 1386-1405, DOI: 10.1080/00295639.2022.2154119.
 
+=======
+>>>>>>> Stashed changes

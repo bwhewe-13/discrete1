@@ -23,32 +23,42 @@ def backward_euler(
     angle_xu,
     angle_wu,
     bc_x,
-    coarse_idx,
-    factor,
-    edges_gidx_c,
-    edges_g,
     steps,
     dt,
     geometry=1,
+    energy_grid=87,
 ):
 
     # Scalar flux approximation
     flux_u = np.sum(flux_last * angle_wu[None, :, None], axis=1)
-    flux_c = np.zeros((medium_map.shape[0], groups_c))
 
-    # Scalar flux for every time step
+    # Initialize time step flux, collided boundary
     flux_time = np.zeros((steps,) + flux_u.shape)
+    boundary_c = np.zeros((2, 1, 1))
 
     # Combine scattering and fission
     xs_matrix_u = xs_scatter_u + xs_fission_u
 
-    # Create star coefs
+    # Create star coef
     star_coef_u = 1 / (velocity_u * dt)
-    star_coef_c = 1 / (hytools.coarsen_velocity(velocity_u, edges_gidx_c) * dt)
 
-    # Initialize collided source and boundary
-    source_c = np.zeros((medium_map.shape[0], 1, groups_c))
-    boundary_c = np.zeros((2, 1, 1))
+    # Check if collided energy groups don't change with time
+    if isinstance(groups_c, int):
+        # Calculate new grid
+        coarse_idx, factor, edges_gidx_c, edges_g = hytools.energy_grid_change(
+            energy_grid, flux_u.shape[1], groups_c
+        )
+
+        # Initialize collided flux and source
+        flux_c = np.zeros((medium_map.shape[0], groups_c))
+        source_c = np.zeros((medium_map.shape[0], 1, groups_c))
+
+        # Calculate star_coef
+        star_coef_c = 1 / (hytools.coarsen_velocity(velocity_u, edges_gidx_c) * dt)
+
+    # Check if discrete ordinates don't change with time
+    if isinstance(angles_c, int):
+        angle_c = angles_c
 
     # Iterate over time steps
     for step in tqdm(range(steps), desc="vBDF1*", ascii=True):
@@ -56,12 +66,29 @@ def backward_euler(
         qq = 0 if external_u.shape[0] == 1 else step
         bb = 0 if boundary_u.shape[0] == 1 else step
 
+        # Check if the number of collided energy groups change with time
+        if isinstance(groups_c, np.ndarray):
+            # Calculate new grid
+            coarse_idx, factor, edges_gidx_c, edges_g = hytools.energy_grid_change(
+                energy_grid, flux_u.shape[1], groups_c[step]
+            )
+
+            # Initialize collided flux and source
+            flux_c = np.zeros((medium_map.shape[0], groups_c[step]))
+            source_c = np.zeros((medium_map.shape[0], 1, groups_c[step]))
+
+            # Calculate star_coef
+            star_coef_c = 1 / (hytools.coarsen_velocity(velocity_u, edges_gidx_c) * dt)
+
+        if isinstance(angles_c, np.ndarray):
+            angle_c = angles_c[step]
+
         # Update q_star
         q_star = external_u[qq] + star_coef_u * flux_last
 
         # Run hybrid method
         _variable_hybrid_method(
-            angles_c,
+            angle_c,
             flux_u,
             flux_c,
             xs_total_u,
@@ -119,41 +146,69 @@ def bdf2(
     angle_xu,
     angle_wu,
     bc_x,
-    coarse_idx,
-    factor,
-    edges_gidx_c,
-    edges_g,
     steps,
     dt,
     geometry=1,
+    energy_grid=87,
 ):
 
     # Scalar flux approximation
     flux_u = np.sum(flux_last_1 * angle_wu[None, :, None], axis=1)
-    flux_c = np.zeros((medium_map.shape[0], groups_c))
 
-    # Angular flux of step \ell - 2
-    flux_last_2 = np.zeros(flux_last_1.shape)
-
-    # Scalar flux for every time step
+    # Initialize time step flux, angular flux of step \ell - 2, collided boundary
     flux_time = np.zeros((steps,) + flux_u.shape)
+    flux_last_2 = np.zeros(flux_last_1.shape)
+    boundary_c = np.zeros((2, 1, 1))
 
     # Combine scattering and fission
     xs_matrix_u = xs_scatter_u + xs_fission_u
 
     # Create xs_total_star
     star_coef_u = 1 / (velocity_u * dt)
-    star_coef_c = 1 / (hytools.coarsen_velocity(velocity_u, edges_gidx_c) * dt)
 
-    # Initialize collided source and boundary
-    source_c = np.zeros((medium_map.shape[0], 1, groups_c))
-    boundary_c = np.zeros((2, 1, 1))
+    # Check if collided energy groups don't change with time
+    if isinstance(groups_c, int):
+        # Calculate new grid
+        coarse_idx, factor, edges_gidx_c, edges_g = hytools.energy_grid_change(
+            energy_grid, flux_u.shape[1], groups_c
+        )
+
+        # Initialize collided flux and source
+        flux_c = np.zeros((medium_map.shape[0], groups_c))
+        source_c = np.zeros((medium_map.shape[0], 1, groups_c))
+
+        # Calculate star_coef
+        star_coef_c = 1 / (hytools.coarsen_velocity(velocity_u, edges_gidx_c) * dt)
+
+    # Check if discrete ordinates don't change with time
+    if isinstance(angles_c, int):
+        angle_c = angles_c
 
     # Iterate over time steps
     for step in tqdm(range(steps), desc="vBDF2*", ascii=True):
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step
         bb = 0 if boundary_u.shape[0] == 1 else step
+
+        # Check if the number of collided energy groups change with time
+        if isinstance(groups_c, np.ndarray):
+            # Calculate new grid
+            coarse_idx, factor, edges_gidx_c, edges_g = hytools.energy_grid_change(
+                energy_grid, flux_u.shape[1], groups_c[step]
+            )
+
+            # Initialize collided flux and source
+            flux_c = np.zeros((medium_map.shape[0], groups_c[step]))
+            source_c = np.zeros((medium_map.shape[0], 1, groups_c[step]))
+
+            # Calculate star_coef
+            numerator = 1.0 if step == 0 else 1.5
+            star_coef_c = numerator / (
+                hytools.coarsen_velocity(velocity_u, edges_gidx_c) * dt
+            )
+
+        if isinstance(angles_c, np.ndarray):
+            angle_c = angles_c[step]
 
         # BDF1 on first time step
         if step == 0:
@@ -169,7 +224,7 @@ def bdf2(
 
         # Run hybrid method
         _variable_hybrid_method(
-            angles_c,
+            angle_c,
             flux_u,
             flux_c,
             xs_total_u,
@@ -213,9 +268,10 @@ def bdf2(
         # Update xs_totat_star (for BDF2 steps)
         if step == 0:
             star_coef_u = 1.5 / (velocity_u * dt)
-            star_coef_c = 1.5 / (
-                hytools.coarsen_velocity(velocity_u, edges_gidx_c) * dt
-            )
+            if isinstance(groups_c, int):
+                star_coef_c = 1.5 / (
+                    hytools.coarsen_velocity(velocity_u, edges_gidx_c) * dt
+                )
 
     return flux_time
 

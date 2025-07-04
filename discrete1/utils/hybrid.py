@@ -1,6 +1,7 @@
 # Functions to use with the hybrid method
-
 import numpy as np
+
+import discrete1
 
 ########################################################################
 # Coarsening Arrays for Hybrid Methods
@@ -258,3 +259,26 @@ def _hybrid_factor(delta_fine, delta_coarse, edges_gidx):
         for ii in range(split.start, split.stop):
             factor[ii] /= delta_coarse[count]
     return factor
+
+
+########################################################################
+# On the fly changing energy grids
+########################################################################
+
+
+def energy_grid_change(starting_grid, groups_u, groups_c):
+    energy_grid = discrete1.energy_grid(starting_grid, groups_u, groups_c)
+    edges_g, edges_gidx_u, edges_gidx_c = energy_grid
+
+    # Collect indexes
+    coarse_idx = _collided_index(groups_u, edges_gidx_c)
+
+    # Convert from memoryview
+    edges_g = np.asarray(edges_g)
+
+    # Calculate energy bin widths
+    delta_fine = np.diff(edges_g[edges_gidx_u])
+    delta_coarse = np.diff(edges_g[edges_gidx_u][edges_gidx_c])
+    factor = _hybrid_factor(delta_fine, delta_coarse, edges_gidx_c)
+
+    return coarse_idx, factor, edges_gidx_c, edges_g

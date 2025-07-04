@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 import discrete1
-from discrete1 import timed1d, hybrid1d, vhybrid1d
+from discrete1 import hybrid1d, timed1d, vhybrid1d
 from discrete1.utils import hybrid as hytools
 
 
@@ -229,8 +229,18 @@ def test_backward_euler_01():
 @pytest.mark.bdf1
 @pytest.mark.multigroup
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-@pytest.mark.parametrize(("groups_c", "angles_c"), [(87, 4), (43, 4), (43, 2)])
-def test_v_bdf1_01(groups_c, angles_c):
+@pytest.mark.parametrize(
+    ("groups_c", "angles_c", "varying"),
+    [
+        (87, 4, True),
+        (43, 4, True),
+        (43, 2, True),
+        (87, 4, False),
+        (43, 4, False),
+        (43, 2, False),
+    ],
+)
+def test_v_bdf1_01(groups_c, angles_c, varying):
 
     groups_u = 87
     angles_u = 4
@@ -259,6 +269,10 @@ def test_v_bdf1_01(groups_c, angles_c):
         geometry=1,
     )
 
+    if varying:
+        groups_c = np.array([groups_c] * problem_dict["steps"])
+        angles_c = np.array([angles_c] * problem_dict["steps"])
+
     vhy_flux = vhybrid1d.backward_euler(
         groups_c,
         angles_c,
@@ -274,13 +288,10 @@ def test_v_bdf1_01(groups_c, angles_c):
         problem_dict["angle_xu"],
         problem_dict["angle_wu"],
         problem_dict["bc_x"],
-        hybrid_dict["coarse_idx"],
-        hybrid_dict["factor"],
-        hybrid_dict["edges_gidx_c"],
-        hybrid_dict["edges_g"],
         steps=problem_dict["steps"],
         dt=problem_dict["dt"],
         geometry=1,
+        energy_grid=87,
     )
 
     for step in range(problem_dict["steps"]):
@@ -417,14 +428,20 @@ def test_bdf2_01():
 @pytest.mark.bdf2
 @pytest.mark.multigroup
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-@pytest.mark.parametrize(("groups_c", "angles_c"), [(87, 4), (43, 4), (43, 2)])
-def test_v_bdf2_01(groups_c, angles_c):
-    # def test_v_bdf2_01():
-
+@pytest.mark.parametrize(
+    ("groups_c", "angles_c", "varying"),
+    [
+        (87, 4, True),
+        (43, 4, True),
+        (43, 2, True),
+        (87, 4, False),
+        (43, 4, False),
+        (43, 2, False),
+    ],
+)
+def test_v_bdf2_01(groups_c, angles_c, varying):
     groups_u = 87
     angles_u = 4
-    # groups_c = 43
-    # angles_c = 4
 
     problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c)
     hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
@@ -450,6 +467,10 @@ def test_v_bdf2_01(groups_c, angles_c):
         geometry=1,
     )
 
+    if varying:
+        groups_c = np.array([groups_c] * problem_dict["steps"])
+        angles_c = np.array([angles_c] * problem_dict["steps"])
+
     vhy_flux = vhybrid1d.bdf2(
         groups_c,
         angles_c,
@@ -465,21 +486,13 @@ def test_v_bdf2_01(groups_c, angles_c):
         problem_dict["angle_xu"],
         problem_dict["angle_wu"],
         problem_dict["bc_x"],
-        hybrid_dict["coarse_idx"],
-        hybrid_dict["factor"],
-        hybrid_dict["edges_gidx_c"],
-        hybrid_dict["edges_g"],
         steps=problem_dict["steps"],
         dt=problem_dict["dt"],
         geometry=1,
+        energy_grid=87,
     )
 
     for step in range(problem_dict["steps"]):
-        # print(np.sum(np.fabs(vhy_flux[step] - hy_flux[step])))
         assert np.sum(np.fabs(vhy_flux[step] - hy_flux[step])) < 2e-7, (
             str(step) + " not equivalent"
         )
-
-
-if __name__ == "__main__":
-    test_v_bdf2_01()
