@@ -10,8 +10,24 @@ __pycache__/
 sources/
 
 # Packaging
+*.egg-info
 *.egg-info/
 *.egg
 
 # Sphinx documentation
 docs/_build/
+
+# Coverage files
+.pytest_cache/
+.coverage
+.coveragerc
+coverage.xml
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Tests
+.pytest_cache/

@@ -1,5 +1,5 @@
-
 from pathlib import Path
+
 import pytest
 
 
@@ -9,8 +9,13 @@ def change_test_dir(request, monkeypatch):
 
 
 def pytest_addoption(parser):
-    parser.addoption("--mg", action="store_true", default=False, \
-                     help="Runs one-dimensional multigroup problems if True")
+    parser.addoption(
+        "--mg",
+        action="store_true",
+        default=False,
+        help="Runs one-dimensional multigroup problems if True",
+    )
+
 
 def pytest_collection_modifyitems(config, items):
     # One dimensional multigroup
@@ -20,4 +25,6 @@ def pytest_collection_modifyitems(config, items):
     multigroup1d = pytest.mark.skip(reason="Run on --mg option")
     for item in items:
         if "multigroup" in item.keywords:
+            item.add_marker(multigroup1d)
+            item.add_marker(multigroup1d)
             item.add_marker(multigroup1d)
