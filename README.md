@@ -1,5 +1,7 @@
 # discrete1
 
+[![Documentation Status](https://github.com/bwhewe-13/discrete1/actions/workflows/docs.yml/badge.svg)](https://bwhewe-13.github.io/discrete1/)
+
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⡋⢅⣂⣐⡨⠙⡻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⣩⣥⣬⢕⢰⣾⣿⣿⣿⣿⣷⣄⠊⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⢸⣳⣳⣻⣿⡆⣿⣿⣿⣿⣿⣿⣿⣮⠠⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
@@ -60,6 +62,24 @@ saving techniques related to the neutron transport equation.
     different numbers of ordinates (N) and energy groups (G) for
     time-dependent problems<sup>2</sup>.
 
+
+## Documentation
+
+The documentation is built automatically using Sphinx and deployed to GitHub Pages. You can find the latest documentation at:
+
+[https://bwhewe-13.github.io/discrete1/](https://bwhewe-13.github.io/discrete1/)
+
+To build the documentation locally:
+
+```bash
+# Install dependencies
+python -m pip install -r docs/requirements.txt
+
+# Build HTML docs
+cd docs
+make html
+# Output will be in docs/build/html
+```
 
 
 <sup>1</sup> Ben Whewell and Ryan G. McClarren, (2022). Data Reduction in
