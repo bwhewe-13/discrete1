@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>discrete1.materials &#8212; discrete1 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=039e1c02" />
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for discrete1.materials</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Calculating material cross sections</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pkg_resources</span>
+
+<span class="kn">from</span> <span class="nn">discrete1.constants</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">DATA_PATH</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_filename</span><span class="p">(</span><span class="s2">&quot;discrete1&quot;</span><span class="p">,</span><span class="s2">&quot;sources/&quot;</span><span class="p">)</span>
+
+<span class="c1">########################################################################</span>
+<span class="c1"># Material Cross Sections</span>
+<span class="c1">########################################################################</span>
+
+<span class="n">__enrichment_materials</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;uranium&quot;</span><span class="p">,</span> <span class="s2">&quot;uranium-hydride&quot;</span><span class="p">,</span> <span class="s2">&quot;plutonium&quot;</span><span class="p">)</span>
+
+<span class="n">__nonenrichment_materials</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;stainless-steel-440&quot;</span><span class="p">,</span> <span class="s2">&quot;hydrogen&quot;</span><span class="p">,</span> \
+        <span class="s2">&quot;high-density-polyethyene-618&quot;</span><span class="p">,</span> <span class="s2">&quot;high-density-polyethyene-087&quot;</span><span class="p">,</span> \
+        <span class="s2">&quot;carbon&quot;</span><span class="p">,</span> <span class="s2">&quot;uranium-235&quot;</span><span class="p">,</span> <span class="s2">&quot;uranium-238&quot;</span><span class="p">,</span> <span class="s2">&quot;water-uranium-dioxide&quot;</span><span class="p">,</span> \
+        <span class="s2">&quot;plutonium-239&quot;</span><span class="p">,</span> <span class="s2">&quot;plutonium-240&quot;</span><span class="p">,</span> <span class="s2">&quot;vacuum&quot;</span><span class="p">)</span>
+
+<span class="n">__materials</span> <span class="o">=</span> <span class="n">__enrichment_materials</span> <span class="o">+</span> <span class="n">__nonenrichment_materials</span>
+
+
+<div class="viewcode-block" id="materials">
+<a class="viewcode-back" href="../../discrete1.materials.html#discrete1.materials.materials">[docs]</a>
+<span class="k">def</span> <span class="nf">materials</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">materials</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Creating cross sections for different materials</span>
+<span class="sd">    Args:</span>
+<span class="sd">        groups (int): Number of energy groups</span>
+<span class="sd">        materials (list): [material1, ..., materialN]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">material_key</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">xs_total</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">xs_scatter</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">xs_fission</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">material</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">materials</span><span class="p">):</span>
+        <span class="c1"># Verify it is possible</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">material</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-%&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">__materials</span><span class="p">),</span>\
+            <span class="s2">&quot;Material not recognized, use:</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__materials</span><span class="p">)</span>
+        <span class="c1"># Calculate cross section</span>
+        <span class="n">total</span><span class="p">,</span> <span class="n">scatter</span><span class="p">,</span> <span class="n">fission</span> <span class="o">=</span> <span class="n">_generate_cross_section</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">material</span><span class="p">)</span>
+        <span class="n">xs_total</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">total</span><span class="p">)</span>
+        <span class="n">xs_scatter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scatter</span><span class="p">)</span>
+        <span class="n">xs_fission</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fission</span><span class="p">)</span>
+        <span class="n">material_key</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">material</span>
+    <span class="n">xs_total</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xs_total</span><span class="p">)</span>
+    <span class="n">xs_scatter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xs_scatter</span><span class="p">)</span>
+    <span class="n">xs_fission</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xs_fission</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">key</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">xs_total</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">material_key</span>
+    <span class="k">return</span> <span class="n">xs_total</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">xs_fission</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_generate_cross_section</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">material</span><span class="p">):</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="s2">&quot;%&quot;</span> <span class="ow">in</span> <span class="n">material</span><span class="p">:</span>
+        <span class="n">material</span><span class="p">,</span> <span class="n">enrichment</span> <span class="o">=</span> <span class="n">material</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-%&quot;</span><span class="p">)</span>
+        <span class="n">enrichment</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">enrichment</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;%&quot;</span><span class="p">))</span> <span class="o">*</span> <span class="mf">0.01</span>
+
+    <span class="k">if</span> <span class="n">material</span> <span class="o">==</span> <span class="s2">&quot;vacuum&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">groups</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">groups</span><span class="p">,</span> <span class="n">groups</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">groups</span><span class="p">,</span> <span class="n">groups</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">material</span> <span class="ow">in</span> <span class="n">__nonenrichment_materials</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">DATA_PATH</span> <span class="o">+</span> <span class="s2">&quot;materials/&quot;</span> <span class="o">+</span> <span class="n">material</span> <span class="o">+</span> <span class="s2">&quot;.npz&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">material</span> <span class="o">==</span> <span class="s2">&quot;uranium&quot;</span><span class="p">:</span>
+        <span class="n">u235</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">DATA_PATH</span> <span class="o">+</span> <span class="s2">&quot;materials/uranium-235.npz&quot;</span><span class="p">)</span>
+        <span class="n">u238</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">DATA_PATH</span> <span class="o">+</span> <span class="s2">&quot;materials/uranium-238.npz&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">xs</span> <span class="ow">in</span> <span class="n">u235</span><span class="o">.</span><span class="n">files</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">xs</span><span class="p">]</span> <span class="o">=</span> <span class="n">u235</span><span class="p">[</span><span class="n">xs</span><span class="p">]</span> <span class="o">*</span> <span class="n">enrichment</span> <span class="o">+</span> <span class="n">u238</span><span class="p">[</span><span class="n">xs</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">enrichment</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">material</span> <span class="o">==</span> <span class="s2">&quot;plutonium&quot;</span><span class="p">:</span>
+        <span class="n">pu239</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">DATA_PATH</span> <span class="o">+</span> <span class="s2">&quot;materials/plutonium-239.npz&quot;</span><span class="p">)</span>
+        <span class="n">pu240</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">DATA_PATH</span> <span class="o">+</span> <span class="s2">&quot;materials/plutonium-240.npz&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">xs</span> <span class="ow">in</span> <span class="n">pu239</span><span class="o">.</span><span class="n">files</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">xs</span><span class="p">]</span> <span class="o">=</span> <span class="n">pu239</span><span class="p">[</span><span class="n">xs</span><span class="p">]</span> <span class="o">*</span> <span class="n">enrichment</span> <span class="o">+</span> <span class="n">pu240</span><span class="p">[</span><span class="n">xs</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">enrichment</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">material</span> <span class="o">==</span> <span class="s2">&quot;uranium-hydride&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_generate_uranium_hydride</span><span class="p">(</span><span class="n">enrichment</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;total&quot;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;scatter&quot;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;fission&quot;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_generate_uranium_hydride</span><span class="p">(</span><span class="n">enrichment</span><span class="p">):</span>
+    <span class="n">molar</span> <span class="o">=</span> <span class="n">enrichment</span> <span class="o">*</span> <span class="n">URANIUM_235_MM</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">enrichment</span><span class="p">)</span> <span class="o">*</span> <span class="n">URANIUM_238_MM</span>
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">URANIUM_HYDRIDE_RHO</span> <span class="o">/</span> <span class="n">URANIUM_RHO</span>
+    
+    <span class="n">n235</span> <span class="o">=</span> <span class="p">(</span><span class="n">enrichment</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">molar</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">molar</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">HYDROGEN_MM</span><span class="p">)</span> 
+    <span class="n">n238</span> <span class="o">=</span> <span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">enrichment</span><span class="p">)</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">molar</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">molar</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">HYDROGEN_MM</span><span class="p">)</span> 
+    <span class="n">n1</span> <span class="o">=</span> <span class="n">URANIUM_HYDRIDE_RHO</span> <span class="o">*</span> <span class="n">AVAGADRO</span> <span class="o">/</span> <span class="p">(</span><span class="n">molar</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">HYDROGEN_MM</span><span class="p">)</span> <span class="o">*</span> <span class="n">CM_TO_BARNS</span> <span class="o">*</span> <span class="mi">3</span>
+    
+    <span class="n">u235</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">DATA_PATH</span> <span class="o">+</span> <span class="s2">&quot;materials/uranium-235.npz&quot;</span><span class="p">)</span>
+    <span class="n">u238</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">DATA_PATH</span> <span class="o">+</span> <span class="s2">&quot;materials/uranium-238.npz&quot;</span><span class="p">)</span>
+    <span class="n">h1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">DATA_PATH</span> <span class="o">+</span> <span class="s2">&quot;materials/hydrogen.npz&quot;</span><span class="p">)</span>
+
+    <span class="n">total</span> <span class="o">=</span> <span class="n">n235</span> <span class="o">*</span> <span class="n">u235</span><span class="p">[</span><span class="s2">&quot;total&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">n238</span> <span class="o">*</span> <span class="n">u238</span><span class="p">[</span><span class="s2">&quot;total&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">n1</span> <span class="o">*</span> <span class="n">h1</span><span class="p">[</span><span class="s2">&quot;total&quot;</span><span class="p">]</span>
+    <span class="n">scatter</span> <span class="o">=</span> <span class="n">n235</span> <span class="o">*</span> <span class="n">u235</span><span class="p">[</span><span class="s2">&quot;scatter&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">n238</span> <span class="o">*</span> <span class="n">u238</span><span class="p">[</span><span class="s2">&quot;scatter&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">n1</span> <span class="o">*</span> <span class="n">h1</span><span class="p">[</span><span class="s2">&quot;scatter&quot;</span><span class="p">]</span>
+    <span class="n">fission</span> <span class="o">=</span> <span class="n">n235</span> <span class="o">*</span> <span class="n">u235</span><span class="p">[</span><span class="s2">&quot;fission&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">n238</span> <span class="o">*</span> <span class="n">u238</span><span class="p">[</span><span class="s2">&quot;fission&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">n1</span> <span class="o">*</span> <span class="n">h1</span><span class="p">[</span><span class="s2">&quot;fission&quot;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">total</span><span class="p">,</span> <span class="n">scatter</span><span class="p">,</span> <span class="n">fission</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">discrete1</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../steady_state.html">steady_state</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Ben Whewell.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -2,7 +2,6 @@
 requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
-
 [project]
 name = "discrete1"
 version = "0.1.0"
@@ -22,3 +21,18 @@ description = "1D Discrete Ordinates Multigroup Neutron Transport"
 readme = "README.md"
 license = "MIT"
 keywords = ["neutron transport", "machine learning", "DJINN"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --cov=discrete1 --cov-report=html --cov-report=xml"
+testpaths = ["tests"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov",
+    "black",
+    "isort",
+    "flake8",
+    "pre-commit",
+]

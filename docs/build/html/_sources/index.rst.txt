@@ -11,6 +11,7 @@ Welcome to discrete1's documentation!
    :caption: Contents:
 
    steady_state.rst
+   api.rst
 
 .. Indices and tables
 .. ==================

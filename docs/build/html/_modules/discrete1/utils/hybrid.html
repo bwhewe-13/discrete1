@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>discrete1.utils.hybrid &#8212; discrete1 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=039e1c02" />
+    <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for discrete1.utils.hybrid</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Functions to use with the hybrid method</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">discrete1</span>
+
+<span class="c1">########################################################################</span>
+<span class="c1"># Coarsening Arrays for Hybrid Methods</span>
+<span class="c1">########################################################################</span>
+
+
+<div class="viewcode-block" id="energy_coarse_index">
+<a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.energy_coarse_index">[docs]</a>
+<span class="k">def</span> <span class="nf">energy_coarse_index</span><span class="p">(</span><span class="n">fine</span><span class="p">,</span> <span class="n">coarse</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the indices for resizing matrices</span>
+<span class="sd">    Arguments:</span>
+<span class="sd">        fine (int): larger energy group size</span>
+<span class="sd">        coarse (int): coarseer energy group size</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        array of indicies (int [coarse + 1])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">coarse</span><span class="p">))</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">fine</span> <span class="o">/</span> <span class="n">coarse</span><span class="p">)</span>
+    <span class="n">index</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">coarse</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">fine</span> <span class="o">%</span> <span class="n">coarse</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">assert</span> <span class="n">index</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="n">fine</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="coarsen_materials">
+<a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.coarsen_materials">[docs]</a>
+<span class="k">def</span> <span class="nf">coarsen_materials</span><span class="p">(</span><span class="n">xs_total</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coarsen (materials x groups) arrays to (materials x groups&#39;)</span>
+<span class="sd">    Arguments:</span>
+<span class="sd">        xs_total (float [materials x groups]): Total cross section</span>
+<span class="sd">        xs_scatter (float [materials x groups x groups]): scatter cross section</span>
+<span class="sd">        xs_fission (float [materials x groups x groups]): fission cross section</span>
+<span class="sd">        edges_g (float [groups + 1]): Energy group bounds</span>
+<span class="sd">        edges_gidx (int [groups&#39; + 1]): Index of energy group bounds for</span>
+<span class="sd">                                        new energy grid</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        coarse_total (float [materials x groups&#39;]): Coarsened total cross section</span>
+<span class="sd">        coarse_scatter (float [materials x groups&#39; x groups&#39;]): Coarsened</span>
+<span class="sd">                    scatter cross section</span>
+<span class="sd">        coarse_fission (float [materials x groups&#39; x groups&#39;]): Coarsened</span>
+<span class="sd">                    fission cross section</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">coarse_total</span> <span class="o">=</span> <span class="n">_xs_vector_coarsen</span><span class="p">(</span><span class="n">xs_total</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">)</span>
+    <span class="n">coarse_scatter</span> <span class="o">=</span> <span class="n">_xs_matrix_coarsen</span><span class="p">(</span><span class="n">xs_scatter</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">)</span>
+    <span class="n">coarse_fission</span> <span class="o">=</span> <span class="n">_xs_matrix_coarsen</span><span class="p">(</span><span class="n">xs_fission</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">coarse_total</span><span class="p">,</span> <span class="n">coarse_scatter</span><span class="p">,</span> <span class="n">coarse_fission</span></div>
+
+
+
+<div class="viewcode-block" id="coarsen_external">
+<a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.coarsen_external">[docs]</a>
+<span class="k">def</span> <span class="nf">coarsen_external</span><span class="p">(</span><span class="n">external</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coarsen (... x groups) arrays to (... x groups&#39;)</span>
+<span class="sd">    Arguments:</span>
+<span class="sd">        external (float [... x groups]): Array to coarsen</span>
+<span class="sd">        edges_g (float [groups + 1]): Energy group bounds</span>
+<span class="sd">        edges_gidx (int [groups&#39; + 1]): Index of energy group bounds for</span>
+<span class="sd">                                        new energy grid</span>
+<span class="sd">        weight (bool default=False): Weighting the collapsing groups</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        coarse (float [... x groups&#39;]): Coarsened array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">external</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">external</span>
+    <span class="n">groups_coarse</span> <span class="o">=</span> <span class="n">edges_gidx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="c1"># Create coarsened array</span>
+    <span class="n">coarse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">external</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">groups_coarse</span><span class="p">,))</span>
+    <span class="c1"># Create energy bin widths</span>
+    <span class="n">delta_fine</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">edges_g</span><span class="p">)</span>
+    <span class="n">delta_coarse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">edges_g</span><span class="p">)[</span><span class="n">edges_gidx</span><span class="p">])</span>
+    <span class="c1"># Condition vector with energy bin width</span>
+    <span class="n">fine</span> <span class="o">=</span> <span class="n">external</span> <span class="o">*</span> <span class="n">delta_fine</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:]</span> <span class="k">if</span> <span class="n">weight</span> <span class="k">else</span> <span class="n">external</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">gg</span><span class="p">,</span> <span class="p">(</span><span class="n">gg1</span><span class="p">,</span> <span class="n">gg2</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">edges_gidx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">edges_gidx</span><span class="p">[</span><span class="mi">1</span><span class="p">:])):</span>
+        <span class="n">coarse</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">gg</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">fine</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">gg1</span><span class="p">:</span><span class="n">gg2</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># Coarsen</span>
+    <span class="k">if</span> <span class="n">weight</span><span class="p">:</span>
+        <span class="n">coarse</span> <span class="o">/=</span> <span class="n">delta_coarse</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">coarse</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_xs_vector_coarsen</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coarsen (materials x groups) arrays to (materials x groups&#39;)</span>
+<span class="sd">    Arguments:</span>
+<span class="sd">        vector (float [materials x groups]): Array to coarsen</span>
+<span class="sd">        edges_g (float [groups + 1]): Energy group bounds</span>
+<span class="sd">        edges_gidx (int [groups&#39; + 1]): Index of energy group bounds for</span>
+<span class="sd">                                        new energy grid</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        coarse (float [materials x groups&#39;]): Coarsened array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">materials</span> <span class="o">=</span> <span class="n">vector</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">groups_coarse</span> <span class="o">=</span> <span class="n">edges_gidx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="c1"># Create coarsened array</span>
+    <span class="n">coarse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">materials</span><span class="p">,</span> <span class="n">groups_coarse</span><span class="p">))</span>
+    <span class="c1"># Create energy bin widths</span>
+    <span class="n">delta_fine</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">edges_g</span><span class="p">)</span>
+    <span class="n">delta_coarse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">edges_g</span><span class="p">)[</span><span class="n">edges_gidx</span><span class="p">])</span>
+    <span class="c1"># Condition vector with energy bin width</span>
+    <span class="n">fine</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span> <span class="o">*</span> <span class="n">delta_fine</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="c1"># Loop over all materials</span>
+    <span class="k">for</span> <span class="n">mat</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">materials</span><span class="p">):</span>
+        <span class="n">coarse</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">fine</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">gg1</span><span class="p">:</span><span class="n">gg2</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">gg1</span><span class="p">,</span> <span class="n">gg2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">edges_gidx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">edges_gidx</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="p">]</span>
+    <span class="c1"># Coarsen</span>
+    <span class="n">coarse</span> <span class="o">/=</span> <span class="n">delta_coarse</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">coarse</span>
+
+
+<span class="k">def</span> <span class="nf">_xs_matrix_coarsen</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coarsen (materials x groups x groups) arrays to</span>
+<span class="sd">        (materials x groups&#39; x groups&#39;)</span>
+<span class="sd">    Arguments:</span>
+<span class="sd">        matrix (float [materials x groups x groups]): Array to coarsen</span>
+<span class="sd">        edges_g (float [groups + 1]): Energy group bounds</span>
+<span class="sd">        edges_gidx (int [groups&#39; + 1]): Index of energy group bounds for</span>
+<span class="sd">                                        new energy grid</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        coarse (float [materials x groups&#39; x groups&#39;]): Coarsened array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">materials</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">groups_coarse</span> <span class="o">=</span> <span class="n">edges_gidx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="c1"># Create coarsened array</span>
+    <span class="n">coarse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">materials</span><span class="p">,</span> <span class="n">groups_coarse</span><span class="p">,</span> <span class="n">groups_coarse</span><span class="p">))</span>
+    <span class="c1"># Create energy bin widths</span>
+    <span class="n">delta_fine</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">edges_g</span><span class="p">)</span>
+    <span class="n">delta_coarse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">edges_g</span><span class="p">)[</span><span class="n">edges_gidx</span><span class="p">])</span>
+    <span class="n">fine</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span> <span class="o">*</span> <span class="n">delta_fine</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">for</span> <span class="n">mat</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">materials</span><span class="p">):</span>
+        <span class="n">coarse</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">[</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">fine</span><span class="p">[</span><span class="n">mat</span><span class="p">][</span><span class="n">aa1</span><span class="p">:</span><span class="n">aa2</span><span class="p">,</span> <span class="n">bb1</span><span class="p">:</span><span class="n">bb2</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">bb1</span><span class="p">,</span> <span class="n">bb2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">edges_gidx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">edges_gidx</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">aa1</span><span class="p">,</span> <span class="n">aa2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">edges_gidx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">edges_gidx</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="p">]</span>
+    <span class="c1"># Coarsen</span>
+    <span class="n">coarse</span> <span class="o">/=</span> <span class="n">delta_coarse</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">coarse</span>
+
+
+<div class="viewcode-block" id="coarsen_velocity">
+<a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.coarsen_velocity">[docs]</a>
+<span class="k">def</span> <span class="nf">coarsen_velocity</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coarsen (groups) vector to (groups&#39;)</span>
+<span class="sd">    Arguments:</span>
+<span class="sd">        vector (float [groups]): Array to coarsen</span>
+<span class="sd">        edges_gidx (int [groups&#39; + 1]): Index of energy group bounds for</span>
+<span class="sd">                                        new energy grid</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        coarse (float [groups&#39;]): Coarsened vector</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">groups_coarse</span> <span class="o">=</span> <span class="n">edges_gidx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="c1"># Create coarsened array</span>
+    <span class="n">coarse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">groups_coarse</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">gg</span><span class="p">,</span> <span class="p">(</span><span class="n">gg1</span><span class="p">,</span> <span class="n">gg2</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">edges_gidx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">edges_gidx</span><span class="p">[</span><span class="mi">1</span><span class="p">:])):</span>
+        <span class="n">coarse</span><span class="p">[</span><span class="n">gg</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">vector</span><span class="p">[</span><span class="n">gg1</span><span class="p">:</span><span class="n">gg2</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">coarse</span></div>
+
+
+
+<span class="c1">########################################################################</span>
+<span class="c1"># Indexing for Hybrid Methods</span>
+<span class="c1">########################################################################</span>
+
+
+<div class="viewcode-block" id="indexing">
+<a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.indexing">[docs]</a>
+<span class="k">def</span> <span class="nf">indexing</span><span class="p">(</span><span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx_fine</span><span class="p">,</span> <span class="n">edges_gidx_coarse</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the variables needed for refining and coarsening fluxes</span>
+<span class="sd">    Arguments:</span>
+<span class="sd">        edges_g (float [groups_fine + 1]): Energy group bounds for fine grid</span>
+<span class="sd">        edges_gidx_fine (int [groups_fine + 1]): Index of energy group</span>
+<span class="sd">                            bounds for fine energy grid</span>
+<span class="sd">        edges_gidx_coarse (int [groups_coarse + 1]): Index of energy group</span>
+<span class="sd">                            bounds for coarse energy grid</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        coarse_idx (int [groups_fine]): Coarse group mapping</span>
+<span class="sd">        fine_idx (int [groups_coarse + 1]): Location of edges between the</span>
+<span class="sd">                            coarse and fine energy grids</span>
+<span class="sd">        factor (float [groups_fine]): Fine energy bin width / coarse energy</span>
+<span class="sd">                            bin width for specific location</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Calculate fine and coarse groups</span>
+    <span class="n">groups_fine</span> <span class="o">=</span> <span class="n">edges_gidx_fine</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">groups_coarse</span> <span class="o">=</span> <span class="n">edges_gidx_coarse</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="c1"># Collect indexes</span>
+    <span class="n">fine_idx</span> <span class="o">=</span> <span class="n">_uncollided_index</span><span class="p">(</span><span class="n">groups_coarse</span><span class="p">,</span> <span class="n">edges_gidx_coarse</span><span class="p">)</span>
+    <span class="n">coarse_idx</span> <span class="o">=</span> <span class="n">_collided_index</span><span class="p">(</span><span class="n">groups_fine</span><span class="p">,</span> <span class="n">edges_gidx_coarse</span><span class="p">)</span>
+
+    <span class="c1"># Convert from memoryview</span>
+    <span class="n">edges_g</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">edges_g</span><span class="p">)</span>
+
+    <span class="c1"># Calculate energy bin widths</span>
+    <span class="n">delta_fine</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">edges_g</span><span class="p">[</span><span class="n">edges_gidx_fine</span><span class="p">])</span>
+    <span class="n">delta_coarse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">edges_g</span><span class="p">[</span><span class="n">edges_gidx_fine</span><span class="p">][</span><span class="n">edges_gidx_coarse</span><span class="p">])</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="n">_hybrid_factor</span><span class="p">(</span><span class="n">delta_fine</span><span class="p">,</span> <span class="n">delta_coarse</span><span class="p">,</span> <span class="n">edges_gidx_coarse</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fine_idx</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">,</span> <span class="n">factor</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_collided_index</span><span class="p">(</span><span class="n">groups_fine</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate which coarse group a fine energy group is a part of,</span>
+<span class="sd">    i.e.:</span>
+<span class="sd">    fine grid:      |---g1---|--g2--|---g3---|--g4--|</span>
+<span class="sd">    coarse grid:    |-------g1------|-------g2------|</span>
+<span class="sd">    results in coarse_idx = [0, 0, 1, 1]</span>
+<span class="sd">    Arguments:</span>
+<span class="sd">        groups_fine (int): Number of fine energy groups</span>
+<span class="sd">        edges_gidx (int [groups_coarse + 1]): Index of energy group</span>
+<span class="sd">                            bounds for coarse energy grid</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        coarse_idx (int [groups_fine]): Coarse group mapping</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">coarse_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">groups_fine</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">splits</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">)</span> <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">edges_gidx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">edges_gidx</span><span class="p">[</span><span class="mi">1</span><span class="p">:])]</span>
+    <span class="k">for</span> <span class="n">count</span><span class="p">,</span> <span class="n">split</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">splits</span><span class="p">):</span>
+        <span class="n">coarse_idx</span><span class="p">[</span><span class="n">split</span><span class="p">]</span> <span class="o">=</span> <span class="n">count</span>
+    <span class="k">return</span> <span class="n">coarse_idx</span>
+
+
+<span class="k">def</span> <span class="nf">_uncollided_index</span><span class="p">(</span><span class="n">groups_coarse</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the location of edges between the coarse and fine</span>
+<span class="sd">    energy grids, i.e.:</span>
+<span class="sd">    edge:           0        1      2        3      4</span>
+<span class="sd">    fine grid:      |---g1---|--g2--|---g3---|--g4--|</span>
+<span class="sd">    coarse grid:    |-------g1------|-------g2------|</span>
+<span class="sd">    results in fine_idx = [0, 2, 4]</span>
+<span class="sd">    Arguments:</span>
+<span class="sd">        groups_coarse (int): Number of coarse energy groups where</span>
+<span class="sd">                            groups_fine &gt;= groups_coarse</span>
+<span class="sd">        edges_gidx (int [groups_coarse + 1]): Index of energy group</span>
+<span class="sd">                            bounds for coarse energy grid</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        fine_idx (int [groups_coarse + 1]): Location of edges between the</span>
+<span class="sd">                            coarse and fine energy grids</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fine_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">groups_coarse</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">splits</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">)</span> <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">edges_gidx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">edges_gidx</span><span class="p">[</span><span class="mi">1</span><span class="p">:])]</span>
+    <span class="k">for</span> <span class="n">count</span><span class="p">,</span> <span class="n">split</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">splits</span><span class="p">):</span>
+        <span class="n">fine_idx</span><span class="p">[</span><span class="n">count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">split</span><span class="o">.</span><span class="n">stop</span>
+    <span class="k">return</span> <span class="n">fine_idx</span>
+
+
+<span class="k">def</span> <span class="nf">_hybrid_factor</span><span class="p">(</span><span class="n">delta_fine</span><span class="p">,</span> <span class="n">delta_coarse</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the fine energy bin width per coarse energy bin width</span>
+<span class="sd">    for specific location, i.e.:</span>
+<span class="sd">    location (eV):  0        3      5        8      10</span>
+<span class="sd">    fine grid:      |---g1---|--g2--|---g3---|--g4--|</span>
+<span class="sd">    coarse grid:    |-------g1------|-------g2------|</span>
+<span class="sd">    results in factor = [3 / 5, 2 / 5, 3 / 5, 2 / 5] with widths [3, 2, 2, 3]</span>
+<span class="sd">    for the fine groups and [5, 5] for the coarse groups</span>
+<span class="sd">    Arguments:</span>
+<span class="sd">        delta_fine (float [groups_fine]): Energy group width for fine grid</span>
+<span class="sd">        delta_coarse (float [groups_fine]): Energy group width for coarse grid</span>
+<span class="sd">        edges_gidx (int [groups_coarse + 1]): Index of energy group</span>
+<span class="sd">                            bounds for coarse energy grid</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        factor (float [groups_fine]): Fine energy bin width / coarse energy</span>
+<span class="sd">                            bin width for specific location</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="n">delta_fine</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">splits</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">)</span> <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">edges_gidx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">edges_gidx</span><span class="p">[</span><span class="mi">1</span><span class="p">:])]</span>
+    <span class="k">for</span> <span class="n">count</span><span class="p">,</span> <span class="n">split</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">splits</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">split</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">split</span><span class="o">.</span><span class="n">stop</span><span class="p">):</span>
+            <span class="n">factor</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">/=</span> <span class="n">delta_coarse</span><span class="p">[</span><span class="n">count</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">factor</span>
+
+
+<span class="c1">########################################################################</span>
+<span class="c1"># On the fly changing energy grids</span>
+<span class="c1">########################################################################</span>
+
+
+<div class="viewcode-block" id="energy_grid_change">
+<a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.energy_grid_change">[docs]</a>
+<span class="k">def</span> <span class="nf">energy_grid_change</span><span class="p">(</span><span class="n">starting_grid</span><span class="p">,</span> <span class="n">groups_u</span><span class="p">,</span> <span class="n">groups_c</span><span class="p">):</span>
+    <span class="n">energy_grid</span> <span class="o">=</span> <span class="n">discrete1</span><span class="o">.</span><span class="n">energy_grid</span><span class="p">(</span><span class="n">starting_grid</span><span class="p">,</span> <span class="n">groups_u</span><span class="p">,</span> <span class="n">groups_c</span><span class="p">)</span>
+    <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx_u</span><span class="p">,</span> <span class="n">edges_gidx_c</span> <span class="o">=</span> <span class="n">energy_grid</span>
+
+    <span class="c1"># Collect indexes</span>
+    <span class="n">coarse_idx</span> <span class="o">=</span> <span class="n">_collided_index</span><span class="p">(</span><span class="n">groups_u</span><span class="p">,</span> <span class="n">edges_gidx_c</span><span class="p">)</span>
+
+    <span class="c1"># Convert from memoryview</span>
+    <span class="n">edges_g</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">edges_g</span><span class="p">)</span>
+
+    <span class="c1"># Calculate energy bin widths</span>
+    <span class="n">delta_fine</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">edges_g</span><span class="p">[</span><span class="n">edges_gidx_u</span><span class="p">])</span>
+    <span class="n">delta_coarse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">edges_g</span><span class="p">[</span><span class="n">edges_gidx_u</span><span class="p">][</span><span class="n">edges_gidx_c</span><span class="p">])</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="n">_hybrid_factor</span><span class="p">(</span><span class="n">delta_fine</span><span class="p">,</span> <span class="n">delta_coarse</span><span class="p">,</span> <span class="n">edges_gidx_c</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">coarse_idx</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">edges_gidx_c</span><span class="p">,</span> <span class="n">edges_g</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">discrete1</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../steady_state.html">steady_state</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Ben Whewell.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

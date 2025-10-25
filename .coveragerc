@@ -1,0 +1,18 @@
+[coverage:run]
+source = discrete1
+omit = 
+    discrete1/__pycache__/*
+    discrete1/*/__pycache__/*
+
+[coverage:report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    pass
+    raise ImportError
+ignore_errors = True
+
+[coverage:html]
+directory = coverage_html

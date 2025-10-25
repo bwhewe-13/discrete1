@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>discrete1.main module &#8212; discrete1 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/agogo.css?v=47acb022" />
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="header-wrapper" role="banner">
+      <div class="header">
+        <div class="headertitle"><a
+          href="index.html">discrete1 0.1 documentation</a></div>
+        <div class="rel" role="navigation" aria-label="related navigation">
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-discrete1.main">
+<span id="discrete1-main-module"></span><h1>discrete1.main module<a class="headerlink" href="#module-discrete1.main" title="Link to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.main.angular_x">
+<span class="sig-prename descclassname"><span class="pre">discrete1.main.</span></span><span class="sig-name descname"><span class="pre">angular_x</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">0]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/main.html#angular_x"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.main.angular_x" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.main.energy_grid">
+<span class="sig-prename descclassname"><span class="pre">discrete1.main.</span></span><span class="sig-name descname"><span class="pre">energy_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups_fine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups_coarse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/main.html#energy_grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.main.energy_grid" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate energy grid bounds (MeV) and index for coarsening
+Arguments:</p>
+<blockquote>
+<div><p>groups (int): Number of energy groups for problem
+grid (int): specified energy grid to use (87, 361, 618)</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>edges_g (float [grid + 1]): MeV energy group bounds
+edges_gidx (int [groups + 1]): Location of grid index for problem</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.main.energy_velocity">
+<span class="sig-prename descclassname"><span class="pre">discrete1.main.</span></span><span class="sig-name descname"><span class="pre">energy_velocity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groups</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/main.html#energy_velocity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.main.energy_velocity" title="Link to this definition">¶</a></dt>
+<dd><p>Convert energy edges to speed at cell centers, Relative Physics
+Arguments:</p>
+<blockquote>
+<div><p>groups: Number of energy groups
+edges_g: energy grid bounds</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>speeds at cell centers (cm/s)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.main.gamma_time_steps">
+<span class="sig-prename descclassname"><span class="pre">discrete1.main.</span></span><span class="sig-name descname"><span class="pre">gamma_time_steps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">edges_t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">half_step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/main.html#gamma_time_steps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.main.gamma_time_steps" title="Link to this definition">¶</a></dt>
+<dd><p>Add gamma half time steps to original time steps with initial step
+where gamma = 0.5 or 2 - sqrt(2). For external source with TR-BDF2 problems.</p>
+<dl class="simple">
+<dt>Arguments:</dt><dd><p>edges_t: array of length (steps + 1)
+half_step: if True, first half step is 0.5, else gamma</p>
+</dd>
+<dt>Returns:</dt><dd><p>array of length (steps * 2 + 1)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.main.spatial1d">
+<span class="sig-prename descclassname"><span class="pre">discrete1.main.</span></span><span class="sig-name descname"><span class="pre">spatial1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/main.html#spatial1d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.main.spatial1d" title="Link to this definition">¶</a></dt>
+<dd><p>Creating one-dimensional medium map</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layers</strong> – list of lists where each layer is a new material. A
+layer is comprised of an index (int), material name (str), and
+the width (str) in the form [index, material, width]. The width
+is the starting and ending points of the material (in cm)
+separated by a dash. If there are multiple regions, a comma can
+separate them. I.E. layer = [0, “plutonium”, “0 - 2, 3 - 4”].</p></li>
+<li><p><strong>edges_x</strong> – Array of length I + 1 with the location of the cell edges</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One-dimensional array of length I, identifying the locations
+of the materials</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          
+          <h3>Table of Contents</h3>
+          <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="steady_state.html">steady_state</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+</ul>
+
+          <div role="search">
+            <h3 style="margin-top: 1.5em;">Search</h3>
+            <form class="search" action="search.html" method="get">
+                <input type="text" name="q" />
+                <input type="submit" value="Go" />
+            </form>
+          </div>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+          <div role="navigation" aria-label="related navigaton">
+            <a href="py-modindex.html" title="Python Module Index"
+              >modules</a> |
+            <a href="genindex.html" title="General Index"
+              >index</a>
+          </div>
+          <div role="note" aria-label="source link">
+              <br/>
+              <a href="_sources/discrete1.main.rst.txt"
+                rel="nofollow">Show Source</a>
+          </div>
+        </div>
+
+        <div class="right">
+          
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2021, Ben Whewell.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+    </div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+  </body>
+</html>

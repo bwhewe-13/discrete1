@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>discrete1.spatial_sweep &#8212; discrete1 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=039e1c02" />
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for discrete1.spatial_sweep</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Spatial sweeps for slab and sphere geometries</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numba</span>
+
+<span class="kn">from</span> <span class="nn">discrete1</span> <span class="kn">import</span> <span class="n">tools</span>
+
+<span class="n">count_nn</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">change_nn</span> <span class="o">=</span> <span class="mf">1e-12</span>
+
+<span class="c1">########################################################################</span>
+<span class="c1"># Function Calls</span>
+<span class="c1">########################################################################</span>
+
+
+<div class="viewcode-block" id="discrete_ordinates">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.discrete_ordinates">[docs]</a>
+<span class="k">def</span> <span class="nf">discrete_ordinates</span><span class="p">(</span>
+    <span class="n">flux_old</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">xs_scatter</span><span class="p">,</span>
+    <span class="n">off_scatter</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">boundary</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">bc_x</span><span class="p">,</span>
+    <span class="n">geometry</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="c1"># Solves for cell centers</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Slab geometry</span>
+    <span class="k">if</span> <span class="n">geometry</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">slab_ordinates</span><span class="p">(</span>
+            <span class="n">flux_old</span><span class="p">,</span>
+            <span class="n">xs_total</span><span class="p">,</span>
+            <span class="n">xs_scatter</span><span class="p">,</span>
+            <span class="n">off_scatter</span><span class="p">,</span>
+            <span class="n">external</span><span class="p">,</span>
+            <span class="n">boundary</span><span class="p">,</span>
+            <span class="n">medium_map</span><span class="p">,</span>
+            <span class="n">delta_x</span><span class="p">,</span>
+            <span class="n">angle_x</span><span class="p">,</span>
+            <span class="n">angle_w</span><span class="p">,</span>
+            <span class="n">bc_x</span><span class="p">,</span>
+            <span class="n">edges</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Sphere geometry</span>
+    <span class="k">elif</span> <span class="n">geometry</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sphere_ordinates</span><span class="p">(</span>
+            <span class="n">flux_old</span><span class="p">,</span>
+            <span class="n">xs_total</span><span class="p">,</span>
+            <span class="n">xs_scatter</span><span class="p">,</span>
+            <span class="n">off_scatter</span><span class="p">,</span>
+            <span class="n">external</span><span class="p">,</span>
+            <span class="n">boundary</span><span class="p">,</span>
+            <span class="n">medium_map</span><span class="p">,</span>
+            <span class="n">delta_x</span><span class="p">,</span>
+            <span class="n">angle_x</span><span class="p">,</span>
+            <span class="n">angle_w</span><span class="p">,</span>
+            <span class="n">bc_x</span><span class="p">,</span>
+            <span class="n">edges</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_known_source</span><span class="p">(</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">zero</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">,</span>
+    <span class="n">boundary</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">bc_x</span><span class="p">,</span>
+    <span class="n">geometry</span><span class="p">,</span>
+    <span class="n">edges</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="c1"># Slab geometry</span>
+    <span class="k">if</span> <span class="n">geometry</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">slab_ordinates_source</span><span class="p">(</span>
+            <span class="n">flux</span><span class="p">,</span>
+            <span class="n">xs_total</span><span class="p">,</span>
+            <span class="n">zero</span><span class="p">,</span>
+            <span class="n">source</span><span class="p">,</span>
+            <span class="n">boundary</span><span class="p">,</span>
+            <span class="n">medium_map</span><span class="p">,</span>
+            <span class="n">delta_x</span><span class="p">,</span>
+            <span class="n">angle_x</span><span class="p">,</span>
+            <span class="n">angle_w</span><span class="p">,</span>
+            <span class="n">bc_x</span><span class="p">,</span>
+            <span class="n">edges</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Sphere geometry</span>
+    <span class="k">elif</span> <span class="n">geometry</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sphere_ordinates_source</span><span class="p">(</span>
+            <span class="n">flux</span><span class="p">,</span>
+            <span class="n">xs_total</span><span class="p">,</span>
+            <span class="n">zero</span><span class="p">,</span>
+            <span class="n">source</span><span class="p">,</span>
+            <span class="n">boundary</span><span class="p">,</span>
+            <span class="n">medium_map</span><span class="p">,</span>
+            <span class="n">delta_x</span><span class="p">,</span>
+            <span class="n">angle_x</span><span class="p">,</span>
+            <span class="n">angle_w</span><span class="p">,</span>
+            <span class="n">bc_x</span><span class="p">,</span>
+            <span class="n">edges</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_known_scatter</span><span class="p">(</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">scatter_source</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">boundary</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">bc_x</span><span class="p">,</span>
+    <span class="n">geometry</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="c1"># Slab geometry</span>
+    <span class="k">if</span> <span class="n">geometry</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">slab_ordinates_scatter</span><span class="p">(</span>
+            <span class="n">xs_total</span><span class="p">,</span>
+            <span class="n">scatter_source</span><span class="p">,</span>
+            <span class="n">external</span><span class="p">,</span>
+            <span class="n">boundary</span><span class="p">,</span>
+            <span class="n">medium_map</span><span class="p">,</span>
+            <span class="n">delta_x</span><span class="p">,</span>
+            <span class="n">angle_x</span><span class="p">,</span>
+            <span class="n">angle_w</span><span class="p">,</span>
+            <span class="n">bc_x</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Sphere geometry</span>
+    <span class="k">elif</span> <span class="n">geometry</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sphere_ordinates_scatter</span><span class="p">(</span>
+            <span class="n">xs_total</span><span class="p">,</span>
+            <span class="n">scatter_source</span><span class="p">,</span>
+            <span class="n">external</span><span class="p">,</span>
+            <span class="n">boundary</span><span class="p">,</span>
+            <span class="n">medium_map</span><span class="p">,</span>
+            <span class="n">delta_x</span><span class="p">,</span>
+            <span class="n">angle_x</span><span class="p">,</span>
+            <span class="n">angle_w</span><span class="p">,</span>
+            <span class="n">bc_x</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="c1">########################################################################</span>
+<span class="c1"># Slab Sweeps</span>
+<span class="c1">########################################################################</span>
+
+
+<div class="viewcode-block" id="slab_ordinates">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_ordinates">[docs]</a>
+<span class="k">def</span> <span class="nf">slab_ordinates</span><span class="p">(</span>
+    <span class="n">flux_old</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">xs_scatter</span><span class="p">,</span>
+    <span class="n">off_scatter</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">boundary</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">bc_x</span><span class="p">,</span>
+    <span class="n">edges</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
+    <span class="n">reflector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">angles</span><span class="p">,))</span>
+    <span class="n">edge1</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="n">converged</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">change</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">while</span> <span class="ow">not</span> <span class="p">(</span><span class="n">converged</span><span class="p">):</span>
+
+        <span class="n">flux</span> <span class="o">*=</span> <span class="mf">0.0</span>
+        <span class="n">reflector</span> <span class="o">*=</span> <span class="mf">0.0</span>
+
+        <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
+
+            <span class="n">qq</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">external</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+            <span class="n">bc</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">boundary</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+
+            <span class="k">if</span> <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">edge1</span> <span class="o">=</span> <span class="n">reflector</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">+</span> <span class="n">boundary</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bc</span><span class="p">]</span>
+                <span class="n">edge1</span> <span class="o">=</span> <span class="n">slab_forward</span><span class="p">(</span>
+                    <span class="n">flux</span><span class="p">,</span>
+                    <span class="n">flux_old</span><span class="p">,</span>
+                    <span class="n">xs_total</span><span class="p">,</span>
+                    <span class="n">xs_scatter</span><span class="p">,</span>
+                    <span class="n">off_scatter</span><span class="p">,</span>
+                    <span class="n">external</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                    <span class="n">edge1</span><span class="p">,</span>
+                    <span class="n">medium_map</span><span class="p">,</span>
+                    <span class="n">delta_x</span><span class="p">,</span>
+                    <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                    <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                    <span class="n">edges</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">edge1</span> <span class="o">=</span> <span class="n">reflector</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">+</span> <span class="n">boundary</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">bc</span><span class="p">]</span>
+                <span class="n">edge1</span> <span class="o">=</span> <span class="n">slab_backward</span><span class="p">(</span>
+                    <span class="n">flux</span><span class="p">,</span>
+                    <span class="n">flux_old</span><span class="p">,</span>
+                    <span class="n">xs_total</span><span class="p">,</span>
+                    <span class="n">xs_scatter</span><span class="p">,</span>
+                    <span class="n">off_scatter</span><span class="p">,</span>
+                    <span class="n">external</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                    <span class="n">edge1</span><span class="p">,</span>
+                    <span class="n">medium_map</span><span class="p">,</span>
+                    <span class="n">delta_x</span><span class="p">,</span>
+                    <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                    <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                    <span class="n">edges</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Discontinuity at 0&quot;</span><span class="p">)</span>
+
+            <span class="n">tools</span><span class="o">.</span><span class="n">reflector_corrector</span><span class="p">(</span><span class="n">reflector</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">edge1</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">bc_x</span><span class="p">)</span>
+
+        <span class="c1"># Check for convergence</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">change</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">((</span><span class="n">flux</span> <span class="o">-</span> <span class="n">flux_old</span><span class="p">)</span> <span class="o">/</span> <span class="n">flux</span> <span class="o">/</span> <span class="n">cells_x</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">RuntimeWarning</span><span class="p">:</span>
+            <span class="n">change</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">converged</span> <span class="o">=</span> <span class="p">(</span><span class="n">change</span> <span class="o">&lt;</span> <span class="n">change_nn</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">count</span> <span class="o">&gt;=</span> <span class="n">count_nn</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">flux_old</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">flux</span></div>
+
+
+
+<div class="viewcode-block" id="slab_forward">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_forward">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;f8(f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], f8, i4[:], </span><span class="se">\</span>
+<span class="s2">            f8[:], f8, f8, i4)&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">slab_forward</span><span class="p">(</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">flux_old</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">xs_scatter</span><span class="p">,</span>
+    <span class="n">off_scatter</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">edge1</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">edges</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># Get iterables</span>
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">medium_map</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="c1"># Initialize unknown cell edge</span>
+    <span class="n">edge2</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="c1"># Determine flux edge</span>
+    <span class="k">if</span> <span class="n">edges</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">flux</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">angle_w</span> <span class="o">*</span> <span class="n">edge1</span>
+    <span class="c1"># Iterate over cells</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span><span class="p">):</span>
+        <span class="c1"># Determining material cross section</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="c1"># Calculate cell edge unknown</span>
+        <span class="n">edge2</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">xs_scatter</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span> <span class="o">*</span> <span class="n">flux_old</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">external</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">off_scatter</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">edge1</span> <span class="o">*</span> <span class="p">(</span><span class="n">angle_x</span> <span class="o">/</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="o">*</span> <span class="mi">1</span>
+            <span class="o">/</span> <span class="p">(</span><span class="n">angle_x</span> <span class="o">/</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="c1"># Update flux with cell edges</span>
+        <span class="k">if</span> <span class="n">edges</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">flux</span><span class="p">[</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">angle_w</span> <span class="o">*</span> <span class="n">edge2</span>
+        <span class="c1"># Update flux with cell centers</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">angle_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">edge1</span> <span class="o">+</span> <span class="n">edge2</span><span class="p">)</span>
+        <span class="c1"># Update unknown cell edge</span>
+        <span class="n">edge1</span> <span class="o">=</span> <span class="n">edge2</span>
+    <span class="c1"># Return cell at i = I</span>
+    <span class="k">return</span> <span class="n">edge1</span></div>
+
+
+
+<div class="viewcode-block" id="slab_backward">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_backward">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;f8(f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], f8, i4[:], </span><span class="se">\</span>
+<span class="s2">            f8[:], f8, f8, i4)&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">slab_backward</span><span class="p">(</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">flux_old</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">xs_scatter</span><span class="p">,</span>
+    <span class="n">off_scatter</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">edge1</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">edges</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># Get iterables</span>
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">medium_map</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="c1"># Initialize unknown cell edge</span>
+    <span class="n">edge2</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="c1"># Determine flux edge</span>
+    <span class="k">if</span> <span class="n">edges</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">flux</span><span class="p">[</span><span class="n">cells_x</span><span class="p">]</span> <span class="o">+=</span> <span class="n">angle_w</span> <span class="o">*</span> <span class="n">edge1</span>
+    <span class="c1"># Iterate over cells</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="c1"># Determining material cross section</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="c1"># Calculate cell edge unknown</span>
+        <span class="n">edge2</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">xs_scatter</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span> <span class="o">*</span> <span class="n">flux_old</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">external</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">off_scatter</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">edge1</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">angle_x</span> <span class="o">/</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="o">*</span> <span class="mi">1</span>
+            <span class="o">/</span> <span class="p">(</span><span class="o">-</span><span class="n">angle_x</span> <span class="o">/</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="c1"># Update flux with cell edges</span>
+        <span class="k">if</span> <span class="n">edges</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+=</span> <span class="n">angle_w</span> <span class="o">*</span> <span class="n">edge2</span>
+        <span class="c1"># Update flux with cell centers</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">angle_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">edge1</span> <span class="o">+</span> <span class="n">edge2</span><span class="p">)</span>
+        <span class="c1"># Update unknown cell edge</span>
+        <span class="n">edge1</span> <span class="o">=</span> <span class="n">edge2</span>
+    <span class="c1"># Return cell at i = 0</span>
+    <span class="k">return</span> <span class="n">edge1</span></div>
+
+
+
+<span class="c1">########################################################################</span>
+<span class="c1"># Sphere Sweeps</span>
+<span class="c1">########################################################################</span>
+
+
+<div class="viewcode-block" id="sphere_ordinates">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_ordinates">[docs]</a>
+<span class="k">def</span> <span class="nf">sphere_ordinates</span><span class="p">(</span>
+    <span class="n">flux_old</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">xs_scatter</span><span class="p">,</span>
+    <span class="n">off_scatter</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">boundary</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">bc_x</span><span class="p">,</span>
+    <span class="n">edges</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
+    <span class="n">half_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
+    <span class="n">edge1</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="n">converged</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">change</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">while</span> <span class="ow">not</span> <span class="p">(</span><span class="n">converged</span><span class="p">):</span>
+
+        <span class="n">angle_minus</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+        <span class="n">alpha_minus</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="n">flux</span> <span class="o">*=</span> <span class="mf">0.0</span>
+        <span class="c1"># Calculate the initial half angle</span>
+        <span class="n">_half_angle</span><span class="p">(</span>
+            <span class="n">flux_old</span><span class="p">,</span>
+            <span class="n">half_angle</span><span class="p">,</span>
+            <span class="n">xs_total</span><span class="p">,</span>
+            <span class="n">xs_scatter</span><span class="p">,</span>
+            <span class="n">off_scatter</span><span class="p">,</span>
+            <span class="n">external</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="n">medium_map</span><span class="p">,</span>
+            <span class="n">delta_x</span><span class="p">,</span>
+            <span class="n">boundary</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Iterate over the discrete ordinates</span>
+        <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
+
+            <span class="n">qq</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">external</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+            <span class="n">bc</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">boundary</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+
+            <span class="c1"># Calculate the half angle coefficient</span>
+            <span class="n">angle_plus</span> <span class="o">=</span> <span class="n">angle_minus</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span>
+            <span class="c1"># Calculate the weighted diamond</span>
+            <span class="n">tau</span> <span class="o">=</span> <span class="p">(</span><span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">-</span> <span class="n">angle_minus</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">angle_plus</span> <span class="o">-</span> <span class="n">angle_minus</span><span class="p">)</span>
+            <span class="c1"># Calculate the angular differencing coefficient</span>
+            <span class="n">alpha_plus</span> <span class="o">=</span> <span class="n">angle_coef_corrector</span><span class="p">(</span>
+                <span class="n">alpha_minus</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span> <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span> <span class="n">nn</span><span class="p">,</span> <span class="n">angles</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Iterate from 0 -&gt; I</span>
+            <span class="k">if</span> <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">sphere_forward</span><span class="p">(</span>
+                    <span class="n">flux</span><span class="p">,</span>
+                    <span class="n">flux_old</span><span class="p">,</span>
+                    <span class="n">half_angle</span><span class="p">,</span>
+                    <span class="n">xs_total</span><span class="p">,</span>
+                    <span class="n">xs_scatter</span><span class="p">,</span>
+                    <span class="n">off_scatter</span><span class="p">,</span>
+                    <span class="n">external</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                    <span class="n">medium_map</span><span class="p">,</span>
+                    <span class="n">delta_x</span><span class="p">,</span>
+                    <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                    <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                    <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                    <span class="n">tau</span><span class="p">,</span>
+                    <span class="n">alpha_plus</span><span class="p">,</span>
+                    <span class="n">alpha_minus</span><span class="p">,</span>
+                    <span class="n">edges</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="c1"># Iterate from I -&gt; 0</span>
+            <span class="k">elif</span> <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">sphere_backward</span><span class="p">(</span>
+                    <span class="n">flux</span><span class="p">,</span>
+                    <span class="n">flux_old</span><span class="p">,</span>
+                    <span class="n">half_angle</span><span class="p">,</span>
+                    <span class="n">xs_total</span><span class="p">,</span>
+                    <span class="n">xs_scatter</span><span class="p">,</span>
+                    <span class="n">off_scatter</span><span class="p">,</span>
+                    <span class="n">external</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                    <span class="n">boundary</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">bc</span><span class="p">],</span>
+                    <span class="n">medium_map</span><span class="p">,</span>
+                    <span class="n">delta_x</span><span class="p">,</span>
+                    <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                    <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                    <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                    <span class="n">tau</span><span class="p">,</span>
+                    <span class="n">alpha_plus</span><span class="p">,</span>
+                    <span class="n">alpha_minus</span><span class="p">,</span>
+                    <span class="n">edges</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Discontinuity at 0&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Update the angular differencing coefficient</span>
+            <span class="n">alpha_minus</span> <span class="o">=</span> <span class="n">alpha_plus</span>
+            <span class="c1"># Update the half angle</span>
+            <span class="n">angle_minus</span> <span class="o">=</span> <span class="n">angle_plus</span>
+
+        <span class="c1"># Check for convergence</span>
+        <span class="n">change</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">((</span><span class="n">flux</span> <span class="o">-</span> <span class="n">flux_old</span><span class="p">)</span> <span class="o">/</span> <span class="n">flux</span> <span class="o">/</span> <span class="n">cells_x</span><span class="p">)</span>
+        <span class="n">converged</span> <span class="o">=</span> <span class="p">(</span><span class="n">change</span> <span class="o">&lt;</span> <span class="n">change_nn</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">count</span> <span class="o">&gt;=</span> <span class="n">count_nn</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">flux_old</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">flux</span></div>
+
+
+
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;void(f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], i4[:], f8[:], </span><span class="se">\</span>
+<span class="s2">            f8)&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">_half_angle</span><span class="p">(</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">half_angle</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">xs_scatter</span><span class="p">,</span>
+    <span class="n">off_scatter</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_plus</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># Get iterables</span>
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="c1"># Zero out half angle</span>
+    <span class="n">half_angle</span> <span class="o">*=</span> <span class="mf">0.0</span>
+    <span class="c1"># Iterate from sphere surface to center</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="c1"># Calculate angular flux half angle</span>
+        <span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">2</span> <span class="o">*</span> <span class="n">angle_plus</span>
+            <span class="o">+</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">external</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="n">off_scatter</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="n">xs_scatter</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span> <span class="o">*</span> <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">+</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+        <span class="c1"># Update half angle coefficient</span>
+        <span class="n">angle_plus</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">-</span> <span class="n">angle_plus</span>
+
+
+<div class="viewcode-block" id="angle_coef_corrector">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.angle_coef_corrector">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8(f8, f8, f8, i4, i4)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">angle_coef_corrector</span><span class="p">(</span><span class="n">alpha_minus</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">angle_w</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">angles</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">nn</span> <span class="o">!=</span> <span class="n">angles</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">alpha_minus</span> <span class="o">-</span> <span class="n">angle_x</span> <span class="o">*</span> <span class="n">angle_w</span>
+    <span class="k">return</span> <span class="mf">0.0</span></div>
+
+
+
+<div class="viewcode-block" id="sphere_forward">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_forward">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;void(f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], i4[:], </span><span class="se">\</span>
+<span class="s2">            f8[:], f8, f8, f8, f8, f8, f8, i4)&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">sphere_forward</span><span class="p">(</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">flux_old</span><span class="p">,</span>
+    <span class="n">half_angle</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">xs_scatter</span><span class="p">,</span>
+    <span class="n">off_scatter</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">weight</span><span class="p">,</span>
+    <span class="n">tau</span><span class="p">,</span>
+    <span class="n">alpha_plus</span><span class="p">,</span>
+    <span class="n">alpha_minus</span><span class="p">,</span>
+    <span class="n">edges</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># Get iterables</span>
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+
+    <span class="c1"># Initialize known cell edge</span>
+    <span class="n">edge1</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">half_angle</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># Determine flux edge</span>
+    <span class="k">if</span> <span class="n">edges</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">flux</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">edge1</span>
+
+    <span class="c1"># Initialize surface area on cell edges, cell volume, flux center</span>
+    <span class="n">area1</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">area2</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">center</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">volume</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+
+    <span class="c1"># Iterate over cells from 0 -&gt; I (center to edge)</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span><span class="p">):</span>
+        <span class="c1"># For determining the material cross sections</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+
+        <span class="c1"># Calculate surface areas</span>
+        <span class="n">area1</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">ii</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">area2</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">((</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="c1"># Calculate volume of cell</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">4</span> <span class="o">/</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(((</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">3</span> <span class="o">-</span> <span class="p">(</span><span class="n">ii</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Calculate flux at cell center</span>
+        <span class="n">center</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">angle_x</span> <span class="o">*</span> <span class="p">(</span><span class="n">area2</span> <span class="o">+</span> <span class="n">area1</span><span class="p">)</span> <span class="o">*</span> <span class="n">edge1</span>
+            <span class="o">+</span> <span class="mi">1</span>
+            <span class="o">/</span> <span class="n">angle_w</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">area2</span> <span class="o">-</span> <span class="n">area1</span><span class="p">)</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">alpha_plus</span> <span class="o">+</span> <span class="n">alpha_minus</span><span class="p">)</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+            <span class="o">+</span> <span class="n">volume</span> <span class="o">*</span> <span class="p">(</span><span class="n">external</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="n">off_scatter</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="n">flux_old</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">*</span> <span class="n">xs_scatter</span><span class="p">[</span><span class="n">mat</span><span class="p">])</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="mi">2</span> <span class="o">*</span> <span class="n">angle_x</span> <span class="o">*</span> <span class="n">area2</span>
+            <span class="o">+</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">angle_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">area2</span> <span class="o">-</span> <span class="n">area1</span><span class="p">)</span> <span class="o">*</span> <span class="n">alpha_plus</span>
+            <span class="o">+</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span> <span class="o">*</span> <span class="n">volume</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Update flux with cell edges</span>
+        <span class="k">if</span> <span class="n">edges</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">flux</span><span class="p">[</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">weight</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">center</span> <span class="o">-</span> <span class="n">edge1</span><span class="p">)</span>
+        <span class="c1"># Update flux with cell centers</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">center</span>
+
+        <span class="c1"># Update cell edge</span>
+        <span class="n">edge1</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">center</span> <span class="o">-</span> <span class="n">edge1</span>
+
+        <span class="c1"># Update half angle coefficient</span>
+        <span class="k">if</span> <span class="n">ii</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">tau</span> <span class="o">*</span> <span class="p">(</span><span class="n">center</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">tau</span><span class="p">)</span> <span class="o">*</span> <span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="sphere_backward">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_backward">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;void(f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], f8, i4[:], </span><span class="se">\</span>
+<span class="s2">        f8[:], f8, f8, f8, f8, f8, f8, i4)&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">sphere_backward</span><span class="p">(</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">flux_old</span><span class="p">,</span>
+    <span class="n">half_angle</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">xs_scatter</span><span class="p">,</span>
+    <span class="n">off_scatter</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">boundary</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">weight</span><span class="p">,</span>
+    <span class="n">tau</span><span class="p">,</span>
+    <span class="n">alpha_plus</span><span class="p">,</span>
+    <span class="n">alpha_minus</span><span class="p">,</span>
+    <span class="n">edges</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># Get iterables</span>
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+
+    <span class="c1"># Initialize known cell edge</span>
+    <span class="n">edge1</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">boundary</span><span class="p">)</span>
+
+    <span class="c1"># Determine flux edge</span>
+    <span class="k">if</span> <span class="n">edges</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">flux</span><span class="p">[</span><span class="n">cells_x</span><span class="p">]</span> <span class="o">+=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">edge1</span>
+
+    <span class="c1"># Initialize surface area on cell edges, cell volume, flux center</span>
+    <span class="n">area1</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">area2</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">center</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">volume</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+
+    <span class="c1"># Iterate over cells from I -&gt; 0 (edge to center)</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="c1"># For determining the material cross sections</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+
+        <span class="c1"># Calculate surface areas</span>
+        <span class="n">area1</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">ii</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">area2</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">((</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="c1"># Calculate volume of cell</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">4</span> <span class="o">/</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(((</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">3</span> <span class="o">-</span> <span class="p">(</span><span class="n">ii</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Calculate the flux at the cell center</span>
+        <span class="n">center</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="o">-</span><span class="n">angle_x</span> <span class="o">*</span> <span class="p">(</span><span class="n">area2</span> <span class="o">+</span> <span class="n">area1</span><span class="p">)</span> <span class="o">*</span> <span class="n">edge1</span>
+            <span class="o">+</span> <span class="mi">1</span>
+            <span class="o">/</span> <span class="n">angle_w</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">area2</span> <span class="o">-</span> <span class="n">area1</span><span class="p">)</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">alpha_plus</span> <span class="o">+</span> <span class="n">alpha_minus</span><span class="p">)</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+            <span class="o">+</span> <span class="n">volume</span> <span class="o">*</span> <span class="p">(</span><span class="n">external</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="n">off_scatter</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="n">flux_old</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">*</span> <span class="n">xs_scatter</span><span class="p">[</span><span class="n">mat</span><span class="p">])</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="mi">2</span> <span class="o">*</span> <span class="o">-</span><span class="n">angle_x</span> <span class="o">*</span> <span class="n">area1</span>
+            <span class="o">+</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">angle_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">area2</span> <span class="o">-</span> <span class="n">area1</span><span class="p">)</span> <span class="o">*</span> <span class="n">alpha_plus</span>
+            <span class="o">+</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span> <span class="o">*</span> <span class="n">volume</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Update flux with cell edges</span>
+        <span class="k">if</span> <span class="n">edges</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">flux</span><span class="p">[</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">weight</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">center</span> <span class="o">-</span> <span class="n">edge1</span><span class="p">)</span>
+        <span class="c1"># Update flux with cell centers</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">center</span>
+
+        <span class="c1"># Update cell edge</span>
+        <span class="n">edge1</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">center</span> <span class="o">-</span> <span class="n">edge1</span>
+
+        <span class="c1"># Update half angle coefficient</span>
+        <span class="k">if</span> <span class="n">ii</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">tau</span> <span class="o">*</span> <span class="p">(</span><span class="n">center</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">tau</span><span class="p">)</span> <span class="o">*</span> <span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span></div>
+
+
+
+<span class="c1">########################################################################</span>
+<span class="c1"># Slab Sweeps - Known Source</span>
+<span class="c1">########################################################################</span>
+
+
+<div class="viewcode-block" id="slab_ordinates_source">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_ordinates_source">[docs]</a>
+<span class="k">def</span> <span class="nf">slab_ordinates_source</span><span class="p">(</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">zero</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">,</span>
+    <span class="n">boundary</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">bc_x</span><span class="p">,</span>
+    <span class="n">edges</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">xdim</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">reflector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">angles</span><span class="p">,))</span>
+    <span class="n">edge1</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
+
+        <span class="n">qq</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+        <span class="n">bc</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">boundary</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+
+        <span class="c1"># Scalar flux calculation</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">xdim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">edge1</span> <span class="o">=</span> <span class="n">reflector</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">+</span> <span class="n">boundary</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bc</span><span class="p">]</span>
+            <span class="n">edge1</span> <span class="o">=</span> <span class="n">slab_forward</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">xs_total</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">source</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                <span class="n">edge1</span><span class="p">,</span>
+                <span class="n">medium_map</span><span class="p">,</span>
+                <span class="n">delta_x</span><span class="p">,</span>
+                <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">edges</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="p">(</span><span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">xdim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">edge1</span> <span class="o">=</span> <span class="n">reflector</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">+</span> <span class="n">boundary</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">bc</span><span class="p">]</span>
+            <span class="n">edge1</span> <span class="o">=</span> <span class="n">slab_backward</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">xs_total</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">source</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                <span class="n">edge1</span><span class="p">,</span>
+                <span class="n">medium_map</span><span class="p">,</span>
+                <span class="n">delta_x</span><span class="p">,</span>
+                <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">edges</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Angular flux calculation</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">xdim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">edge1</span> <span class="o">=</span> <span class="n">reflector</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">+</span> <span class="n">boundary</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bc</span><span class="p">]</span>
+            <span class="n">edge1</span> <span class="o">=</span> <span class="n">slab_forward</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">[:,</span> <span class="n">nn</span><span class="p">],</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">xs_total</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">source</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                <span class="n">edge1</span><span class="p">,</span>
+                <span class="n">medium_map</span><span class="p">,</span>
+                <span class="n">delta_x</span><span class="p">,</span>
+                <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="mf">1.0</span><span class="p">,</span>
+                <span class="n">edges</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="p">(</span><span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">xdim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">edge1</span> <span class="o">=</span> <span class="n">reflector</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">+</span> <span class="n">boundary</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">bc</span><span class="p">]</span>
+            <span class="n">edge1</span> <span class="o">=</span> <span class="n">slab_backward</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">[:,</span> <span class="n">nn</span><span class="p">],</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">xs_total</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">source</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                <span class="n">edge1</span><span class="p">,</span>
+                <span class="n">medium_map</span><span class="p">,</span>
+                <span class="n">delta_x</span><span class="p">,</span>
+                <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="mf">1.0</span><span class="p">,</span>
+                <span class="n">edges</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">tools</span><span class="o">.</span><span class="n">reflector_corrector</span><span class="p">(</span><span class="n">reflector</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">edge1</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">bc_x</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">flux</span></div>
+
+
+
+<div class="viewcode-block" id="sphere_ordinates_source">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_ordinates_source">[docs]</a>
+<span class="k">def</span> <span class="nf">sphere_ordinates_source</span><span class="p">(</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">zero</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">,</span>
+    <span class="n">boundary</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">bc_x</span><span class="p">,</span>
+    <span class="n">edges</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="n">cells_x</span><span class="p">,</span> <span class="n">xdim</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
+    <span class="n">half_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
+    <span class="n">edge1</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># Initialize sphere coefficients</span>
+    <span class="n">angle_minus</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+    <span class="n">alpha_minus</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># Calculate the initial half angle</span>
+    <span class="n">_half_angle</span><span class="p">(</span>
+        <span class="n">zero</span><span class="p">,</span>
+        <span class="n">half_angle</span><span class="p">,</span>
+        <span class="n">xs_total</span><span class="p">,</span>
+        <span class="n">zero</span><span class="p">,</span>
+        <span class="n">zero</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="n">medium_map</span><span class="p">,</span>
+        <span class="n">delta_x</span><span class="p">,</span>
+        <span class="n">boundary</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Iterate over the discrete ordinates</span>
+    <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
+
+        <span class="n">qq</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+        <span class="n">bc</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">boundary</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+
+        <span class="c1"># Calculate the half angle coefficient</span>
+        <span class="n">angle_plus</span> <span class="o">=</span> <span class="n">angle_minus</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span>
+        <span class="c1"># Calculate the weighted diamond</span>
+        <span class="n">tau</span> <span class="o">=</span> <span class="p">(</span><span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">-</span> <span class="n">angle_minus</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">angle_plus</span> <span class="o">-</span> <span class="n">angle_minus</span><span class="p">)</span>
+        <span class="c1"># Calculate the angular differencing coefficient</span>
+        <span class="n">alpha_plus</span> <span class="o">=</span> <span class="n">angle_coef_corrector</span><span class="p">(</span>
+            <span class="n">alpha_minus</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span> <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span> <span class="n">nn</span><span class="p">,</span> <span class="n">angles</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Scalar flux calculation</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">xdim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">sphere_forward</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">half_angle</span><span class="p">,</span>
+                <span class="n">xs_total</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">source</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                <span class="n">medium_map</span><span class="p">,</span>
+                <span class="n">delta_x</span><span class="p">,</span>
+                <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">tau</span><span class="p">,</span>
+                <span class="n">alpha_plus</span><span class="p">,</span>
+                <span class="n">alpha_minus</span><span class="p">,</span>
+                <span class="n">edges</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="p">(</span><span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">xdim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">sphere_backward</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">half_angle</span><span class="p">,</span>
+                <span class="n">xs_total</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">source</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                <span class="n">boundary</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">bc</span><span class="p">],</span>
+                <span class="n">medium_map</span><span class="p">,</span>
+                <span class="n">delta_x</span><span class="p">,</span>
+                <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">tau</span><span class="p">,</span>
+                <span class="n">alpha_plus</span><span class="p">,</span>
+                <span class="n">alpha_minus</span><span class="p">,</span>
+                <span class="n">edges</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Angular flux calculation</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">xdim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">sphere_forward</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">[:,</span> <span class="n">nn</span><span class="p">],</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">half_angle</span><span class="p">,</span>
+                <span class="n">xs_total</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">source</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                <span class="n">medium_map</span><span class="p">,</span>
+                <span class="n">delta_x</span><span class="p">,</span>
+                <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="mf">1.0</span><span class="p">,</span>
+                <span class="n">tau</span><span class="p">,</span>
+                <span class="n">alpha_plus</span><span class="p">,</span>
+                <span class="n">alpha_minus</span><span class="p">,</span>
+                <span class="n">edges</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="p">(</span><span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">xdim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">sphere_backward</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">[:,</span> <span class="n">nn</span><span class="p">],</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">half_angle</span><span class="p">,</span>
+                <span class="n">xs_total</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">zero</span><span class="p">,</span>
+                <span class="n">source</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                <span class="n">boundary</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">bc</span><span class="p">],</span>
+                <span class="n">medium_map</span><span class="p">,</span>
+                <span class="n">delta_x</span><span class="p">,</span>
+                <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="mf">1.0</span><span class="p">,</span>
+                <span class="n">tau</span><span class="p">,</span>
+                <span class="n">alpha_plus</span><span class="p">,</span>
+                <span class="n">alpha_minus</span><span class="p">,</span>
+                <span class="n">edges</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Update the angular differencing coefficient</span>
+        <span class="n">alpha_minus</span> <span class="o">=</span> <span class="n">alpha_plus</span>
+        <span class="c1"># Update the half angle</span>
+        <span class="n">angle_minus</span> <span class="o">=</span> <span class="n">angle_plus</span>
+
+    <span class="k">return</span> <span class="n">flux</span></div>
+
+
+
+<span class="c1">########################################################################</span>
+<span class="c1"># Slab Sweeps - DJINN</span>
+<span class="c1">########################################################################</span>
+
+
+<div class="viewcode-block" id="slab_ordinates_scatter">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_ordinates_scatter">[docs]</a>
+<span class="k">def</span> <span class="nf">slab_ordinates_scatter</span><span class="p">(</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">scatter_source</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">boundary</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">bc_x</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">medium_map</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
+    <span class="n">reflector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">angles</span><span class="p">,))</span>
+    <span class="n">edge1</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
+
+        <span class="n">qq</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">external</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+        <span class="n">bc</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">external</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+
+        <span class="k">if</span> <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">edge1</span> <span class="o">=</span> <span class="n">reflector</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">+</span> <span class="n">boundary</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bc</span><span class="p">]</span>
+            <span class="n">edge1</span> <span class="o">=</span> <span class="n">slab_forward_scatter</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">,</span>
+                <span class="n">xs_total</span><span class="p">,</span>
+                <span class="n">scatter_source</span><span class="p">,</span>
+                <span class="n">external</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                <span class="n">edge1</span><span class="p">,</span>
+                <span class="n">medium_map</span><span class="p">,</span>
+                <span class="n">delta_x</span><span class="p">,</span>
+                <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">edge1</span> <span class="o">=</span> <span class="n">reflector</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">+</span> <span class="n">boundary</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">bc</span><span class="p">]</span>
+            <span class="n">edge1</span> <span class="o">=</span> <span class="n">slab_backward_scatter</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">,</span>
+                <span class="n">xs_total</span><span class="p">,</span>
+                <span class="n">scatter_source</span><span class="p">,</span>
+                <span class="n">external</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                <span class="n">edge1</span><span class="p">,</span>
+                <span class="n">medium_map</span><span class="p">,</span>
+                <span class="n">delta_x</span><span class="p">,</span>
+                <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Discontinuity at 0&quot;</span><span class="p">)</span>
+
+        <span class="n">tools</span><span class="o">.</span><span class="n">reflector_corrector</span><span class="p">(</span><span class="n">reflector</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">edge1</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">bc_x</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">flux</span></div>
+
+
+
+<div class="viewcode-block" id="slab_forward_scatter">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_forward_scatter">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;f8(f8[:], f8[:], f8[:], f8[:], f8, i4[:], f8[:], f8, f8)&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">slab_forward_scatter</span><span class="p">(</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">scatter_source</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">edge1</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># Get iterables</span>
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="c1"># Initialize unknown cell edge</span>
+    <span class="n">edge2</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="c1"># Iterate over cells</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span><span class="p">):</span>
+        <span class="c1"># Determining material cross section</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="c1"># Calculate cell edge unknown</span>
+        <span class="n">edge2</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">scatter_source</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">external</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">edge1</span> <span class="o">*</span> <span class="p">(</span><span class="n">angle_x</span> <span class="o">/</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="o">*</span> <span class="mi">1</span>
+            <span class="o">/</span> <span class="p">(</span><span class="n">angle_x</span> <span class="o">/</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="c1"># Update flux with cell centers</span>
+        <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">angle_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">edge1</span> <span class="o">+</span> <span class="n">edge2</span><span class="p">)</span>
+        <span class="c1"># Update unknown cell edge</span>
+        <span class="n">edge1</span> <span class="o">=</span> <span class="n">edge2</span>
+    <span class="c1"># Return cell at i = I</span>
+    <span class="k">return</span> <span class="n">edge1</span></div>
+
+
+
+<div class="viewcode-block" id="slab_backward_scatter">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_backward_scatter">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;f8(f8[:], f8[:], f8[:], f8[:], f8, i4[:], f8[:], f8, f8)&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">slab_backward_scatter</span><span class="p">(</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">scatter_source</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">edge1</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># Get iterables</span>
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="c1"># Initialize unknown cell edge</span>
+    <span class="n">edge2</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="c1"># Iterate over cells</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="c1"># Determining material cross section</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="c1"># Calculate cell edge unknown</span>
+        <span class="n">edge2</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">scatter_source</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">external</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">edge1</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">angle_x</span> <span class="o">/</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="o">*</span> <span class="mi">1</span>
+            <span class="o">/</span> <span class="p">(</span><span class="o">-</span><span class="n">angle_x</span> <span class="o">/</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="c1"># Update flux with cell centers</span>
+        <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">angle_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">edge1</span> <span class="o">+</span> <span class="n">edge2</span><span class="p">)</span>
+        <span class="c1"># Update unknown cell edge</span>
+        <span class="n">edge1</span> <span class="o">=</span> <span class="n">edge2</span>
+    <span class="c1"># Return cell at i = 0</span>
+    <span class="k">return</span> <span class="n">edge1</span></div>
+
+
+
+<span class="c1">########################################################################</span>
+<span class="c1"># Sphere Sweeps - DJINN</span>
+<span class="c1">########################################################################</span>
+
+
+<div class="viewcode-block" id="sphere_ordinates_scatter">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_ordinates_scatter">[docs]</a>
+<span class="k">def</span> <span class="nf">sphere_ordinates_scatter</span><span class="p">(</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">scatter_source</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">boundary</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">bc_x</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">medium_map</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
+    <span class="n">half_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
+    <span class="n">edge1</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="n">angle_minus</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+    <span class="n">alpha_minus</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># Calculate the initial half angle</span>
+    <span class="n">_half_angle_scatter</span><span class="p">(</span>
+        <span class="n">half_angle</span><span class="p">,</span>
+        <span class="n">xs_total</span><span class="p">,</span>
+        <span class="n">scatter_source</span><span class="p">,</span>
+        <span class="n">external</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="n">medium_map</span><span class="p">,</span>
+        <span class="n">delta_x</span><span class="p">,</span>
+        <span class="n">boundary</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Iterate over the discrete ordinates</span>
+    <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
+
+        <span class="n">qq</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">external</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+        <span class="n">bc</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">external</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+
+        <span class="c1"># Calculate the half angle coefficient</span>
+        <span class="n">angle_plus</span> <span class="o">=</span> <span class="n">angle_minus</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span>
+        <span class="c1"># Calculate the weighted diamond</span>
+        <span class="n">tau</span> <span class="o">=</span> <span class="p">(</span><span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">-</span> <span class="n">angle_minus</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">angle_plus</span> <span class="o">-</span> <span class="n">angle_minus</span><span class="p">)</span>
+        <span class="c1"># Calculate the angular differencing coefficient</span>
+        <span class="n">alpha_plus</span> <span class="o">=</span> <span class="n">angle_coef_corrector</span><span class="p">(</span>
+            <span class="n">alpha_minus</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span> <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span> <span class="n">nn</span><span class="p">,</span> <span class="n">angles</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Iterate from 0 -&gt; I</span>
+        <span class="k">if</span> <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">sphere_forward_scatter</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">,</span>
+                <span class="n">half_angle</span><span class="p">,</span>
+                <span class="n">xs_total</span><span class="p">,</span>
+                <span class="n">scatter_source</span><span class="p">,</span>
+                <span class="n">external</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                <span class="n">medium_map</span><span class="p">,</span>
+                <span class="n">delta_x</span><span class="p">,</span>
+                <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">tau</span><span class="p">,</span>
+                <span class="n">alpha_plus</span><span class="p">,</span>
+                <span class="n">alpha_minus</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Iterate from I -&gt; 0</span>
+        <span class="k">elif</span> <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">sphere_backward_scatter</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">,</span>
+                <span class="n">half_angle</span><span class="p">,</span>
+                <span class="n">xs_total</span><span class="p">,</span>
+                <span class="n">scatter_source</span><span class="p">,</span>
+                <span class="n">external</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                <span class="n">boundary</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">bc</span><span class="p">],</span>
+                <span class="n">medium_map</span><span class="p">,</span>
+                <span class="n">delta_x</span><span class="p">,</span>
+                <span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span>
+                <span class="n">tau</span><span class="p">,</span>
+                <span class="n">alpha_plus</span><span class="p">,</span>
+                <span class="n">alpha_minus</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Discontinuity at 0&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Update the angular differencing coefficient</span>
+        <span class="n">alpha_minus</span> <span class="o">=</span> <span class="n">alpha_plus</span>
+        <span class="c1"># Update the half angle</span>
+        <span class="n">angle_minus</span> <span class="o">=</span> <span class="n">angle_plus</span>
+
+    <span class="k">return</span> <span class="n">flux</span></div>
+
+
+
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;void(f8[:], f8[:], f8[:], f8[:], i4[:], f8[:], f8)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">_half_angle_scatter</span><span class="p">(</span>
+    <span class="n">half_angle</span><span class="p">,</span> <span class="n">xs_total</span><span class="p">,</span> <span class="n">scatter_source</span><span class="p">,</span> <span class="n">external</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">delta_x</span><span class="p">,</span> <span class="n">angle_plus</span>
+<span class="p">):</span>
+    <span class="c1"># Get iterables</span>
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">medium_map</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="c1"># Zero out half angle</span>
+    <span class="n">half_angle</span> <span class="o">*=</span> <span class="mf">0.0</span>
+    <span class="c1"># Iterate from sphere surface to center</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="c1"># Calculate angular flux half angle</span>
+        <span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">2</span> <span class="o">*</span> <span class="n">angle_plus</span> <span class="o">+</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">external</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="n">scatter_source</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">+</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+        <span class="c1"># Update half angle coefficient</span>
+        <span class="n">angle_plus</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">-</span> <span class="n">angle_plus</span>
+
+
+<div class="viewcode-block" id="sphere_forward_scatter">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_forward_scatter">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;void(f8[:], f8[:], f8[:], f8[:], f8[:], i4[:], f8[:], f8, </span><span class="se">\</span>
+<span class="s2">            f8, f8, f8, f8, f8)&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">sphere_forward_scatter</span><span class="p">(</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">half_angle</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">scatter_source</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">weight</span><span class="p">,</span>
+    <span class="n">tau</span><span class="p">,</span>
+    <span class="n">alpha_plus</span><span class="p">,</span>
+    <span class="n">alpha_minus</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># Get iterables</span>
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+
+    <span class="c1"># Initialize known cell edge</span>
+    <span class="n">edge1</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">half_angle</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># Initialize surface area on cell edges, cell volume, flux center</span>
+    <span class="n">area1</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">area2</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">center</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">volume</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+
+    <span class="c1"># Iterate over cells from 0 -&gt; I (center to edge)</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span><span class="p">):</span>
+        <span class="c1"># For determining the material cross sections</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+
+        <span class="c1"># Calculate surface areas</span>
+        <span class="n">area1</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">ii</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">area2</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">((</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+
+        <span class="c1"># Calculate volume of cell</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">4</span> <span class="o">/</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(((</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">3</span> <span class="o">-</span> <span class="p">(</span><span class="n">ii</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Calculate flux at cell center</span>
+        <span class="n">center</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">angle_x</span> <span class="o">*</span> <span class="p">(</span><span class="n">area2</span> <span class="o">+</span> <span class="n">area1</span><span class="p">)</span> <span class="o">*</span> <span class="n">edge1</span>
+            <span class="o">+</span> <span class="mi">1</span>
+            <span class="o">/</span> <span class="n">angle_w</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">area2</span> <span class="o">-</span> <span class="n">area1</span><span class="p">)</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">alpha_plus</span> <span class="o">+</span> <span class="n">alpha_minus</span><span class="p">)</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+            <span class="o">+</span> <span class="n">volume</span> <span class="o">*</span> <span class="p">(</span><span class="n">external</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="n">scatter_source</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="mi">2</span> <span class="o">*</span> <span class="n">angle_x</span> <span class="o">*</span> <span class="n">area2</span>
+            <span class="o">+</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">angle_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">area2</span> <span class="o">-</span> <span class="n">area1</span><span class="p">)</span> <span class="o">*</span> <span class="n">alpha_plus</span>
+            <span class="o">+</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span> <span class="o">*</span> <span class="n">volume</span>
+        <span class="p">)</span>
+
+        <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">center</span>
+        <span class="n">edge1</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">center</span> <span class="o">-</span> <span class="n">edge1</span>
+
+        <span class="c1"># Update half angle coefficient</span>
+        <span class="k">if</span> <span class="n">ii</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">tau</span> <span class="o">*</span> <span class="p">(</span><span class="n">center</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">tau</span><span class="p">)</span> <span class="o">*</span> <span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="sphere_backward_scatter">
+<a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_backward_scatter">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;void(f8[:], f8[:], f8[:], f8[:], f8[:], f8, i4[:], f8[:], </span><span class="se">\</span>
+<span class="s2">            f8, f8, f8, f8, f8, f8)&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">sphere_backward_scatter</span><span class="p">(</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">half_angle</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">scatter_source</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">boundary</span><span class="p">,</span>
+    <span class="n">medium_map</span><span class="p">,</span>
+    <span class="n">delta_x</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">weight</span><span class="p">,</span>
+    <span class="n">tau</span><span class="p">,</span>
+    <span class="n">alpha_plus</span><span class="p">,</span>
+    <span class="n">alpha_minus</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># Get iterables</span>
+    <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+
+    <span class="c1"># Initialize known cell edge</span>
+    <span class="n">edge1</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">boundary</span><span class="p">)</span>
+    <span class="n">edge1</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># Initialize surface area on cell edges, cell volume, flux center</span>
+    <span class="n">area1</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">area2</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">center</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">volume</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+
+    <span class="c1"># Iterate over cells from I -&gt; 0 (edge to center)</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="c1"># For determining the material cross sections</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+
+        <span class="c1"># Calculate surface areas</span>
+        <span class="n">area1</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">ii</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">area2</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">((</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="c1"># Calculate volume of cell</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">4</span> <span class="o">/</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(((</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">3</span> <span class="o">-</span> <span class="p">(</span><span class="n">ii</span> <span class="o">*</span> <span class="n">delta_x</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Calculate the flux at the cell center</span>
+        <span class="n">center</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="o">-</span><span class="n">angle_x</span> <span class="o">*</span> <span class="p">(</span><span class="n">area2</span> <span class="o">+</span> <span class="n">area1</span><span class="p">)</span> <span class="o">*</span> <span class="n">edge1</span>
+            <span class="o">+</span> <span class="mi">1</span>
+            <span class="o">/</span> <span class="n">angle_w</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">area2</span> <span class="o">-</span> <span class="n">area1</span><span class="p">)</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">alpha_plus</span> <span class="o">+</span> <span class="n">alpha_minus</span><span class="p">)</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+            <span class="o">+</span> <span class="n">volume</span> <span class="o">*</span> <span class="p">(</span><span class="n">external</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="n">scatter_source</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="mi">2</span> <span class="o">*</span> <span class="o">-</span><span class="n">angle_x</span> <span class="o">*</span> <span class="n">area1</span>
+            <span class="o">+</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">angle_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">area2</span> <span class="o">-</span> <span class="n">area1</span><span class="p">)</span> <span class="o">*</span> <span class="n">alpha_plus</span>
+            <span class="o">+</span> <span class="n">xs_total</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span> <span class="o">*</span> <span class="n">volume</span>
+        <span class="p">)</span>
+
+        <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">center</span>
+        <span class="n">edge1</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">center</span> <span class="o">-</span> <span class="n">edge1</span>
+
+        <span class="c1"># Update half angle coefficient</span>
+        <span class="k">if</span> <span class="n">ii</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">tau</span> <span class="o">*</span> <span class="p">(</span><span class="n">center</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">tau</span><span class="p">)</span> <span class="o">*</span> <span class="n">half_angle</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">discrete1</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../steady_state.html">steady_state</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Ben Whewell.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

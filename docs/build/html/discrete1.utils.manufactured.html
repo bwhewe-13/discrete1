@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>discrete1.utils.manufactured module &#8212; discrete1 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/agogo.css?v=47acb022" />
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="header-wrapper" role="banner">
+      <div class="header">
+        <div class="headertitle"><a
+          href="index.html">discrete1 0.1 documentation</a></div>
+        <div class="rel" role="navigation" aria-label="related navigation">
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-discrete1.utils.manufactured">
+<span id="discrete1-utils-manufactured-module"></span><h1>discrete1.utils.manufactured module<a class="headerlink" href="#module-discrete1.utils.manufactured" title="Link to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.utils.manufactured.order_accuracy">
+<span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">order_accuracy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratio</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#order_accuracy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.order_accuracy" title="Link to this definition">¶</a></dt>
+<dd><p>Finding the order of accuracy between errors on different
+grids, where error2 is the refined grid
+Arguments:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>error1 (double): Error between an approximate solution and the</dt><dd><p>reference solution on the same grid</p>
+</dd>
+<dt>error2 (double): Error between an approximate solution and the</dt><dd><p>reference solution on a more refined grid</p>
+</dd>
+<dt>ratio (double): Ratio between the spatial cell width of the error1</dt><dd><p>grid and the error2 grid (delta x1 / delta x2)</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>Order of accuracy</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_ss_01">
+<span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_ss_01</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_ss_01"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_ss_01" title="Link to this definition">¶</a></dt>
+<dd><p>One material, single direction</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_ss_02">
+<span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_ss_02</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_ss_02"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_ss_02" title="Link to this definition">¶</a></dt>
+<dd><p>One material, angular dependent</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_ss_03">
+<span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_ss_03</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_ss_03"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_ss_03" title="Link to this definition">¶</a></dt>
+<dd><p>One material, angular dependent, with source</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_ss_04">
+<span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_ss_04</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_ss_04"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_ss_04" title="Link to this definition">¶</a></dt>
+<dd><p>Two materials, angular independent</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_ss_05">
+<span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_ss_05</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_ss_05"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_ss_05" title="Link to this definition">¶</a></dt>
+<dd><p>Two materials, angular dependent</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_td_01">
+<span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_td_01</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_td_01"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_td_01" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_td_02">
+<span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_td_02</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_td_02"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_td_02" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.utils.manufactured.spatial_error">
+<span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">spatial_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">approx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#spatial_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.spatial_error" title="Link to this definition">¶</a></dt>
+<dd><p>Calculating the spatial error between an approximation and the
+reference solution
+Arguments:</p>
+<blockquote>
+<div><p>approx (array double): approximate flux
+reference (array double): Reference flux
+ndims (int): Number of spatial dimensions for flux (1 or 2)</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>L2 error normalized for the number of spatial cells</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.utils.manufactured.wynn_epsilon">
+<span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">wynn_epsilon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lst</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#wynn_epsilon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.wynn_epsilon" title="Link to this definition">¶</a></dt>
+<dd><p>Perform Wynn Epsilon Convergence Algorithm
+Arguments:</p>
+<blockquote>
+<div><p>lst: list of values for convergence
+rank: rank of system</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>2D Array where diagonal is convergence</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          
+          <h3>Table of Contents</h3>
+          <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="steady_state.html">steady_state</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+</ul>
+
+          <div role="search">
+            <h3 style="margin-top: 1.5em;">Search</h3>
+            <form class="search" action="search.html" method="get">
+                <input type="text" name="q" />
+                <input type="submit" value="Go" />
+            </form>
+          </div>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+          <div role="navigation" aria-label="related navigaton">
+            <a href="py-modindex.html" title="Python Module Index"
+              >modules</a> |
+            <a href="genindex.html" title="General Index"
+              >index</a>
+          </div>
+          <div role="note" aria-label="source link">
+              <br/>
+              <a href="_sources/discrete1.utils.manufactured.rst.txt"
+                rel="nofollow">Show Source</a>
+          </div>
+        </div>
+
+        <div class="right">
+          
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2021, Ben Whewell.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+    </div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+  </body>
+</html>

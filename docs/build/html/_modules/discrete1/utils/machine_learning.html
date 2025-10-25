@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>discrete1.utils.machine_learning &#8212; discrete1 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=039e1c02" />
+    <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for discrete1.utils.machine_learning</h1><div class="highlight"><pre>
+<span></span>
+<span class="c1"># This is for cleaning, running and transforming DJINN models</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">glob</span> <span class="kn">import</span> <span class="n">glob</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;TF_CPP_MIN_LOG_LEVEL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;2&quot;</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">djinn</span> <span class="kn">import</span> <span class="n">djinn</span>
+
+
+<span class="k">def</span> <span class="nf">_combine_flux_reaction</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_matrix</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+    <span class="c1"># Flux parameters</span>
+    <span class="n">iterations</span><span class="p">,</span> <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
+    <span class="c1"># Initialize training data</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="n">iterations</span><span class="p">,</span> <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="c1"># Iterate over iterations and spatial cells</span>
+    <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span><span class="p">):</span>
+            <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+            <span class="c1"># Add labels</span>
+            <span class="n">data</span><span class="p">[:,</span><span class="n">cc</span><span class="p">,</span><span class="n">ii</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+            <span class="c1"># Add flux (x variable)</span>
+            <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">cc</span><span class="p">,</span><span class="n">ii</span><span class="p">,</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">flux</span><span class="p">[</span><span class="n">cc</span><span class="p">,</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="c1"># Add reaction rate (y variable)</span>
+            <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="n">cc</span><span class="p">,</span><span class="n">ii</span><span class="p">,</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">flux</span><span class="p">[</span><span class="n">cc</span><span class="p">,</span><span class="n">ii</span><span class="p">]</span> <span class="o">@</span> <span class="n">xs_matrix</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+    <span class="c1"># Collapse iteration and spatial dimensions</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">iterations</span> <span class="o">*</span> <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># Remove zero values</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">,</span><span class="mi">1</span><span class="p">:],</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span><span class="n">idx</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">data</span>
+
+
+<span class="k">def</span> <span class="nf">_split_by_material</span><span class="p">(</span><span class="n">training_data</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">splits</span><span class="p">):</span>
+    <span class="c1"># Splits is list([string name, [float labels]])</span>
+    <span class="c1"># i.e. [[&quot;hdpe&quot;, [15.04]], [&quot;uh3&quot;, [0.0, 0.15]]]</span>
+
+    <span class="c1"># Initialize counter</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># Iterate over splits</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">splits</span><span class="p">:</span>
+        <span class="c1"># Identify location of labels</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="p">))</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="c1"># Continue for non-existant labels</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="c1"># Separate data</span>
+        <span class="n">split_data</span> <span class="o">=</span> <span class="n">training_data</span><span class="p">[:,</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="c1"># Keeping track of data points</span>
+        <span class="n">counts</span> <span class="o">+=</span> <span class="n">split_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># Save data</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">xs</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_training_data&quot;</span><span class="p">,</span> <span class="n">split_data</span><span class="p">)</span>
+    <span class="c1"># Making sure no data was lost</span>
+    <span class="k">assert</span> <span class="n">counts</span> <span class="o">==</span> <span class="n">training_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;Need to equal&quot;</span>
+
+
+<div class="viewcode-block" id="clean_data_fission">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.clean_data_fission">[docs]</a>
+<span class="k">def</span> <span class="nf">clean_data_fission</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">splits</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Takes the flux before the fission rates are calculated (x data),</span>
+<span class="sd">    calculates the reaction rates (y data), and adds a label for the</span>
+<span class="sd">    enrichment level (G+1). Also removes non-fissioning materials.</span>
+<span class="sd">    Arguments:</span>
+<span class="sd">        path (str): location of all files named in djinn1d.collections()</span>
+<span class="sd">        labels (float [materials]): labels for each of the materials</span>
+<span class="sd">        splits (list [name, [labels]]): splitting training data into </span>
+<span class="sd">                                    fissible and non-fissible materials</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Processed data saved to path</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Load the data</span>
+    <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;flux_fission_model.npy&quot;</span><span class="p">)</span>
+    <span class="n">xs_fission</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;fission_cross_sections.npy&quot;</span><span class="p">)</span>
+    <span class="n">medium_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;medium_map.npy&quot;</span><span class="p">)</span>
+    <span class="n">training_data</span> <span class="o">=</span> <span class="n">_combine_flux_reaction</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">splits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_split_by_material</span><span class="p">(</span><span class="n">training_data</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="s2">&quot;fission&quot;</span><span class="p">,</span> <span class="n">splits</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;fission_training_data&quot;</span><span class="p">,</span> <span class="n">training_data</span><span class="p">)</span></div>
+
+    <span class="c1"># return training_data</span>
+
+
+<div class="viewcode-block" id="clean_data_scatter">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.clean_data_scatter">[docs]</a>
+<span class="k">def</span> <span class="nf">clean_data_scatter</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">splits</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Takes the flux before the scattering rates are calculated (x data),</span>
+<span class="sd">    calculates the reaction rates (y data), and adds a label for the</span>
+<span class="sd">    enrichment level (G+1).</span>
+<span class="sd">    Arguments:</span>
+<span class="sd">        path (str): location of all files named in djinn1d.collections()</span>
+<span class="sd">        labels (float [materials]): labels for each of the materials</span>
+<span class="sd">        splits (list [name, [labels]]): splitting training data into </span>
+<span class="sd">                                    fissible and non-fissible materials</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Processed data saved to path</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Load the data</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">glob</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;flux_scatter_model*.npy&quot;</span><span class="p">))</span>
+    <span class="n">xs_scatter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;scatter_cross_sections.npy&quot;</span><span class="p">)</span>
+    <span class="n">medium_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;medium_map.npy&quot;</span><span class="p">)</span>
+    <span class="n">training_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="n">single_iteration</span> <span class="o">=</span> <span class="n">_combine_flux_reaction</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> \
+                                                  <span class="n">medium_map</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+        <span class="n">training_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">training_data</span><span class="p">,</span> <span class="n">single_iteration</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">splits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_split_by_material</span><span class="p">(</span><span class="n">training_data</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="s2">&quot;scatter&quot;</span><span class="p">,</span> <span class="n">splits</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;scatter_training_data&quot;</span><span class="p">,</span> <span class="n">training_data</span><span class="p">)</span></div>
+
+    <span class="c1"># return training_data</span>
+
+
+<div class="viewcode-block" id="min_max_normalization">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.min_max_normalization">[docs]</a>
+<span class="k">def</span> <span class="nf">min_max_normalization</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="c1"># Find maximum and minimum values</span>
+    <span class="n">high</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">high</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">low</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="c1"># Normalize between 0 and 1</span>
+    <span class="n">ndata</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">low</span><span class="p">[:,</span><span class="kc">None</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">high</span> <span class="o">-</span> <span class="n">low</span><span class="p">)[:,</span><span class="kc">None</span><span class="p">]</span>
+    <span class="c1"># Remove undesirables</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">ndata</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="c1"># Return high and low values</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ndata</span><span class="p">,</span> <span class="n">high</span><span class="p">,</span> <span class="n">low</span>
+    <span class="k">return</span> <span class="n">ndata</span></div>
+
+
+
+<div class="viewcode-block" id="root_normalization">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.root_normalization">[docs]</a>
+<span class="k">def</span> <span class="nf">root_normalization</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">root</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">data</span> <span class="o">**</span> <span class="n">root</span></div>
+
+
+
+<div class="viewcode-block" id="mean_absolute_error">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.mean_absolute_error">[docs]</a>
+<span class="k">def</span> <span class="nf">mean_absolute_error</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">y_true</span> <span class="o">-</span> <span class="n">y_pred</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="mean_squared_error">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.mean_squared_error">[docs]</a>
+<span class="k">def</span> <span class="nf">mean_squared_error</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">y_true</span> <span class="o">-</span> <span class="n">y_pred</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="root_mean_squared_error">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.root_mean_squared_error">[docs]</a>
+<span class="k">def</span> <span class="nf">root_mean_squared_error</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mean_squared_error</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="explained_variance_score">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.explained_variance_score">[docs]</a>
+<span class="k">def</span> <span class="nf">explained_variance_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+    <span class="n">evs</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">y_true</span> <span class="o">-</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">evs</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">evs</span></div>
+
+
+
+<div class="viewcode-block" id="r2_score">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.r2_score">[docs]</a>
+<span class="k">def</span> <span class="nf">r2_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+    <span class="n">numerator</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">y_true</span> <span class="o">-</span> <span class="n">y_pred</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">denominator</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">y_true</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span><span class="kc">None</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">r2</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">numerator</span> <span class="o">/</span> <span class="n">denominator</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">r2</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">r2</span></div>
+
+
+
+<div class="viewcode-block" id="train_model">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.train_model">[docs]</a>
+<span class="k">def</span> <span class="nf">train_model</span><span class="p">(</span><span class="n">x_train</span><span class="p">,</span> <span class="n">x_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">trees</span><span class="p">,</span> <span class="n">depth</span><span class="p">,</span> \
+        <span class="n">dropout_keep</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">display</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="c1"># number of trees = number of neural nets in ensemble</span>
+    <span class="c1"># max depth of tree = optimize this for each data set</span>
+    <span class="c1"># dropout typically set to 1 for non-Bayesian models</span>
+
+    <span class="k">for</span> <span class="n">ntrees</span><span class="p">,</span> <span class="n">maxdepth</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">trees</span><span class="p">,</span> <span class="n">depth</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">display</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Number of Trees: </span><span class="si">{}</span><span class="se">\t</span><span class="s2">Max Depth: </span><span class="si">{}</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ntrees</span><span class="p">,</span> \
+                    <span class="n">maxdepth</span><span class="p">,</span> <span class="s2">&quot;=&quot;</span><span class="o">*</span><span class="mi">40</span><span class="p">))</span>
+
+        <span class="n">fntrees</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">ntrees</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">fmaxdepth</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">maxdepth</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">modelname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;model_</span><span class="si">{</span><span class="n">fntrees</span><span class="si">}{</span><span class="n">fmaxdepth</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="c1"># initialize the model</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">djinn</span><span class="o">.</span><span class="n">DJINN_Regressor</span><span class="p">(</span><span class="n">ntrees</span><span class="p">,</span> <span class="n">maxdepth</span><span class="p">,</span> <span class="n">dropout_keep</span><span class="p">)</span>
+
+        <span class="c1"># find optimal settings</span>
+        <span class="n">optimal</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_hyperparameters</span><span class="p">(</span><span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+        <span class="n">batchsize</span> <span class="o">=</span> <span class="n">optimal</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span>
+        <span class="n">learnrate</span> <span class="o">=</span> <span class="n">optimal</span><span class="p">[</span><span class="s1">&#39;learn_rate&#39;</span><span class="p">]</span>
+        <span class="n">epochs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">((</span><span class="mi">300</span><span class="p">,</span> <span class="n">optimal</span><span class="p">[</span><span class="s1">&#39;epochs&#39;</span><span class="p">]))</span>
+        <span class="c1"># epochs = optimal[&#39;epochs&#39;]</span>
+
+        <span class="c1"># train the model with these settings</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">x_train</span><span class="p">,</span><span class="n">y_train</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span> <span class="n">learn_rate</span><span class="o">=</span><span class="n">learnrate</span><span class="p">,</span> \
+                    <span class="n">batch_size</span><span class="o">=</span><span class="n">batchsize</span><span class="p">,</span> <span class="n">display_step</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">save_files</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> \
+                    <span class="n">model_path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="n">modelname</span><span class="p">,</span> \
+                    <span class="n">save_model</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">model_name</span><span class="o">=</span><span class="n">modelname</span><span class="p">)</span>
+
+        <span class="c1"># Estimate</span>
+        <span class="n">y_estimate</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x_test</span><span class="p">)</span>
+
+        <span class="c1"># evaluate results</span>
+        <span class="n">error_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;MAE&quot;</span><span class="p">:</span> <span class="n">mean_absolute_error</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">y_estimate</span><span class="p">),</span>
+                      <span class="s2">&quot;MSE&quot;</span><span class="p">:</span> <span class="n">mean_squared_error</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">y_estimate</span><span class="p">),</span>
+                      <span class="s2">&quot;EVS&quot;</span><span class="p">:</span> <span class="n">explained_variance_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">y_estimate</span><span class="p">),</span>
+                      <span class="s2">&quot;R2&quot;</span><span class="p">:</span> <span class="n">r2_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">y_estimate</span><span class="p">)}</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;error_&quot;</span> <span class="o">+</span> <span class="n">modelname</span><span class="p">,</span> <span class="o">**</span><span class="n">error_dict</span><span class="p">)</span>
+
+        <span class="c1"># close model</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">close_model</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="load_djinn_models">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.load_djinn_models">[docs]</a>
+<span class="k">def</span> <span class="nf">load_djinn_models</span><span class="p">(</span><span class="n">model_path</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading DJINN Models...</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="o">*</span><span class="mi">30</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">djinn</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="n">model_path</span><span class="p">)</span>
+    <span class="n">models</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">model_path</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">djinn</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="n">path</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading Complete</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="o">*</span><span class="mi">30</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">models</span></div>
+
+
+
+<div class="viewcode-block" id="update_cross_sections">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.update_cross_sections">[docs]</a>
+<span class="k">def</span> <span class="nf">update_cross_sections</span><span class="p">(</span><span class="n">xs_matrix</span><span class="p">,</span> <span class="n">model_idx</span><span class="p">):</span>
+    <span class="c1"># Summing the cross sections over a specific axis while keeping the </span>
+    <span class="c1"># same shape for DJINN models</span>
+    <span class="n">updated_xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">xs_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">mat</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">xs_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">if</span> <span class="n">mat</span> <span class="ow">in</span> <span class="n">model_idx</span><span class="p">:</span>
+            <span class="n">updated_xs</span><span class="p">[</span><span class="n">mat</span><span class="p">,:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">xs_matrix</span><span class="p">[</span><span class="n">mat</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">updated_xs</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span> <span class="o">=</span> <span class="n">xs_matrix</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">updated_xs</span></div>
+
+
+
+<div class="viewcode-block" id="AutoDJINN">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.AutoDJINN">[docs]</a>
+<span class="k">class</span> <span class="nc">AutoDJINN</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_encoder</span><span class="p">,</span> <span class="n">file_djinn</span><span class="p">,</span> <span class="n">file_decoder</span><span class="p">,</span> <span class="n">transformer</span><span class="p">,</span> \
+            <span class="n">detransformer</span><span class="p">,</span> <span class="n">groups</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="s2">&quot;mse&quot;</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="n">file_encoder</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_djinn</span> <span class="o">=</span> <span class="n">djinn</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="n">file_djinn</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="n">file_decoder</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span> <span class="o">=</span> <span class="n">transformer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detransformer</span> <span class="o">=</span> <span class="n">detransformer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span> <span class="o">=</span> <span class="n">groups</span>
+
+<div class="viewcode-block" id="AutoDJINN.predict">
+<a class="viewcode-back" href="../../../discrete1.utils.machine_learning.html#discrete1.utils.machine_learning.AutoDJINN.predict">[docs]</a>
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flux</span><span class="p">):</span>
+        <span class="c1"># Non-labeled model</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">):</span>        
+            <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="p">(</span><span class="n">flux</span><span class="p">),</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">latent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_djinn</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">encoded</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">detransformer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">latent</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        <span class="c1"># Labeled model</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="p">(</span><span class="n">flux</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:]),</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">latent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_djinn</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">flux</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">encoded</span><span class="p">)))</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">detransformer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">latent</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">discrete1</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../steady_state.html">steady_state</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Ben Whewell.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
