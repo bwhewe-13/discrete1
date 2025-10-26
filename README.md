@@ -3,6 +3,7 @@
 [![Documentation Status](https://github.com/bwhewe-13/discrete1/actions/workflows/docs.yml/badge.svg)](https://bwhewe-13.github.io/discrete1/)
 [![Tests](https://github.com/bwhewe-13/discrete1/actions/workflows/tests.yml/badge.svg)](https://github.com/bwhewe-13/discrete1/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/bwhewe-13/discrete1/branch/master/graph/badge.svg)](https://codecov.io/gh/bwhewe-13/discrete1)
+[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)
 
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⡋⢅⣂⣐⡨⠙⡻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⣩⣥⣬⢕⢰⣾⣿⣿⣿⣿⣷⣄⠊⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿

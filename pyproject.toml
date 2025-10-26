@@ -19,7 +19,7 @@ authors = [
 ]
 description = "1D Discrete Ordinates Multigroup Neutron Transport"
 readme = "README.md"
-license = "MIT"
+license = "BSD-3-Clause"
 keywords = ["neutron transport", "machine learning", "DJINN"]
 
 [tool.pytest.ini_options]
