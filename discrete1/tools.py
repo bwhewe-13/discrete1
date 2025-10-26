@@ -1,3 +1,22 @@
+"""Utility routines used across the solver package.
+
+This module contains small helpers and performance-critical kernels
+used by the transport drivers. It includes multigroup helpers for
+assembling off-diagonal scatter sources, hybrid coarsening utilities,
+0D (spatially independent) variants of source and keff updates, and
+display/diagnostic helpers such as reaction rate computation. Where
+appropriate, functions are implemented as Numba-jitted kernels for
+performance.
+
+Public helpers:
+- reflector_corrector: manage reflective boundary bookkeeping
+- dmd: Dynamic Mode Decomposition extrapolation
+- reaction_rates: compute per-cell reaction rates
+
+Numba-decorated internal kernels (prefixed with `_`) implement the
+heavy numerical work and are not part of the high-level public API.
+"""
+
 import numba
 import numpy as np
 
@@ -85,6 +104,28 @@ def _coarsen_flux(fine_flux, coarse_flux, edges_gidx_c):
 
 
 def reflector_corrector(reflector, angle_x, edge, nn, bc_x):
+    """Apply reflector boundary correction for a paired angle.
+
+    When reflective boundary conditions are active, the outgoing edge
+    flux for one discrete ordinate is used to set the corresponding
+    reflected ordinate's incoming reflector buffer. This helper writes
+    the edge value into the reflector array at the symmetric angle
+    index when reflection flags are set in ``bc_x``.
+
+    Parameters
+    ----------
+    reflector : numpy.ndarray
+        Array storing reflected edge values for each angle (n_angles,).
+    angle_x : array_like
+        Angular ordinates (n_angles,).
+    edge : float
+        Computed outgoing edge flux for the current angle.
+    nn : int
+        Current angle index.
+    bc_x : sequence
+        Boundary condition flags for left/right reflections.
+    """
+
     # Get opposite angle
     reflected_idx = numba.int32(angle_x.shape[0] - nn - 1)
     if (angle_x[nn] > 0.0 and bc_x[1] == 1) or (angle_x[nn] < 0.0 and bc_x[0] == 1):
@@ -204,6 +245,31 @@ def _svd_dmd(A, K):
 
 # @numba.jit("f8[:,:](f8[:,:], f8[:,:,:], f8[:,:,:], i4)", nopython=True, cache=True)
 def dmd(flux_old, y_minus, y_plus, K):
+    """Estimate flux via Dynamic Mode Decomposition (DMD) extrapolation.
+
+    Given snapshot differences (y_minus, y_plus) collected over K-1
+    timesteps/iterations, compute a low-rank DMD model and use it to
+    extrapolate the flux from the last known iterate.
+
+    Parameters
+    ----------
+    flux_old : numpy.ndarray
+        Last known flux (n_cells, n_groups).
+    y_minus : numpy.ndarray
+        Snapshot difference array with shape (n_cells, n_groups, K-1)
+        containing previous (backward) differences.
+    y_plus : numpy.ndarray
+        Snapshot difference array with shape (n_cells, n_groups, K-1)
+        containing forward differences.
+    K : int
+        Number of snapshots (including the base) used for DMD.
+
+    Returns
+    -------
+    numpy.ndarray
+        Extrapolated flux array with shape (n_cells, n_groups).
+    """
+
     # Collect dimensions
     cells_x, groups = flux_old.shape
 
@@ -218,8 +284,8 @@ def dmd(flux_old, y_minus, y_plus, K):
     Atilde = U.T @ y_plus @ V.T @ S.T
 
     # Calculate delta_y
-    I = np.identity(Atilde.shape[0])
-    delta_y = np.linalg.solve(I - Atilde, (U.T @ y_plus[:, -1]).T)
+    eye = np.identity(Atilde.shape[0])
+    delta_y = np.linalg.solve(eye - Atilde, (U.T @ y_plus[:, -1]).T)
 
     # Estimate new flux
     flux = (flux_old.flatten() - y_plus[:, K - 2]) + (U @ delta_y).T
@@ -500,6 +566,24 @@ def _hybrid_source_total(
 
 
 def reaction_rates(flux, xs_matrix, medium_map):
+    """Compute per-cell reaction rates from flux and cross sections.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Scalar or angular-integrated flux with shape (n_cells, n_groups).
+    xs_matrix : numpy.ndarray
+        Cross-section matrix indexed by material (n_materials, n_groups, ...)
+        where the last axes align with group dimensions.
+    medium_map : array_like
+        Material index per spatial cell (n_cells,).
+
+    Returns
+    -------
+    numpy.ndarray
+        Reaction rate per cell and per group with shape (n_cells, n_groups).
+    """
+
     # Flux parameters
     cells_x, groups = flux.shape
     # Initialize reaction rate data
