@@ -5,7 +5,7 @@ import pkg_resources
 
 from discrete1.constants import *
 
-DATA_PATH = pkg_resources.resource_filename("discrete1","sources/")
+DATA_PATH = pkg_resources.resource_filename("discrete1", "sources/")
 
 ########################################################################
 # Material Cross Sections
@@ -13,16 +13,25 @@ DATA_PATH = pkg_resources.resource_filename("discrete1","sources/")
 
 __enrichment_materials = ("uranium", "uranium-hydride", "plutonium")
 
-__nonenrichment_materials = ("stainless-steel-440", "hydrogen", \
-        "high-density-polyethyene-618", "high-density-polyethyene-087", \
-        "carbon", "uranium-235", "uranium-238", "water-uranium-dioxide", \
-        "plutonium-239", "plutonium-240", "vacuum")
+__nonenrichment_materials = (
+    "stainless-steel-440",
+    "hydrogen",
+    "high-density-polyethyene-618",
+    "high-density-polyethyene-087",
+    "carbon",
+    "uranium-235",
+    "uranium-238",
+    "water-uranium-dioxide",
+    "plutonium-239",
+    "plutonium-240",
+    "vacuum",
+)
 
 __materials = __enrichment_materials + __nonenrichment_materials
 
 
 def materials(groups, materials, key=False):
-    """ Creating cross sections for different materials
+    """Creating cross sections for different materials
     Args:
         groups (int): Number of energy groups
         materials (list): [material1, ..., materialN]
@@ -33,8 +42,9 @@ def materials(groups, materials, key=False):
     xs_fission = []
     for idx, material in enumerate(materials):
         # Verify it is possible
-        assert (material.split("-%")[0] in __materials),\
-            "Material not recognized, use:\n{}".format(__materials)
+        assert (
+            material.split("-%")[0] in __materials
+        ), "Material not recognized, use:\n{}".format(__materials)
         # Calculate cross section
         total, scatter, fission = _generate_cross_section(groups, material)
         xs_total.append(total)
@@ -56,7 +66,11 @@ def _generate_cross_section(groups, material):
         enrichment = float(enrichment.strip("%")) * 0.01
 
     if material == "vacuum":
-        return np.zeros((groups)), np.zeros((groups, groups)), np.zeros((groups, groups))
+        return (
+            np.zeros((groups)),
+            np.zeros((groups, groups)),
+            np.zeros((groups, groups)),
+        )
     elif material in __nonenrichment_materials:
         data = np.load(DATA_PATH + "materials/" + material + ".npz")
     elif material == "uranium":
@@ -78,11 +92,11 @@ def _generate_cross_section(groups, material):
 def _generate_uranium_hydride(enrichment):
     molar = enrichment * URANIUM_235_MM + (1 - enrichment) * URANIUM_238_MM
     rho = URANIUM_HYDRIDE_RHO / URANIUM_RHO
-    
-    n235 = (enrichment * rho * molar) / (molar + 3 * HYDROGEN_MM) 
-    n238 = ((1 - enrichment) * rho * molar) / (molar + 3 * HYDROGEN_MM) 
+
+    n235 = (enrichment * rho * molar) / (molar + 3 * HYDROGEN_MM)
+    n238 = ((1 - enrichment) * rho * molar) / (molar + 3 * HYDROGEN_MM)
     n1 = URANIUM_HYDRIDE_RHO * AVAGADRO / (molar + 3 * HYDROGEN_MM) * CM_TO_BARNS * 3
-    
+
     u235 = np.load(DATA_PATH + "materials/uranium-235.npz")
     u238 = np.load(DATA_PATH + "materials/uranium-238.npz")
     h1 = np.load(DATA_PATH + "materials/hydrogen.npz")

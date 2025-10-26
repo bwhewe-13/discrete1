@@ -1,4 +1,3 @@
-
 # For running DJINN Problems
 
 import numpy as np
@@ -13,8 +12,18 @@ count_pp = 20
 change_pp = 1e-05
 
 
-def collection(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
-        angle_x, angle_w, bc_x, filepath, geometry=1):
+def collection(
+    xs_total,
+    xs_scatter,
+    xs_fission,
+    medium_map,
+    delta_x,
+    angle_x,
+    angle_w,
+    bc_x,
+    filepath,
+    geometry=1,
+):
 
     # Set boundary source
     boundary = np.zeros((2, 1, 1))
@@ -40,13 +49,24 @@ def collection(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
         tools._fission_source(flux_old, xs_fission, source, medium_map, keff)
 
         # Solve for scalar flux
-        flux = mg.source_iteration_collect(flux_old, xs_total, xs_scatter, \
-                            source, boundary, medium_map, delta_x, angle_x, \
-                            angle_w, bc_x, geometry, count, filepath)
+        flux = mg.source_iteration_collect(
+            flux_old,
+            xs_total,
+            xs_scatter,
+            source,
+            boundary,
+            medium_map,
+            delta_x,
+            angle_x,
+            angle_w,
+            bc_x,
+            geometry,
+            count,
+            filepath,
+        )
 
         # Update keffective
-        keff = tools._update_keffective(flux, flux_old, xs_fission, \
-                                        medium_map, keff)
+        keff = tools._update_keffective(flux, flux_old, xs_fission, medium_map, keff)
 
         # Normalize flux
         flux /= np.linalg.norm(flux)
@@ -59,10 +79,10 @@ def collection(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
 
         # Update old flux and tracked flux
         flux_old = flux.copy()
-        tracked_flux[count-2] = flux.copy()
+        tracked_flux[count - 2] = flux.copy()
 
     print(f"\nConvergence: {change:2.6e}")
-    np.save(filepath + "flux_fission_model", tracked_flux[:count-1])
+    np.save(filepath + "flux_fission_model", tracked_flux[: count - 1])
 
     # Save relevant information to file
     np.save(filepath + "fission_cross_sections", xs_fission)
@@ -72,10 +92,22 @@ def collection(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     return flux, keff
 
 
-def power_iteration(flux_old, xs_total, xs_scatter, xs_fission, \
-        medium_map, delta_x, angle_x, angle_w, bc_x, geometry, \
-        fission_models=[], scatter_models=[], fission_labels=None, \
-        scatter_labels=None):
+def power_iteration(
+    flux_old,
+    xs_total,
+    xs_scatter,
+    xs_fission,
+    medium_map,
+    delta_x,
+    angle_x,
+    angle_w,
+    bc_x,
+    geometry,
+    fission_models=[],
+    scatter_models=[],
+    fission_labels=None,
+    scatter_labels=None,
+):
 
     # Set boundary source
     boundary = np.zeros((2, 1, 1))
@@ -89,43 +121,73 @@ def power_iteration(flux_old, xs_total, xs_scatter, xs_fission, \
 
     converged = False
     count = 0
-    change_old = 100.
+    change_old = 100.0
     change_new = 0.0
 
     while not (converged):
         # Update power source term
         # No Fission DJINN predictions
         if len(fission_models) == 0:
-            tools._fission_source(flux_old, xs_fission, fission_source, \
-                                  medium_map, keff_old)
+            tools._fission_source(
+                flux_old, xs_fission, fission_source, medium_map, keff_old
+            )
 
         # Fission DJINN predictions
         else:
-            tools._djinn_fission_predict(flux_old, xs_fission, fission_source, \
-                        medium_map, 1.0, fission_models, fission_labels)
+            tools._djinn_fission_predict(
+                flux_old,
+                xs_fission,
+                fission_source,
+                medium_map,
+                1.0,
+                fission_models,
+                fission_labels,
+            )
 
         # Solve for scalar flux
         # No Scatter DJINN predictions
         if len(scatter_models) == 0:
-            flux = mg.source_iteration(flux_old, xs_total, xs_scatter, \
-                                    fission_source, boundary, medium_map, \
-                                    delta_x, angle_x, angle_w, bc_x, geometry)
+            flux = mg.source_iteration(
+                flux_old,
+                xs_total,
+                xs_scatter,
+                fission_source,
+                boundary,
+                medium_map,
+                delta_x,
+                angle_x,
+                angle_w,
+                bc_x,
+                geometry,
+            )
         # Scatter DJINN predictions
         else:
-            flux = mg.source_iteration_djinn(flux_old, xs_total, xs_scatter, \
-                                    fission_source, boundary, medium_map, \
-                                    delta_x, angle_x, angle_w, bc_x, geometry, \
-                                    scatter_models, scatter_labels)
+            flux = mg.source_iteration_djinn(
+                flux_old,
+                xs_total,
+                xs_scatter,
+                fission_source,
+                boundary,
+                medium_map,
+                delta_x,
+                angle_x,
+                angle_w,
+                bc_x,
+                geometry,
+                scatter_models,
+                scatter_labels,
+            )
 
         # Update keffective and normalize flux
         if len(fission_models) == 0:
-            keff = tools._update_keffective(flux, flux_old, xs_fission, \
-                                            medium_map, keff_old)
+            keff = tools._update_keffective(
+                flux, flux_old, xs_fission, medium_map, keff_old
+            )
             flux /= np.linalg.norm(flux)
 
         else:
             keff = np.linalg.norm(flux)
-            flux /= keff        
+            flux /= keff
 
         # Check for convergence
         change = np.linalg.norm((flux - flux_old) / flux / cells_x)

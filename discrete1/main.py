@@ -6,7 +6,7 @@ import pkg_resources
 from discrete1.utils.hybrid import energy_coarse_index
 from discrete1.constants import *
 
-DATA_PATH = pkg_resources.resource_filename("discrete1","sources/energy/")
+DATA_PATH = pkg_resources.resource_filename("discrete1", "sources/energy/")
 
 
 def angular_x(angles, bc_x=[0, 0]):
@@ -36,7 +36,7 @@ def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
     # Create energy grid
     if grid in [87, 361, 618]:
         edges_g = np.load(DATA_PATH + "energy_grids.npz")[str(grid)]
-        
+
         # Collect grid boundary indices
         fgrid = str(grid).zfill(3)
         edges_data = np.load(DATA_PATH + f"G{fgrid}_grid_index.npz")
@@ -49,10 +49,10 @@ def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
             edges_gidx_fine = edges_data[label_fine].copy()
 
         except KeyError:
-            edges_gidx_fine = energy_coarse_index(len(edges_g)-1, groups_fine)
-    
+            edges_gidx_fine = energy_coarse_index(len(edges_g) - 1, groups_fine)
+
     else:
-        edges_gidx_fine = energy_coarse_index(len(edges_g)-1, groups_fine)
+        edges_gidx_fine = energy_coarse_index(len(edges_g) - 1, groups_fine)
 
     # Convert to correct type
     edges_gidx_fine = edges_gidx_fine.astype(np.int32)
@@ -66,27 +66,26 @@ def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
         try:
             label_coarse = str(groups_coarse).zfill(3)
             edges_gidx_coarse = edges_data[label_coarse].copy()
-        
+
         except KeyError:
             edges_gidx_coarse = energy_coarse_index(groups_fine, groups_coarse)
 
     else:
         edges_gidx_coarse = energy_coarse_index(groups_fine, groups_coarse)
-    
+
     # Convert to correct type
     edges_gidx_coarse = edges_gidx_coarse.astype(np.int32)
-    
+
     return edges_g, edges_gidx_fine, edges_gidx_coarse
 
 
-
 def energy_velocity(groups, edges_g=None):
-    """ Convert energy edges to speed at cell centers, Relative Physics
+    """Convert energy edges to speed at cell centers, Relative Physics
     Arguments:
         groups: Number of energy groups
         edges_g: energy grid bounds
     Returns:
-        speeds at cell centers (cm/s)   """
+        speeds at cell centers (cm/s)"""
     if np.all(edges_g == None):
         return np.ones((groups,))
     centers_gg = 0.5 * (edges_g[1:] + edges_g[:-1])
@@ -96,7 +95,7 @@ def energy_velocity(groups, edges_g=None):
 
 
 def gamma_time_steps(edges_t, gamma=0.5, half_step=True):
-    """ Add gamma half time steps to original time steps with initial step
+    """Add gamma half time steps to original time steps with initial step
     where gamma = 0.5 or 2 - sqrt(2). For external source with TR-BDF2 problems.
 
     Arguments:
@@ -118,7 +117,7 @@ def gamma_time_steps(edges_t, gamma=0.5, half_step=True):
 
 
 def spatial1d(layers, edges_x, labels=False, check=True):
-    """ Creating one-dimensional medium map
+    """Creating one-dimensional medium map
 
     :param layers: list of lists where each layer is a new material. A
         layer is comprised of an index (int), material name (str), and

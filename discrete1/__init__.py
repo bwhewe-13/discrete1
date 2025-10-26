@@ -1,4 +1,3 @@
-
 # Creating angular dimensions
 from discrete1.main import angular_x
 

@@ -35,9 +35,8 @@
 from setuptools import setup, find_packages
 
 setup(
-        name="discrete1",
-        description=
-        """
+    name="discrete1",
+    description="""
         One Dimensional Neutron Transport Equation for both fixed sources
         and criticality problems. The discrete ordinates (SN) method
         discretizes the angles, finite difference (diamond difference)
@@ -45,20 +44,19 @@ setup(
         temporal dimensions. Spatial geometries can be slab or sphere.
         Machine learning techniques and numba are used for acceleration.
         """,
-        version="0.1.0",
-        author="Ben Whewell",
-        author_email="ben.whewell@pm.me",
-        url="https://github.com",
-
-        packages=find_packages(),
-        include_package_data=True, 
-        install_requires=[
-            "numpy", 
-            "numba", 
-            "pytest",
-            "tqdm",
-            "scikit-learn>=1.4.0",
-            "tensorflow>=2.4.0",
-            "djinnml @ git+https://git@github.com/bwhewe-13/DJINN.git"
-        ]
+    version="0.1.0",
+    author="Ben Whewell",
+    author_email="ben.whewell@pm.me",
+    url="https://github.com",
+    packages=find_packages(),
+    include_package_data=True,
+    install_requires=[
+        "numpy",
+        "numba",
+        "pytest",
+        "tqdm",
+        "scikit-learn>=1.4.0",
+        "tensorflow>=2.4.0",
+        "djinnml @ git+https://git@github.com/bwhewe-13/DJINN.git",
+    ],
 )

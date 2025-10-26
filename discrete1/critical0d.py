@@ -1,4 +1,3 @@
-
 import numpy as np
 
 import discrete1
@@ -7,6 +6,7 @@ from discrete1 import tools
 
 count_kk = 100
 change_kk = 1e-06
+
 
 def power_iteration(angles, xs_total, xs_scatter, xs_fission):
 
@@ -29,8 +29,9 @@ def power_iteration(angles, xs_total, xs_scatter, xs_fission):
         tools._fission_source_0d(flux_old, xs_fission, source, keff)
 
         # Solve for scalar flux
-        flux = mg.source_iteration(flux_old, xs_total, xs_scatter, source, \
-                                   angle_x, angle_w)
+        flux = mg.source_iteration(
+            flux_old, xs_total, xs_scatter, source, angle_x, angle_w
+        )
 
         # Update keffective
         keff = tools._update_keffective_0d(flux, flux_old, xs_fission, keff)

@@ -1,20 +1,19 @@
-
 # Convergence parameters - iterations
 COUNT_ANGULAR = 100
 COUNT_ENERGY = 100
 COUNT_POWER = 100
 
 # Convergence parameters - difference
-CHANGE_ANGULAR = 1E-12
-CHANGE_ENERGY = 1E-08
-CHANGE_POWER = 1E-06 # For Power Iterations
+CHANGE_ANGULAR = 1e-12
+CHANGE_ENERGY = 1e-08
+CHANGE_POWER = 1e-06  # For Power Iterations
 
 # Conversion Between Units
-MASS_NEUTRON = 1.67493E-27
-EV_TO_JOULES = 1.60218E-19
-LIGHT_SPEED = 2.9979246E8
-AVAGADRO = 6.022E23
-CM_TO_BARNS = 1E-24
+MASS_NEUTRON = 1.67493e-27
+EV_TO_JOULES = 1.60218e-19
+LIGHT_SPEED = 2.9979246e8
+AVAGADRO = 6.022e23
+CM_TO_BARNS = 1e-24
 
 
 # Isotope and Material Molar Mass

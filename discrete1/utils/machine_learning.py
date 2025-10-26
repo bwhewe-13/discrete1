@@ -1,10 +1,10 @@
-
 # This is for cleaning, running and transforming DJINN models
 
 import numpy as np
 from glob import glob
 import itertools
 import os
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import tensorflow as tf
 
@@ -21,16 +21,16 @@ def _combine_flux_reaction(flux, xs_matrix, medium_map, labels):
         for ii in range(cells_x):
             mat = medium_map[ii]
             # Add labels
-            data[:,cc,ii,0] = labels[ii]
+            data[:, cc, ii, 0] = labels[ii]
             # Add flux (x variable)
-            data[0,cc,ii,1:] = flux[cc,ii].copy()
+            data[0, cc, ii, 1:] = flux[cc, ii].copy()
             # Add reaction rate (y variable)
-            data[1,cc,ii,1:] = flux[cc,ii] @ xs_matrix[mat].T
+            data[1, cc, ii, 1:] = flux[cc, ii] @ xs_matrix[mat].T
     # Collapse iteration and spatial dimensions
     data = data.reshape(2, iterations * cells_x, groups + 1)
     # Remove zero values
-    idx = np.argwhere(np.sum(data[...,1:], axis=(0,2)) != 0)
-    data = data[:,idx.flatten(),:].copy()
+    idx = np.argwhere(np.sum(data[..., 1:], axis=(0, 2)) != 0)
+    data = data[:, idx.flatten(), :].copy()
     return data
 
 
@@ -43,12 +43,12 @@ def _split_by_material(training_data, path, xs, splits):
     # Iterate over splits
     for name, label in splits:
         # Identify location of labels
-        idx = np.argwhere(np.isin(training_data[0,:,0], label)).flatten()
+        idx = np.argwhere(np.isin(training_data[0, :, 0], label)).flatten()
         # Continue for non-existant labels
         if len(idx) == 0:
             continue
         # Separate data
-        split_data = training_data[:,idx].copy()
+        split_data = training_data[:, idx].copy()
         # Keeping track of data points
         counts += split_data.shape[1]
         # Save data
@@ -58,13 +58,13 @@ def _split_by_material(training_data, path, xs, splits):
 
 
 def clean_data_fission(path, labels, splits=None):
-    """ Takes the flux before the fission rates are calculated (x data),
+    """Takes the flux before the fission rates are calculated (x data),
     calculates the reaction rates (y data), and adds a label for the
     enrichment level (G+1). Also removes non-fissioning materials.
     Arguments:
         path (str): location of all files named in djinn1d.collections()
         labels (float [materials]): labels for each of the materials
-        splits (list [name, [labels]]): splitting training data into 
+        splits (list [name, [labels]]): splitting training data into
                                     fissible and non-fissible materials
     Returns:
         Processed data saved to path
@@ -83,13 +83,13 @@ def clean_data_fission(path, labels, splits=None):
 
 
 def clean_data_scatter(path, labels, splits=None):
-    """ Takes the flux before the scattering rates are calculated (x data),
+    """Takes the flux before the scattering rates are calculated (x data),
     calculates the reaction rates (y data), and adds a label for the
     enrichment level (G+1).
     Arguments:
         path (str): location of all files named in djinn1d.collections()
         labels (float [materials]): labels for each of the materials
-        splits (list [name, [labels]]): splitting training data into 
+        splits (list [name, [labels]]): splitting training data into
                                     fissible and non-fissible materials
     Returns:
         Processed data saved to path
@@ -101,8 +101,7 @@ def clean_data_scatter(path, labels, splits=None):
     training_data = np.empty((2, 0, xs_scatter.shape[1] + 1))
     for file in files:
         flux = np.load(file)
-        single_iteration = _combine_flux_reaction(flux, xs_scatter, \
-                                                  medium_map, labels)
+        single_iteration = _combine_flux_reaction(flux, xs_scatter, medium_map, labels)
         training_data = np.hstack((training_data, single_iteration))
     if splits is not None:
         _split_by_material(training_data, path, "scatter", splits)
@@ -118,7 +117,7 @@ def min_max_normalization(data, verbose=False):
     low = np.min(data, axis=1)
     np.nan_to_num(low, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
     # Normalize between 0 and 1
-    ndata = (data - low[:,None])/(high - low)[:,None]
+    ndata = (data - low[:, None]) / (high - low)[:, None]
     # Remove undesirables
     np.nan_to_num(ndata, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
     # Return high and low values
@@ -128,7 +127,7 @@ def min_max_normalization(data, verbose=False):
 
 
 def root_normalization(data, root):
-    return data ** root
+    return data**root
 
 
 def mean_absolute_error(y_true, y_pred):
@@ -136,7 +135,7 @@ def mean_absolute_error(y_true, y_pred):
 
 
 def mean_squared_error(y_true, y_pred):
-    return np.mean((y_true - y_pred)**2, axis=-1)
+    return np.mean((y_true - y_pred) ** 2, axis=-1)
 
 
 def root_mean_squared_error(y_true, y_pred):
@@ -150,23 +149,27 @@ def explained_variance_score(y_true, y_pred):
 
 
 def r2_score(y_true, y_pred):
-    numerator = np.sum((y_true - y_pred)**2, axis=-1)
-    denominator = np.sum((y_true - np.mean(y_true, axis=1)[:,None])**2, axis=-1)
+    numerator = np.sum((y_true - y_pred) ** 2, axis=-1)
+    denominator = np.sum((y_true - np.mean(y_true, axis=1)[:, None]) ** 2, axis=-1)
     r2 = 1 - numerator / denominator
     np.nan_to_num(r2, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
     return r2
 
 
-def train_model(x_train, x_test, y_train, y_test, path, trees, depth, \
-        dropout_keep=1.0, display=0):
+def train_model(
+    x_train, x_test, y_train, y_test, path, trees, depth, dropout_keep=1.0, display=0
+):
     # number of trees = number of neural nets in ensemble
     # max depth of tree = optimize this for each data set
     # dropout typically set to 1 for non-Bayesian models
 
     for ntrees, maxdepth in itertools.product(trees, depth):
         if display:
-            print("\nNumber of Trees: {}\tMax Depth: {}\n{}".format(ntrees, \
-                    maxdepth, "="*40))
+            print(
+                "\nNumber of Trees: {}\tMax Depth: {}\n{}".format(
+                    ntrees, maxdepth, "=" * 40
+                )
+            )
 
         fntrees = str(ntrees).zfill(3)
         fmaxdepth = str(maxdepth).zfill(3)
@@ -177,25 +180,36 @@ def train_model(x_train, x_test, y_train, y_test, path, trees, depth, \
 
         # find optimal settings
         optimal = model.get_hyperparameters(x_train, y_train)
-        batchsize = optimal['batch_size']
-        learnrate = optimal['learn_rate']
-        epochs = np.min((300, optimal['epochs']))
+        batchsize = optimal["batch_size"]
+        learnrate = optimal["learn_rate"]
+        epochs = np.min((300, optimal["epochs"]))
         # epochs = optimal['epochs']
 
         # train the model with these settings
-        model.train(x_train,y_train, epochs=epochs, learn_rate=learnrate, \
-                    batch_size=batchsize, display_step=0, save_files=True, \
-                    model_path=path, file_name=modelname, \
-                    save_model=True, model_name=modelname)
+        model.train(
+            x_train,
+            y_train,
+            epochs=epochs,
+            learn_rate=learnrate,
+            batch_size=batchsize,
+            display_step=0,
+            save_files=True,
+            model_path=path,
+            file_name=modelname,
+            save_model=True,
+            model_name=modelname,
+        )
 
         # Estimate
         y_estimate = model.predict(x_test)
 
         # evaluate results
-        error_dict = {"MAE": mean_absolute_error(y_test, y_estimate),
-                      "MSE": mean_squared_error(y_test, y_estimate),
-                      "EVS": explained_variance_score(y_test, y_estimate),
-                      "R2": r2_score(y_test, y_estimate)}
+        error_dict = {
+            "MAE": mean_absolute_error(y_test, y_estimate),
+            "MSE": mean_squared_error(y_test, y_estimate),
+            "EVS": explained_variance_score(y_test, y_estimate),
+            "R2": r2_score(y_test, y_estimate),
+        }
         np.savez(path + "error_" + modelname, **error_dict)
 
         # close model
@@ -203,7 +217,7 @@ def train_model(x_train, x_test, y_train, y_test, path, trees, depth, \
 
 
 def load_djinn_models(model_path):
-    print("Loading DJINN Models...\n{}".format("="*30))
+    print("Loading DJINN Models...\n{}".format("=" * 30))
     if isinstance(model_path, str):
         return djinn.load(model_name=model_path)
     models = []
@@ -212,17 +226,17 @@ def load_djinn_models(model_path):
             models.append(0)
         else:
             models.append(djinn.load(model_name=path))
-    print("Loading Complete\n{}\n".format("="*30))
+    print("Loading Complete\n{}\n".format("=" * 30))
     return models
 
 
 def update_cross_sections(xs_matrix, model_idx):
-    # Summing the cross sections over a specific axis while keeping the 
+    # Summing the cross sections over a specific axis while keeping the
     # same shape for DJINN models
     updated_xs = np.zeros(xs_matrix.shape)
     for mat in range(xs_matrix.shape[0]):
         if mat in model_idx:
-            updated_xs[mat,:,0] = np.sum(xs_matrix[mat], axis=0)
+            updated_xs[mat, :, 0] = np.sum(xs_matrix[mat], axis=0)
         else:
             updated_xs[mat] = xs_matrix[mat].copy()
     return updated_xs
@@ -230,8 +244,17 @@ def update_cross_sections(xs_matrix, model_idx):
 
 class AutoDJINN:
 
-    def __init__(self, file_encoder, file_djinn, file_decoder, transformer, \
-            detransformer, groups, optimizer="adam", loss="mse"):
+    def __init__(
+        self,
+        file_encoder,
+        file_djinn,
+        file_decoder,
+        transformer,
+        detransformer,
+        groups,
+        optimizer="adam",
+        loss="mse",
+    ):
 
         self.encoder = tf.keras.models.load_model(file_encoder)
         self.encoder.compile(optimizer=optimizer, loss=loss)
@@ -240,19 +263,19 @@ class AutoDJINN:
 
         self.decoder = tf.keras.models.load_model(file_decoder)
         self.decoder.compile(optimizer=optimizer, loss=loss)
-        
+
         self.transformer = transformer
         self.detransformer = detransformer
         self.groups = groups
 
     def predict(self, flux):
         # Non-labeled model
-        if (flux.shape[1] == self.groups):        
+        if flux.shape[1] == self.groups:
             encoded = self.encoder.predict(self.transformer(flux), verbose=0)
             latent = self.model_djinn.predict(encoded)
             return self.detransformer(self.decoder.predict(latent, verbose=0))
         # Labeled model
         else:
-            encoded = self.encoder.predict(self.transformer(flux[:,1:]), verbose=0)
-            latent = self.model_djinn.predict(np.hstack((flux[:,0:1], encoded)))
+            encoded = self.encoder.predict(self.transformer(flux[:, 1:]), verbose=0)
+            latent = self.model_djinn.predict(np.hstack((flux[:, 0:1], encoded)))
             return self.detransformer(self.decoder.predict(latent, verbose=0))
