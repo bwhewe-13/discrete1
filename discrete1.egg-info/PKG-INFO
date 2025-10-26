@@ -5,27 +5,34 @@ Summary: 1D Discrete Ordinates Multigroup Neutron Transport
 Home-page: https://github.com
 Author: Ben Whewell
 Author-email: Ben Whewell <ben.whewell@pm.me>
-License-Expression: MIT
+License-Expression: BSD-3-Clause
 Keywords: neutron transport,machine learning,DJINN
 Description-Content-Type: text/markdown
 License-File: LICENSE
-<<<<<<< Updated upstream
 Requires-Dist: numpy
 Requires-Dist: numba
-<<<<<<< Updated upstream
-=======
-Requires-Dist: scipy
->>>>>>> Stashed changes
 Requires-Dist: pytest
 Requires-Dist: tqdm
 Requires-Dist: scikit-learn>=1.4.0
 Requires-Dist: tensorflow>=2.4.0
 Requires-Dist: djinnml@ git+https://git@github.com/bwhewe-13/DJINN.git
+Provides-Extra: dev
+Requires-Dist: pytest>=6.0; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: isort; extra == "dev"
+Requires-Dist: flake8; extra == "dev"
+Requires-Dist: pre-commit; extra == "dev"
 Dynamic: author
 Dynamic: home-page
 Dynamic: license-file
 
 # discrete1
+
+[![Documentation Status](https://github.com/bwhewe-13/discrete1/actions/workflows/docs.yml/badge.svg)](https://bwhewe-13.github.io/discrete1/)
+[![Tests](https://github.com/bwhewe-13/discrete1/actions/workflows/tests.yml/badge.svg)](https://github.com/bwhewe-13/discrete1/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/bwhewe-13/discrete1/branch/master/graph/badge.svg)](https://codecov.io/gh/bwhewe-13/discrete1)
+[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)
 
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⡋⢅⣂⣐⡨⠙⡻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⣩⣥⣬⢕⢰⣾⣿⣿⣿⣿⣷⣄⠊⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
@@ -88,6 +95,50 @@ saving techniques related to the neutron transport equation.
     time-dependent problems<sup>2</sup>.
 
 
+## Documentation
+
+The documentation is built automatically using Sphinx and deployed to GitHub Pages. You can find the latest documentation at:
+
+[https://bwhewe-13.github.io/discrete1/](https://bwhewe-13.github.io/discrete1/)
+
+To build the documentation locally:
+
+```bash
+# Install dependencies
+python -m pip install -r docs/requirements.txt
+
+# Build HTML docs
+cd docs
+make html
+# Output will be in docs/build/html
+```
+
+## Development
+
+To set up the development environment:
+
+```bash
+# Clone the repository
+git clone https://github.com/bwhewe-13/discrete1.git
+cd discrete1
+
+# Install package with development dependencies
+python -m pip install -e ".[dev]"
+
+# Install pre-commit hooks
+pre-commit install
+```
+
+### Running Tests
+
+To run the tests with coverage reporting:
+
+```bash
+pytest
+```
+
+Coverage reports will be generated in `coverage_html/index.html` and `coverage.xml`.
+
 
 <sup>1</sup> Ben Whewell and Ryan G. McClarren, (2022). Data Reduction in
     Deterministic Neutron Transport Calculations Using Machine Learning.
@@ -96,6 +147,3 @@ saving techniques related to the neutron transport equation.
 <sup>2</sup> Ben Whewell, Ryan G. McClarren, Cory D. Hauck, and Minwoo Shin,
     (2023). Multigroup Neutron Transport Using a Collision-Based Hybrid Method,
     Nuclear Science and Engineering, 197:7, 1386-1405, DOI: 10.1080/00295639.2022.2154119.
-
-=======
->>>>>>> Stashed changes

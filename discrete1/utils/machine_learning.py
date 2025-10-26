@@ -1,14 +1,25 @@
-# This is for cleaning, running and transforming DJINN models
+"""Machine learning utilities for DJINN model training and inference.
 
-import numpy as np
-from glob import glob
+This module provides utilities for data preprocessing, model training,
+and inference with DJINN (Deep Jointly-Informed Neural Networks) models.
+It includes functions for cleaning training data, normalizing inputs/outputs,
+computing error metrics, and managing model lifecycle.
+
+The module supports both fission and scatter rate prediction models,
+with utilities for data splitting, normalization, and error analysis.
+Key components are organized into data preparation, model training,
+and inference sections.
+"""
+
 import itertools
 import os
+from glob import glob
+
+import numpy as np
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-import tensorflow as tf
-
-from djinn import djinn
+import tensorflow as tf  # noqa: E402
+from djinn import djinn  # noqa: E402
 
 
 def _combine_flux_reaction(flux, xs_matrix, medium_map, labels):
@@ -58,7 +69,9 @@ def _split_by_material(training_data, path, xs, splits):
 
 
 def clean_data_fission(path, labels, splits=None):
-    """Takes the flux before the fission rates are calculated (x data),
+    """Clean training data for fission rate prediction.
+
+    Takes the flux before the fission rates are calculated (x data),
     calculates the reaction rates (y data), and adds a label for the
     enrichment level (G+1). Also removes non-fissioning materials.
     Arguments:
@@ -83,7 +96,9 @@ def clean_data_fission(path, labels, splits=None):
 
 
 def clean_data_scatter(path, labels, splits=None):
-    """Takes the flux before the scattering rates are calculated (x data),
+    """Clean training data for scatter rate prediction.
+
+    Takes the flux before the scattering rates are calculated (x data),
     calculates the reaction rates (y data), and adds a label for the
     enrichment level (G+1).
     Arguments:
@@ -111,6 +126,24 @@ def clean_data_scatter(path, labels, splits=None):
 
 
 def min_max_normalization(data, verbose=False):
+    """Normalize data to [0,1] range using min-max scaling.
+
+    Scales each feature to the [0,1] interval by subtracting the minimum
+    and dividing by the range. Handles NaN and infinite values safely.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Input data array to normalize.
+    verbose : bool, optional
+        If True, return normalization bounds with result.
+
+    Returns
+    -------
+    numpy.ndarray or tuple
+        Normalized data array if verbose=False.
+        Tuple of (normalized data, max values, min values) if verbose=True.
+    """
     # Find maximum and minimum values
     high = np.max(data, axis=1)
     np.nan_to_num(high, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
@@ -127,28 +160,112 @@ def min_max_normalization(data, verbose=False):
 
 
 def root_normalization(data, root):
+    """Apply root normalization to input data.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Input data array.
+    root : float
+        Root power to apply.
+
+    Returns
+    -------
+    numpy.ndarray
+        Root-normalized data.
+    """
     return data**root
 
 
 def mean_absolute_error(y_true, y_pred):
+    """Calculate Mean Absolute Error (MAE) between predictions and truth.
+
+    Parameters
+    ----------
+    y_true : numpy.ndarray
+        Ground truth values.
+    y_pred : numpy.ndarray
+        Predicted values.
+
+    Returns
+    -------
+    numpy.ndarray
+        MAE values averaged over last axis.
+    """
     return np.mean(np.fabs(y_true - y_pred), axis=-1)
 
 
 def mean_squared_error(y_true, y_pred):
+    """Calculate Mean Squared Error (MSE) between predictions and truth.
+
+    Parameters
+    ----------
+    y_true : numpy.ndarray
+        Ground truth values.
+    y_pred : numpy.ndarray
+        Predicted values.
+
+    Returns
+    -------
+    numpy.ndarray
+        MSE values averaged over last axis.
+    """
     return np.mean((y_true - y_pred) ** 2, axis=-1)
 
 
 def root_mean_squared_error(y_true, y_pred):
+    """Calculate Root Mean Squared Error (RMSE).
+
+    Parameters
+    ----------
+    y_true : numpy.ndarray
+        Ground truth values.
+    y_pred : numpy.ndarray
+        Predicted values.
+
+    Returns
+    -------
+    numpy.ndarray
+        RMSE values.
+    """
     return np.sqrt(mean_squared_error(y_true, y_pred))
 
 
 def explained_variance_score(y_true, y_pred):
+    """Calculate explained variance regression score.
+
+    Parameters
+    ----------
+    y_true : numpy.ndarray
+        Ground truth values.
+    y_pred : numpy.ndarray
+        Predicted values.
+
+    Returns
+    -------
+    numpy.ndarray
+        Explained variance scores, handling NaN/inf cases.
+    """
     evs = 1 - np.var(y_true - y_pred, axis=-1) / np.var(y_true, axis=-1)
     np.nan_to_num(evs, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
     return evs
 
 
 def r2_score(y_true, y_pred):
+    """Calculate R2 score.
+
+    Parameters
+    ----------
+    y_true : numpy.ndarray
+        Ground truth values.
+    y_pred : numpy.ndarray
+        Predicted values.
+
+    Returns
+    -------
+    numpy.ndarray
+        R2 scores, handling NaN/inf cases.
+    """
     numerator = np.sum((y_true - y_pred) ** 2, axis=-1)
     denominator = np.sum((y_true - np.mean(y_true, axis=1)[:, None]) ** 2, axis=-1)
     r2 = 1 - numerator / denominator
@@ -159,6 +276,40 @@ def r2_score(y_true, y_pred):
 def train_model(
     x_train, x_test, y_train, y_test, path, trees, depth, dropout_keep=1.0, display=0
 ):
+    """Train DJINN models with different tree configurations.
+
+    Trains multiple DJINN models exploring combinations of tree counts
+    and depths. Each model is trained with optimized hyperparameters
+    and evaluated on test data. Results and model checkpoints are saved.
+
+    Parameters
+    ----------
+    x_train : numpy.ndarray
+        Training input data.
+    x_test : numpy.ndarray
+        Test input data.
+    y_train : numpy.ndarray
+        Training target values.
+    y_test : numpy.ndarray
+        Test target values.
+    path : str
+        Path to save models and metrics.
+    trees : sequence
+        Number of trees (neural nets) to try.
+    depth : sequence
+        Maximum tree depths to try.
+    dropout_keep : float, optional
+        Dropout keep probability, default 1.0.
+    display : int, optional
+        Verbosity level (0=silent).
+
+    Notes
+    -----
+    For each tree count and depth combination:
+    - Optimizes batch size, learning rate, epochs
+    - Trains model and saves checkpoint
+    - Computes and saves error metrics (MAE, MSE, EVS, R2)
+    """
     # number of trees = number of neural nets in ensemble
     # max depth of tree = optimize this for each data set
     # dropout typically set to 1 for non-Bayesian models
@@ -217,6 +368,24 @@ def train_model(
 
 
 def load_djinn_models(model_path):
+    """Load one or more trained DJINN models.
+
+    Parameters
+    ----------
+    model_path : str or sequence
+        Single model path as string, or sequence of model paths.
+        Use 0 in sequence for placeholder/dummy model.
+
+    Returns
+    -------
+    djinn.DJINN_Regressor or list
+        Loaded model if input is string, or list of models for sequence input.
+
+    Notes
+    -----
+    When passing a sequence, elements that are 0 will result in 0 being
+    included in the returned list instead of a loaded model.
+    """
     print("Loading DJINN Models...\n{}".format("=" * 30))
     if isinstance(model_path, str):
         return djinn.load(model_name=model_path)
@@ -231,6 +400,23 @@ def load_djinn_models(model_path):
 
 
 def update_cross_sections(xs_matrix, model_idx):
+    """Update cross sections for DJINN model compatibility.
+
+    Sums cross sections over specified axes while preserving array shape
+    for materials that are handled by DJINN models.
+
+    Parameters
+    ----------
+    xs_matrix : numpy.ndarray
+        Cross section matrix to update.
+    model_idx : sequence
+        Material indices handled by DJINN models.
+
+    Returns
+    -------
+    numpy.ndarray
+        Updated cross section matrix with same shape as input.
+    """
     # Summing the cross sections over a specific axis while keeping the
     # same shape for DJINN models
     updated_xs = np.zeros(xs_matrix.shape)
@@ -243,6 +429,33 @@ def update_cross_sections(xs_matrix, model_idx):
 
 
 class AutoDJINN:
+    """Autoencoder-DJINN composite model for reduced-order prediction.
+
+    This class combines an autoencoder (encoder-decoder) with a DJINN model
+    to perform prediction in a reduced latent space. The workflow is:
+    1. Encode high-dimensional input to latent representation
+    2. Apply DJINN model in latent space
+    3. Decode back to original dimensionality
+
+    Parameters
+    ----------
+    file_encoder : str
+        Path to saved encoder model.
+    file_djinn : str
+        Path to saved DJINN model.
+    file_decoder : str
+        Path to saved decoder model.
+    transformer : callable
+        Function to transform input data.
+    detransformer : callable
+        Function to inverse transform output data.
+    groups : int
+        Number of energy groups.
+    optimizer : str, optional
+        Optimizer name for Keras models.
+    loss : str, optional
+        Loss function name for Keras models.
+    """
 
     def __init__(
         self,
@@ -255,6 +468,12 @@ class AutoDJINN:
         optimizer="adam",
         loss="mse",
     ):
+        """Initialize AutoDJINN instance.
+
+        Loads encoder, DJINN, and decoder models from files and compiles
+        the Keras models with specified optimizer and loss. See class
+        docstring for parameter descriptions.
+        """
 
         self.encoder = tf.keras.models.load_model(file_encoder)
         self.encoder.compile(optimizer=optimizer, loss=loss)
@@ -269,6 +488,24 @@ class AutoDJINN:
         self.groups = groups
 
     def predict(self, flux):
+        """Make predictions using the composite model.
+
+        Handles both labeled and unlabeled input formats through the
+        full autoencoder-DJINN pipeline.
+
+        Parameters
+        ----------
+        flux : numpy.ndarray
+            Input flux array. If unlabeled, shape should be
+            (samples, groups). If labeled, shape should be
+            (samples, groups+1) with labels in first column.
+
+        Returns
+        -------
+        numpy.ndarray
+            Predicted values in original space after full pipeline
+            transform.
+        """
         # Non-labeled model
         if flux.shape[1] == self.groups:
             encoded = self.encoder.predict(self.transformer(flux), verbose=0)

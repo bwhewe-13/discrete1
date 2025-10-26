@@ -1,7 +1,11 @@
-# Time dependent Manufactured Solution Problems
+"""Temporal accuracy tests using manufactured solutions.
 
-import pytest
+These tests verify time integration accuracy for schemes like BE and BDF2
+using manufactured solutions as references.
+"""
+
 import numpy as np
+import pytest
 
 import discrete1
 from discrete1 import timed1d
@@ -16,7 +20,6 @@ def test_backward_euler_01():
     # Spatial
     cells_x = 200
     length_x = 2.0
-    delta_x = np.repeat(length_x / cells_x, cells_x)
     edges_x = np.linspace(0, length_x, cells_x + 1)
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
@@ -56,7 +59,6 @@ def test_backward_euler_02():
     # Spatial
     cells_x = 100
     length_x = np.pi
-    delta_x = np.repeat(length_x / cells_x, cells_x)
     edges_x = np.linspace(0, length_x, cells_x + 1)
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
@@ -97,7 +99,6 @@ def test_bdf2_01():
     # Spatial
     cells_x = 200
     length_x = 2.0
-    delta_x = np.repeat(length_x / cells_x, cells_x)
     edges_x = np.linspace(0, length_x, cells_x + 1)
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
@@ -137,7 +138,6 @@ def test_bdf2_02():
     # Spatial
     cells_x = 100
     length_x = np.pi
-    delta_x = np.repeat(length_x / cells_x, cells_x)
     edges_x = np.linspace(0, length_x, cells_x + 1)
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 

@@ -1,3 +1,14 @@
+"""Variant hybrid slab example showing energy/angle coarsening.
+
+This example builds a hybrid transport problem that demonstrates
+coarsening of energy groups and angular discretizations. It sets up
+both hybrid and variational-hybrid (vhybrid1d) solvers and shows how
+to coarsen cross sections and velocities for reduced-order runs.
+
+Usage: run this file with a Python interpreter. Requires `discrete1`
+and NumPy.
+"""
+
 import numpy as np
 
 import discrete1
@@ -111,13 +122,10 @@ vhy_flux = vhybrid1d.backward_euler(
     angle_xu,
     angle_wu,
     bc_x,
-    coarse_idx,
-    factor,
-    edges_gidx_c,
-    edges_g,
     steps,
     dt,
     geometry=1,
+    energy_grid=87,
 )
 
 # print(np.sum(hy_flux, axis=(1, 2)))

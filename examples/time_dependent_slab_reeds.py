@@ -1,10 +1,20 @@
-import numpy as np
-import matplotlib.pyplot as plt
+"""Time-dependent slab example using the Reeds external source.
 
+This example computes both the steady-state solution (via
+source_iteration) and a time-dependent solution (via time integrators
+in `timed1d`) for a Reeds external-source layout. The steady-state and
+time-dependent results are plotted for comparison.
+
+Usage: run this file with a Python interpreter. Requires `discrete1`,
+Matplotlib, and NumPy.
+"""
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 import discrete1
 from discrete1.fixed1d import source_iteration
-from discrete1.timed1d import backward_euler, bdf2
+from discrete1.timed1d import backward_euler
 
 cells_x = 160
 angles = 4

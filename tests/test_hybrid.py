@@ -1,4 +1,8 @@
-# Hybrid Problems
+"""Hybrid problem tests.
+
+Tests that validate hybrid (multiscale/multigroup) workflows.
+"""
+
 import numpy as np
 import pytest
 

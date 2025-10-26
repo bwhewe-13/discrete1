@@ -1,3 +1,10 @@
+"""One-dimensional criticality drivers.
+
+This module contains helpers for running k-eigenvalue power iterations in
+1D slab geometries. Both standard and hybrid (coarse/fine) drivers are
+provided.
+"""
+
 import numpy as np
 
 import discrete1
@@ -20,6 +27,28 @@ def power_iteration(
     bc_x,
     geometry=1,
 ):
+    """Run power iteration for 1D multigroup problems.
+
+    Parameters
+    ----------
+    xs_total, xs_scatter, xs_fission : numpy.ndarray
+        Cross section arrays indexed by material.
+    medium_map : array_like
+        Spatial medium mapping (length I).
+    delta_x : array_like
+        Cell widths.
+    angle_x, angle_w : array_like
+        Angular ordinates and weights.
+    bc_x : list-like
+        Boundary condition indicators.
+    geometry : int, optional
+        Geometry selector (1=slab, 2=sphere).
+
+    Returns
+    -------
+    tuple
+        (flux, keff) converged scalar flux and multiplication factor.
+    """
 
     # Set boundary source
     boundary = np.zeros((2, 1, 1))
@@ -88,6 +117,12 @@ def hybrid_power_iteration(
     energy_grid,
     geometry=1,
 ):
+    """Run the hybrid coarse/fine power iteration driver.
+
+    This wraps the workflow needed to compute collided (coarse) and
+    uncollided (fine) contributions and combines them for a hybrid solve.
+    Returns a converged uncollided flux and keff.
+    """
 
     # Collect hybrid parameters
     _, coarse_idx, factor = hytools.indexing(*energy_grid)

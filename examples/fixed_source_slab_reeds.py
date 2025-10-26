@@ -1,10 +1,20 @@
-import numpy as np
-import matplotlib.pyplot as plt
+"""Run a fixed-source slab example using the Reeds external source.
 
+This script sets up a one-dimensional slab problem with a simple
+multi-region layout and a Reeds-style external source, then solves the
+steady-state transport problem using diamond-difference source
+iteration. The computed scalar flux is plotted against spatial
+cell-centers.
+
+Usage: run this file with a Python interpreter. It depends on the
+`discrete1` package and Matplotlib for plotting.
+"""
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 import discrete1
 from discrete1.fixed1d import source_iteration
-
 
 cells_x = 160
 angles = 4

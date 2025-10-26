@@ -1,4 +1,4 @@
-# For running DJINN Problems
+"""Generating training data and running power iterations using DJINN models."""
 
 import numpy as np
 
@@ -24,6 +24,11 @@ def collection(
     filepath,
     geometry=1,
 ):
+    """Collect data for DJINN training by running a power iteration.
+
+    This function runs a power iteration while saving flux snapshots and
+    cross-section arrays to disk for later DJINN model training.
+    """
 
     # Set boundary source
     boundary = np.zeros((2, 1, 1))
@@ -108,6 +113,20 @@ def power_iteration(
     fission_labels=None,
     scatter_labels=None,
 ):
+    """Power iteration that optionally uses DJINN models for source prediction.
+
+    Parameters
+    ----------
+    flux_old : ndarray
+        Initial angular flux guess.
+    fission_models, scatter_models : list
+        Optional trained models used to predict fission/scatter sources.
+
+    Returns
+    -------
+    tuple
+        (flux, keff) converged flux and multiplication factor.
+    """
 
     # Set boundary source
     boundary = np.zeros((2, 1, 1))
@@ -122,7 +141,6 @@ def power_iteration(
     converged = False
     count = 0
     change_old = 100.0
-    change_new = 0.0
 
     while not (converged):
         # Update power source term

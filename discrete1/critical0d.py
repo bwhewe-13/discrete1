@@ -1,3 +1,9 @@
+"""Zero-dimensional criticality helpers.
+
+This module provides small helpers used for 0D (spatially independent)
+criticality calculations such as a simple power iteration driver.
+"""
+
 import numpy as np
 
 import discrete1
@@ -9,6 +15,21 @@ change_kk = 1e-06
 
 
 def power_iteration(angles, xs_total, xs_scatter, xs_fission):
+    """Run a simple power iteration for the 0D problem.
+
+    Parameters
+    ----------
+    angles : int
+        Number of angular ordinates to construct.
+    xs_total, xs_scatter, xs_fission : numpy.ndarray
+        Cross section arrays used by the multigroup solver.
+
+    Returns
+    -------
+    tuple
+        (flux, keff) where ``flux`` is the converged group flux and
+        ``keff`` is the estimated multiplication factor.
+    """
 
     angle_x, angle_w = discrete1.angular_x(angles)
 

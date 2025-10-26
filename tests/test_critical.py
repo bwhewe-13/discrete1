@@ -1,12 +1,23 @@
-# Criticality benchmark problems
-import pytest
+"""Criticality (1-D) benchmark tests for discrete1.
+
+These tests run the 1-D power-iteration solvers across a set of
+benchmark configurations and verify flux shapes and multiplication
+factors against reference values.
+"""
+
 import numpy as np
+import pytest
 
 import discrete1
 from discrete1.critical1d import power_iteration
 
 
 def normalize(flux, bc_x):
+    """Normalize and sample the flux for benchmark comparisons.
+
+    The helper rescales the flux to a convenient reference point and
+    returns samples expected by the benchmark assertions.
+    """
     cells_x = len(flux)
     if bc_x == [0, 0]:
         flux /= flux[int(cells_x * 0.5)]
@@ -34,7 +45,6 @@ def test_one_group_slab_plutonium_01a(bc_x):
     xs_fission = np.array([[[3.24 * 0.0816]]])
     medium_map = np.zeros((cells_x,), dtype=np.int32)
     length = 1.853722 * 2 if np.sum(bc_x) == 0 else 1.853722
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     flux, keff = power_iteration(
         xs_total,
@@ -184,14 +194,12 @@ def test_one_group_slab_plutonium_02b():
 def test_one_group_slab_uranium_01a(bc_x):
     cells_x = 75
     angles = 16
-    groups = 1
     angle_x, angle_w = discrete1.angular_x(angles, bc_x)
     xs_total = np.array([[0.32640]])
     xs_scatter = np.array([[[0.248064]]])
     xs_fission = np.array([[[2.70 * 0.065280]]])
     cells_x = 150 if np.sum(bc_x) == 0 else 75
     length = 2.872934 * 2 if np.sum(bc_x) == 0 else 2.872934
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     medium_map = np.zeros((cells_x), dtype=np.int32)
     flux, keff = power_iteration(
@@ -216,14 +224,12 @@ def test_one_group_slab_uranium_01a(bc_x):
 def test_one_group_sphere_uranium_01a():
     cells_x = 150
     angles = 16
-    groups = 1
     bc_x = [1, 0]
     angle_x, angle_w = discrete1.angular_x(angles, bc_x)
     xs_total = np.array([[0.32640]])
     xs_scatter = np.array([[[0.248064]]])
     xs_fission = np.array([[[2.70 * 0.065280]]])
     length = 7.428998
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     medium_map = np.zeros((cells_x), dtype=np.int32)
     flux, keff = power_iteration(
@@ -249,14 +255,12 @@ def test_one_group_sphere_uranium_01a():
 def test_one_group_slab_heavy_water_01a(bc_x):
     cells_x = 600
     angles = 16
-    groups = 1
     angle_x, angle_w = discrete1.angular_x(angles, bc_x)
     xs_total = np.array([[0.54628]])
     xs_scatter = np.array([[[0.464338]]])
     xs_fission = np.array([[[1.70 * 0.054628]]])
     cells_x = 600 if np.sum(bc_x) == 0 else 300
     length = 10.371065 * 2 if np.sum(bc_x) == 0 else 10.371065
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     medium_map = np.zeros((cells_x), dtype=np.int32)
     flux, keff = power_iteration(
@@ -281,14 +285,12 @@ def test_one_group_slab_heavy_water_01a(bc_x):
 def test_one_group_sphere_heavy_water_01a():
     cells_x = 300
     angles = 16
-    groups = 1
     bc_x = [1, 0]
     angle_x, angle_w = discrete1.angular_x(angles, bc_x)
     xs_total = np.array([[0.54628]])
     xs_scatter = np.array([[[0.464338]]])
     xs_fission = np.array([[[1.70 * 0.054628]]])
     length = 22.017156
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     medium_map = np.zeros((cells_x), dtype=np.int32)
     flux, keff = power_iteration(
@@ -313,14 +315,12 @@ def test_one_group_sphere_heavy_water_01a():
 def test_one_group_slab_uranium_reactor_01a():
     cells_x = 200
     angles = 16
-    groups = 1
     bc_x = [0, 0]
     angle_x, angle_w = discrete1.angular_x(angles, bc_x)
     xs_total = np.array([[0.407407]])
     xs_scatter = np.array([[[0.328042]]])
     xs_fission = np.array([[[2.50 * 0.06922744]]])
     length = 200 * 250
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     medium_map = np.zeros((cells_x), dtype=np.int32)
     flux, keff = power_iteration(
@@ -345,7 +345,6 @@ def test_one_group_slab_uranium_reactor_01a():
 def test_two_group_slab_plutonium_01(bc_x):
     cells_x = 200
     angles = 20
-    groups = 2
     angle_x, angle_w = discrete1.angular_x(angles, bc_x)
     xs_total = np.array([[0.3360, 0.2208]])
     xs_scatter = np.array([np.array([[0.23616, 0.0], [0.0432, 0.0792]]).T])
@@ -355,7 +354,6 @@ def test_two_group_slab_plutonium_01(bc_x):
     xs_fission = np.array([chi @ (nu * sigmaf)])
     cells_x = 200 if np.sum(bc_x) == 0 else 100
     length = 1.795602 * 2 if np.sum(bc_x) == 0 else 1.795602
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     medium_map = np.zeros((cells_x), dtype=np.int32)
     flux, keff = power_iteration(
@@ -378,7 +376,6 @@ def test_two_group_slab_plutonium_01(bc_x):
 def test_two_group_sphere_plutonium_01():
     cells_x = 200
     angles = 20
-    groups = 2
     bc_x = [1, 0]
     angle_x, angle_w = discrete1.angular_x(angles, bc_x)
     xs_total = np.array([[0.3360, 0.2208]])
@@ -388,7 +385,6 @@ def test_two_group_sphere_plutonium_01():
     sigmaf = np.array([[0.08544, 0.0936]])
     xs_fission = np.array([chi @ (nu * sigmaf)])
     length = 5.231567
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     medium_map = np.zeros((cells_x), dtype=np.int32)
     flux, keff = power_iteration(
@@ -412,7 +408,6 @@ def test_two_group_sphere_plutonium_01():
 def test_two_group_slab_uranium_01(bc_x):
     cells_x = 200
     angles = 20
-    groups = 2
     angle_x, angle_w = discrete1.angular_x(angles, bc_x)
     xs_total = np.array([[0.3456, 0.2160]])
     xs_scatter = np.array([np.array([[0.26304, 0.0], [0.0720, 0.078240]]).T])
@@ -422,7 +417,6 @@ def test_two_group_slab_uranium_01(bc_x):
     xs_fission = np.array([chi @ (nu * sigmaf)])
     cells_x = 200 if np.sum(bc_x) == 0 else 100
     length = 3.006375 * 2 if np.sum(bc_x) == 0 else 3.006375
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     medium_map = np.zeros((cells_x), dtype=np.int32)
     flux, keff = power_iteration(
@@ -445,7 +439,6 @@ def test_two_group_slab_uranium_01(bc_x):
 def test_two_group_sphere_uranium_01():
     cells_x = 200
     angles = 20
-    groups = 2
     bc_x = [1, 0]
     angle_x, angle_w = discrete1.angular_x(angles, bc_x)
     xs_total = np.array([[0.3456, 0.2160]])
@@ -455,7 +448,6 @@ def test_two_group_sphere_uranium_01():
     sigmaf = np.array([[0.06912, 0.06912]])
     xs_fission = np.array([chi @ (nu * sigmaf)])
     length = 7.909444
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     medium_map = np.zeros((cells_x), dtype=np.int32)
     flux, keff = power_iteration(
@@ -478,7 +470,6 @@ def test_two_group_sphere_uranium_01():
 def test_two_group_slab_uranium_aluminum(bc_x):
     cells_x = 200
     angles = 20
-    groups = 2
     angle_x, angle_w = discrete1.angular_x(angles, bc_x)
     xs_total = np.array([[1.27698, 0.26817]])
     xs_scatter = np.array([np.array([[1.21313, 0.0], [0.020432, 0.247516]]).T])
@@ -488,7 +479,6 @@ def test_two_group_slab_uranium_aluminum(bc_x):
     xs_fission = np.array([chi @ (nu * sigmaf)])
     cells_x = 200 if np.sum(bc_x) == 0 else 100
     length = 7.830630 * 2 if np.sum(bc_x) == 0 else 7.830630
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     medium_map = np.zeros((cells_x), dtype=np.int32)
     flux, keff = power_iteration(
@@ -510,7 +500,6 @@ def test_two_group_slab_uranium_aluminum(bc_x):
 def test_two_group_sphere_uranium_aluminum():
     cells_x = 200
     angles = 20
-    groups = 2
     bc_x = [1, 0]
     angle_x, angle_w = discrete1.angular_x(angles, bc_x)
     xs_total = np.array([[1.27698, 0.26817]])
@@ -520,7 +509,6 @@ def test_two_group_sphere_uranium_aluminum():
     sigmaf = np.array([[0.06070636042, 0.0]])
     xs_fission = np.array([chi @ (nu * sigmaf)])
     length = 17.66738
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     medium_map = np.zeros((cells_x), dtype=np.int32)
     flux, keff = power_iteration(
@@ -543,7 +531,6 @@ def test_two_group_sphere_uranium_aluminum():
 def test_two_group_slab_uranium_reactor_01(bc_x):
     cells_x = 200
     angles = 20
-    groups = 2
     angle_x, angle_w = discrete1.angular_x(angles, bc_x)
     xs_total = np.array([[2.52025, 0.65696]])
     xs_scatter = np.array([np.array([[2.44383, 0.0], [0.029227, 0.62568]]).T])
@@ -553,7 +540,6 @@ def test_two_group_slab_uranium_reactor_01(bc_x):
     xs_fission = np.array([chi @ (nu * sigmaf)])
     cells_x = 200 if np.sum(bc_x) == 0 else 100
     length = 7.566853 * 2 if np.sum(bc_x) == 0 else 7.566853
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     medium_map = np.zeros((cells_x), dtype=np.int32)
     flux, keff = power_iteration(
@@ -575,7 +561,6 @@ def test_two_group_slab_uranium_reactor_01(bc_x):
 def test_two_group_sphere_uranium_reactor_01():
     cells_x = 200
     angles = 20
-    groups = 2
     bc_x = [1, 0]
     angle_x, angle_w = discrete1.angular_x(angles, bc_x)
     xs_total = np.array([[2.52025, 0.65696]])
@@ -585,7 +570,6 @@ def test_two_group_sphere_uranium_reactor_01():
     sigmaf = np.array([[0.050632, 0.0010484]])
     xs_fission = np.array([chi @ (nu * sigmaf)])
     length = 16.049836
-    edges_x = np.linspace(0, length, cells_x + 1)
     delta_x = np.repeat(length / cells_x, cells_x)
     medium_map = np.zeros((cells_x), dtype=np.int32)
     flux, keff = power_iteration(

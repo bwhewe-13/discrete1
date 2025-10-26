@@ -1,23 +1,57 @@
-# Built in external sources
+"""Built-in external source factories used by tests and examples.
+
+This module contains a set of ready-made external source constructors
+used across examples, tests, and solver inputs. Functions return NumPy
+arrays shaped to match solver expectations (spatial cells, angles,
+groups, and optional time axes).
+
+Public functions
+- manufactured_ss_03, manufactured_ss_04, manufactured_ss_05
+- manufactured_td_01, manufactured_td_02
+- reeds, ambe
+- time_dependence_constant
+
+Data files for some sources are loaded from the package `sources/`
+directory via pkg_resources.
+"""
 
 import numpy as np
 import pkg_resources
-
 
 DATA_PATH = pkg_resources.resource_filename("discrete1", "sources/")
 
 
 def manufactured_ss_03(x, angle_x):
+    """Manufactured steady-state source (case 03).
+
+    Constructs a one-group, angle-dependent external source used for
+    manufactured-solution tests. The returned array has shape
+    (n_x, n_angles, 1).
+
+    Parameters
+    ----------
+    x : array_like
+        Spatial cell centers or coordinates (length n_x).
+    angle_x : array_like
+        Angular ordinates (length n_angles).
+
+    Returns
+    -------
+    numpy.ndarray
+        External source array with shape (n_x, n_angles, 1).
+    """
     # One group, angle dependent source
     external = np.zeros((x.shape[0], angle_x.shape[0], 1))
     const1 = 0.5
     const2 = 0.25
-    func = (
-        lambda mu: const2 * mu * np.exp(mu) * 2 * x
-        + const1
-        + const2 * x**2 * np.exp(mu)
-        - 0.9 / 2 * (2 * const1 + const2 * x**2 * (np.exp(1) - np.exp(-1)))
-    )
+
+    def func(mu):
+        return (
+            const2 * mu * np.exp(mu) * 2 * x
+            + const1
+            + const2 * x**2 * np.exp(mu)
+            - 0.9 / 2 * (2 * const1 + const2 * x**2 * (np.exp(1) - np.exp(-1)))
+        )
 
     for nn, mu in enumerate(angle_x):
         external[:, nn, 0] = func(mu)
@@ -26,6 +60,22 @@ def manufactured_ss_03(x, angle_x):
 
 
 def manufactured_ss_04(x, angle_x):
+    """Manufactured steady-state source (case 04).
+
+    One-group source with two material regions (quasi and scatter forms).
+
+    Parameters
+    ----------
+    x : array_like
+        Spatial coordinates (n_x,).
+    angle_x : array_like
+        Angular ordinates (n_angles,).
+
+    Returns
+    -------
+    numpy.ndarray
+        External source array with shape (n_x, n_angles, 1).
+    """
     # One group, two material source
     external = np.zeros((x.shape[0], angle_x.shape[0], 1))
     length_x = 2.0
@@ -55,6 +105,22 @@ def manufactured_ss_04(x, angle_x):
 
 
 def manufactured_ss_05(x, angle_x):
+    """Manufactured steady-state source (case 05).
+
+    One-group manufactured source with region-dependent expressions.
+
+    Parameters
+    ----------
+    x : array_like
+        Spatial coordinates (n_x,).
+    angle_x : array_like
+        Angular ordinates (n_angles,).
+
+    Returns
+    -------
+    numpy.ndarray
+        External source array with shape (n_x, n_angles, 1).
+    """
     external = np.zeros((x.shape[0], angle_x.shape[0], 1))
     length_x = 2.0
 
@@ -92,6 +158,22 @@ def manufactured_ss_05(x, angle_x):
 
 
 def manufactured_td_01(x, angle_x, edges_t):
+    """Manufactured time-dependent source (case TD_01).
+
+    Parameters
+    ----------
+    x : array_like
+        Spatial coordinates (n_x,).
+    angle_x : array_like
+        Angular ordinates (n_angles,).
+    edges_t : array_like
+        Time edge values (n_time_edges,).
+
+    Returns
+    -------
+    numpy.ndarray
+        External source array with shape (n_time_edges, n_x, n_angles, 1).
+    """
     external = np.zeros((edges_t.shape[0], x.shape[0], angle_x.shape[0], 1))
     for cc, tt in enumerate(edges_t):
         for nn, mu in enumerate(angle_x):
@@ -104,6 +186,22 @@ def manufactured_td_01(x, angle_x, edges_t):
 
 
 def manufactured_td_02(x, angle_x, edges_t):
+    """Manufactured time-dependent source (case TD_02).
+
+    Parameters
+    ----------
+    x : array_like
+        Spatial coordinates (n_x,).
+    angle_x : array_like
+        Angular ordinates (n_angles,).
+    edges_t : array_like
+        Time edge values (n_time_edges,).
+
+    Returns
+    -------
+    numpy.ndarray
+        External source array with shape (n_time_edges, n_x, n_angles, 1).
+    """
     external = np.zeros((edges_t.shape[0], x.shape[0], angle_x.shape[0], 1))
     for cc, tt in enumerate(edges_t):
         for nn, mu in enumerate(angle_x):
@@ -117,6 +215,23 @@ def manufactured_td_02(x, angle_x, edges_t):
 
 
 def reeds(edges_x, bc):
+    """Reeds problem spatial-dependent source.
+
+    Constructs the piecewise spatial source used by the Reeds test problem.
+
+    Parameters
+    ----------
+    edges_x : array_like
+        Spatial edge coordinates.
+    bc : list-like
+        Boundary condition indicator; used to select half-domain source
+        patterns when bc indicates only one side is active.
+
+    Returns
+    -------
+    numpy.ndarray
+        Spatial source array with shape (n_cells, 1, 1).
+    """
     # Spatial dependent source for Reeds Problem
     external = np.zeros((edges_x.shape[0] - 1, 1, 1))
     source_values = np.array([0.0, 1.0, 0.0, 50.0, 50.0, 0.0, 1.0, 0.0])
@@ -130,7 +245,9 @@ def reeds(edges_x, bc):
         lhs = lhs[idx].copy() - corrector
         rhs = rhs[idx].copy() - corrector
 
-    loc = lambda x: int(np.argwhere(edges_x == x))
+    def loc(x):
+        return int(np.argwhere(edges_x == x))
+
     bounds = [slice(loc(ii), loc(jj)) for ii, jj in zip(lhs, rhs)]
 
     for ii in range(len(bounds)):
@@ -140,6 +257,23 @@ def reeds(edges_x, bc):
 
 
 def ambe(x, loc_x, edges_g):
+    """Load an AmBe external neutron source and map it into groups.
+
+    Parameters
+    ----------
+    x : array_like
+        Spatial coordinates (n_x,).
+    loc_x : int
+        Index in ``x`` where the AmBe source is located.
+    edges_g : array_like
+        Energy group edges. If values appear large (>20) they are assumed to
+        be in eV and will be converted to MeV.
+
+    Returns
+    -------
+    numpy.ndarray
+        External source array with shape (n_x, 1, n_groups).
+    """
     # AmBe source in middle of material
     external = np.zeros((x.shape[0], 1, edges_g.shape[0] - 1))
 
@@ -149,7 +283,9 @@ def ambe(x, loc_x, edges_g):
         edges_g *= 1e-6
 
     centers_g = 0.5 * (edges_g[1:] + edges_g[:-1])
-    loc_g = lambda x1, x2: np.argwhere((centers_g > x1) & (centers_g <= x2)).flatten()
+
+    def loc_g(x1, x2):
+        return np.argwhere((centers_g > x1) & (centers_g <= x2)).flatten()
 
     for ii in range(len(data["magnitude"])):
         idx = loc_g(data["edges"][ii], data["edges"][ii + 1])
@@ -159,4 +295,16 @@ def ambe(x, loc_x, edges_g):
 
 
 def time_dependence_constant(boundary_x):
+    """Wrap an external source to add a time axis (constant in time).
+
+    Parameters
+    ----------
+    boundary_x : numpy.ndarray
+        External source array without a time axis.
+
+    Returns
+    -------
+    numpy.ndarray
+        Time-dependent external source with a leading time axis (shape: 1, ...).
+    """
     return boundary_x[None, ...]

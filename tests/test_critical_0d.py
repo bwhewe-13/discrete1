@@ -1,9 +1,12 @@
-# Criticality benchmark problems
+"""Criticality (0-D) benchmark tests.
 
-import pytest
+These tests exercise the scalar (0-D) criticality solvers and compare
+computed multiplication factors to benchmark references.
+"""
+
 import numpy as np
+import pytest
 
-import discrete1
 from discrete1.critical0d import power_iteration
 
 

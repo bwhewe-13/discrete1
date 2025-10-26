@@ -1,9 +1,21 @@
-# Calculating material cross sections
+"""Material cross-section generation and management.
+
+This module provides tools for generating and managing neutron cross-sections
+for various materials used in transport calculations. It supports both
+enriched (uranium, plutonium, uranium-hydride) and non-enriched materials,
+with cross-sections loaded from precomputed data files.
+
+The module handles:
+- Cross-section lookup for standard materials
+- Enrichment calculations for fissile materials
+- Special composition calculations (e.g., uranium hydride)
+- Vacuum/void material properties
+"""
 
 import numpy as np
 import pkg_resources
 
-from discrete1.constants import *
+import discrete1.constants as const
 
 DATA_PATH = pkg_resources.resource_filename("discrete1", "sources/")
 
@@ -31,10 +43,37 @@ __materials = __enrichment_materials + __nonenrichment_materials
 
 
 def materials(groups, materials, key=False):
-    """Creating cross sections for different materials
-    Args:
-        groups (int): Number of energy groups
-        materials (list): [material1, ..., materialN]
+    """Create cross sections for different materials.
+
+    Generates total, scatter, and fission cross-sections for a list of
+    materials. Handles both enriched and non-enriched materials, with
+    proper composition calculations for mixtures.
+
+    Parameters
+    ----------
+    groups : int
+        Number of energy groups.
+    materials : list
+        List of material names (str). Each name can include enrichment
+        percentage using '-X%' suffix.
+    key : bool, optional
+        If True, return a mapping of indices to material names.
+
+    Returns
+    -------
+    numpy.ndarray
+        Total cross-sections (n_materials, n_groups).
+    numpy.ndarray
+        Scatter cross-sections (n_materials, n_groups, n_groups).
+    numpy.ndarray
+        Fission cross-sections (n_materials, n_groups, n_groups).
+    dict, optional
+        Material index to name mapping if key=True.
+
+    Notes
+    -----
+    Supported materials are defined in __materials tuple. Enriched
+    materials support percentage specification (e.g., 'uranium-5%').
     """
     material_key = {}
     xs_total = []
@@ -90,12 +129,13 @@ def _generate_cross_section(groups, material):
 
 
 def _generate_uranium_hydride(enrichment):
-    molar = enrichment * URANIUM_235_MM + (1 - enrichment) * URANIUM_238_MM
-    rho = URANIUM_HYDRIDE_RHO / URANIUM_RHO
+    molar = enrichment * const.URANIUM_235_MM + (1 - enrichment) * const.URANIUM_238_MM
+    rho = const.URANIUM_HYDRIDE_RHO / const.URANIUM_RHO
 
-    n235 = (enrichment * rho * molar) / (molar + 3 * HYDROGEN_MM)
-    n238 = ((1 - enrichment) * rho * molar) / (molar + 3 * HYDROGEN_MM)
-    n1 = URANIUM_HYDRIDE_RHO * AVAGADRO / (molar + 3 * HYDROGEN_MM) * CM_TO_BARNS * 3
+    n235 = (enrichment * rho * molar) / (molar + 3 * const.HYDROGEN_MM)
+    n238 = ((1 - enrichment) * rho * molar) / (molar + 3 * const.HYDROGEN_MM)
+    n1 = const.URANIUM_HYDRIDE_RHO * const.AVAGADRO / (molar + 3 * const.HYDROGEN_MM)
+    n1 *= const.CM_TO_BARNS * 3
 
     u235 = np.load(DATA_PATH + "materials/uranium-235.npz")
     u238 = np.load(DATA_PATH + "materials/uranium-238.npz")

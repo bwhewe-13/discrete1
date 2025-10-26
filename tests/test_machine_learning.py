@@ -1,11 +1,14 @@
-# Test Machine Learning Functions
+"""Unit tests for small machine-learning utility functions.
 
-import pytest
+These tests compare the project's metric implementations against
+scikit-learn references.
+"""
+
 import numpy as np
+import pytest
 from sklearn import metrics
 
 from discrete1.utils import machine_learning as ml
-
 
 np.random.seed(42)
 

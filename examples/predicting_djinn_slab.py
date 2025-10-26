@@ -1,9 +1,21 @@
+"""Example using DJINN models to accelerate scatter/fission estimation.
+
+This script demonstrates plugging pre-trained DJINN models into the
+power-iteration eigenvalue solver to accelerate or replace parts of the
+transport operator (scatter and/or fission kernels). It shows how to
+load models, label materials, update cross sections, and run a
+transport eigenvalue estimate.
+
+Usage: adapt model paths and labels, then run with a Python interpreter.
+Requires `discrete1`, NumPy, and trained DJINN model checkpoints.
+"""
+
 import numpy as np
 
 import discrete1
+from discrete1.constants import HDPE_MM
 from discrete1.djinn1d import power_iteration
 from discrete1.utils import machine_learning as ml
-from discrete1.constants import HDPE_MM
 
 cells_x = 1000
 angles = 8

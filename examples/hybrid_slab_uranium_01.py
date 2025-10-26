@@ -1,10 +1,18 @@
-import numpy as np
-import matplotlib.pyplot as plt
+"""Hybrid (multi-grid) slab example with uranium materials.
 
+This example demonstrates time-dependent and hybrid transport
+integration for an enriched uranium configuration. It compares a
+multi-group time integrator (timed1d) to a hybrid reduced-order
+integration (hybrid1d) and prints simple integral diagnostics.
+
+Usage: run this file with a Python interpreter. It requires the
+`discrete1` package and NumPy.
+"""
+
+import numpy as np
 
 import discrete1
-from discrete1.fixed1d import source_iteration
-from discrete1 import timed1d, hybrid1d
+from discrete1 import hybrid1d, timed1d
 
 cells_x = 1000
 angles_u = 8

@@ -1,13 +1,25 @@
-# Creating angular dimensions
-from discrete1.main import angular_x
+"""discrete1.
 
-# Creating energy grids
-from discrete1.main import energy_velocity, energy_grid
+Top-level package for the discrete1 library.
 
+This package exports a small convenience API for creating spatial/energy/
+angular grids and accessing material definitions. Importing the package
+will expose commonly-used helpers so downstream code can do::
 
-# Creating medium maps
-from discrete1.main import spatial1d
+    import discrete1
 
-# Creating materials/sources
-from discrete1.materials import materials
-from discrete1 import boundary1d, external1d
+to have access to the main functionality.
+"""
+
+from discrete1 import boundary1d, external1d  # noqa: F401
+
+# Creating medium maps, energy grids, and angular grids
+from discrete1.main import (  # noqa: F401
+    angular_x,
+    energy_grid,
+    energy_velocity,
+    spatial1d,
+)
+
+# Creating materials
+from discrete1.materials import materials  # noqa: F401

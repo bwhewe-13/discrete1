@@ -1,8 +1,14 @@
-import pytest
-import numpy as np
+# Spatial accuracy tests
+"""Spatial accuracy regression tests.
 
-import discrete1
-from discrete1.fixed1d import source_iteration, dynamic_mode_decomp
+These tests exercise the spatial discretization and sweep routines and
+compare numerical accuracy against manufactured references.
+"""
+
+import numpy as np
+import pytest
+
+from discrete1.fixed1d import dynamic_mode_decomp, source_iteration
 from discrete1.utils import manufactured as mms
 from tests import problems
 

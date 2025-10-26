@@ -1,17 +1,53 @@
-# Running basic functions for collecting parameters
+"""Utilities for building grids and basic problem parameters.
+
+This module collects small helper functions used to build angular and
+energy quadratures, convert energy grids to velocities, construct time
+stepping grids, and build 1-D spatial material maps. The helpers are
+lightweight and intended for use by example scripts and tests.
+
+Public helpers
+- angular_x
+- energy_grid
+- energy_velocity
+- gamma_time_steps
+- spatial1d
+"""
 
 import numpy as np
 import pkg_resources
 
+import discrete1.constants as const
 from discrete1.utils.hybrid import energy_coarse_index
-from discrete1.constants import *
 
 DATA_PATH = pkg_resources.resource_filename("discrete1", "sources/energy/")
 
 
 def angular_x(angles, bc_x=[0, 0]):
+    """Generate angular ordinates and normalized weights.
+
+    Uses Gauss-Legendre quadrature to compute angular ordinates (mu)
+    and weights for the specified number of angles. If reflective
+    boundary conditions are present (``bc_x``), the ordering of
+    ordinates and weights is adjusted so that the incoming directions
+    correspond to the solver's expected ordering.
+
+    Parameters
+    ----------
+    angles : int
+        Number of angular ordinates (n).
+    bc_x : sequence of two ints, optional
+        Boundary condition indicators for left/right (default [0, 0]).
+
+    Returns
+    -------
+    tuple
+        (angle_x, angle_w) where ``angle_x`` is array of ordinates and
+        ``angle_w`` is the corresponding normalized weights.
+    """
+
     angle_x, angle_w = np.polynomial.legendre.leggauss(angles)
     angle_w /= np.sum(angle_w)
+
     # Ordering for reflective boundaries
     if np.sum(bc_x) > 0.0:
         if bc_x == [1, 0]:
@@ -20,18 +56,41 @@ def angular_x(angles, bc_x=[0, 0]):
             idx = angle_x.argsort()[::-1]
         angle_x = angle_x[idx].copy()
         angle_w = angle_w[idx].copy()
+
     return angle_x, angle_w
 
 
 def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
-    """
-    Calculate energy grid bounds (MeV) and index for coarsening
-    Arguments:
-        groups (int): Number of energy groups for problem
-        grid (int): specified energy grid to use (87, 361, 618)
-    Returns:
-        edges_g (float [grid + 1]): MeV energy group bounds
-        edges_gidx (int [groups + 1]): Location of grid index for problem
+    """Build energy grid edges and index mapping for coarse/fine grids.
+
+    The function loads predefined energy grids shipped with the
+    package and returns the energy edges (MeV) and the array mapping
+    problem group indices to locations within the fine grid. When
+    ``groups_coarse`` is provided the function also returns the coarse
+    grid index mapping.
+
+    Parameters
+    ----------
+    grid : int
+        Choice of stock grid (supported: 87, 361, 618).
+    groups_fine : int
+        Number of fine groups in the problem.
+    groups_coarse : int, optional
+        Number of coarse groups to compute an additional mapping.
+    optimize : bool, optional
+        If True, attempt to load precomputed index mappings from
+        packaged data; otherwise compute indices on-the-fly.
+
+    Returns
+    -------
+    edges_g : numpy.ndarray
+        Energy bin edges in MeV (length grid + 1).
+    edges_gidx_fine : numpy.ndarray
+        Integer indices mapping fine-group boundaries into the
+        chosen energy grid.
+    edges_gidx_coarse : numpy.ndarray, optional
+        (Only returned when ``groups_coarse`` is not None.) Coarse
+        group index mapping.
     """
     # Create energy grid
     if grid in [87, 361, 618]:
@@ -80,29 +139,55 @@ def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
 
 
 def energy_velocity(groups, edges_g=None):
-    """Convert energy edges to speed at cell centers, Relative Physics
-    Arguments:
-        groups: Number of energy groups
-        edges_g: energy grid bounds
-    Returns:
-        speeds at cell centers (cm/s)"""
-    if np.all(edges_g == None):
+    """Compute particle speeds (cm/s) at group centers from energy edges.
+
+    Parameters
+    ----------
+    groups : int
+        Number of energy groups. Used only if ``edges_g`` is None.
+    edges_g : array_like, optional
+        Energy group edges in MeV. If omitted, a unit vector is
+        returned for convenience.
+
+    Returns
+    -------
+    numpy.ndarray
+        Speeds at group center energies in cm/s.
+    """
+
+    if np.all(edges_g is None):
         return np.ones((groups,))
+
     centers_gg = 0.5 * (edges_g[1:] + edges_g[:-1])
-    gamma = (EV_TO_JOULES * centers_gg) / (MASS_NEUTRON * LIGHT_SPEED**2) + 1
-    velocity = LIGHT_SPEED / gamma * np.sqrt(gamma**2 - 1) * 100
+    gamma = (const.EV_TO_JOULES * centers_gg) / (
+        const.MASS_NEUTRON * const.LIGHT_SPEED**2
+    ) + 1
+    velocity = const.LIGHT_SPEED / gamma * np.sqrt(gamma**2 - 1) * 100
     return velocity
 
 
 def gamma_time_steps(edges_t, gamma=0.5, half_step=True):
-    """Add gamma half time steps to original time steps with initial step
-    where gamma = 0.5 or 2 - sqrt(2). For external source with TR-BDF2 problems.
+    """Insert intermediate (gamma) time steps between existing edges.
 
-    Arguments:
-        edges_t: array of length (steps + 1)
-        half_step: if True, first half step is 0.5, else gamma
-    Returns:
-        array of length (steps * 2 + 1)
+    This helper takes a time-edge array and returns a combined array
+    that includes half-steps (or gamma-weighted sub-steps) between
+    original edges. It's used by time integrators that require
+    sub-step evaluations (for example TR-BDF2).
+
+    Parameters
+    ----------
+    edges_t : array_like
+        Time edge array of length (n_steps + 1).
+    gamma : float, optional
+        Fraction used to compute intermediate times (default 0.5).
+    half_step : bool, optional
+        If True, the first intermediate step is set to the exact
+        midpoint between the surrounding times.
+
+    Returns
+    -------
+    numpy.ndarray
+        Combined time array of length (n_steps * 2 + 1).
     """
 
     if gamma == 0.5:
@@ -117,7 +202,7 @@ def gamma_time_steps(edges_t, gamma=0.5, half_step=True):
 
 
 def spatial1d(layers, edges_x, labels=False, check=True):
-    """Creating one-dimensional medium map
+    """Create one-dimensional medium map.
 
     :param layers: list of lists where each layer is a new material. A
         layer is comprised of an index (int), material name (str), and

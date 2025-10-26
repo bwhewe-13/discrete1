@@ -1,4 +1,12 @@
-# Default Problems for Testing
+"""Default problem builders used by the test suite.
+
+This module provides small helper functions that assemble complete
+problem parameter tuples used across unit tests (material cross
+sections, external/boundary sources, grids, and reference layouts).
+Each helper returns a tuple matching the test callers' expected
+signature so tests can remain concise.
+"""
+
 import numpy as np
 
 import discrete1
@@ -6,8 +14,22 @@ from discrete1.utils import manufactured as mms
 
 
 def manufactured_ss_01(cells_x, angles):
+    """Build a simple one-group steady-state manufactured problem.
+
+    Parameters
+    ----------
+    cells_x : int
+        Number of spatial cells.
+    angles : int
+        Number of angular ordinates.
+
+    Returns
+    -------
+    tuple
+        Tuple containing material arrays, sources, meshes, and quadrature
+        values used by the tests.
+    """
     # General parameters
-    groups = 1
     bc_x = [0, 0]
 
     # Spatial
@@ -47,8 +69,11 @@ def manufactured_ss_01(cells_x, angles):
 
 
 def manufactured_ss_02(cells_x, angles):
+    """Build a second simple one-group steady-state manufactured problem.
+
+    See :func:`manufactured_ss_01` for return value structure.
+    """
     # General parameters
-    groups = 1
     bc_x = [0, 0]
 
     # Spatial
@@ -88,8 +113,13 @@ def manufactured_ss_02(cells_x, angles):
 
 
 def manufactured_ss_03(cells_x, angles):
+    """One-group manufactured problem that uses angle-dependent sources.
+
+    This helper uses the packaged manufactured solutions in
+    :mod:`discrete1.external1d` and corresponding manufactured
+    boundary conditions in :mod:`discrete1.boundary1d`.
+    """
     # General parameters
-    groups = 1
     bc_x = [0, 0]
 
     # Spatial
@@ -129,8 +159,11 @@ def manufactured_ss_03(cells_x, angles):
 
 
 def manufactured_ss_04(cells_x, angles):
+    """Manufactured two-material steady-state problem.
+
+    Returns the same structure as other ``manufactured_ss_*`` helpers.
+    """
     # General parameters
-    groups = 1
     bc_x = [0, 0]
 
     # Spatial
@@ -171,8 +204,11 @@ def manufactured_ss_04(cells_x, angles):
 
 
 def manufactured_ss_05(cells_x, angles):
+    """Another manufactured steady-state problem with region-dependent sources.
+
+    Returns the same structure as other ``manufactured_ss_*`` helpers.
+    """
     # General parameters
-    groups = 1
     bc_x = [0, 0]
 
     # Spatial
@@ -213,6 +249,15 @@ def manufactured_ss_05(cells_x, angles):
 
 
 def manufactured_td_01(cells_x, angles, edges_t, temporal=1):
+    """Time-dependent manufactured problem (TD_01).
+
+    Parameters
+    ----------
+    cells_x, angles, edges_t, temporal
+        See callers in tests for usage. Returns a tuple where the first
+        element is the initial flux and the subsequent entries match the
+        steady-state helpers' return structure extended with time.
+    """
     # General parameters
     groups = 1
     bc_x = [0, 0]
@@ -268,6 +313,10 @@ def manufactured_td_01(cells_x, angles, edges_t, temporal=1):
 
 
 def manufactured_td_02(cells_x, angles, edges_t, temporal=1):
+    """Time-dependent manufactured problem (TD_02).
+
+    See :func:`manufactured_td_01` for details on return structure.
+    """
     # General parameters
     groups = 1
     bc_x = [0, 0]

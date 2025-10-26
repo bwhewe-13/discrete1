@@ -1,49 +1,28 @@
-########################################################################
-# ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⡋⢅⣂⣐⡨⠙⡻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-# ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⣩⣥⣬⢕⢰⣾⣿⣿⣿⣿⣷⣄⠊⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-# ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⢸⣳⣳⣻⣿⡆⣿⣿⣿⣿⣿⣿⣿⣮⠠⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-# ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡘⢜⢞⢮⢗⢡⣿⣿⣿⣿⣿⣿⣿⣿⣧⠂⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-# ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠐⣰⣴⣶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣆⠊⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-# ⣿⣿⡿⠟⡛⠫⠉⠍⠛⡛⢛⠻⠿⢿⣿⣿⡇⢂⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡐⢸⣿⣿⠿⠿⠛⡛⢋⠩⠉⠍⠩⢙⠛⢿⣿⣿
-# ⡿⠃⣬⣴⣾⣿⣿⣿⣿⣷⣶⣾⣤⣥⣠⠩⠠⠹⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⢃⠡⢁⣂⣬⣴⣷⣾⣿⣿⣿⣿⣿⣷⣾⣄⠌⢿
-# ⠅⢱⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⢌⣶⣴⣠⢉⠛⠿⣿⣿⣿⡿⠟⠫⢑⣠⣬⣶⡐⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡆⢊
-# ⠄⣹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢁⢺⣿⣿⣿⣿⣾⣴⠀⠍⠩⢠⣵⣿⣿⣿⣿⣿⡇⠊⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⢂
-# ⣇⠌⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢀⣾⣿⣿⣿⠿⠋⣡⣨⣾⣶⣄⡌⡙⠿⣿⣿⣿⣷⠁⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠠⣹
-# ⣿⡄⠜⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠄⣿⠿⢋⢡⣤⣿⣿⣿⣿⣿⣿⣿⣶⣴⡈⡙⠿⣿⠐⣸⣿⣿⣿⣿⣿⣿⣿⡿⢋⢅⢆⡬⡐⣿
-# ⣿⡿⢢⢴⣲⣶⣌⢻⣿⣿⣿⣿⣿⣿⡇⠌⢡⣨⣶⣿⣿⠟⡛⡩⡩⡍⡍⡛⡻⣿⣿⣶⣅⡌⢂⢸⣿⣿⣿⣿⣿⣿⣿⠡⡱⡱⡍⣿⣖⢸
-# ⣿⡇⢯⡻⡮⣟⣿⠀⣿⣿⣿⣿⠟⡋⡐⢸⣿⣿⣿⠟⡡⡪⡪⡪⡪⡪⡪⣪⣖⢌⠻⣿⣿⣿⡆⢂⠙⠻⣿⣿⣿⣿⣿⡆⠪⢪⢪⠪⢂⣾
-# ⣿⣷⡘⠎⢟⠵⠃⠼⣿⣿⠟⡁⣢⣾⢁⢺⣿⣿⠏⢔⢱⢱⢱⢱⢱⢱⢱⢙⣿⣷⡕⠹⣿⣿⡇⠌⣷⣅⠌⠻⣿⣿⠟⠡⣵⣶⣶⣶⣿⣿
-# ⣿⣿⣿⣷⣶⣾⣷⣔⠈⠅⣢⣾⣿⣿⠠⢸⣿⣿⠨⡢⠣⡣⡣⡣⡣⡣⡣⡣⡪⡻⡫⠅⣿⣿⡇⠂⣿⣿⣿⣮⠈⠅⢬⣾⣿⣿⣿⣿⣿⣿
-# ⣿⣿⣿⣿⣿⣿⠟⠡⣨⣆⠌⠻⣿⣿⠐⢸⣿⣿⡈⡪⡸⢸⢸⢸⢸⢸⢸⢸⢸⢸⢸⠁⣿⣿⡇⡁⣿⣿⠟⠡⣨⣦⡉⠻⣿⣿⣿⣿⣿⣿
-# ⣿⣿⣿⣿⡿⠡⣨⣾⣿⣿⣷⣅⡌⢛⠎⢸⣿⣿⣧⠨⡸⡐⢕⢱⢱⢱⢱⢱⢱⢱⠁⣾⣿⣿⡇⠰⢋⢑⣬⣾⣿⣿⣿⣔⢈⠻⣿⣿⣿⣿
-# ⣿⣿⣿⠏⢄⣵⣿⣿⣿⣿⣿⣿⣿⣦⡂⢙⠻⣿⣿⣷⣔⠘⢌⠆⡕⠜⡌⡪⢘⣠⣾⣿⣿⠟⡃⢅⣶⣿⣿⣿⣿⣿⣿⣿⣷⡈⡙⣿⣿⣿
-# ⣿⣿⠃⢬⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠂⣆⡌⡙⢿⣿⣿⣶⣶⣤⣥⣶⣶⣿⣿⠿⠋⢅⣢⠐⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣆⠨⢿⣿
-# ⣿⠃⢬⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⠁⣿⣿⣶⣄⡌⠛⠿⣿⣿⣿⣿⠿⠋⢅⣬⣾⣿⣿⠈⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣆⠊⢿
-# ⡇⢌⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠐⢹⣿⣿⣿⣿⣾⣤⡊⢙⠋⢅⣬⣾⣿⣿⣿⣿⡏⠌⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡎⢘
-# ⡐⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡎⢸⣿⣿⣿⠿⢛⢉⣐⣴⣮⣄⡊⡙⠿⢿⣿⣿⠇⢢⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠂
-# ⡆⠙⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠇⡂⠋⢍⣠⣬⣶⣿⣿⣿⣿⣿⣿⣶⣦⣆⡨⠙⠨⠸⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⢃⢱
-# ⣿⣦⡂⡙⢛⠿⠿⠿⠿⡛⢛⠛⡉⢅⣂⣥⡠⢹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⣁⣮⣄⣂⡩⢉⠛⡛⢛⠻⢛⠛⡛⠍⣐⣴⣿
-# ⣿⣿⣿⣷⣶⣶⣵⣬⣶⣶⣶⣿⣿⣿⣿⣿⣧⠂⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠠⣼⣿⣿⣿⣿⣿⣷⣶⣶⣶⣶⣶⣶⣿⣿⣿⣿
-# ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡆⡙⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⢲⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-# ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄⠜⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⢥⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-# ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡔⠘⢿⣿⣿⣿⣿⣿⣿⡿⠃⢬⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-# ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣮⡀⠛⠿⣿⣿⠿⠋⣂⣵⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-# ⠿⠻⠿⠻⠿⠻⠿⠻⠿⠻⠿⠻⠟⠿⠻⠟⠿⠻⠟⠿⠻⠿⠺⠔⠄⠂⠦⠳⠟⠿⠻⠟⠿⠻⠟⠿⠻⠟⠿⠻⠟⠿⠻⠟⠿⠻⠿⠻⠿⠻
-########################################################################
+"""One-dimensional neutron transport equation solver with ML acceleration.
 
+Features:
+- Fixed source and criticality problems
+- Discrete ordinates (SN) angular discretization
+- Diamond difference spatial discretization
+- BDF1/BDF2 temporal integration
+- Slab and spherical geometries
+- DJINN-based ML acceleration
+- Numba-optimized implementations
+"""
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="discrete1",
-    description="""
-        One Dimensional Neutron Transport Equation for both fixed sources
-        and criticality problems. The discrete ordinates (SN) method
-        discretizes the angles, finite difference (diamond difference)
-        discretizes the spatial dimensions, and BDF1/BDF2 for the
-        temporal dimensions. Spatial geometries can be slab or sphere.
-        Machine learning techniques and numba are used for acceleration.
-        """,
+    description="""1D neutron transport equation solver with ML acceleration.
+        Features:
+        - Fixed source and criticality problems
+        - Discrete ordinates (SN) angular discretization
+        - Diamond difference spatial discretization
+        - BDF1/BDF2 temporal integration
+        - Slab and spherical geometries
+        - DJINN-based ML acceleration
+        - Numba-optimized implementations""",
     version="0.1.0",
     author="Ben Whewell",
     author_email="ben.whewell@pm.me",

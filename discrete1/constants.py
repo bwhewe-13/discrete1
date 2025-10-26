@@ -1,3 +1,11 @@
+# Module constants for discrete1
+"""Physical and numerical constants used across the discrete1 package.
+
+This module exposes numeric constants (unit conversions, material molar
+masses, densities, and convergence tolerances) so they can be imported
+from other modules without duplication.
+"""
+
 # Convergence parameters - iterations
 COUNT_ANGULAR = 100
 COUNT_ENERGY = 100
