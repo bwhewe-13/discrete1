@@ -145,10 +145,9 @@ def min_max_normalization(data, verbose=False):
         Tuple of (normalized data, max values, min values) if verbose=True.
     """
     # Find maximum and minimum values
+    data = np.nan_to_num(data, copy=True, nan=0.0, posinf=0.0, neginf=0.0)
     high = np.max(data, axis=1)
-    np.nan_to_num(high, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
     low = np.min(data, axis=1)
-    np.nan_to_num(low, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
     # Normalize between 0 and 1
     ndata = (data - low[:, None]) / (high - low)[:, None]
     # Remove undesirables
