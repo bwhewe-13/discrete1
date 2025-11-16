@@ -20,12 +20,20 @@ def pytest_addoption(parser):
     -------
     --mg : bool
         When set, enable (do not skip) multigroup one-dimensional tests.
+    --ml : bool
+        When set, enable (do not skip) machine learning tests.
     """
     parser.addoption(
         "--mg",
         action="store_true",
         default=False,
-        help="Runs one-dimensional multigroup problems if True",
+        help="Runs one-dimensional multigroup tests if True",
+    )
+    parser.addoption(
+        "--ml",
+        action="store_true",
+        default=False,
+        help="Runs machine learning tests if True",
     )
 
 
@@ -35,14 +43,21 @@ def pytest_collection_modifyitems(config, items):
     If the ``--mg`` option is not provided, mark tests that have the
     "multigroup" keyword to be skipped. This avoids running long
     multigroup tests by default in CI.
+
+    If the ``--ml`` option is not provided, mark tests that have the
+    "machine_learning" keyword to be skipped. This avoids running
+    machine learning tests by default in CI.
     """
     # One dimensional multigroup
-    if config.getoption("--mg"):
-        # --mg given in cli: do not skip multigroup tests
-        return
-    multigroup1d = pytest.mark.skip(reason="Run on --mg option")
-    for item in items:
-        if "multigroup" in item.keywords:
-            item.add_marker(multigroup1d)
-            item.add_marker(multigroup1d)
-            item.add_marker(multigroup1d)
+    if not config.getoption("--mg"):
+        multigroup1d = pytest.mark.skip(reason="Run on --mg option")
+        for item in items:
+            if "multigroup" in item.keywords:
+                item.add_marker(multigroup1d)
+
+    # Machine learning tests
+    if not config.getoption("--ml"):
+        machine_learning = pytest.mark.skip(reason="Run on --ml option")
+        for item in items:
+            if "machine_learning" in item.keywords:
+                item.add_marker(machine_learning)

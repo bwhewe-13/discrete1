@@ -10,9 +10,6 @@ dependencies = [
     "numba",
     "pytest",
     "tqdm",
-    "scikit-learn>=1.4.0",
-    "tensorflow>=2.4.0",
-    "djinnml @ git+https://git@github.com/bwhewe-13/DJINN.git"
 ]
 authors = [
     {name = "Ben Whewell", email = "ben.whewell@pm.me"}
@@ -28,7 +25,23 @@ addopts = "-ra -q --cov=discrete1 --cov-report=html --cov-report=xml"
 testpaths = ["tests"]
 
 [project.optional-dependencies]
+ml = [
+    "scikit-learn>=1.4.0",
+    "tensorflow>=2.4.0",
+    "djinnml @ git+https://git@github.com/bwhewe-13/DJINN.git",
+]
 dev = [
+    "pytest>=6.0",
+    "pytest-cov",
+    "black",
+    "isort",
+    "flake8",
+    "pre-commit",
+]
+all = [
+    "scikit-learn>=1.4.0",
+    "tensorflow>=2.4.0",
+    "djinnml @ git+https://git@github.com/bwhewe-13/DJINN.git",
     "pytest>=6.0",
     "pytest-cov",
     "black",
