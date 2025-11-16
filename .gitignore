@@ -13,6 +13,8 @@ sources/
 *.egg-info
 *.egg-info/
 *.egg
+build/
+dist/
 
 # Sphinx documentation
 docs/_build/
