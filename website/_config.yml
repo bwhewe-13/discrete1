@@ -1,0 +1,59 @@
+# Site settings
+# More options: https://jekyllrb.com/docs/configuration/options/
+
+# Project metadata
+name: discrete1
+title: discrete1
+description: 1D Discrete Ordinates Multigroup Neutron Transport in Python
+
+# GitHub Pages URL settings
+# Replace owner/repo if this repository is moved or renamed
+url: https://bwhewe-13.github.io
+baseurl: /discrete1
+
+# Theme and plugins
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+remote_theme: just-the-docs/just-the-docs
+
+# Just the Docs configuration
+# Docs: https://just-the-docs.github.io/just-the-docs/
+logo: false
+color_scheme: light
+search_enabled: true
+aux_links:
+  "View on GitHub":
+    - "https://github.com/bwhewe-13/discrete1"
+
+# Navigation structure
+# Each page can set `nav_order:` in its front matter to control ordering
+nav_external_links:
+  - title: API (Sphinx)
+    url: "/discrete1/sphinx/index.html"
+
+# Ensure Sphinx asset folders with leading underscores are included in the build
+include:
+  - sphinx/_static
+  - sphinx/_sources
+
+# Build settings
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
+
+# Exclude development artifacts from the site build
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+  - scripts
+  - docs
+  - coverage_html
+  - build
+  - .github
