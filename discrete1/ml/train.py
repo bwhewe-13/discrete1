@@ -26,6 +26,7 @@ import torch.optim as optim
 import tqdm
 from sklearn import model_selection
 from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.tensorboard import SummaryWriter
 
 from discrete1.ml.tools import (
     explained_variance_score,
@@ -151,7 +152,7 @@ def djinn_regression(X, y, path, trees, depth, **kwargs):
         model.close_model()
 
 
-class RegressionNeuralNetwork:
+class RegressionDeepONet:
     """Simple training harness for regression-style PyTorch networks.
 
     This class wraps common training utilities for regression-style neural
@@ -164,18 +165,20 @@ class RegressionNeuralNetwork:
     with an underscore are internal implementation details.
     """
 
-    def __init__(self, network, X, y, **kwargs):
-        """Initialize the trainer with a network and data.
+    def __init__(self, network, flux, labels, y, **kwargs):
+        """Initialize the trainer with a network and datasets.
 
         Parameters
         ----------
         network : torch.nn.Module
-            The PyTorch model to train. It should accept input tensors matching
-            the shape of ``X`` and output tensors compatible with ``y``.
-        X : numpy.ndarray
-            Input features of shape (n_samples, n_features).
-        y : numpy.ndarray
-            Target values of shape (n_samples, n_targets).
+            The PyTorch model to train. Its ``forward`` should accept two
+            inputs ``(flux, labels)`` and return predictions compatible with ``y``.
+        flux : numpy.ndarray, shape (n_samples, n_flux_features)
+            Branch input features.
+        labels : numpy.ndarray, shape (n_samples, n_label_features)
+            Trunk input features.
+        y : numpy.ndarray, shape (n_samples, n_targets)
+            Regression targets.
         **kwargs
             Additional keyword arguments.
 
@@ -189,27 +192,34 @@ class RegressionNeuralNetwork:
             Optimizer learning rate.
         weight_decay : float, default 0.0
             L2 weight decay (regularization) for the optimizer.
-        loss_function : str or torch.nn.modules.loss._Loss, default nn.MSELoss()
+        loss_function : str or torch.nn.modules.loss._Loss, default "MSELoss"
             Either an instantiated loss object or the name of a loss class
             in ``torch.nn`` (e.g., "MSELoss").
         optimizer : str, default "Adam"
             Name of an optimizer in ``torch.optim`` to use.
+        scheduler : torch.optim.lr_scheduler._LRScheduler or None, optional
+            Optional learning rate scheduler. Not applied by default.
         device : str, default "cpu"
             Device specifier for computation (e.g., "cpu", "cuda").
         LOUD : bool, default True
             If True, shows a progress bar during training.
+        tensorboard : str, default "run-01"
+            TensorBoard log directory passed to ``SummaryWriter``.
         """
         self.network = network
-        self.X = X
+        self.flux = flux
+        self.labels = labels
         self.y = y
         self.n_epochs = kwargs.get("n_epochs", 100)
         self.batch_size = kwargs.get("batch_size", 32)
         self.learning_rate = kwargs.get("learning_rate", 0.001)
         self.weight_decay = kwargs.get("weight_decay", 0.0)
-        self.loss_function = kwargs.get("loss_function", nn.MSELoss())
+        self.loss_function = kwargs.get("loss_function", "MSELoss")
+        self.scheduler = kwargs.get("scheduler", None)
         self.optimizer_name = kwargs.get("optimizer", "Adam")
         self.device = torch.device(kwargs.get("device", "cpu"))
         self.LOUD = kwargs.get("LOUD", True)
+        self.writer = SummaryWriter(kwargs.get("tensorboard", "run-01"))
 
     def process_data(self, verbose=False, seed=3):
         """Split arrays into train/val/test sets and build data loaders.
@@ -230,27 +240,35 @@ class RegressionNeuralNetwork:
 
         Notes
         -----
-        DataLoader instances are stored on the instance as
-        ``train_loader``, ``val_loader``, and ``test_loader``.
+        The datasets pack triples ``(flux, labels, y)``. DataLoader instances
+        are stored on the instance as ``train_loader``, ``val_loader``, and
+        ``test_loader``.
         """
-        X_train, X_test, y_train, y_test = model_selection.train_test_split(
-            self.X, self.y, test_size=0.2, seed=seed
+        flux_train, flux_test, labels_train, labels_test, y_train, y_test = (
+            model_selection.train_test_split(
+                self.flux, self.labels, self.y, test_size=0.2, random_state=seed
+            )
         )
 
-        X_train, X_val, y_train, y_val = model_selection.train_test_split(
-            X_train, y_train, test_size=0.25, seed=seed
+        flux_train, flux_val, labels_train, labels_val, y_train, y_val = (
+            model_selection.train_test_split(
+                flux_train, labels_train, y_train, test_size=0.25, random_state=seed
+            )
         )
 
         train_dataset = TensorDataset(
-            torch.tensor(X_train, dtype=torch.float32),
+            torch.tensor(flux_train, dtype=torch.float32),
+            torch.tensor(labels_train, dtype=torch.float32),
             torch.tensor(y_train, dtype=torch.float32),
         )
         val_dataset = TensorDataset(
-            torch.tensor(X_val, dtype=torch.float32),
+            torch.tensor(flux_val, dtype=torch.float32),
+            torch.tensor(labels_val, dtype=torch.float32),
             torch.tensor(y_val, dtype=torch.float32),
         )
         test_dataset = TensorDataset(
-            torch.tensor(X_test, dtype=torch.float32),
+            torch.tensor(flux_test, dtype=torch.float32),
+            torch.tensor(labels_test, dtype=torch.float32),
             torch.tensor(y_test, dtype=torch.float32),
         )
 
@@ -284,23 +302,29 @@ class RegressionNeuralNetwork:
             loss_criterion = self.loss_function
         return optimizer, loss_criterion
 
-    def _batch_to_device(self, X_batch, y_batch):
+    def _batch_to_device(self, flux_batch, labels_batch, y_batch):
         """Move a mini-batch to the configured computation device.
 
         Parameters
         ----------
-        X_batch : torch.Tensor
-            Input batch tensor.
+        flux_batch : torch.Tensor
+            Batch of branch inputs.
+        labels_batch : torch.Tensor
+            Batch of trunk inputs.
         y_batch : torch.Tensor
-            Target batch tensor.
+            Batch of regression targets.
 
         Returns
         -------
         tuple of torch.Tensor
-            The pair ``(X_batch_device, y_batch_device)`` located on
+            The trio ``(flux_device, labels_device, y_device)`` located on
             ``self.device``.
         """
-        return X_batch.to(self.device), y_batch.to(self.device)
+        return (
+            flux_batch.to(self.device),
+            labels_batch.to(self.device),
+            y_batch.to(self.device),
+        )
 
     def _update_progress_bar(self, epoch):
         """Create a progress bar over the training data loader.
@@ -330,7 +354,7 @@ class RegressionNeuralNetwork:
         Parameters
         ----------
         progress_bar : Iterable
-            Iterable yielding ``(batch_index, (X_batch, y_batch))``.
+            Iterable yielding ``(batch_index, (flux_batch, labels_batch, y_batch))``.
         optimizer : torch.optim.Optimizer
             Optimizer used to update model parameters.
         loss_fn : callable
@@ -339,23 +363,25 @@ class RegressionNeuralNetwork:
         Returns
         -------
         float
-            Sum of per-sample losses across the epoch (not averaged).
+            Average training loss across the epoch.
         """
         train_loss = 0.0
 
-        for _, (X_batch, y_batch) in progress_bar:
-            X_batch, y_batch = self._batch_to_device(X_batch, y_batch)
+        for _, (flux_batch, labels_batch, y_batch) in progress_bar:
+            flux_batch, labels_batch, y_batch = self._batch_to_device(
+                flux_batch, labels_batch, y_batch
+            )
 
             optimizer.zero_grad()
-            outputs = self.network(X_batch)
+            outputs = self.network(flux_batch, labels_batch)
             loss = loss_fn(outputs, y_batch)
             loss.backward()
             optimizer.step()
 
-            train_loss += loss.item() * X_batch.size(0)
+            train_loss += loss.item() * flux_batch.size(0)
             progress_bar.set_postfix({"loss": train_loss})
 
-        return train_loss
+        return train_loss / len(self.train_loader.dataset)
 
     def _val_batch(self, data_loader, loss_fn):
         """Evaluate the model on a data loader without gradient updates.
@@ -370,18 +396,21 @@ class RegressionNeuralNetwork:
         Returns
         -------
         float
-            Sum of per-sample losses across the loader (not averaged).
+            Average loss over the provided data loader.
         """
-        test_loss = 0.0
+        val_loss = 0.0
 
         with torch.no_grad():
-            for X_batch, y_batch in data_loader:
-                X_batch, y_batch = self._batch_to_device(X_batch, y_batch)
-                outputs = self.network(X_batch)
-                loss = loss_fn(outputs, y_batch)
-                test_loss += loss.item() * X_batch.size(0)
+            for flux_batch, labels_batch, y_batch in data_loader:
 
-        return test_loss
+                flux_batch, labels_batch, y_batch = self._batch_to_device(
+                    flux_batch, labels_batch, y_batch
+                )
+                outputs = self.network(flux_batch, labels_batch)
+                loss = loss_fn(outputs, y_batch)
+                val_loss += loss.item() * flux_batch.size(0)
+
+        return val_loss / len(data_loader.dataset)
 
     def train(self, verbose=True):
         """Train the network with validation and test evaluation.
@@ -433,6 +462,10 @@ class RegressionNeuralNetwork:
                 best_error = val_loss
                 best_model_weights = copy.deepcopy(self.network.state_dict())
 
+            # Tensorboard logging
+            self.writer.add_scalar("Loss/Train", train_loss, epoch + 1)
+            self.writer.add_scalar("Loss/Validation", val_loss, epoch + 1)
+
         # Testing
         with torch.no_grad():
             self.network.eval()
@@ -478,7 +511,10 @@ class RegressionNeuralNetwork:
         Parameters
         ----------
         X_new : numpy.ndarray
-            Input features of shape (n_samples, n_features).
+            Input features of shape (n_samples, n_features). This helper
+            assumes the wrapped network accepts a single tensor input. If your
+            model requires multiple inputs (e.g., ``flux`` and ``labels``),
+            implement a custom prediction routine consistent with ``forward``.
         batch_size : int, default 1
             Batch size for inference.
 

@@ -37,6 +37,7 @@ setup(
     ],
     extras_require={
         "ml": [
+            "optuna",
             "scikit-learn>=1.4.0",
             "tensorflow>=2.4.0",
             "djinnml @ git+https://git@github.com/bwhewe-13/DJINN.git",
@@ -50,6 +51,7 @@ setup(
             "pre-commit",
         ],
         "all": [
+            "optuna",
             "scikit-learn>=1.4.0",
             "tensorflow>=2.4.0",
             "djinnml @ git+https://git@github.com/bwhewe-13/DJINN.git",
