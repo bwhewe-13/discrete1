@@ -1,14 +1,14 @@
-"""Machine learning utilities for DJINN model training and inference.
+"""Utilities for DJINN model training and inference.
 
 This module provides utilities for data preprocessing, model training,
 and inference with DJINN (Deep Jointly-Informed Neural Networks) models.
 It includes functions for cleaning training data, normalizing inputs/outputs,
 computing error metrics, and managing model lifecycle.
 
-The module supports both fission and scatter rate prediction models,
-with utilities for data splitting, normalization, and error analysis.
-Key components are organized into data preparation, model training,
-and inference sections.
+Notes
+-----
+The utilities support both fission and scatter rate prediction models,
+with helpers for data splitting, normalization, and error analysis.
 """
 
 from glob import glob
@@ -17,6 +17,38 @@ import numpy as np
 
 
 def _combine_flux_reaction(flux, xs_matrix, medium_map, labels):
+    """Build labeled input/target pairs from flux and cross sections.
+
+    Combines group-wise flux with material-specific cross sections to
+    compute reaction rates and attaches a per-cell label. The output packs
+    inputs (flux) and targets (reaction rates) into a single array for
+    convenient downstream saving/splitting.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray, shape (iterations, cells_x, groups)
+        Multigroup flux values per iteration and spatial cell.
+    xs_matrix : numpy.ndarray, shape (n_materials, groups, groups)
+        Material-dependent cross-section matrices. For a material index
+        ``m``, ``xs_matrix[m]`` is multiplied by the flux vector to produce
+        reaction rates.
+    medium_map : numpy.ndarray, shape (cells_x,)
+        Integer mapping from spatial cell index to material index used to
+        look up rows in ``xs_matrix``.
+    labels : array-like of float, length ``cells_x``
+        Per-cell labels (e.g., enrichments) to store in column 0.
+
+    Returns
+    -------
+    numpy.ndarray, shape (2, iterations*cells_x, groups+1)
+        Stacked data where the first axis selects input vs target:
+        - index 0: ``[label, flux_g1, ..., flux_gG]``
+        - index 1: ``[label, rate_g1, ..., rate_gG]``
+
+    Notes
+    -----
+    Rows with all-zero flux and rate are removed.
+    """
     # Flux parameters
     iterations, cells_x, groups = flux.shape
     # Initialize training data
@@ -40,6 +72,35 @@ def _combine_flux_reaction(flux, xs_matrix, medium_map, labels):
 
 
 def _split_by_material(training_data, path, xs, splits):
+    """Write per-material splits of the training array to disk.
+
+    Parameters
+    ----------
+    training_data : numpy.ndarray, shape (2, N, G+1)
+        Combined inputs/targets array produced by
+        :func:`_combine_flux_reaction`. Column 0 contains labels used for
+        splitting.
+    path : str
+        Output directory (prefix) where files are written.
+    xs : str
+        Cross-section type identifier used in filenames, e.g., ``"fission"``
+        or ``"scatter"``.
+    splits : list of tuple[str, list[float]]
+        Sequence of pairs ``(name, labels)``. For each pair, a file named
+        ``{xs}_{name}_training_data.npy`` is written with rows whose label is
+        contained in ``labels``.
+
+    Returns
+    -------
+    None
+        Creates one ``.npy`` file per split and asserts that all rows are
+        accounted for across outputs.
+
+    Examples
+    --------
+    >>> splits = [["hdpe", [15.04]], ["uh3", [0.0, 0.15]]]
+    >>> _split_by_material(training_data, "/tmp/", "fission", splits)
+    """
     # Splits is list([string name, [float labels]])
     # i.e. [["hdpe", [15.04]], ["uh3", [0.0, 0.15]]]
 
@@ -63,18 +124,33 @@ def _split_by_material(training_data, path, xs, splits):
 
 
 def clean_data_fission(path, labels, splits=None):
-    """Clean training data for fission rate prediction.
+    """Prepare training data for fission rate prediction.
 
-    Takes the flux before the fission rates are calculated (x data),
-    calculates the reaction rates (y data), and adds a label for the
-    enrichment level (G+1). Also removes non-fissioning materials.
-    Arguments:
-        path (str): location of all files named in djinn1d.collections()
-        labels (float [materials]): labels for each of the materials
-        splits (list [name, [labels]]): splitting training data into
-                                    fissible and non-fissible materials
-    Returns:
-        Processed data saved to path
+    Uses precomputed flux as inputs (``X``) to compute fission reaction
+    rates as targets (``y``), and adds a material enrichment label as an
+    extra feature (``G+1``). Optionally splits and saves data by material
+    group.
+
+    Parameters
+    ----------
+    path : str
+        Directory containing files produced by ``djinn1d.collections()``.
+        Expected filenames include ``flux_fission_model.npy``,
+        ``fission_cross_sections.npy`` and ``medium_map.npy``.
+    labels : array-like of float
+        Material labels (e.g., enrichments) aligned with ``medium_map``.
+    splits : list of (str, list of float), optional
+        Optional split specification such as
+        ``[["hdpe", [15.04]], ["uh3", [0.0, 0.15]]]``. When provided,
+        separate datasets are written per split name containing rows whose
+        label matches one of the listed values.
+
+    Returns
+    -------
+    None
+        Saves processed arrays to ``path``. If ``splits`` is ``None``, a
+        single file ``fission_training_data.npy`` is written. Otherwise,
+        files of the form ``fission_<name>_training_data.npy`` are written.
     """
     # Load the data
     flux = np.load(path + "flux_fission_model.npy")
@@ -90,18 +166,33 @@ def clean_data_fission(path, labels, splits=None):
 
 
 def clean_data_scatter(path, labels, splits=None):
-    """Clean training data for scatter rate prediction.
+    """Prepare training data for scatter rate prediction.
 
-    Takes the flux before the scattering rates are calculated (x data),
-    calculates the reaction rates (y data), and adds a label for the
-    enrichment level (G+1).
-    Arguments:
-        path (str): location of all files named in djinn1d.collections()
-        labels (float [materials]): labels for each of the materials
-        splits (list [name, [labels]]): splitting training data into
-                                    fissible and non-fissible materials
-    Returns:
-        Processed data saved to path
+    Reads one or more flux arrays and computes scattering reaction rates
+    as targets (``y``), adding a material enrichment label as an extra
+    feature (``G+1``). Optionally splits and saves data by material group.
+
+    Parameters
+    ----------
+    path : str
+        Directory containing files produced by ``djinn1d.collections()``.
+        Expected filenames include ``scatter_cross_sections.npy``,
+        ``medium_map.npy`` and one or more files matching
+        ``flux_scatter_model*.npy``.
+    labels : array-like of float
+        Material labels (e.g., enrichments) aligned with ``medium_map``.
+    splits : list of (str, list of float), optional
+        Optional split specification such as
+        ``[["hdpe", [15.04]], ["uh3", [0.0, 0.15]]]``. When provided,
+        separate datasets are written per split name containing rows whose
+        label matches one of the listed values.
+
+    Returns
+    -------
+    None
+        Saves processed arrays to ``path``. If ``splits`` is ``None``, a
+        single file ``scatter_training_data.npy`` is written. Otherwise,
+        files of the form ``scatter_<name>_training_data.npy`` are written.
     """
     # Load the data
     files = np.sort(glob(path + "flux_scatter_model*.npy"))
@@ -292,5 +383,4 @@ def update_cross_sections(xs_matrix, model_idx):
             updated_xs[mat, :, 0] = np.sum(xs_matrix[mat], axis=0)
         else:
             updated_xs[mat] = xs_matrix[mat].copy()
-    return updated_xs
     return updated_xs

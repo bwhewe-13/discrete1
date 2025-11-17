@@ -1,4 +1,18 @@
-"""Module for training and using DJINN machine learning models."""
+"""Training and inference utilities for DJINN-based models.
+
+This module contains helpers to load DJINN models and a composite
+``AutoDJINN`` predictor that combines an autoencoder with a DJINN model
+to perform reduced-order predictions.
+
+Notes
+-----
+Optional ML dependencies are required. Install with::
+
+    pip install discrete1[ml]
+
+TensorFlow/Keras is used for the autoencoder components and ``djinn`` is
+used for the DJINN regressors.
+"""
 
 import os
 

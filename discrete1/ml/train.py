@@ -2,19 +2,18 @@
 
 This module exposes two primary entry points:
 
-- ``djinn_regression``: Trains DJINN regression ensembles over combinations
-    of tree counts and depths, saving model checkpoints and evaluation metrics.
-- ``Autoencoder``: A lightweight training harness for PyTorch networks with
-    train/validation/test splits, progress display, checkpointing, and batched
-    inference.
+- djinn_regression: Trains DJINN regression ensembles over combinations of
+  tree counts and depths, saving model checkpoints and evaluation metrics.
+- RegressionNeuralNetwork: A lightweight training harness for PyTorch networks
+  with train/validation/test splits, progress display, checkpointing, and
+  batched inference.
 
-Dependencies
-------------
-This module relies on optional ML dependencies (``torch``, ``sklearn``, and
+Notes
+-----
+This module relies on optional ML dependencies (``torch``, ``sklearn`` and
 ``djinn``). Install them with::
 
-        pip install discrete1[ml]
-
+    pip install discrete1[ml]
 """
 
 import copy
@@ -45,42 +44,46 @@ except ImportError as e:
 
 
 def djinn_regression(X, y, path, trees, depth, **kwargs):
-    """Train DJINN models with different tree configurations.
+    """Train DJINN models across tree count and depth grids.
 
-    Trains multiple DJINN models exploring combinations of tree counts
-    and depths. Each model is trained with optimized hyperparameters
-    and evaluated on test data. Results and model checkpoints are saved.
+    For each combination of number of trees and maximum depth, this function
+    tunes DJINN hyperparameters, trains a model, evaluates it on a held-out
+    test set, and saves both the model checkpoint and error metrics.
 
     Parameters
     ----------
     X : numpy.ndarray
-        Training / Testing input data.
+        Input features of shape (n_samples, n_features).
     y : numpy.ndarray
-        Training / Testing target values.
+        Target values of shape (n_samples,) or (n_samples, n_targets).
     path : str
-        Path to save models and metrics.
-    trees : sequence
-        Number of trees (neural nets) to try.
-    depth : sequence
-        Maximum tree depths to try.
-
-    Kwargs
-    ------
+        Directory path to save models and metrics. Filenames are derived from
+        the grid configuration.
+    trees : sequence of int
+        Candidate numbers of trees (i.e., neural nets in the ensemble).
+    depth : sequence of int
+        Candidate maximum tree depths.
     test_size : float, optional
-        Fraction of data for testing, default 0.2.
+        Fraction of data reserved for testing. Default is 0.2.
     seed : int, optional
-        Random seed for data splitting, default 3.
+        Random seed for data splitting. Default is 3.
     dropout_keep : float, optional
-        Dropout keep probability, default 1.0.
-    display : int, optional
-        Verbosity level (0=silent).
+        Dropout keep probability. Typical value is 1.0 for non-Bayesian
+        models. Default is 1.0.
+    LOUD : int, optional
+        Verbosity level, where 0 is silent. Default is 0.
 
     Notes
     -----
-    For each tree count and depth combination:
-    - Optimizes batch size, learning rate, epochs
-    - Trains model and saves checkpoint
-    - Computes and saves error metrics (MAE, MSE, EVS, R2)
+    For each tree count and depth combination, this routine:
+    - Optimizes batch size, learning rate, and epochs.
+    - Trains the model and saves a checkpoint.
+    - Computes MAE, MSE, EVS, and R2 metrics and saves them to disk.
+
+    Returns
+    -------
+    None
+        Results are saved to disk.
     """
     # number of trees = number of neural nets in ensemble
     # max depth of tree = optimize this for each data set
@@ -148,12 +151,12 @@ def djinn_regression(X, y, path, trees, depth, **kwargs):
         model.close_model()
 
 
-class Autoencoder:
-    """Simple training harness for autoencoder-style PyTorch networks.
+class RegressionNeuralNetwork:
+    """Simple training harness for regression-style PyTorch networks.
 
     This class wraps common training utilities for regression-style neural
-    networks (e.g., autoencoders) including dataset preparation, training
-    loops with validation, testing, checkpointing, and inference.
+    networks, including dataset preparation, training with validation, testing,
+    checkpointing, and batched inference.
 
     Notes
     -----
@@ -167,34 +170,34 @@ class Autoencoder:
         Parameters
         ----------
         network : torch.nn.Module
-            The PyTorch model to train. It should accept input tensors of the
-            same shape as ``X`` and return outputs compatible with ``y``.
+            The PyTorch model to train. It should accept input tensors matching
+            the shape of ``X`` and output tensors compatible with ``y``.
         X : numpy.ndarray
             Input features of shape (n_samples, n_features).
         y : numpy.ndarray
             Target values of shape (n_samples, n_targets).
         **kwargs
-            Optional configuration parameters:
+            Additional keyword arguments.
 
-            - n_epochs : int, default=100
-                Number of training epochs.
-            - batch_size : int, default=32
-                Mini-batch size for training and evaluation.
-            - learning_rate : float, default=1e-3
-                Optimizer learning rate.
-            - weight_decay : float, default=0.0
-                L2 weight decay (regularization) for the optimizer.
-            - loss_function : Union[str, torch.nn.modules.loss._Loss],
-                    default=nn.MSELoss()
-                Loss function instance or the name of a torch loss class to
-                construct (e.g., "MSELoss").
-            - optimizer : str, default="Adam"
-                Name of a torch optimizer in ``torch.optim`` to use.
-            - device : str, default="cpu"
-                Device specifier for computation (e.g., "cpu", "cuda").
-            - LOUD : bool, default=True
-                If True, shows a progress bar during training.
-
+        Other Parameters
+        ----------------
+        n_epochs : int, default 100
+            Number of training epochs.
+        batch_size : int, default 32
+            Mini-batch size for training and evaluation.
+        learning_rate : float, default 1e-3
+            Optimizer learning rate.
+        weight_decay : float, default 0.0
+            L2 weight decay (regularization) for the optimizer.
+        loss_function : str or torch.nn.modules.loss._Loss, default nn.MSELoss()
+            Either an instantiated loss object or the name of a loss class
+            in ``torch.nn`` (e.g., "MSELoss").
+        optimizer : str, default "Adam"
+            Name of an optimizer in ``torch.optim`` to use.
+        device : str, default "cpu"
+            Device specifier for computation (e.g., "cpu", "cuda").
+        LOUD : bool, default True
+            If True, shows a progress bar during training.
         """
         self.network = network
         self.X = X
@@ -213,18 +216,22 @@ class Autoencoder:
 
         Parameters
         ----------
-        verbose : bool, default=False
-            If True, also return the created TensorDataset objects.
-        seed : int, default=3
+        verbose : bool, default False
+            If True, also return the created ``TensorDataset`` objects.
+        seed : int, default 3
             Random seed for reproducible splits.
 
         Returns
         -------
-        tuple or None
-            If ``verbose`` is True, returns ``(train_dataset, val_dataset,
-            test_dataset)``. Otherwise, returns None. DataLoader instances are
-            stored on the instance as ``train_loader``, ``val_loader``, and
-            ``test_loader``.
+        tuple of torch.utils.data.TensorDataset or None
+            If ``verbose`` is True, returns
+            ``(train_dataset, val_dataset, test_dataset)``. Otherwise, returns
+            None.
+
+        Notes
+        -----
+        DataLoader instances are stored on the instance as
+        ``train_loader``, ``val_loader``, and ``test_loader``.
         """
         X_train, X_test, y_train, y_test = model_selection.train_test_split(
             self.X, self.y, test_size=0.2, seed=seed
@@ -256,6 +263,16 @@ class Autoencoder:
             return train_dataset, val_dataset, test_dataset
 
     def _training_optimizer_loss_fn(self):
+        """Construct optimizer and loss criterion for training.
+
+        Returns
+        -------
+        tuple
+            A pair ``(optimizer, loss_criterion)`` where ``optimizer`` is a
+            ``torch.optim.Optimizer`` instance configured from the class
+            attributes, and ``loss_criterion`` is a ``torch.nn.modules.loss._Loss``
+            instance resolved from ``loss_function``.
+        """
         optimizer = getattr(optim, self.optimizer_name)(
             self.network.parameters(),
             lr=self.learning_rate,
@@ -268,9 +285,36 @@ class Autoencoder:
         return optimizer, loss_criterion
 
     def _batch_to_device(self, X_batch, y_batch):
+        """Move a mini-batch to the configured computation device.
+
+        Parameters
+        ----------
+        X_batch : torch.Tensor
+            Input batch tensor.
+        y_batch : torch.Tensor
+            Target batch tensor.
+
+        Returns
+        -------
+        tuple of torch.Tensor
+            The pair ``(X_batch_device, y_batch_device)`` located on
+            ``self.device``.
+        """
         return X_batch.to(self.device), y_batch.to(self.device)
 
     def _update_progress_bar(self, epoch):
+        """Create a progress bar over the training data loader.
+
+        Parameters
+        ----------
+        epoch : int
+            Zero-based epoch index used in the progress bar description.
+
+        Returns
+        -------
+        tqdm.tqdm
+            Progress bar wrapped around ``enumerate(self.train_loader)``.
+        """
         return tqdm.tqdm(
             enumerate(self.train_loader),
             total=len(self.train_loader),
@@ -281,6 +325,22 @@ class Autoencoder:
         )
 
     def _train_batch(self, progress_bar, optimizer, loss_fn):
+        """Execute one training pass over the training loader.
+
+        Parameters
+        ----------
+        progress_bar : Iterable
+            Iterable yielding ``(batch_index, (X_batch, y_batch))``.
+        optimizer : torch.optim.Optimizer
+            Optimizer used to update model parameters.
+        loss_fn : callable
+            Loss function mapping ``(outputs, targets)`` to a scalar loss.
+
+        Returns
+        -------
+        float
+            Sum of per-sample losses across the epoch (not averaged).
+        """
         train_loss = 0.0
 
         for _, (X_batch, y_batch) in progress_bar:
@@ -298,6 +358,20 @@ class Autoencoder:
         return train_loss
 
     def _val_batch(self, data_loader, loss_fn):
+        """Evaluate the model on a data loader without gradient updates.
+
+        Parameters
+        ----------
+        data_loader : torch.utils.data.DataLoader
+            Data loader to iterate over for evaluation.
+        loss_fn : callable
+            Loss function mapping ``(outputs, targets)`` to a scalar loss.
+
+        Returns
+        -------
+        float
+            Sum of per-sample losses across the loader (not averaged).
+        """
         test_loss = 0.0
 
         with torch.no_grad():
@@ -312,30 +386,29 @@ class Autoencoder:
     def train(self, verbose=True):
         """Train the network with validation and test evaluation.
 
-        This method performs epoch-wise training using the configured optimizer
-        and loss function, tracks training/validation loss, selects the best
-        model weights by validation loss, evaluates on the test set, and
-        restores the best weights.
+        Performs epoch-wise training using the configured optimizer and loss
+        function, tracks training/validation loss, selects the best model
+        weights by validation loss, evaluates on the test set, and restores
+        the best weights.
 
         Parameters
         ----------
-        verbose : bool, default=True
+        verbose : bool, default True
             If True, returns a dictionary of tracked metrics.
 
         Returns
         -------
         dict or None
-            If ``verbose`` is True, returns a dictionary with keys:
+            If ``verbose`` is True, returns a dictionary with:
+            - ``train_loss`` (list of float): Average training loss per epoch.
+            - ``val_loss`` (list of float): Average validation loss per epoch.
+            - ``test_loss`` (float): Average test loss computed with the best
+              model.
+            Otherwise, returns None.
 
-            - "train_loss" : list[float]
-                Average training loss per epoch.
-            - "val_loss" : list[float]
-                Average validation loss per epoch.
-            - "test_loss" : float
-                Average test loss computed with the best model.
-
-            Otherwise, returns None. Metrics are also stored on the instance
-            as ``metric_data``.
+        Notes
+        -----
+        Metrics are also stored on the instance as ``metric_data``.
         """
         optimizer, loss_criterion = self._training_optimizer_loss_fn()
 
@@ -381,9 +454,9 @@ class Autoencoder:
         Parameters
         ----------
         model_name : str
-            Base filename (without extension). Saves ``f"{model_name}.pt"``
-            for model weights and ``f"{model_name}_loss_metrics.npz"`` for
-            metrics captured in ``metric_data``.
+            Base filename (without extension). Saves ``f"{model_name}.pt"`` for
+            model weights and ``f"{model_name}_loss_metrics.npz"`` for metrics
+            captured in ``metric_data``.
         """
         torch.save(self.network.state_dict(), f"{model_name}.pt")
         np.savez(f"{model_name}_loss_metrics.npz", **self.metric_data)
@@ -400,13 +473,13 @@ class Autoencoder:
         self.network.load_state_dict(torch.load(f"{model_name}.pt"))
 
     def predict(self, X_new, batch_size=1):
-        """Run batched inference and return predictions as a NumPy array.
+        """Run batched inference and return predictions.
 
         Parameters
         ----------
         X_new : numpy.ndarray
             Input features of shape (n_samples, n_features).
-        batch_size : int, default=1
+        batch_size : int, default 1
             Batch size for inference.
 
         Returns
