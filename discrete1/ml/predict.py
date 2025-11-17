@@ -1,16 +1,8 @@
 """Module for training and using DJINN machine learning models."""
 
-import itertools
 import os
 
 import numpy as np
-
-from discrete1.ml.tools import (
-    explained_variance_score,
-    mean_absolute_error,
-    mean_squared_error,
-    r2_score,
-)
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
@@ -22,100 +14,6 @@ except ImportError as e:
         "ML dependencies are not installed. Install with:\n"
         "   pip install discrete1[ml]"
     ) from e
-
-
-def train_model(
-    x_train, x_test, y_train, y_test, path, trees, depth, dropout_keep=1.0, display=0
-):
-    """Train DJINN models with different tree configurations.
-
-    Trains multiple DJINN models exploring combinations of tree counts
-    and depths. Each model is trained with optimized hyperparameters
-    and evaluated on test data. Results and model checkpoints are saved.
-
-    Parameters
-    ----------
-    x_train : numpy.ndarray
-        Training input data.
-    x_test : numpy.ndarray
-        Test input data.
-    y_train : numpy.ndarray
-        Training target values.
-    y_test : numpy.ndarray
-        Test target values.
-    path : str
-        Path to save models and metrics.
-    trees : sequence
-        Number of trees (neural nets) to try.
-    depth : sequence
-        Maximum tree depths to try.
-    dropout_keep : float, optional
-        Dropout keep probability, default 1.0.
-    display : int, optional
-        Verbosity level (0=silent).
-
-    Notes
-    -----
-    For each tree count and depth combination:
-    - Optimizes batch size, learning rate, epochs
-    - Trains model and saves checkpoint
-    - Computes and saves error metrics (MAE, MSE, EVS, R2)
-    """
-    # number of trees = number of neural nets in ensemble
-    # max depth of tree = optimize this for each data set
-    # dropout typically set to 1 for non-Bayesian models
-
-    for ntrees, maxdepth in itertools.product(trees, depth):
-        if display:
-            print(
-                "\nNumber of Trees: {}\tMax Depth: {}\n{}".format(
-                    ntrees, maxdepth, "=" * 40
-                )
-            )
-
-        fntrees = str(ntrees).zfill(3)
-        fmaxdepth = str(maxdepth).zfill(3)
-        modelname = f"model_{fntrees}{fmaxdepth}"
-
-        # initialize the model
-        model = djinn.DJINN_Regressor(ntrees, maxdepth, dropout_keep)
-
-        # find optimal settings
-        optimal = model.get_hyperparameters(x_train, y_train)
-        batchsize = optimal["batch_size"]
-        learnrate = optimal["learn_rate"]
-        epochs = np.min((300, optimal["epochs"]))
-        # epochs = optimal['epochs']
-
-        # train the model with these settings
-        model.train(
-            x_train,
-            y_train,
-            epochs=epochs,
-            learn_rate=learnrate,
-            batch_size=batchsize,
-            display_step=0,
-            save_files=True,
-            model_path=path,
-            file_name=modelname,
-            save_model=True,
-            model_name=modelname,
-        )
-
-        # Estimate
-        y_estimate = model.predict(x_test)
-
-        # evaluate results
-        error_dict = {
-            "MAE": mean_absolute_error(y_test, y_estimate),
-            "MSE": mean_squared_error(y_test, y_estimate),
-            "EVS": explained_variance_score(y_test, y_estimate),
-            "R2": r2_score(y_test, y_estimate),
-        }
-        np.savez(path + "error_" + modelname, **error_dict)
-
-        # close model
-        model.close_model()
 
 
 def load_djinn_models(model_path):
