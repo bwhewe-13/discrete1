@@ -499,8 +499,8 @@ def sphere_ordinates(
 
     Parameters
     ----------
-    flux_old, xs_total, xs_scatter, off_scatter, external, boundary,
-    medium_map, delta_x, angle_x, angle_w, bc_x, edges
+    flux_old, xs_total, xs_scatter, off_scatter, external, boundary, \
+    medium_map, delta_x, angle_x, angle_w, bc_x, edges :
         See :func:`slab_ordinates` for parameter shapes and meanings.
 
     Returns

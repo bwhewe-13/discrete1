@@ -1,10 +1,14 @@
-# Steady state and time dependent Manufactured Solutions
+"""Functions for manufactured solutions.
+
+Provides solutions for given steady state and time-dependent problems.
+Includes functions to calculate the order of accuracy.
+"""
 
 import numpy as np
 
 
 def solution_ss_01(x, angle_x):
-    """One material, single direction"""
+    """One material, single direction."""
     flux = np.zeros((len(x), len(angle_x)))
     for n, mu in enumerate(angle_x):
         if mu > 0:
@@ -15,7 +19,7 @@ def solution_ss_01(x, angle_x):
 
 
 def solution_ss_02(x, angle_x):
-    """One material, angular dependent"""
+    """One material, angular dependent."""
     flux = np.zeros((len(x), len(angle_x)))
     for n, mu in enumerate(angle_x):
         if mu > 0:
@@ -26,7 +30,7 @@ def solution_ss_02(x, angle_x):
 
 
 def solution_ss_03(x, angle_x):
-    """One material, angular dependent, with source"""
+    """One material, angular dependent, with source."""
     flux = np.zeros((len(x), len(angle_x)))
     for n, mu in enumerate(angle_x):
         flux[:, n] = 0.5 + 0.25 * x**2 * np.exp(mu)
@@ -34,7 +38,7 @@ def solution_ss_03(x, angle_x):
 
 
 def solution_ss_04(x, angle_x):
-    """Two materials, angular independent"""
+    """Two materials, angular independent."""
     length_x = 2
     flux = np.zeros((len(x), len(angle_x)))
     for n, mu in enumerate(angle_x):
@@ -44,7 +48,7 @@ def solution_ss_04(x, angle_x):
 
 
 def solution_ss_05(x, angle_x):
-    """Two materials, angular dependent"""
+    """Two materials, angular dependent."""
     length_x = 2
     flux = np.zeros((len(x), len(angle_x)))
     for n, mu in enumerate(angle_x):
@@ -56,6 +60,7 @@ def solution_ss_05(x, angle_x):
 
 
 def solution_td_01(x, angle_x, edges_t):
+    """One material, time dependent, angular independent."""
     flux = np.zeros((edges_t.shape[0], x.shape[0], angle_x.shape[0], 1))
     for cc, tt in enumerate(edges_t):
         for nn, mu in enumerate(angle_x):
@@ -64,6 +69,7 @@ def solution_td_01(x, angle_x, edges_t):
 
 
 def solution_td_02(x, angle_x, edges_t):
+    """One material, time dependent, angular dependent."""
     flux = np.zeros((edges_t.shape[0], x.shape[0], angle_x.shape[0], 1))
     for cc, tt in enumerate(edges_t):
         for nn, mu in enumerate(angle_x):
@@ -75,14 +81,21 @@ def solution_td_02(x, angle_x, edges_t):
 # Manufactured Solutions and Accuracy
 ########################################################################
 def spatial_error(approx, reference, ndims=1):
-    """Calculating the spatial error between an approximation and the
-    reference solution
-    Arguments:
-        approx (array double): approximate flux
-        reference (array double): Reference flux
-        ndims (int): Number of spatial dimensions for flux (1 or 2)
-    Returns:
-        L2 error normalized for the number of spatial cells
+    """Calculate the spatial error between approximate and reference solutions.
+
+    Parameters
+    ----------
+    approx : numpy.ndarray
+        Approximate flux.
+    reference : numpy.ndarray
+        Reference flux.
+    ndims : int
+        Number of spatial dimensions for flux (1 or 2).
+
+    Returns
+    -------
+    float
+        L2 error normalized for the number of spatial cells.
     """
     assert approx.shape == reference.shape, "Not the same array shape"
     if ndims == 1:
@@ -93,28 +106,47 @@ def spatial_error(approx, reference, ndims=1):
 
 
 def order_accuracy(error1, error2, ratio):
-    """Finding the order of accuracy between errors on different
-    grids, where error2 is the refined grid
-    Arguments:
-        error1 (double): Error between an approximate solution and the
-            reference solution on the same grid
-        error2 (double): Error between an approximate solution and the
-            reference solution on a more refined grid
-        ratio (double): Ratio between the spatial cell width of the error1
-            grid and the error2 grid (delta x1 / delta x2)
-    Returns:
-        Order of accuracy
+    """Calculate order of accuracy.
+
+    Finding the order of accuracy between errors on different grids
+    where error2 is the refined grid.
+
+    Parameters
+    ----------
+    error1 : float
+        Error between an approximate solution and the reference solution on the
+        same grid.
+    error2 : float
+        Error between an approximate solution and the reference solution on a
+        more refined grid.
+    ratio : float
+        Ratio between the spatial cell width of the error1 grid and the error2
+        grid (delta x1 / delta x2).
+
+    Returns
+    -------
+    float
+        Order of accuracy.
     """
     return np.log(error1 / error2) / np.log(ratio)
 
 
 def wynn_epsilon(lst, rank):
-    """Perform Wynn Epsilon Convergence Algorithm
-    Arguments:
-        lst: list of values for convergence
-        rank: rank of system
-    Returns:
-        2D Array where diagonal is convergence
+    """Perform Wynn Epsilon Convergence Algorithm.
+
+    Parameters
+    ----------
+    lst : list
+        List of float type.
+        Values for convergence.
+    rank : int
+        Rank of system.
+
+    Returns
+    -------
+    numpy.ndarray
+        2D array with float type of shape (2 * rank + 2, 2 * rank + 2).
+        Diagonal is convergence.
     """
     N = 2 * rank + 1
     error = np.zeros((N + 1, N + 1))

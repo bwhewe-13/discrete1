@@ -1,14 +1,12 @@
 LICENSE
 README.md
 pyproject.toml
+setup.cfg
 setup.py
 discrete1/__init__.py
 discrete1/boundary1d.py
 discrete1/constants.py
-<<<<<<< Updated upstream
 discrete1/critical0d.py
-=======
->>>>>>> Stashed changes
 discrete1/critical1d.py
 discrete1/djinn1d.py
 discrete1/external1d.py
@@ -17,26 +15,31 @@ discrete1/hybrid1d.py
 discrete1/main.py
 discrete1/materials.py
 discrete1/multi_group.py
-<<<<<<< Updated upstream
 discrete1/multi_group_0d.py
-=======
->>>>>>> Stashed changes
 discrete1/spatial_sweep.py
 discrete1/timed1d.py
 discrete1/tools.py
+discrete1/vhybrid1d.py
 discrete1.egg-info/PKG-INFO
 discrete1.egg-info/SOURCES.txt
 discrete1.egg-info/dependency_links.txt
 discrete1.egg-info/requires.txt
 discrete1.egg-info/top_level.txt
+discrete1/ml/__init__.py
+discrete1/ml/predict.py
+discrete1/ml/tools.py
+discrete1/ml/train.py
+discrete1/ml/tune.py
 discrete1/utils/__init__.py
 discrete1/utils/hybrid.py
-discrete1/utils/machine_learning.py
 discrete1/utils/manufactured.py
 tests/__init__.py
 tests/conftest.py
 tests/problems.py
 tests/test_critical.py
-tests/test_machine_learning.py
+tests/test_critical_0d.py
+tests/test_hybrid.py
+tests/test_ml_tools.py
 tests/test_spatial_accuracy.py
 tests/test_temporal_accuracy.py
+tests/test_utils_hybrid.py

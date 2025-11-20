@@ -1,8 +1,9 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""Configuration file for the Sphinx documentation builder.
+
+This file only contains a selection of the most common options. For a full
+list see the documentation:
+https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""
 
 # -- Path setup --------------------------------------------------------------
 
@@ -22,11 +23,11 @@ sys.path.insert(0, os.path.abspath("../.."))
 # -- Project information -----------------------------------------------------
 
 project = "discrete1"
-copyright = "2021, Ben Whewell"
+copyright = "2025, Ben Whewell"
 author = "Ben Whewell"
 
 # The full version, including alpha/beta/rc tags
-release = "0.1"
+release = "0.1.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -35,8 +36,8 @@ release = "0.1"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones. We enable commonly useful extensions for API documentation.
 extensions = [
-    "sphinx.ext.autodoc",  # core autodoc support
     "sphinx.ext.napoleon",  # support for NumPy/Google style docstrings
+    "sphinx.ext.autodoc",  # core autodoc support
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",  # add links to highlighted source
     "sphinx.ext.coverage",
@@ -65,7 +66,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "agogo"
+html_theme = "sphinx_rtd_theme"
 # You can switch to 'sphinx_rtd_theme' for ReadTheDocs-style layout. If you do
 # that, add `sphinx_rtd_theme` to `docs/requirements.txt`.
 

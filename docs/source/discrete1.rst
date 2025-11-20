@@ -7,7 +7,10 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   discrete1.utils
+
+   discrete1.ml
+   discrete1.utils.hybrid
+   discrete1.utils.manufactured
 
 Submodules
 ----------

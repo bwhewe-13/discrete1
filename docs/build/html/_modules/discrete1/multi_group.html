@@ -1,38 +1,101 @@
-<!DOCTYPE html>
 
-<html lang="en" data-content_root="../../">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>discrete1.multi_group &#8212; discrete1 0.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=4f649999" />
-    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=039e1c02" />
-    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
-    <script src="../../_static/doctools.js?v=888ff710"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>discrete1.multi_group &mdash; discrete1 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-   
-  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+</head>
 
-  </head><body>
-  
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          
 
-          <div class="body" role="main">
-            
+
+          <a href="../../index.html" class="icon icon-home">
+            discrete1
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../discrete1.html">discrete1 package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">discrete1</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">discrete1.multi_group</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
   <h1>Source code for discrete1.multi_group</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span></span><span class="sd">&quot;&quot;&quot;Multigroup solvers and DJINN integration utilities.</span>
 
-<span class="kn">from</span> <span class="nn">discrete1</span> <span class="kn">import</span> <span class="n">tools</span>
-<span class="kn">from</span> <span class="nn">discrete1.spatial_sweep</span> <span class="kn">import</span> <span class="n">_known_scatter</span><span class="p">,</span> <span class="n">_known_source</span><span class="p">,</span> <span class="n">discrete_ordinates</span>
+<span class="sd">This module provides multigroup-level driver routines that orchestrate</span>
+<span class="sd">outer iterations over energy groups and call the spatial sweep</span>
+<span class="sd">implementations (discrete ordinates) for each group. It includes</span>
+<span class="sd">standard source-iteration, variable/coarsened-group iteration,</span>
+<span class="sd">Dynamic Mode Decomposition (DMD) accelerated routines, and helpers for</span>
+<span class="sd">generating training data or using DJINN-predicted scatter/fission</span>
+<span class="sd">sources.</span>
+
+<span class="sd">Public routines include:</span>
+<span class="sd">- source_iteration: standard multigroup source iteration</span>
+<span class="sd">- variable_source_iteration: coarse/fine-group-aware iteration</span>
+<span class="sd">- dynamic_mode_decomp: DMD-accelerated solver</span>
+<span class="sd">- known_source_angular / known_source_scalar: wrappers for known-source problems</span>
+<span class="sd">- source_iteration_djinn: use DJINN models to predict scatter sources</span>
+
+<span class="sd">The multigroup drivers expect arrays shaped as used by the rest of</span>
+<span class="sd">the package (cell-major ordering, angular and group axes as described</span>
+<span class="sd">in function docstrings).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">discrete1</span><span class="w"> </span><span class="kn">import</span> <span class="n">tools</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">discrete1.spatial_sweep</span><span class="w"> </span><span class="kn">import</span> <span class="n">_known_scatter</span><span class="p">,</span> <span class="n">_known_source</span><span class="p">,</span> <span class="n">discrete_ordinates</span>
 
 <span class="n">count_gg</span> <span class="o">=</span> <span class="mi">100</span>
 <span class="n">change_gg</span> <span class="o">=</span> <span class="mf">1e-08</span>
@@ -43,7 +106,7 @@
 
 <div class="viewcode-block" id="source_iteration">
 <a class="viewcode-back" href="../../discrete1.multi_group.html#discrete1.multi_group.source_iteration">[docs]</a>
-<span class="k">def</span> <span class="nf">source_iteration</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">source_iteration</span><span class="p">(</span>
     <span class="n">flux_old</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">xs_scatter</span><span class="p">,</span>
@@ -56,6 +119,45 @@
     <span class="n">bc_x</span><span class="p">,</span>
     <span class="n">geometry</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multigroup source iteration solver.</span>
+
+<span class="sd">    Performs outer iterations over energy groups using inner discrete</span>
+<span class="sd">    ordinates sweeps for each group. Off-diagonal scatter (up- and</span>
+<span class="sd">    down-scatter) contributions are handled via an &quot;off_scatter&quot;</span>
+<span class="sd">    accumulator that uses the previous and current flux iterates.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Initial scalar flux guess with shape (n_cells, n_groups).</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections (n_materials or n_cells, n_groups).</span>
+<span class="sd">    xs_scatter : array_like</span>
+<span class="sd">        Scatter cross sections (indexed by material, GxG).</span>
+<span class="sd">    external : numpy.ndarray</span>
+<span class="sd">        External source array (n_cells, n_angles, n_groups) or with</span>
+<span class="sd">        singleton dimensions where appropriate.</span>
+<span class="sd">    boundary : numpy.ndarray</span>
+<span class="sd">        Boundary conditions array (2, n_angles, n_groups) or with</span>
+<span class="sd">        singleton dimensions where appropriate.</span>
+<span class="sd">    medium_map : array_like</span>
+<span class="sd">        Material index per spatial cell (n_cells,).</span>
+<span class="sd">    delta_x : array_like</span>
+<span class="sd">        Cell widths (n_cells,).</span>
+<span class="sd">    angle_x : array_like</span>
+<span class="sd">        Angular ordinates (n_angles,).</span>
+<span class="sd">    angle_w : array_like</span>
+<span class="sd">        Quadrature weights (n_angles,).</span>
+<span class="sd">    bc_x : sequence</span>
+<span class="sd">        Boundary condition flags for left/right boundaries.</span>
+<span class="sd">    geometry : int</span>
+<span class="sd">        Geometry selector (1=slab, 2=sphere).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Converged scalar flux array with shape (n_cells, n_groups).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span><span class="p">))</span>
@@ -108,7 +210,7 @@
 
 <div class="viewcode-block" id="variable_source_iteration">
 <a class="viewcode-back" href="../../discrete1.multi_group.html#discrete1.multi_group.variable_source_iteration">[docs]</a>
-<span class="k">def</span> <span class="nf">variable_source_iteration</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">variable_source_iteration</span><span class="p">(</span>
     <span class="n">flux_old</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">star_coef_c</span><span class="p">,</span>
@@ -125,6 +227,39 @@
     <span class="n">edges_gidx_c</span><span class="p">,</span>
     <span class="n">geometry</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Source iteration for problems with variable coarse/fine groups.</span>
+
+<span class="sd">    This variant performs multigroup source iteration when a coarse</span>
+<span class="sd">    energy grid is constructed from a fine grid. It computes coarse</span>
+<span class="sd">    group cross-sections and off-scatter terms appropriately and then</span>
+<span class="sd">    calls the discrete-ordinates solver per coarse group.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Initial scalar flux guess on the fine grid (n_cells, n_groups_fine).</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections on the fine grid.</span>
+<span class="sd">    star_coef_c : array_like</span>
+<span class="sd">        Additional coarse-group correction terms added to xs_total_c.</span>
+<span class="sd">    xs_scatter : array_like</span>
+<span class="sd">        Scatter cross sections on the fine grid.</span>
+<span class="sd">    external, boundary, medium_map, delta_x, angle_x, angle_w, bc_x :</span>
+<span class="sd">        See :func:`source_iteration` for descriptions.</span>
+<span class="sd">    delta_coarse : array_like</span>
+<span class="sd">        Coarse-group widths (n_groups_coarse,).</span>
+<span class="sd">    delta_fine : array_like</span>
+<span class="sd">        Fine-group widths (n_groups_fine,).</span>
+<span class="sd">    edges_gidx_c : array_like</span>
+<span class="sd">        Indices mapping coarse groups to fine-group indices.</span>
+<span class="sd">    geometry : int</span>
+<span class="sd">        Geometry selector (1=slab, 2=sphere).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Converged scalar flux on the fine grid (n_cells, n_groups_fine).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span><span class="p">))</span>
@@ -202,7 +337,7 @@
 
 <div class="viewcode-block" id="dynamic_mode_decomp">
 <a class="viewcode-back" href="../../discrete1.multi_group.html#discrete1.multi_group.dynamic_mode_decomp">[docs]</a>
-<span class="k">def</span> <span class="nf">dynamic_mode_decomp</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dynamic_mode_decomp</span><span class="p">(</span>
     <span class="n">flux_old</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">xs_scatter</span><span class="p">,</span>
@@ -217,6 +352,28 @@
     <span class="n">R</span><span class="p">,</span>
     <span class="n">K</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform Dynamic Mode Decomposition (DMD) accelerated iteration.</span>
+
+<span class="sd">    Runs R+K source-iteration steps collecting snapshot differences</span>
+<span class="sd">    then performs a DMD extrapolation to estimate the converged flux.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Initial scalar flux guess with shape (n_cells, n_groups).</span>
+<span class="sd">    xs_total, xs_scatter, external, boundary, medium_map, delta_x, angle_x, \</span>
+<span class="sd">        angle_w, bc_x, geometry :</span>
+<span class="sd">        See :func:`source_iteration` for descriptions.</span>
+<span class="sd">    R : int</span>
+<span class="sd">        Number of iterations before collecting DMD snapshots.</span>
+<span class="sd">    K : int</span>
+<span class="sd">        Number of DMD snapshots to collect and use for extrapolation.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Estimated flux after DMD extrapolation (n_cells, n_groups).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span><span class="p">))</span>
@@ -289,7 +446,7 @@
 
 <div class="viewcode-block" id="known_source_angular">
 <a class="viewcode-back" href="../../discrete1.multi_group.html#discrete1.multi_group.known_source_angular">[docs]</a>
-<span class="k">def</span> <span class="nf">known_source_angular</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">known_source_angular</span><span class="p">(</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">source</span><span class="p">,</span>
     <span class="n">boundary</span><span class="p">,</span>
@@ -301,6 +458,29 @@
     <span class="n">geometry</span><span class="p">,</span>
     <span class="n">edges</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute angular flux for a prescribed multigroup source.</span>
+
+<span class="sd">    Solves the transport equation for a supplied angular source term and</span>
+<span class="sd">    returns the angular flux field (including any edge terms indicated</span>
+<span class="sd">    by `edges`). This is a convenience wrapper around the</span>
+<span class="sd">    spatial_sweep._known_source kernel invoked per group.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections (per material or per cell) indexed by group.</span>
+<span class="sd">    source : numpy.ndarray</span>
+<span class="sd">        Prescribed source with shape (n_cells, n_angles, n_groups).</span>
+<span class="sd">    boundary, medium_map, delta_x, angle_x, angle_w, bc_x, geometry:</span>
+<span class="sd">        See :func:`source_iteration` for descriptions.</span>
+<span class="sd">    edges : int</span>
+<span class="sd">        Number of edge cells included in the angular flux array.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Angular flux array with shape (n_cells + edges, n_angles, n_groups).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span>
 
@@ -336,7 +516,7 @@
 
 <div class="viewcode-block" id="known_source_scalar">
 <a class="viewcode-back" href="../../discrete1.multi_group.html#discrete1.multi_group.known_source_scalar">[docs]</a>
-<span class="k">def</span> <span class="nf">known_source_scalar</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">known_source_scalar</span><span class="p">(</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">source</span><span class="p">,</span>
     <span class="n">boundary</span><span class="p">,</span>
@@ -348,6 +528,23 @@
     <span class="n">geometry</span><span class="p">,</span>
     <span class="n">edges</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute scalar (group-integrated) flux for a prescribed source.</span>
+
+<span class="sd">    Wrapper that solves for scalar flux using a prescribed source and</span>
+<span class="sd">    the internal _known_source kernel. Returns a (n_cells+edges, n_groups)</span>
+<span class="sd">    scalar flux array suitable for post-processing.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xs_total, source, boundary, medium_map, delta_x, angle_x, angle_w, bc_x, \</span>
+<span class="sd">        geometry, edges : </span>
+<span class="sd">        See :func:`known_source_angular` for descriptions.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Scalar flux array with shape (n_cells + edges, n_groups).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span>
 
@@ -389,7 +586,7 @@
 
 <div class="viewcode-block" id="source_iteration_collect">
 <a class="viewcode-back" href="../../discrete1.multi_group.html#discrete1.multi_group.source_iteration_collect">[docs]</a>
-<span class="k">def</span> <span class="nf">source_iteration_collect</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">source_iteration_collect</span><span class="p">(</span>
     <span class="n">flux_old</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">xs_scatter</span><span class="p">,</span>
@@ -404,6 +601,29 @@
     <span class="n">iteration</span><span class="p">,</span>
     <span class="n">filepath</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Source iteration that collects intermediate flux snapshots.</span>
+
+<span class="sd">    Runs standard multigroup source iteration while recording per-outer-</span>
+<span class="sd">    iteration flux snapshots into an array saved to disk. Useful for</span>
+<span class="sd">    generating training data for DJINN scatter models.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Initial scalar flux guess with shape (n_cells, n_groups).</span>
+<span class="sd">    xs_total, xs_scatter, external, boundary, medium_map, delta_x, angle_x, \</span>
+<span class="sd">        angle_w, bc_x, geometry :</span>
+<span class="sd">        See :func:`source_iteration` for descriptions.</span>
+<span class="sd">    iteration : int</span>
+<span class="sd">        Iteration index used to name the saved snapshot file.</span>
+<span class="sd">    filepath : str</span>
+<span class="sd">        Directory/filepath prefix where snapshots are saved.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Final converged flux (n_cells, n_groups).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span><span class="p">))</span>
@@ -459,7 +679,7 @@
 
 <div class="viewcode-block" id="source_iteration_djinn">
 <a class="viewcode-back" href="../../discrete1.multi_group.html#discrete1.multi_group.source_iteration_djinn">[docs]</a>
-<span class="k">def</span> <span class="nf">source_iteration_djinn</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">source_iteration_djinn</span><span class="p">(</span>
     <span class="n">flux_old</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">xs_scatter</span><span class="p">,</span>
@@ -474,6 +694,31 @@
     <span class="n">scatter_models</span><span class="o">=</span><span class="p">[],</span>
     <span class="n">scatter_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Source iteration using DJINN-predicted scatter source.</span>
+
+<span class="sd">    Uses pre-trained DJINN models to predict the scatter source each</span>
+<span class="sd">    outer iteration and then solves each group with the provided</span>
+<span class="sd">    discrete-ordinates known-scatter kernel. This is intended to</span>
+<span class="sd">    accelerate or replace explicit scattering computations.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Initial scalar flux guess with shape (n_cells, n_groups).</span>
+<span class="sd">    xs_total, xs_scatter, external, boundary, medium_map, delta_x, angle_x, \</span>
+<span class="sd">        angle_w, bc_x, geometry :</span>
+<span class="sd">        See :func:`source_iteration` for descriptions.</span>
+<span class="sd">    scatter_models : list, optional</span>
+<span class="sd">        Sequence of loaded DJINN models (or placeholders) indexed by</span>
+<span class="sd">        material id; models produce group-wise scatter predictions.</span>
+<span class="sd">    scatter_labels : numpy.ndarray, optional</span>
+<span class="sd">        Optional label array used as additional model inputs (n_cells,).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Converged scalar flux (n_cells, n_groups).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span><span class="p">))</span>
@@ -526,70 +771,31 @@
 
 </pre></div>
 
+           </div>
           </div>
-          
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ben Whewell.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../../index.html">discrete1</a></h1>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
 
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../steady_state.html">steady_state</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../../index.html">Documentation overview</a><ul>
-  <li><a href="../index.html">Module code</a><ul>
-  </ul></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="footer">
-      &copy;2021, Ben Whewell.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
-      
-    </div>
-
-    
-
-    
-  </body>
+</body>
 </html>

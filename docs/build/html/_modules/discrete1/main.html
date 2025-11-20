@@ -1,50 +1,127 @@
-<!DOCTYPE html>
 
-<html lang="en" data-content_root="../../">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>discrete1.main &#8212; discrete1 0.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=4f649999" />
-    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=039e1c02" />
-    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
-    <script src="../../_static/doctools.js?v=888ff710"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>discrete1.main &mdash; discrete1 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-   
-  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+</head>
 
-  </head><body>
-  
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          
 
-          <div class="body" role="main">
-            
+
+          <a href="../../index.html" class="icon icon-home">
+            discrete1
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../discrete1.html">discrete1 package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">discrete1</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">discrete1.main</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
   <h1>Source code for discrete1.main</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Running basic functions for collecting parameters</span>
+<span></span><span class="sd">&quot;&quot;&quot;Utilities for building grids and basic problem parameters.</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">pkg_resources</span>
+<span class="sd">This module collects small helper functions used to build angular and</span>
+<span class="sd">energy quadratures, convert energy grids to velocities, construct time</span>
+<span class="sd">stepping grids, and build 1-D spatial material maps. The helpers are</span>
+<span class="sd">lightweight and intended for use by example scripts and tests.</span>
 
-<span class="kn">from</span> <span class="nn">discrete1.utils.hybrid</span> <span class="kn">import</span> <span class="n">energy_coarse_index</span>
-<span class="kn">from</span> <span class="nn">discrete1.constants</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="sd">Public helpers</span>
+<span class="sd">- angular_x</span>
+<span class="sd">- energy_grid</span>
+<span class="sd">- energy_velocity</span>
+<span class="sd">- gamma_time_steps</span>
+<span class="sd">- spatial1d</span>
+<span class="sd">&quot;&quot;&quot;</span>
 
-<span class="n">DATA_PATH</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_filename</span><span class="p">(</span><span class="s2">&quot;discrete1&quot;</span><span class="p">,</span><span class="s2">&quot;sources/energy/&quot;</span><span class="p">)</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pkg_resources</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">discrete1.constants</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">const</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">discrete1.utils.hybrid</span><span class="w"> </span><span class="kn">import</span> <span class="n">energy_coarse_index</span>
+
+<span class="n">DATA_PATH</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_filename</span><span class="p">(</span><span class="s2">&quot;discrete1&quot;</span><span class="p">,</span> <span class="s2">&quot;sources/energy/&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="angular_x">
 <a class="viewcode-back" href="../../discrete1.main.html#discrete1.main.angular_x">[docs]</a>
-<span class="k">def</span> <span class="nf">angular_x</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">bc_x</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">angular_x</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">bc_x</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate angular ordinates and normalized weights.</span>
+
+<span class="sd">    Uses Gauss-Legendre quadrature to compute angular ordinates (mu)</span>
+<span class="sd">    and weights for the specified number of angles. If reflective</span>
+<span class="sd">    boundary conditions are present (``bc_x``), the ordering of</span>
+<span class="sd">    ordinates and weights is adjusted so that the incoming directions</span>
+<span class="sd">    correspond to the solver&#39;s expected ordering.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    angles : int</span>
+<span class="sd">        Number of angular ordinates (n).</span>
+<span class="sd">    bc_x : sequence of two ints, optional</span>
+<span class="sd">        Boundary condition indicators for left/right (default [0, 0]).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (angle_x, angle_w) where ``angle_x`` is array of ordinates and</span>
+<span class="sd">        ``angle_w`` is the corresponding normalized weights.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">angle_x</span><span class="p">,</span> <span class="n">angle_w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">polynomial</span><span class="o">.</span><span class="n">legendre</span><span class="o">.</span><span class="n">leggauss</span><span class="p">(</span><span class="n">angles</span><span class="p">)</span>
     <span class="n">angle_w</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">angle_w</span><span class="p">)</span>
+
     <span class="c1"># Ordering for reflective boundaries</span>
     <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">bc_x</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">bc_x</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]:</span>
@@ -53,26 +130,49 @@
             <span class="n">idx</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">argsort</span><span class="p">()[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">angle_x</span> <span class="o">=</span> <span class="n">angle_x</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">angle_w</span> <span class="o">=</span> <span class="n">angle_w</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
     <span class="k">return</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">angle_w</span></div>
 
 
 
 <div class="viewcode-block" id="energy_grid">
 <a class="viewcode-back" href="../../discrete1.main.html#discrete1.main.energy_grid">[docs]</a>
-<span class="k">def</span> <span class="nf">energy_grid</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">groups_fine</span><span class="p">,</span> <span class="n">groups_coarse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Calculate energy grid bounds (MeV) and index for coarsening</span>
-<span class="sd">    Arguments:</span>
-<span class="sd">        groups (int): Number of energy groups for problem</span>
-<span class="sd">        grid (int): specified energy grid to use (87, 361, 618)</span>
-<span class="sd">    Returns:</span>
-<span class="sd">        edges_g (float [grid + 1]): MeV energy group bounds</span>
-<span class="sd">        edges_gidx (int [groups + 1]): Location of grid index for problem</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">energy_grid</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">groups_fine</span><span class="p">,</span> <span class="n">groups_coarse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build energy grid edges and index mapping for coarse/fine grids.</span>
+
+<span class="sd">    The function loads predefined energy grids shipped with the</span>
+<span class="sd">    package and returns the energy edges (MeV) and the array mapping</span>
+<span class="sd">    problem group indices to locations within the fine grid. When</span>
+<span class="sd">    ``groups_coarse`` is provided the function also returns the coarse</span>
+<span class="sd">    grid index mapping.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    grid : int</span>
+<span class="sd">        Choice of stock grid (supported: 87, 361, 618).</span>
+<span class="sd">    groups_fine : int</span>
+<span class="sd">        Number of fine groups in the problem.</span>
+<span class="sd">    groups_coarse : int, optional</span>
+<span class="sd">        Number of coarse groups to compute an additional mapping.</span>
+<span class="sd">    optimize : bool, optional</span>
+<span class="sd">        If True, attempt to load precomputed index mappings from</span>
+<span class="sd">        packaged data; otherwise compute indices on-the-fly.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    edges_g : numpy.ndarray</span>
+<span class="sd">        Energy bin edges in MeV (length grid + 1).</span>
+<span class="sd">    edges_gidx_fine : numpy.ndarray</span>
+<span class="sd">        Integer indices mapping fine-group boundaries into the</span>
+<span class="sd">        chosen energy grid.</span>
+<span class="sd">    edges_gidx_coarse : numpy.ndarray, optional</span>
+<span class="sd">        (Only returned when ``groups_coarse`` is not None.) Coarse</span>
+<span class="sd">        group index mapping.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Create energy grid</span>
     <span class="k">if</span> <span class="n">grid</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">87</span><span class="p">,</span> <span class="mi">361</span><span class="p">,</span> <span class="mi">618</span><span class="p">]:</span>
         <span class="n">edges_g</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">DATA_PATH</span> <span class="o">+</span> <span class="s2">&quot;energy_grids.npz&quot;</span><span class="p">)[</span><span class="nb">str</span><span class="p">(</span><span class="n">grid</span><span class="p">)]</span>
-        
+
         <span class="c1"># Collect grid boundary indices</span>
         <span class="n">fgrid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
         <span class="n">edges_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">DATA_PATH</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;G</span><span class="si">{</span><span class="n">fgrid</span><span class="si">}</span><span class="s2">_grid_index.npz&quot;</span><span class="p">)</span>
@@ -85,10 +185,10 @@
             <span class="n">edges_gidx_fine</span> <span class="o">=</span> <span class="n">edges_data</span><span class="p">[</span><span class="n">label_fine</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="n">edges_gidx_fine</span> <span class="o">=</span> <span class="n">energy_coarse_index</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edges_g</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">groups_fine</span><span class="p">)</span>
-    
+            <span class="n">edges_gidx_fine</span> <span class="o">=</span> <span class="n">energy_coarse_index</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edges_g</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">groups_fine</span><span class="p">)</span>
+
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">edges_gidx_fine</span> <span class="o">=</span> <span class="n">energy_coarse_index</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edges_g</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">groups_fine</span><span class="p">)</span>
+        <span class="n">edges_gidx_fine</span> <span class="o">=</span> <span class="n">energy_coarse_index</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edges_g</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">groups_fine</span><span class="p">)</span>
 
     <span class="c1"># Convert to correct type</span>
     <span class="n">edges_gidx_fine</span> <span class="o">=</span> <span class="n">edges_gidx_fine</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
@@ -102,50 +202,75 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">label_coarse</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">groups_coarse</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
             <span class="n">edges_gidx_coarse</span> <span class="o">=</span> <span class="n">edges_data</span><span class="p">[</span><span class="n">label_coarse</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        
+
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="n">edges_gidx_coarse</span> <span class="o">=</span> <span class="n">energy_coarse_index</span><span class="p">(</span><span class="n">groups_fine</span><span class="p">,</span> <span class="n">groups_coarse</span><span class="p">)</span>
 
     <span class="k">else</span><span class="p">:</span>
         <span class="n">edges_gidx_coarse</span> <span class="o">=</span> <span class="n">energy_coarse_index</span><span class="p">(</span><span class="n">groups_fine</span><span class="p">,</span> <span class="n">groups_coarse</span><span class="p">)</span>
-    
+
     <span class="c1"># Convert to correct type</span>
     <span class="n">edges_gidx_coarse</span> <span class="o">=</span> <span class="n">edges_gidx_coarse</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    
-    <span class="k">return</span> <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx_fine</span><span class="p">,</span> <span class="n">edges_gidx_coarse</span></div>
 
+    <span class="k">return</span> <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx_fine</span><span class="p">,</span> <span class="n">edges_gidx_coarse</span></div>
 
 
 
 <div class="viewcode-block" id="energy_velocity">
 <a class="viewcode-back" href="../../discrete1.main.html#discrete1.main.energy_velocity">[docs]</a>
-<span class="k">def</span> <span class="nf">energy_velocity</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">edges_g</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot; Convert energy edges to speed at cell centers, Relative Physics</span>
-<span class="sd">    Arguments:</span>
-<span class="sd">        groups: Number of energy groups</span>
-<span class="sd">        edges_g: energy grid bounds</span>
-<span class="sd">    Returns:</span>
-<span class="sd">        speeds at cell centers (cm/s)   &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">edges_g</span> <span class="o">==</span> <span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">energy_velocity</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">edges_g</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute particle speeds (cm/s) at group centers from energy edges.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    groups : int</span>
+<span class="sd">        Number of energy groups. Used only if ``edges_g`` is None.</span>
+<span class="sd">    edges_g : array_like, optional</span>
+<span class="sd">        Energy group edges in MeV. If omitted, a unit vector is</span>
+<span class="sd">        returned for convenience.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Speeds at group center energies in cm/s.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">edges_g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">groups</span><span class="p">,))</span>
+
     <span class="n">centers_gg</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">edges_g</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="n">edges_g</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">gamma</span> <span class="o">=</span> <span class="p">(</span><span class="n">EV_TO_JOULES</span> <span class="o">*</span> <span class="n">centers_gg</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">MASS_NEUTRON</span> <span class="o">*</span> <span class="n">LIGHT_SPEED</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="n">velocity</span> <span class="o">=</span> <span class="n">LIGHT_SPEED</span> <span class="o">/</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">gamma</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="n">gamma</span> <span class="o">=</span> <span class="p">(</span><span class="n">const</span><span class="o">.</span><span class="n">EV_TO_JOULES</span> <span class="o">*</span> <span class="n">centers_gg</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+        <span class="n">const</span><span class="o">.</span><span class="n">MASS_NEUTRON</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">LIGHT_SPEED</span><span class="o">**</span><span class="mi">2</span>
+    <span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">velocity</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">LIGHT_SPEED</span> <span class="o">/</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">gamma</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
     <span class="k">return</span> <span class="n">velocity</span></div>
 
 
 
 <div class="viewcode-block" id="gamma_time_steps">
 <a class="viewcode-back" href="../../discrete1.main.html#discrete1.main.gamma_time_steps">[docs]</a>
-<span class="k">def</span> <span class="nf">gamma_time_steps</span><span class="p">(</span><span class="n">edges_t</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">half_step</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot; Add gamma half time steps to original time steps with initial step</span>
-<span class="sd">    where gamma = 0.5 or 2 - sqrt(2). For external source with TR-BDF2 problems.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">gamma_time_steps</span><span class="p">(</span><span class="n">edges_t</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">half_step</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Insert intermediate (gamma) time steps between existing edges.</span>
 
-<span class="sd">    Arguments:</span>
-<span class="sd">        edges_t: array of length (steps + 1)</span>
-<span class="sd">        half_step: if True, first half step is 0.5, else gamma</span>
-<span class="sd">    Returns:</span>
-<span class="sd">        array of length (steps * 2 + 1)</span>
+<span class="sd">    This helper takes a time-edge array and returns a combined array</span>
+<span class="sd">    that includes half-steps (or gamma-weighted sub-steps) between</span>
+<span class="sd">    original edges. It&#39;s used by time integrators that require</span>
+<span class="sd">    sub-step evaluations (for example TR-BDF2).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    edges_t : array_like</span>
+<span class="sd">        Time edge array of length (n_steps + 1).</span>
+<span class="sd">    gamma : float, optional</span>
+<span class="sd">        Fraction used to compute intermediate times (default 0.5).</span>
+<span class="sd">    half_step : bool, optional</span>
+<span class="sd">        If True, the first intermediate step is set to the exact</span>
+<span class="sd">        midpoint between the surrounding times.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Combined time array of length (n_steps * 2 + 1).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="n">gamma</span> <span class="o">==</span> <span class="mf">0.5</span><span class="p">:</span>
@@ -162,8 +287,8 @@
 
 <div class="viewcode-block" id="spatial1d">
 <a class="viewcode-back" href="../../discrete1.main.html#discrete1.main.spatial1d">[docs]</a>
-<span class="k">def</span> <span class="nf">spatial1d</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">edges_x</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot; Creating one-dimensional medium map</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">spatial1d</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">edges_x</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create one-dimensional medium map.</span>
 
 <span class="sd">    :param layers: list of lists where each layer is a new material. A</span>
 <span class="sd">        layer is comprised of an index (int), material name (str), and</span>
@@ -196,70 +321,31 @@
 
 </pre></div>
 
+           </div>
           </div>
-          
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ben Whewell.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../../index.html">discrete1</a></h1>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
 
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../steady_state.html">steady_state</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../../index.html">Documentation overview</a><ul>
-  <li><a href="../index.html">Module code</a><ul>
-  </ul></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="footer">
-      &copy;2021, Ben Whewell.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
-      
-    </div>
-
-    
-
-    
-  </body>
+</body>
 </html>

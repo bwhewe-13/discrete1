@@ -1,47 +1,109 @@
-<!DOCTYPE html>
 
-<html lang="en" data-content_root="../../">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>discrete1.critical0d &#8212; discrete1 0.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=4f649999" />
-    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=039e1c02" />
-    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
-    <script src="../../_static/doctools.js?v=888ff710"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>discrete1.critical0d &mdash; discrete1 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-   
-  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+</head>
 
-  </head><body>
-  
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          
 
-          <div class="body" role="main">
-            
+
+          <a href="../../index.html" class="icon icon-home">
+            discrete1
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../discrete1.html">discrete1 package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">discrete1</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">discrete1.critical0d</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
   <h1>Source code for discrete1.critical0d</h1><div class="highlight"><pre>
-<span></span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span></span><span class="sd">&quot;&quot;&quot;Zero-dimensional criticality helpers.</span>
 
-<span class="kn">import</span> <span class="nn">discrete1</span>
-<span class="kn">from</span> <span class="nn">discrete1</span> <span class="kn">import</span> <span class="n">multi_group_0d</span> <span class="k">as</span> <span class="n">mg</span>
-<span class="kn">from</span> <span class="nn">discrete1</span> <span class="kn">import</span> <span class="n">tools</span>
+<span class="sd">This module provides small helpers used for 0D (spatially independent)</span>
+<span class="sd">criticality calculations such as a simple power iteration driver.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">discrete1</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">discrete1</span><span class="w"> </span><span class="kn">import</span> <span class="n">multi_group_0d</span> <span class="k">as</span> <span class="n">mg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">discrete1</span><span class="w"> </span><span class="kn">import</span> <span class="n">tools</span>
 
 <span class="n">count_kk</span> <span class="o">=</span> <span class="mi">100</span>
 <span class="n">change_kk</span> <span class="o">=</span> <span class="mf">1e-06</span>
 
+
 <div class="viewcode-block" id="power_iteration">
 <a class="viewcode-back" href="../../discrete1.critical0d.html#discrete1.critical0d.power_iteration">[docs]</a>
-<span class="k">def</span> <span class="nf">power_iteration</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">xs_total</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">power_iteration</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">xs_total</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run a simple power iteration for the 0D problem.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    angles : int</span>
+<span class="sd">        Number of angular ordinates to construct.</span>
+<span class="sd">    xs_total, xs_scatter, xs_fission : numpy.ndarray</span>
+<span class="sd">        Cross section arrays used by the multigroup solver.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (flux, keff) where ``flux`` is the converged group flux and</span>
+<span class="sd">        ``keff`` is the estimated multiplication factor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">angle_x</span><span class="p">,</span> <span class="n">angle_w</span> <span class="o">=</span> <span class="n">discrete1</span><span class="o">.</span><span class="n">angular_x</span><span class="p">(</span><span class="n">angles</span><span class="p">)</span>
 
@@ -62,8 +124,9 @@
         <span class="n">tools</span><span class="o">.</span><span class="n">_fission_source_0d</span><span class="p">(</span><span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">keff</span><span class="p">)</span>
 
         <span class="c1"># Solve for scalar flux</span>
-        <span class="n">flux</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">source_iteration</span><span class="p">(</span><span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_total</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> \
-                                   <span class="n">angle_x</span><span class="p">,</span> <span class="n">angle_w</span><span class="p">)</span>
+        <span class="n">flux</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">source_iteration</span><span class="p">(</span>
+            <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_total</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">angle_w</span>
+        <span class="p">)</span>
 
         <span class="c1"># Update keffective</span>
         <span class="n">keff</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">_update_keffective_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">keff</span><span class="p">)</span>
@@ -84,70 +147,31 @@
 
 </pre></div>
 
+           </div>
           </div>
-          
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ben Whewell.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../../index.html">discrete1</a></h1>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
 
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../steady_state.html">steady_state</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../../index.html">Documentation overview</a><ul>
-  <li><a href="../index.html">Module code</a><ul>
-  </ul></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="footer">
-      &copy;2021, Ben Whewell.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
-      
-    </div>
-
-    
-
-    
-  </body>
+</body>
 </html>

@@ -1,178 +1,575 @@
+
+
 <!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<html lang="en" data-content_root="./">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>discrete1.spatial_sweep module &mdash; discrete1 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
-    <title>discrete1.spatial_sweep module &#8212; discrete1 0.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="_static/agogo.css?v=47acb022" />
-    <script src="_static/documentation_options.js?v=2709fde1"></script>
-    <script src="_static/doctools.js?v=888ff710"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
-  </head><body>
-    <div class="header-wrapper" role="banner">
-      <div class="header">
-        <div class="headertitle"><a
-          href="index.html">discrete1 0.1 documentation</a></div>
-        <div class="rel" role="navigation" aria-label="related navigation">
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a>
-        </div>
-       </div>
-    </div>
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="discrete1.timed1d module" href="discrete1.timed1d.html" />
+    <link rel="prev" title="discrete1.multi_group_0d module" href="discrete1.multi_group_0d.html" />
+</head>
 
-    <div class="content-wrapper">
-      <div class="content">
-        <div class="document">
-            
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body" role="main">
-            
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="index.html" class="icon icon-home">
+            discrete1
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="discrete1.html">discrete1 package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="discrete1.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="discrete1.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="discrete1.boundary1d.html">discrete1.boundary1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.constants.html">discrete1.constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.critical0d.html">discrete1.critical0d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.critical1d.html">discrete1.critical1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.djinn1d.html">discrete1.djinn1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.external1d.html">discrete1.external1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.fixed1d.html">discrete1.fixed1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.hybrid1d.html">discrete1.hybrid1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.main.html">discrete1.main module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.materials.html">discrete1.materials module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.multi_group.html">discrete1.multi_group module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.multi_group_0d.html">discrete1.multi_group_0d module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">discrete1.spatial_sweep module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.angle_coef_corrector"><code class="docutils literal notranslate"><span class="pre">angle_coef_corrector()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.discrete_ordinates"><code class="docutils literal notranslate"><span class="pre">discrete_ordinates()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.slab_backward"><code class="docutils literal notranslate"><span class="pre">slab_backward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.slab_backward_scatter"><code class="docutils literal notranslate"><span class="pre">slab_backward_scatter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.slab_forward"><code class="docutils literal notranslate"><span class="pre">slab_forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.slab_forward_scatter"><code class="docutils literal notranslate"><span class="pre">slab_forward_scatter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates"><code class="docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates_scatter"><code class="docutils literal notranslate"><span class="pre">slab_ordinates_scatter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates_source"><code class="docutils literal notranslate"><span class="pre">slab_ordinates_source()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.sphere_backward"><code class="docutils literal notranslate"><span class="pre">sphere_backward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.sphere_backward_scatter"><code class="docutils literal notranslate"><span class="pre">sphere_backward_scatter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.sphere_forward"><code class="docutils literal notranslate"><span class="pre">sphere_forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.sphere_forward_scatter"><code class="docutils literal notranslate"><span class="pre">sphere_forward_scatter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.sphere_ordinates"><code class="docutils literal notranslate"><span class="pre">sphere_ordinates()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.sphere_ordinates_scatter"><code class="docutils literal notranslate"><span class="pre">sphere_ordinates_scatter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.spatial_sweep.sphere_ordinates_source"><code class="docutils literal notranslate"><span class="pre">sphere_ordinates_source()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.timed1d.html">discrete1.timed1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.tools.html">discrete1.tools module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.vhybrid1d.html">discrete1.vhybrid1d module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.html#module-discrete1">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">discrete1</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="discrete1.html">discrete1 package</a></li>
+      <li class="breadcrumb-item active">discrete1.spatial_sweep module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/discrete1.spatial_sweep.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
   <section id="module-discrete1.spatial_sweep">
-<span id="discrete1-spatial-sweep-module"></span><h1>discrete1.spatial_sweep module<a class="headerlink" href="#module-discrete1.spatial_sweep" title="Link to this heading">¶</a></h1>
+<span id="discrete1-spatial-sweep-module"></span><h1>discrete1.spatial_sweep module<a class="headerlink" href="#module-discrete1.spatial_sweep" title="Link to this heading"></a></h1>
+<p>Spatial sweep routines for slab and spherical geometries.</p>
+<p>This module implements discrete-ordinates spatial sweeps used by the
+solvers. It provides high-level driver functions that perform slab or
+sphere sweeps for steady-state and time-dependent problems, plus
+specialized variants for known external sources or scatter-only
+operators used by DJINN integrations.</p>
+<p>The performance-critical kernels are decorated with <code class="docutils literal notranslate"><span class="pre">numba.jit</span></code> and
+operate on NumPy arrays. Public API (typical callers):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">discrete_ordinates</span></code>: generic dispatcher to slab/sphere handlers</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">slab_ordinates</span></code> / <code class="docutils literal notranslate"><span class="pre">sphere_ordinates</span></code>: full sweep drivers</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">slab_ordinates_source</span></code> / <code class="docutils literal notranslate"><span class="pre">sphere_ordinates_source</span></code>: known-source</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">slab_ordinates_scatter</span></code> / <code class="docutils literal notranslate"><span class="pre">sphere_ordinates_scatter</span></code>: DJINN scatter</p></li>
+</ul>
+<p>Docstrings on the individual functions describe parameter shapes and
+return values expected by the rest of the package.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.angle_coef_corrector">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">angle_coef_corrector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha_minus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#angle_coef_corrector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.angle_coef_corrector" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">angle_coef_corrector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha_minus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#angle_coef_corrector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.angle_coef_corrector" title="Link to this definition"></a></dt>
+<dd><p>Calculate angular differencing coefficient for spherical geometry.</p>
+<p>Computes the angular differencing coefficient used in spherical
+geometry sweeps for proper treatment of angular derivatives.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alpha_minus</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Previous angular coefficient.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Current angular ordinate.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Quadrature weight for current ordinate.</p></li>
+<li><p><strong>nn</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Current angle index.</p></li>
+<li><p><strong>angles</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Total number of angles.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated angular coefficient. Returns 0 for last angle.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.discrete_ordinates">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">discrete_ordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#discrete_ordinates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.discrete_ordinates" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">discrete_ordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#discrete_ordinates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.discrete_ordinates" title="Link to this definition"></a></dt>
+<dd><p>Dispatch to the appropriate spatial sweep for the geometry.</p>
+<p>This function chooses the slab or sphere sweeping routine based on
+the <code class="docutils literal notranslate"><span class="pre">geometry</span></code> argument and returns the updated scalar flux array
+evaluated at cell centers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Previous iterate of the scalar flux (shape: n_cells,).</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Total macroscopic cross sections per material.</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Scatter cross section (per material) used in source evaluation.</p></li>
+<li><p><strong>off_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Off-diagonal scatter correction/source term (shape: n_cells,).</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – External source array (shape varies: spatial x angles x groups).</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Boundary condition array (2, n_angles, …).</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Integer material index per spatial cell (length n_cells).</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Cell widths (length n_cells).</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Angular ordinates (length n_angles).</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Quadrature weights (length n_angles).</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code>) – Boundary condition flags for left/right boundaries.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Geometry selector: 1 -&gt; slab, 2 -&gt; sphere.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated scalar flux at cell centers (shape: n_cells,).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.slab_backward">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edge1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_backward" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edge1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_backward" title="Link to this definition"></a></dt>
+<dd><p>Perform the backward sweep for slab geometry for one ordinate.</p>
+<p>Marches from the right boundary toward the left and updates the
+provided <code class="docutils literal notranslate"><span class="pre">flux</span></code> array with center or edge contributions for the
+given angular ordinate. This kernel is jitted with numba and
+mutates its inputs in-place for performance.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.slab_backward_scatter">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_backward_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edge1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_backward_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_backward_scatter" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_backward_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edge1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_backward_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_backward_scatter" title="Link to this definition"></a></dt>
+<dd><p>Backward sweep kernel for slab geometry with known scatter source.</p>
+<p>Performs a backward (right-to-left) sweep through slab cells using
+diamond difference with prescribed scatter source. Used by DJINN
+accelerated variants.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Scalar flux array to update (n_cells).</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Total cross sections by material.</p></li>
+<li><p><strong>scatter_source</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Known scatter source by cell.</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – External source by cell.</p></li>
+<li><p><strong>edge1</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Right edge flux for current cell.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Material indices by cell.</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Cell widths.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Current angular ordinate.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Quadrature weight.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Outgoing edge flux for sweep continuation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.slab_forward">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edge1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_forward" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edge1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_forward" title="Link to this definition"></a></dt>
+<dd><p>Perform the forward sweep for slab geometry for one ordinate.</p>
+<p>This kernel marches from the left boundary toward the right and
+computes either edge or center flux contributions for a single
+angular ordinate.</p>
+<p class="rubric">Notes</p>
+<p>This function is JIT-compiled with numba for performance and
+operates in-place on the <code class="docutils literal notranslate"><span class="pre">flux</span></code> array.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.slab_forward_scatter">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_forward_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edge1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_forward_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_forward_scatter" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_forward_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edge1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_forward_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_forward_scatter" title="Link to this definition"></a></dt>
+<dd><p>Forward sweep kernel for slab geometry with known scatter source.</p>
+<p>Performs a forward (left-to-right) sweep through slab cells using
+diamond difference with prescribed scatter source. Used by DJINN
+accelerated variants.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Scalar flux array to update (n_cells).</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Total cross sections by material.</p></li>
+<li><p><strong>scatter_source</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Known scatter source by cell.</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – External source by cell.</p></li>
+<li><p><strong>edge1</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Left edge flux for current cell.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Material indices by cell.</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Cell widths.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Current angular ordinate.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Quadrature weight.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Outgoing edge flux for sweep continuation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.slab_ordinates">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_ordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_ordinates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_ordinates" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_ordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_ordinates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_ordinates" title="Link to this definition"></a></dt>
+<dd><p>Perform a slab-geometry discrete-ordinates spatial sweep.</p>
+<p>The solver iterates over angular ordinates and performs forward and
+backward diamond-difference passes until the scalar flux converges
+(or a maximum iteration count is reached). This routine returns the
+converged cell-centered scalar flux.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Initial flux guess (n_cells,).</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Total cross sections indexed by material.</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Scatter cross sections indexed by material.</p></li>
+<li><p><strong>off_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Precomputed off-scatter source (n_cells,).</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – External source (n_x, n_angles or 1, 1).</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Boundary conditions (2, n_angles, …).</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Material index per cell (n_cells,).</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Cell widths (n_cells,).</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Angular ordinates and weights.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Angular ordinates and weights.</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code>) – Boundary condition flags for left/right.</p></li>
+<li><p><strong>edges</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – If 1, compute edge flux contributions; otherwise compute center flux.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Converged scalar flux at cell centers (n_cells,).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.slab_ordinates_scatter">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_ordinates_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_ordinates_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_ordinates_scatter" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_ordinates_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_ordinates_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_ordinates_scatter" title="Link to this definition"></a></dt>
+<dd><p>Specialized slab sweep for known scatter source (DJINN variant).</p>
+<p>This variant is optimized for DJINN-accelerated transport where the
+scatter source is provided externally rather than computed from flux
+moments. The function performs a single pass without iteration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Total cross sections indexed by material.</p></li>
+<li><p><strong>scatter_source</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Precomputed scatter source (n_cells,).</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – External source term (n_cells, n_angles or 1).</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Boundary conditions (2, n_angles or 1).</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Material indices (n_cells,).</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Cell widths (n_cells,).</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Angular ordinates (n_angles,).</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Quadrature weights (n_angles,).</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code>) – Boundary condition flags.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Scalar flux at cell centers (n_cells,).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.slab_ordinates_source">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_ordinates_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_ordinates_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_ordinates_source" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">slab_ordinates_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#slab_ordinates_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.slab_ordinates_source" title="Link to this definition"></a></dt>
+<dd><p>Slab sweep driver for a known (prescribed) external source.</p>
+<p>This variant is used when the external/source term is provided and
+the scatter contribution is not iterated. The function supports
+scalar or angular flux shapes depending on the <code class="docutils literal notranslate"><span class="pre">flux</span></code> input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Output array for scalar or angular fluxes (shape: n_cells x xdim).</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Total cross sections indexed by material.</p></li>
+<li><p><strong>zero</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Zero-array placeholder used for kernels that expect an array.</p></li>
+<li><p><strong>source</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Prescribed source (spatial x angular-or-1).</p></li>
+<li><p><strong>boundary</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for descriptions.</p></li>
+<li><p><strong>medium_map</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for descriptions.</p></li>
+<li><p><strong>delta_x</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for descriptions.</p></li>
+<li><p><strong>angle_x</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for descriptions.</p></li>
+<li><p><strong>angle_w</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for descriptions.</p></li>
+<li><p><strong>bc_x</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for descriptions.</p></li>
+<li><p><strong>edges</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for descriptions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The flux array (same object as input) updated in-place.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.sphere_backward">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">half_angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_plus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_minus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_backward" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">half_angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_plus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_minus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_backward" title="Link to this definition"></a></dt>
+<dd><p>Backward sweep kernel for spherical geometry for a single ordinate.</p>
+<p>Marches from the outer radius toward the center, updating <code class="docutils literal notranslate"><span class="pre">flux</span></code>
+in-place. The kernel uses geometry-specific surface area and
+volume factors to compute center contributions.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.sphere_backward_scatter">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_backward_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">half_angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_plus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_minus</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_backward_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_backward_scatter" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_backward_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">half_angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_plus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_minus</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_backward_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_backward_scatter" title="Link to this definition"></a></dt>
+<dd><p>Backward sweep kernel for spherical geometry with known scatter source.</p>
+<p>Performs a backward (edge-to-center) sweep through spherical shells using
+diamond difference with prescribed scatter source and proper spherical
+geometry factors. Used by DJINN accelerated variants.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Scalar flux array to update (n_cells).</p></li>
+<li><p><strong>half_angle</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Half-angle flux values at cell edges.</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Total cross sections by material.</p></li>
+<li><p><strong>scatter_source</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Known scatter source by cell.</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – External source by cell.</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Outer boundary condition.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Material indices by cell.</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Shell thicknesses.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Current angular ordinate.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Quadrature weight.</p></li>
+<li><p><strong>weight</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Angular weight factor.</p></li>
+<li><p><strong>tau</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Weighted diamond difference factor.</p></li>
+<li><p><strong>alpha_plus</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Forward angular coefficient.</p></li>
+<li><p><strong>alpha_minus</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Backward angular coefficient.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.sphere_forward">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">half_angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_plus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_minus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_forward" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">half_angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_plus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_minus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_forward" title="Link to this definition"></a></dt>
+<dd><p>Forward sweep kernel for spherical geometry for a single ordinate.</p>
+<p>Updates <code class="docutils literal notranslate"><span class="pre">flux</span></code> in-place by marching from center toward the outer
+radius using the provided half-angle and differencing coefficients.
+This kernel is performance-critical and compiled with numba.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.sphere_forward_scatter">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_forward_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">half_angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_plus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_minus</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_forward_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_forward_scatter" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_forward_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">half_angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_plus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_minus</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_forward_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_forward_scatter" title="Link to this definition"></a></dt>
+<dd><p>Forward sweep kernel for spherical geometry with known scatter source.</p>
+<p>Performs a forward (center-to-edge) sweep through spherical shells using
+diamond difference with prescribed scatter source and proper spherical
+geometry factors. Used by DJINN accelerated variants.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Scalar flux array to update (n_cells).</p></li>
+<li><p><strong>half_angle</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Half-angle flux values at cell edges.</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Total cross sections by material.</p></li>
+<li><p><strong>scatter_source</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Known scatter source by cell.</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – External source by cell.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Material indices by cell.</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Shell thicknesses.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Current angular ordinate.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Quadrature weight.</p></li>
+<li><p><strong>weight</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Angular weight factor.</p></li>
+<li><p><strong>tau</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Weighted diamond difference factor.</p></li>
+<li><p><strong>alpha_plus</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Forward angular coefficient.</p></li>
+<li><p><strong>alpha_minus</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Backward angular coefficient.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.sphere_ordinates">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_ordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_ordinates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_ordinates" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_ordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_ordinates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_ordinates" title="Link to this definition"></a></dt>
+<dd><p>Perform a spherical-geometry discrete-ordinates spatial sweep.</p>
+<p>The spherical sweep uses half-angle bookkeeping and angular
+differencing coefficients appropriate for radial geometry. The
+implementation iterates over ordinates and updates a converged
+scalar flux similar to the slab driver.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux_old</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for parameter shapes and meanings.</p></li>
+<li><p><strong>xs_total</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for parameter shapes and meanings.</p></li>
+<li><p><strong>xs_scatter</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for parameter shapes and meanings.</p></li>
+<li><p><strong>off_scatter</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for parameter shapes and meanings.</p></li>
+<li><p><strong>external</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for parameter shapes and meanings.</p></li>
+<li><p><strong>boundary</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for parameter shapes and meanings.</p></li>
+<li><p><strong>medium_map</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for parameter shapes and meanings.</p></li>
+<li><p><strong>delta_x</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for parameter shapes and meanings.</p></li>
+<li><p><strong>angle_x</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for parameter shapes and meanings.</p></li>
+<li><p><strong>angle_w</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for parameter shapes and meanings.</p></li>
+<li><p><strong>bc_x</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for parameter shapes and meanings.</p></li>
+<li><p><strong>edges</strong> – See <a class="reference internal" href="#discrete1.spatial_sweep.slab_ordinates" title="discrete1.spatial_sweep.slab_ordinates"><code class="xref py py-func docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a> for parameter shapes and meanings.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Converged scalar flux at cell centers (n_cells,).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.sphere_ordinates_scatter">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_ordinates_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_ordinates_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_ordinates_scatter" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_ordinates_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_ordinates_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_ordinates_scatter" title="Link to this definition"></a></dt>
+<dd><p>Specialized sphere sweep for known scatter source (DJINN variant).</p>
+<p>This variant is optimized for DJINN-accelerated transport where the
+scatter source is provided externally rather than computed from flux
+moments. The function performs a single pass without iteration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Total cross sections indexed by material.</p></li>
+<li><p><strong>scatter_source</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Precomputed scatter source (n_cells,).</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – External source term (n_cells, n_angles or 1).</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Boundary conditions (2, n_angles or 1).</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Material indices (n_cells,).</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Cell widths (n_cells,).</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Angular ordinates (n_angles,).</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Quadrature weights (n_angles,).</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code>) – Boundary condition flags.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Scalar flux at cell centers (n_cells,).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.spatial_sweep.sphere_ordinates_source">
-<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_ordinates_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_ordinates_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_ordinates_source" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.spatial_sweep.</span></span><span class="sig-name descname"><span class="pre">sphere_ordinates_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/spatial_sweep.html#sphere_ordinates_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.spatial_sweep.sphere_ordinates_source" title="Link to this definition"></a></dt>
+<dd><p>Sphere sweep driver for prescribed external source.</p>
+<p>This variant implements the spherical sweep for cases with a known
+external source without iterating on scatter. Supports both scalar
+and angular flux output shapes based on input array dimensions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Output array for scalar/angular fluxes (n_cells x xdim).</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Total cross sections indexed by material.</p></li>
+<li><p><strong>zero</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Zero-array placeholder for kernel compatibility.</p></li>
+<li><p><strong>source</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – External source (n_cells, n_angles or 1).</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Boundary conditions (2, n_angles or 1).</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Material indices (n_cells,).</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Cell widths (n_cells,).</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Angular ordinates (n_angles,).</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Quadrature weights (n_angles,).</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code>) – Boundary condition flags.</p></li>
+<li><p><strong>edges</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Edge fluxes at cell boundaries.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Flux array (same as input) updated in-place.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 </section>
 
 
-            <div class="clearer"></div>
+           </div>
           </div>
-        </div>
-      </div>
-        </div>
-        <div class="sidebar">
-          
-          <h3>Table of Contents</h3>
-          <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="steady_state.html">steady_state</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
-</ul>
-
-          <div role="search">
-            <h3 style="margin-top: 1.5em;">Search</h3>
-            <form class="search" action="search.html" method="get">
-                <input type="text" name="q" />
-                <input type="submit" value="Go" />
-            </form>
-          </div>
-
-        </div>
-        <div class="clearer"></div>
-      </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="discrete1.multi_group_0d.html" class="btn btn-neutral float-left" title="discrete1.multi_group_0d module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="discrete1.timed1d.html" class="btn btn-neutral float-right" title="discrete1.timed1d module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
-    <div class="footer-wrapper">
-      <div class="footer">
-        <div class="left">
-          <div role="navigation" aria-label="related navigaton">
-            <a href="py-modindex.html" title="Python Module Index"
-              >modules</a> |
-            <a href="genindex.html" title="General Index"
-              >index</a>
-          </div>
-          <div role="note" aria-label="source link">
-              <br/>
-              <a href="_sources/discrete1.spatial_sweep.rst.txt"
-                rel="nofollow">Show Source</a>
-          </div>
-        </div>
+  <hr/>
 
-        <div class="right">
-          
-    <div class="footer" role="contentinfo">
-    &#169; Copyright 2021, Ben Whewell.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
-    </div>
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ben Whewell.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
         </div>
-        <div class="clearer"></div>
       </div>
-    </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
 
-  </body>
+</body>
 </html>

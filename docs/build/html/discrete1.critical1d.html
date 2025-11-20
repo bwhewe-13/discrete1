@@ -1,108 +1,178 @@
+
+
 <!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<html lang="en" data-content_root="./">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>discrete1.critical1d module &mdash; discrete1 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
-    <title>discrete1.critical1d module &#8212; discrete1 0.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="_static/agogo.css?v=47acb022" />
-    <script src="_static/documentation_options.js?v=2709fde1"></script>
-    <script src="_static/doctools.js?v=888ff710"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
-  </head><body>
-    <div class="header-wrapper" role="banner">
-      <div class="header">
-        <div class="headertitle"><a
-          href="index.html">discrete1 0.1 documentation</a></div>
-        <div class="rel" role="navigation" aria-label="related navigation">
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a>
-        </div>
-       </div>
-    </div>
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="discrete1.djinn1d module" href="discrete1.djinn1d.html" />
+    <link rel="prev" title="discrete1.critical0d module" href="discrete1.critical0d.html" />
+</head>
 
-    <div class="content-wrapper">
-      <div class="content">
-        <div class="document">
-            
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body" role="main">
-            
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="index.html" class="icon icon-home">
+            discrete1
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="discrete1.html">discrete1 package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="discrete1.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="discrete1.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="discrete1.boundary1d.html">discrete1.boundary1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.constants.html">discrete1.constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.critical0d.html">discrete1.critical0d module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">discrete1.critical1d module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.critical1d.hybrid_power_iteration"><code class="docutils literal notranslate"><span class="pre">hybrid_power_iteration()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.critical1d.power_iteration"><code class="docutils literal notranslate"><span class="pre">power_iteration()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.djinn1d.html">discrete1.djinn1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.external1d.html">discrete1.external1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.fixed1d.html">discrete1.fixed1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.hybrid1d.html">discrete1.hybrid1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.main.html">discrete1.main module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.materials.html">discrete1.materials module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.multi_group.html">discrete1.multi_group module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.multi_group_0d.html">discrete1.multi_group_0d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.spatial_sweep.html">discrete1.spatial_sweep module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.timed1d.html">discrete1.timed1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.tools.html">discrete1.tools module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.vhybrid1d.html">discrete1.vhybrid1d module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.html#module-discrete1">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">discrete1</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="discrete1.html">discrete1 package</a></li>
+      <li class="breadcrumb-item active">discrete1.critical1d module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/discrete1.critical1d.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
   <section id="module-discrete1.critical1d">
-<span id="discrete1-critical1d-module"></span><h1>discrete1.critical1d module<a class="headerlink" href="#module-discrete1.critical1d" title="Link to this heading">¶</a></h1>
+<span id="discrete1-critical1d-module"></span><h1>discrete1.critical1d module<a class="headerlink" href="#module-discrete1.critical1d" title="Link to this heading"></a></h1>
+<p>One-dimensional criticality drivers.</p>
+<p>This module contains helpers for running k-eigenvalue power iterations in
+1D slab geometries. Both standard and hybrid (coarse/fine) drivers are
+provided.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.critical1d.hybrid_power_iteration">
-<span class="sig-prename descclassname"><span class="pre">discrete1.critical1d.</span></span><span class="sig-name descname"><span class="pre">hybrid_power_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total_u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter_u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission_u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_xu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_wu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/critical1d.html#hybrid_power_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.critical1d.hybrid_power_iteration" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.critical1d.</span></span><span class="sig-name descname"><span class="pre">hybrid_power_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total_u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter_u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission_u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_xu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_wu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/critical1d.html#hybrid_power_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.critical1d.hybrid_power_iteration" title="Link to this definition"></a></dt>
+<dd><p>Run the hybrid coarse/fine power iteration driver.</p>
+<p>This wraps the workflow needed to compute collided (coarse) and
+uncollided (fine) contributions and combines them for a hybrid solve.
+Returns a converged uncollided flux and keff.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.critical1d.power_iteration">
-<span class="sig-prename descclassname"><span class="pre">discrete1.critical1d.</span></span><span class="sig-name descname"><span class="pre">power_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/critical1d.html#power_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.critical1d.power_iteration" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.critical1d.</span></span><span class="sig-name descname"><span class="pre">power_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/critical1d.html#power_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.critical1d.power_iteration" title="Link to this definition"></a></dt>
+<dd><p>Run power iteration for 1D multigroup problems.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Cross section arrays indexed by material.</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Cross section arrays indexed by material.</p></li>
+<li><p><strong>xs_fission</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Cross section arrays indexed by material.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Spatial medium mapping (length I).</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Cell widths.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Angular ordinates and weights.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Angular ordinates and weights.</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list-like</span></code>) – Boundary condition indicators.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>optional</em>) – Geometry selector (1=slab, 2=sphere).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(flux, keff) converged scalar flux and multiplication factor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 </section>
 
 
-            <div class="clearer"></div>
+           </div>
           </div>
-        </div>
-      </div>
-        </div>
-        <div class="sidebar">
-          
-          <h3>Table of Contents</h3>
-          <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="steady_state.html">steady_state</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
-</ul>
-
-          <div role="search">
-            <h3 style="margin-top: 1.5em;">Search</h3>
-            <form class="search" action="search.html" method="get">
-                <input type="text" name="q" />
-                <input type="submit" value="Go" />
-            </form>
-          </div>
-
-        </div>
-        <div class="clearer"></div>
-      </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="discrete1.critical0d.html" class="btn btn-neutral float-left" title="discrete1.critical0d module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="discrete1.djinn1d.html" class="btn btn-neutral float-right" title="discrete1.djinn1d module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
-    <div class="footer-wrapper">
-      <div class="footer">
-        <div class="left">
-          <div role="navigation" aria-label="related navigaton">
-            <a href="py-modindex.html" title="Python Module Index"
-              >modules</a> |
-            <a href="genindex.html" title="General Index"
-              >index</a>
-          </div>
-          <div role="note" aria-label="source link">
-              <br/>
-              <a href="_sources/discrete1.critical1d.rst.txt"
-                rel="nofollow">Show Source</a>
-          </div>
-        </div>
+  <hr/>
 
-        <div class="right">
-          
-    <div class="footer" role="contentinfo">
-    &#169; Copyright 2021, Ben Whewell.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
-    </div>
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ben Whewell.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
         </div>
-        <div class="clearer"></div>
       </div>
-    </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
 
-  </body>
+</body>
 </html>

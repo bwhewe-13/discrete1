@@ -11,9 +11,10 @@ This module exposes two primary entry points:
 Notes
 -----
 This module relies on optional ML dependencies (``torch``, ``sklearn`` and
-``djinn``). Install them with::
+``djinn``). Install them with:
 
     pip install discrete1[ml]
+
 """
 
 import copy
@@ -179,11 +180,7 @@ class RegressionDeepONet:
             Trunk input features.
         y : numpy.ndarray, shape (n_samples, n_targets)
             Regression targets.
-        **kwargs
-            Additional keyword arguments.
-
-        Other Parameters
-        ----------------
+        **kwargs : dict
         n_epochs : int, default 100
             Number of training epochs.
         batch_size : int, default 32
@@ -428,11 +425,11 @@ class RegressionDeepONet:
         Returns
         -------
         dict or None
-            If ``verbose`` is True, returns a dictionary with:
-            - ``train_loss`` (list of float): Average training loss per epoch.
-            - ``val_loss`` (list of float): Average validation loss per epoch.
-            - ``test_loss`` (float): Average test loss computed with the best
-              model.
+            If ``verbose`` is True, returns a dictionary with: \
+            - ``train_loss`` (list of float): Average training loss per epoch. \
+            - ``val_loss`` (list of float): Average validation loss per epoch. \
+            - ``test_loss`` (float): Average test loss computed with the best \
+                model.
             Otherwise, returns None.
 
         Notes

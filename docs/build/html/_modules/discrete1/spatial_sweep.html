@@ -1,39 +1,99 @@
-<!DOCTYPE html>
 
-<html lang="en" data-content_root="../../">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>discrete1.spatial_sweep &#8212; discrete1 0.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=4f649999" />
-    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=039e1c02" />
-    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
-    <script src="../../_static/doctools.js?v=888ff710"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>discrete1.spatial_sweep &mdash; discrete1 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-   
-  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+</head>
 
-  </head><body>
-  
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          
 
-          <div class="body" role="main">
-            
+
+          <a href="../../index.html" class="icon icon-home">
+            discrete1
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../discrete1.html">discrete1 package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">discrete1</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">discrete1.spatial_sweep</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
   <h1>Source code for discrete1.spatial_sweep</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Spatial sweeps for slab and sphere geometries</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">numba</span>
+<span></span><span class="sd">&quot;&quot;&quot;Spatial sweep routines for slab and spherical geometries.</span>
 
-<span class="kn">from</span> <span class="nn">discrete1</span> <span class="kn">import</span> <span class="n">tools</span>
+<span class="sd">This module implements discrete-ordinates spatial sweeps used by the</span>
+<span class="sd">solvers. It provides high-level driver functions that perform slab or</span>
+<span class="sd">sphere sweeps for steady-state and time-dependent problems, plus</span>
+<span class="sd">specialized variants for known external sources or scatter-only</span>
+<span class="sd">operators used by DJINN integrations.</span>
+
+<span class="sd">The performance-critical kernels are decorated with ``numba.jit`` and</span>
+<span class="sd">operate on NumPy arrays. Public API (typical callers):</span>
+
+<span class="sd">- ``discrete_ordinates``: generic dispatcher to slab/sphere handlers</span>
+<span class="sd">- ``slab_ordinates`` / ``sphere_ordinates``: full sweep drivers</span>
+<span class="sd">- ``slab_ordinates_source`` / ``sphere_ordinates_source``: known-source</span>
+<span class="sd">- ``slab_ordinates_scatter`` / ``sphere_ordinates_scatter``: DJINN scatter</span>
+
+<span class="sd">Docstrings on the individual functions describe parameter shapes and</span>
+<span class="sd">return values expected by the rest of the package.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numba</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">discrete1</span><span class="w"> </span><span class="kn">import</span> <span class="n">tools</span>
 
 <span class="n">count_nn</span> <span class="o">=</span> <span class="mi">100</span>
 <span class="n">change_nn</span> <span class="o">=</span> <span class="mf">1e-12</span>
@@ -45,7 +105,7 @@
 
 <div class="viewcode-block" id="discrete_ordinates">
 <a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.discrete_ordinates">[docs]</a>
-<span class="k">def</span> <span class="nf">discrete_ordinates</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">discrete_ordinates</span><span class="p">(</span>
     <span class="n">flux_old</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">xs_scatter</span><span class="p">,</span>
@@ -59,8 +119,44 @@
     <span class="n">bc_x</span><span class="p">,</span>
     <span class="n">geometry</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dispatch to the appropriate spatial sweep for the geometry.</span>
 
-    <span class="c1"># Solves for cell centers</span>
+<span class="sd">    This function chooses the slab or sphere sweeping routine based on</span>
+<span class="sd">    the ``geometry`` argument and returns the updated scalar flux array</span>
+<span class="sd">    evaluated at cell centers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Previous iterate of the scalar flux (shape: n_cells,).</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total macroscopic cross sections per material.</span>
+<span class="sd">    xs_scatter : array_like</span>
+<span class="sd">        Scatter cross section (per material) used in source evaluation.</span>
+<span class="sd">    off_scatter : numpy.ndarray</span>
+<span class="sd">        Off-diagonal scatter correction/source term (shape: n_cells,).</span>
+<span class="sd">    external : numpy.ndarray</span>
+<span class="sd">        External source array (shape varies: spatial x angles x groups).</span>
+<span class="sd">    boundary : numpy.ndarray</span>
+<span class="sd">        Boundary condition array (2, n_angles, ...).</span>
+<span class="sd">    medium_map : array_like</span>
+<span class="sd">        Integer material index per spatial cell (length n_cells).</span>
+<span class="sd">    delta_x : array_like</span>
+<span class="sd">        Cell widths (length n_cells).</span>
+<span class="sd">    angle_x : array_like</span>
+<span class="sd">        Angular ordinates (length n_angles).</span>
+<span class="sd">    angle_w : array_like</span>
+<span class="sd">        Quadrature weights (length n_angles).</span>
+<span class="sd">    bc_x : sequence</span>
+<span class="sd">        Boundary condition flags for left/right boundaries.</span>
+<span class="sd">    geometry : int</span>
+<span class="sd">        Geometry selector: 1 -&gt; slab, 2 -&gt; sphere.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Updated scalar flux at cell centers (shape: n_cells,).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">edges</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="c1"># Slab geometry</span>
@@ -99,7 +195,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_known_source</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_known_source</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">zero</span><span class="p">,</span>
@@ -147,7 +243,7 @@
         <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_known_scatter</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_known_scatter</span><span class="p">(</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">scatter_source</span><span class="p">,</span>
     <span class="n">external</span><span class="p">,</span>
@@ -196,7 +292,7 @@
 
 <div class="viewcode-block" id="slab_ordinates">
 <a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_ordinates">[docs]</a>
-<span class="k">def</span> <span class="nf">slab_ordinates</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">slab_ordinates</span><span class="p">(</span>
     <span class="n">flux_old</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">xs_scatter</span><span class="p">,</span>
@@ -210,6 +306,43 @@
     <span class="n">bc_x</span><span class="p">,</span>
     <span class="n">edges</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform a slab-geometry discrete-ordinates spatial sweep.</span>
+
+<span class="sd">    The solver iterates over angular ordinates and performs forward and</span>
+<span class="sd">    backward diamond-difference passes until the scalar flux converges</span>
+<span class="sd">    (or a maximum iteration count is reached). This routine returns the</span>
+<span class="sd">    converged cell-centered scalar flux.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Initial flux guess (n_cells,).</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections indexed by material.</span>
+<span class="sd">    xs_scatter : array_like</span>
+<span class="sd">        Scatter cross sections indexed by material.</span>
+<span class="sd">    off_scatter : numpy.ndarray</span>
+<span class="sd">        Precomputed off-scatter source (n_cells,).</span>
+<span class="sd">    external : numpy.ndarray</span>
+<span class="sd">        External source (n_x, n_angles or 1, 1).</span>
+<span class="sd">    boundary : numpy.ndarray</span>
+<span class="sd">        Boundary conditions (2, n_angles, ...).</span>
+<span class="sd">    medium_map : array_like</span>
+<span class="sd">        Material index per cell (n_cells,).</span>
+<span class="sd">    delta_x : array_like</span>
+<span class="sd">        Cell widths (n_cells,).</span>
+<span class="sd">    angle_x, angle_w : array_like</span>
+<span class="sd">        Angular ordinates and weights.</span>
+<span class="sd">    bc_x : sequence</span>
+<span class="sd">        Boundary condition flags for left/right.</span>
+<span class="sd">    edges : int</span>
+<span class="sd">        If 1, compute edge flux contributions; otherwise compute center flux.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Converged scalar flux at cell centers (n_cells,).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">cells_x</span> <span class="o">=</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -292,7 +425,7 @@
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">slab_forward</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">slab_forward</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span>
     <span class="n">flux_old</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
@@ -306,6 +439,18 @@
     <span class="n">angle_w</span><span class="p">,</span>
     <span class="n">edges</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform the forward sweep for slab geometry for one ordinate.</span>
+
+<span class="sd">    This kernel marches from the left boundary toward the right and</span>
+<span class="sd">    computes either edge or center flux contributions for a single</span>
+<span class="sd">    angular ordinate.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This function is JIT-compiled with numba for performance and</span>
+<span class="sd">    operates in-place on the ``flux`` array.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="c1"># Get iterables</span>
     <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">medium_map</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -351,7 +496,7 @@
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">slab_backward</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">slab_backward</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span>
     <span class="n">flux_old</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
@@ -365,6 +510,14 @@
     <span class="n">angle_w</span><span class="p">,</span>
     <span class="n">edges</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform the backward sweep for slab geometry for one ordinate.</span>
+
+<span class="sd">    Marches from the right boundary toward the left and updates the</span>
+<span class="sd">    provided ``flux`` array with center or edge contributions for the</span>
+<span class="sd">    given angular ordinate. This kernel is jitted with numba and</span>
+<span class="sd">    mutates its inputs in-place for performance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="c1"># Get iterables</span>
     <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">medium_map</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -409,7 +562,7 @@
 
 <div class="viewcode-block" id="sphere_ordinates">
 <a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_ordinates">[docs]</a>
-<span class="k">def</span> <span class="nf">sphere_ordinates</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sphere_ordinates</span><span class="p">(</span>
     <span class="n">flux_old</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">xs_scatter</span><span class="p">,</span>
@@ -423,13 +576,30 @@
     <span class="n">bc_x</span><span class="p">,</span>
     <span class="n">edges</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform a spherical-geometry discrete-ordinates spatial sweep.</span>
+
+<span class="sd">    The spherical sweep uses half-angle bookkeeping and angular</span>
+<span class="sd">    differencing coefficients appropriate for radial geometry. The</span>
+<span class="sd">    implementation iterates over ordinates and updates a converged</span>
+<span class="sd">    scalar flux similar to the slab driver.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old, xs_total, xs_scatter, off_scatter, external, boundary, \</span>
+<span class="sd">    medium_map, delta_x, angle_x, angle_w, bc_x, edges : </span>
+<span class="sd">        See :func:`slab_ordinates` for parameter shapes and meanings.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Converged scalar flux at cell centers (n_cells,).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">cells_x</span> <span class="o">=</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
     <span class="n">half_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
-    <span class="n">edge1</span> <span class="o">=</span> <span class="mf">0.0</span>
 
     <span class="n">converged</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
@@ -536,7 +706,7 @@
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">_half_angle</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_half_angle</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span>
     <span class="n">half_angle</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
@@ -569,7 +739,30 @@
 <div class="viewcode-block" id="angle_coef_corrector">
 <a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.angle_coef_corrector">[docs]</a>
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8(f8, f8, f8, i4, i4)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">angle_coef_corrector</span><span class="p">(</span><span class="n">alpha_minus</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">angle_w</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">angles</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">angle_coef_corrector</span><span class="p">(</span><span class="n">alpha_minus</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">angle_w</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">angles</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate angular differencing coefficient for spherical geometry.</span>
+
+<span class="sd">    Computes the angular differencing coefficient used in spherical</span>
+<span class="sd">    geometry sweeps for proper treatment of angular derivatives.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    alpha_minus : float</span>
+<span class="sd">        Previous angular coefficient.</span>
+<span class="sd">    angle_x : float</span>
+<span class="sd">        Current angular ordinate.</span>
+<span class="sd">    angle_w : float</span>
+<span class="sd">        Quadrature weight for current ordinate.</span>
+<span class="sd">    nn : int</span>
+<span class="sd">        Current angle index.</span>
+<span class="sd">    angles : int</span>
+<span class="sd">        Total number of angles.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Updated angular coefficient. Returns 0 for last angle.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">nn</span> <span class="o">!=</span> <span class="n">angles</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">alpha_minus</span> <span class="o">-</span> <span class="n">angle_x</span> <span class="o">*</span> <span class="n">angle_w</span>
     <span class="k">return</span> <span class="mf">0.0</span></div>
@@ -584,7 +777,7 @@
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">sphere_forward</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sphere_forward</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span>
     <span class="n">flux_old</span><span class="p">,</span>
     <span class="n">half_angle</span><span class="p">,</span>
@@ -602,6 +795,13 @@
     <span class="n">alpha_minus</span><span class="p">,</span>
     <span class="n">edges</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Forward sweep kernel for spherical geometry for a single ordinate.</span>
+
+<span class="sd">    Updates ``flux`` in-place by marching from center toward the outer</span>
+<span class="sd">    radius using the provided half-angle and differencing coefficients.</span>
+<span class="sd">    This kernel is performance-critical and compiled with numba.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="c1"># Get iterables</span>
     <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -672,7 +872,7 @@
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">sphere_backward</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sphere_backward</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span>
     <span class="n">flux_old</span><span class="p">,</span>
     <span class="n">half_angle</span><span class="p">,</span>
@@ -691,6 +891,13 @@
     <span class="n">alpha_minus</span><span class="p">,</span>
     <span class="n">edges</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Backward sweep kernel for spherical geometry for a single ordinate.</span>
+
+<span class="sd">    Marches from the outer radius toward the center, updating ``flux``</span>
+<span class="sd">    in-place. The kernel uses geometry-specific surface area and</span>
+<span class="sd">    volume factors to compute center contributions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="c1"># Get iterables</span>
     <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -760,7 +967,7 @@
 
 <div class="viewcode-block" id="slab_ordinates_source">
 <a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_ordinates_source">[docs]</a>
-<span class="k">def</span> <span class="nf">slab_ordinates_source</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">slab_ordinates_source</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">zero</span><span class="p">,</span>
@@ -773,6 +980,30 @@
     <span class="n">bc_x</span><span class="p">,</span>
     <span class="n">edges</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Slab sweep driver for a known (prescribed) external source.</span>
+
+<span class="sd">    This variant is used when the external/source term is provided and</span>
+<span class="sd">    the scatter contribution is not iterated. The function supports</span>
+<span class="sd">    scalar or angular flux shapes depending on the ``flux`` input.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Output array for scalar or angular fluxes (shape: n_cells x xdim).</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections indexed by material.</span>
+<span class="sd">    zero : numpy.ndarray</span>
+<span class="sd">        Zero-array placeholder used for kernels that expect an array.</span>
+<span class="sd">    source : numpy.ndarray</span>
+<span class="sd">        Prescribed source (spatial x angular-or-1).</span>
+<span class="sd">    boundary, medium_map, delta_x, angle_x, angle_w, bc_x, edges</span>
+<span class="sd">        See :func:`slab_ordinates` for descriptions.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        The flux array (same object as input) updated in-place.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">_</span><span class="p">,</span> <span class="n">xdim</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -863,7 +1094,7 @@
 
 <div class="viewcode-block" id="sphere_ordinates_source">
 <a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_ordinates_source">[docs]</a>
-<span class="k">def</span> <span class="nf">sphere_ordinates_source</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sphere_ordinates_source</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">zero</span><span class="p">,</span>
@@ -876,13 +1107,48 @@
     <span class="n">bc_x</span><span class="p">,</span>
     <span class="n">edges</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sphere sweep driver for prescribed external source.</span>
+
+<span class="sd">    This variant implements the spherical sweep for cases with a known</span>
+<span class="sd">    external source without iterating on scatter. Supports both scalar</span>
+<span class="sd">    and angular flux output shapes based on input array dimensions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Output array for scalar/angular fluxes (n_cells x xdim).</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections indexed by material.</span>
+<span class="sd">    zero : numpy.ndarray</span>
+<span class="sd">        Zero-array placeholder for kernel compatibility.</span>
+<span class="sd">    source : numpy.ndarray</span>
+<span class="sd">        External source (n_cells, n_angles or 1).</span>
+<span class="sd">    boundary : numpy.ndarray</span>
+<span class="sd">        Boundary conditions (2, n_angles or 1).</span>
+<span class="sd">    medium_map : array_like</span>
+<span class="sd">        Material indices (n_cells,).</span>
+<span class="sd">    delta_x : array_like</span>
+<span class="sd">        Cell widths (n_cells,).</span>
+<span class="sd">    angle_x : array_like</span>
+<span class="sd">        Angular ordinates (n_angles,).</span>
+<span class="sd">    angle_w : array_like</span>
+<span class="sd">        Quadrature weights (n_angles,).</span>
+<span class="sd">    bc_x : sequence</span>
+<span class="sd">        Boundary condition flags.</span>
+<span class="sd">    edges : numpy.ndarray</span>
+<span class="sd">        Edge fluxes at cell boundaries.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Flux array (same as input) updated in-place.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">xdim</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
     <span class="n">half_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
-    <span class="n">edge1</span> <span class="o">=</span> <span class="mf">0.0</span>
 
     <span class="c1"># Initialize sphere coefficients</span>
     <span class="n">angle_minus</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
@@ -1016,7 +1282,7 @@
 
 <div class="viewcode-block" id="slab_ordinates_scatter">
 <a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_ordinates_scatter">[docs]</a>
-<span class="k">def</span> <span class="nf">slab_ordinates_scatter</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">slab_ordinates_scatter</span><span class="p">(</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">scatter_source</span><span class="p">,</span>
     <span class="n">external</span><span class="p">,</span>
@@ -1027,6 +1293,38 @@
     <span class="n">angle_w</span><span class="p">,</span>
     <span class="n">bc_x</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Specialized slab sweep for known scatter source (DJINN variant).</span>
+
+<span class="sd">    This variant is optimized for DJINN-accelerated transport where the</span>
+<span class="sd">    scatter source is provided externally rather than computed from flux</span>
+<span class="sd">    moments. The function performs a single pass without iteration.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections indexed by material.</span>
+<span class="sd">    scatter_source : numpy.ndarray</span>
+<span class="sd">        Precomputed scatter source (n_cells,).</span>
+<span class="sd">    external : numpy.ndarray</span>
+<span class="sd">        External source term (n_cells, n_angles or 1).</span>
+<span class="sd">    boundary : numpy.ndarray</span>
+<span class="sd">        Boundary conditions (2, n_angles or 1).</span>
+<span class="sd">    medium_map : array_like</span>
+<span class="sd">        Material indices (n_cells,).</span>
+<span class="sd">    delta_x : array_like</span>
+<span class="sd">        Cell widths (n_cells,).</span>
+<span class="sd">    angle_x : array_like</span>
+<span class="sd">        Angular ordinates (n_angles,).</span>
+<span class="sd">    angle_w : array_like</span>
+<span class="sd">        Quadrature weights (n_angles,).</span>
+<span class="sd">    bc_x : sequence</span>
+<span class="sd">        Boundary condition flags.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Scalar flux at cell centers (n_cells,).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">cells_x</span> <span class="o">=</span> <span class="n">medium_map</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -1083,7 +1381,7 @@
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">slab_forward_scatter</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">slab_forward_scatter</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">scatter_source</span><span class="p">,</span>
@@ -1094,6 +1392,38 @@
     <span class="n">angle_x</span><span class="p">,</span>
     <span class="n">angle_w</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Forward sweep kernel for slab geometry with known scatter source.</span>
+
+<span class="sd">    Performs a forward (left-to-right) sweep through slab cells using</span>
+<span class="sd">    diamond difference with prescribed scatter source. Used by DJINN</span>
+<span class="sd">    accelerated variants.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar flux array to update (n_cells).</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections by material.</span>
+<span class="sd">    scatter_source : array_like</span>
+<span class="sd">        Known scatter source by cell.</span>
+<span class="sd">    external : array_like</span>
+<span class="sd">        External source by cell.</span>
+<span class="sd">    edge1 : float</span>
+<span class="sd">        Left edge flux for current cell.</span>
+<span class="sd">    medium_map : array_like</span>
+<span class="sd">        Material indices by cell.</span>
+<span class="sd">    delta_x : array_like</span>
+<span class="sd">        Cell widths.</span>
+<span class="sd">    angle_x : float</span>
+<span class="sd">        Current angular ordinate.</span>
+<span class="sd">    angle_w : float</span>
+<span class="sd">        Quadrature weight.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Outgoing edge flux for sweep continuation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get iterables</span>
     <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -1130,7 +1460,7 @@
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">slab_backward_scatter</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">slab_backward_scatter</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">scatter_source</span><span class="p">,</span>
@@ -1141,6 +1471,38 @@
     <span class="n">angle_x</span><span class="p">,</span>
     <span class="n">angle_w</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Backward sweep kernel for slab geometry with known scatter source.</span>
+
+<span class="sd">    Performs a backward (right-to-left) sweep through slab cells using</span>
+<span class="sd">    diamond difference with prescribed scatter source. Used by DJINN</span>
+<span class="sd">    accelerated variants.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar flux array to update (n_cells).</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections by material.</span>
+<span class="sd">    scatter_source : array_like</span>
+<span class="sd">        Known scatter source by cell.</span>
+<span class="sd">    external : array_like</span>
+<span class="sd">        External source by cell.</span>
+<span class="sd">    edge1 : float</span>
+<span class="sd">        Right edge flux for current cell.</span>
+<span class="sd">    medium_map : array_like</span>
+<span class="sd">        Material indices by cell.</span>
+<span class="sd">    delta_x : array_like</span>
+<span class="sd">        Cell widths.</span>
+<span class="sd">    angle_x : float</span>
+<span class="sd">        Current angular ordinate.</span>
+<span class="sd">    angle_w : float</span>
+<span class="sd">        Quadrature weight.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Outgoing edge flux for sweep continuation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get iterables</span>
     <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -1177,7 +1539,7 @@
 
 <div class="viewcode-block" id="sphere_ordinates_scatter">
 <a class="viewcode-back" href="../../discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_ordinates_scatter">[docs]</a>
-<span class="k">def</span> <span class="nf">sphere_ordinates_scatter</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sphere_ordinates_scatter</span><span class="p">(</span>
     <span class="n">xs_total</span><span class="p">,</span>
     <span class="n">scatter_source</span><span class="p">,</span>
     <span class="n">external</span><span class="p">,</span>
@@ -1188,13 +1550,44 @@
     <span class="n">angle_w</span><span class="p">,</span>
     <span class="n">bc_x</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Specialized sphere sweep for known scatter source (DJINN variant).</span>
+
+<span class="sd">    This variant is optimized for DJINN-accelerated transport where the</span>
+<span class="sd">    scatter source is provided externally rather than computed from flux</span>
+<span class="sd">    moments. The function performs a single pass without iteration.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections indexed by material.</span>
+<span class="sd">    scatter_source : numpy.ndarray</span>
+<span class="sd">        Precomputed scatter source (n_cells,).</span>
+<span class="sd">    external : numpy.ndarray</span>
+<span class="sd">        External source term (n_cells, n_angles or 1).</span>
+<span class="sd">    boundary : numpy.ndarray</span>
+<span class="sd">        Boundary conditions (2, n_angles or 1).</span>
+<span class="sd">    medium_map : array_like</span>
+<span class="sd">        Material indices (n_cells,).</span>
+<span class="sd">    delta_x : array_like</span>
+<span class="sd">        Cell widths (n_cells,).</span>
+<span class="sd">    angle_x : array_like</span>
+<span class="sd">        Angular ordinates (n_angles,).</span>
+<span class="sd">    angle_w : array_like</span>
+<span class="sd">        Quadrature weights (n_angles,).</span>
+<span class="sd">    bc_x : sequence</span>
+<span class="sd">        Boundary condition flags.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Scalar flux at cell centers (n_cells,).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">cells_x</span> <span class="o">=</span> <span class="n">medium_map</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
     <span class="n">half_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cells_x</span><span class="p">,))</span>
-    <span class="n">edge1</span> <span class="o">=</span> <span class="mf">0.0</span>
 
     <span class="n">angle_minus</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
     <span class="n">alpha_minus</span> <span class="o">=</span> <span class="mf">0.0</span>
@@ -1276,7 +1669,7 @@
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
     <span class="s2">&quot;void(f8[:], f8[:], f8[:], f8[:], i4[:], f8[:], f8)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">_half_angle_scatter</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_half_angle_scatter</span><span class="p">(</span>
     <span class="n">half_angle</span><span class="p">,</span> <span class="n">xs_total</span><span class="p">,</span> <span class="n">scatter_source</span><span class="p">,</span> <span class="n">external</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">delta_x</span><span class="p">,</span> <span class="n">angle_plus</span>
 <span class="p">):</span>
     <span class="c1"># Get iterables</span>
@@ -1304,7 +1697,7 @@
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">sphere_forward_scatter</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sphere_forward_scatter</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span>
     <span class="n">half_angle</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
@@ -1319,6 +1712,41 @@
     <span class="n">alpha_plus</span><span class="p">,</span>
     <span class="n">alpha_minus</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Forward sweep kernel for spherical geometry with known scatter source.</span>
+
+<span class="sd">    Performs a forward (center-to-edge) sweep through spherical shells using</span>
+<span class="sd">    diamond difference with prescribed scatter source and proper spherical</span>
+<span class="sd">    geometry factors. Used by DJINN accelerated variants.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar flux array to update (n_cells).</span>
+<span class="sd">    half_angle : array_like</span>
+<span class="sd">        Half-angle flux values at cell edges.</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections by material.</span>
+<span class="sd">    scatter_source : array_like</span>
+<span class="sd">        Known scatter source by cell.</span>
+<span class="sd">    external : array_like</span>
+<span class="sd">        External source by cell.</span>
+<span class="sd">    medium_map : array_like</span>
+<span class="sd">        Material indices by cell.</span>
+<span class="sd">    delta_x : array_like</span>
+<span class="sd">        Shell thicknesses.</span>
+<span class="sd">    angle_x : float</span>
+<span class="sd">        Current angular ordinate.</span>
+<span class="sd">    angle_w : float</span>
+<span class="sd">        Quadrature weight.</span>
+<span class="sd">    weight : float</span>
+<span class="sd">        Angular weight factor.</span>
+<span class="sd">    tau : float</span>
+<span class="sd">        Weighted diamond difference factor.</span>
+<span class="sd">    alpha_plus : float</span>
+<span class="sd">        Forward angular coefficient.</span>
+<span class="sd">    alpha_minus : float</span>
+<span class="sd">        Backward angular coefficient.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get iterables</span>
     <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -1379,7 +1807,7 @@
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">sphere_backward_scatter</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sphere_backward_scatter</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span>
     <span class="n">half_angle</span><span class="p">,</span>
     <span class="n">xs_total</span><span class="p">,</span>
@@ -1395,6 +1823,43 @@
     <span class="n">alpha_plus</span><span class="p">,</span>
     <span class="n">alpha_minus</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Backward sweep kernel for spherical geometry with known scatter source.</span>
+
+<span class="sd">    Performs a backward (edge-to-center) sweep through spherical shells using</span>
+<span class="sd">    diamond difference with prescribed scatter source and proper spherical</span>
+<span class="sd">    geometry factors. Used by DJINN accelerated variants.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar flux array to update (n_cells).</span>
+<span class="sd">    half_angle : array_like</span>
+<span class="sd">        Half-angle flux values at cell edges.</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections by material.</span>
+<span class="sd">    scatter_source : array_like</span>
+<span class="sd">        Known scatter source by cell.</span>
+<span class="sd">    external : array_like</span>
+<span class="sd">        External source by cell.</span>
+<span class="sd">    boundary : float</span>
+<span class="sd">        Outer boundary condition.</span>
+<span class="sd">    medium_map : array_like</span>
+<span class="sd">        Material indices by cell.</span>
+<span class="sd">    delta_x : array_like</span>
+<span class="sd">        Shell thicknesses.</span>
+<span class="sd">    angle_x : float</span>
+<span class="sd">        Current angular ordinate.</span>
+<span class="sd">    angle_w : float</span>
+<span class="sd">        Quadrature weight.</span>
+<span class="sd">    weight : float</span>
+<span class="sd">        Angular weight factor.</span>
+<span class="sd">    tau : float</span>
+<span class="sd">        Weighted diamond difference factor.</span>
+<span class="sd">    alpha_plus : float</span>
+<span class="sd">        Forward angular coefficient.</span>
+<span class="sd">    alpha_minus : float</span>
+<span class="sd">        Backward angular coefficient.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get iterables</span>
     <span class="n">cells_x</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -1447,70 +1912,31 @@
 
 </pre></div>
 
+           </div>
           </div>
-          
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ben Whewell.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../../index.html">discrete1</a></h1>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
 
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../steady_state.html">steady_state</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../../index.html">Documentation overview</a><ul>
-  <li><a href="../index.html">Module code</a><ul>
-  </ul></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="footer">
-      &copy;2021, Ben Whewell.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
-      
-    </div>
-
-    
-
-    
-  </body>
+</body>
 </html>

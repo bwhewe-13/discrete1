@@ -1,133 +1,342 @@
-<!DOCTYPE html>
 
-<html lang="en" data-content_root="../../">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>discrete1.boundary1d &#8212; discrete1 0.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=4f649999" />
-    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=039e1c02" />
-    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
-    <script src="../../_static/doctools.js?v=888ff710"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>discrete1.boundary1d &mdash; discrete1 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-   
-  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+</head>
 
-  </head><body>
-  
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          
 
-          <div class="body" role="main">
-            
+
+          <a href="../../index.html" class="icon icon-home">
+            discrete1
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../discrete1.html">discrete1 package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">discrete1</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">discrete1.boundary1d</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
   <h1>Source code for discrete1.boundary1d</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Built in boundary conditions</span>
-<span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span></span><span class="sd">&quot;&quot;&quot;Built-in boundary condition factories for discrete1.</span>
+
+<span class="sd">This module provides a set of reusable boundary condition constructors</span>
+<span class="sd">used across tests and examples. Each function returns arrays shaped to</span>
+<span class="sd">match the solver interfaces (spatial boundaries, angles, energy groups,</span>
+<span class="sd">and optional time axes).</span>
+
+<span class="sd">Public functions</span>
+<span class="sd">- manufactured_ss_03, manufactured_ss_04, manufactured_ss_05</span>
+<span class="sd">- manufactured_td_02</span>
+<span class="sd">- deuterium_deuterium, deuterium_tritium</span>
+<span class="sd">- time_dependence_constant, time_dependence_decay_01, time_dependence_decay_02</span>
+
+<span class="sd">All functions return NumPy arrays suitable as boundary source inputs to</span>
+<span class="sd">the solver.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
 
 <div class="viewcode-block" id="manufactured_ss_03">
 <a class="viewcode-back" href="../../discrete1.boundary1d.html#discrete1.boundary1d.manufactured_ss_03">[docs]</a>
-<span class="k">def</span> <span class="nf">manufactured_ss_03</span><span class="p">(</span><span class="n">angle_x</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">manufactured_ss_03</span><span class="p">(</span><span class="n">angle_x</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Manufactured steady-state boundary (case 03).</span>
+
+<span class="sd">    One-group, angle-dependent boundary used for manufactured solution tests.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    angle_x : array_like</span>
+<span class="sd">        1D array of angular ordinates (mu values) with shape (n_angles,).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Boundary array with shape (2, n_angles, 1). Axis 0 indexes the</span>
+<span class="sd">        two spatial boundaries (left, right).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># One group, angle dependent boundary</span>
     <span class="n">boundary_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span>
-    <span class="n">boundary_x</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span>
-    <span class="n">boundary_x</span><span class="p">[</span><span class="mi">1</span><span class="p">,:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">+</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">angle_x</span><span class="p">)</span>
+    <span class="n">boundary_x</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="n">boundary_x</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">+</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">angle_x</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">boundary_x</span></div>
+
 
 
 <div class="viewcode-block" id="manufactured_ss_04">
 <a class="viewcode-back" href="../../discrete1.boundary1d.html#discrete1.boundary1d.manufactured_ss_04">[docs]</a>
-<span class="k">def</span> <span class="nf">manufactured_ss_04</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">manufactured_ss_04</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Manufactured steady-state boundary (case 04).</span>
+
+<span class="sd">    One-group, angle-independent boundary used for manufactured solution tests.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Boundary array with shape (2, 1, 1).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># One group, angle independent boundary</span>
-    <span class="n">length_x</span> <span class="o">=</span> <span class="mf">2.</span>
+    <span class="n">length_x</span> <span class="o">=</span> <span class="mf">2.0</span>
     <span class="n">boundary_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
     <span class="n">boundary_x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">length_x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mf">0.125</span> <span class="o">*</span> <span class="n">length_x</span>
     <span class="k">return</span> <span class="n">boundary_x</span></div>
 
 
+
 <div class="viewcode-block" id="manufactured_ss_05">
 <a class="viewcode-back" href="../../discrete1.boundary1d.html#discrete1.boundary1d.manufactured_ss_05">[docs]</a>
-<span class="k">def</span> <span class="nf">manufactured_ss_05</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">manufactured_ss_05</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Manufactured steady-state boundary (case 05).</span>
+
+<span class="sd">    One-group, angle-independent boundary (polynomial) used for tests.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Boundary array with shape (2, 1, 1).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># One group, angle independent boundary</span>
-    <span class="n">length_x</span> <span class="o">=</span> <span class="mf">2.</span>
+    <span class="n">length_x</span> <span class="o">=</span> <span class="mf">2.0</span>
     <span class="n">boundary_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
     <span class="n">boundary_x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">length_x</span><span class="o">**</span><span class="mi">3</span>
     <span class="k">return</span> <span class="n">boundary_x</span></div>
 
 
+
 <div class="viewcode-block" id="manufactured_td_02">
 <a class="viewcode-back" href="../../discrete1.boundary1d.html#discrete1.boundary1d.manufactured_td_02">[docs]</a>
-<span class="k">def</span> <span class="nf">manufactured_td_02</span><span class="p">(</span><span class="n">angle_x</span><span class="p">,</span> <span class="n">edges_t</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">manufactured_td_02</span><span class="p">(</span><span class="n">angle_x</span><span class="p">,</span> <span class="n">edges_t</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Manufactured time-dependent boundary (case TD_02).</span>
+
+<span class="sd">    Builds a time- and angle-dependent boundary array for manufactured</span>
+<span class="sd">    time-dependent tests.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    angle_x : array_like</span>
+<span class="sd">        1D array of angular ordinates (mu values).</span>
+<span class="sd">    edges_t : array_like</span>
+<span class="sd">        1D array of time edge values. The returned array has one entry per</span>
+<span class="sd">        time edge.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Boundary array with shape (n_time_edges, 2, n_angles, 1).</span>
+<span class="sd">        The two entries along axis=1 correspond to the two spatial boundaries.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Time dependent, one group, angle dependent boundary</span>
     <span class="n">length_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
     <span class="n">boundary_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">edges_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">2</span><span class="p">,</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span>
     <span class="k">for</span> <span class="n">cc</span><span class="p">,</span> <span class="n">tt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">edges_t</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">nn</span><span class="p">,</span> <span class="n">mu</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">angle_x</span><span class="p">):</span>
-            <span class="n">boundary_x</span><span class="p">[</span><span class="n">cc</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">nn</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">0.</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">tt</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
-            <span class="n">boundary_x</span><span class="p">[</span><span class="n">cc</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">nn</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">length_x</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">tt</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
+            <span class="n">boundary_x</span><span class="p">[</span><span class="n">cc</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">0.0</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">tt</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
+            <span class="n">boundary_x</span><span class="p">[</span><span class="n">cc</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">length_x</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">tt</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">boundary_x</span></div>
+
 
 
 <div class="viewcode-block" id="deuterium_deuterium">
 <a class="viewcode-back" href="../../discrete1.boundary1d.html#discrete1.boundary1d.deuterium_deuterium">[docs]</a>
-<span class="k">def</span> <span class="nf">deuterium_deuterium</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">deuterium_deuterium</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a monoenergetic boundary source for D-D fusion (2.45 MeV).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    location : int</span>
+<span class="sd">        Spatial boundary index (0 for left, 1 for right) where the source is</span>
+<span class="sd">        applied.</span>
+<span class="sd">    edges_g : array_like</span>
+<span class="sd">        Energy group edge values. Used to determine the group index nearest</span>
+<span class="sd">        to 2.45 MeV.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Boundary array with shape (2, 1, n_groups) with a unit source in the</span>
+<span class="sd">        selected group at the specified location.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Source entering from 2.45 MeV</span>
-    <span class="n">group</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">edges_g</span> <span class="o">-</span> <span class="mf">2.45E6</span><span class="p">))</span>
+    <span class="n">group</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">edges_g</span> <span class="o">-</span> <span class="mf">2.45e6</span><span class="p">))</span>
     <span class="n">boundary_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">edges_g</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
     <span class="n">boundary_x</span><span class="p">[(</span><span class="n">location</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="n">group</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">1.0</span>
     <span class="k">return</span> <span class="n">boundary_x</span></div>
+
 
 
 <div class="viewcode-block" id="deuterium_tritium">
 <a class="viewcode-back" href="../../discrete1.boundary1d.html#discrete1.boundary1d.deuterium_tritium">[docs]</a>
-<span class="k">def</span> <span class="nf">deuterium_tritium</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">deuterium_tritium</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a monoenergetic boundary source for D-T fusion (14.1 MeV).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    location : int</span>
+<span class="sd">        Spatial boundary index (0 for left, 1 for right) where the source is</span>
+<span class="sd">        applied.</span>
+<span class="sd">    edges_g : array_like</span>
+<span class="sd">        Energy group edge values. Used to determine the group index nearest</span>
+<span class="sd">        to 14.1 MeV.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Boundary array with shape (2, 1, n_groups) with a unit source in the</span>
+<span class="sd">        selected group at the specified location.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Source entering from 14.1 MeV</span>
-    <span class="n">group</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">edges_g</span> <span class="o">-</span> <span class="mf">14.1E6</span><span class="p">))</span>
+    <span class="n">group</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">edges_g</span> <span class="o">-</span> <span class="mf">14.1e6</span><span class="p">))</span>
     <span class="n">boundary_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">edges_g</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
     <span class="n">boundary_x</span><span class="p">[(</span><span class="n">location</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="n">group</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">1.0</span>
     <span class="k">return</span> <span class="n">boundary_x</span></div>
 
 
+
 <div class="viewcode-block" id="time_dependence_constant">
 <a class="viewcode-back" href="../../discrete1.boundary1d.html#discrete1.boundary1d.time_dependence_constant">[docs]</a>
-<span class="k">def</span> <span class="nf">time_dependence_constant</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">boundary_x</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">]</span></div>
+<span class="k">def</span><span class="w"> </span><span class="nf">time_dependence_constant</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Wrap a boundary array to add a time axis (constant in time).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    boundary_x : numpy.ndarray</span>
+<span class="sd">        A boundary array without time dimension. The function will add a</span>
+<span class="sd">        leading time axis of length 1.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Boundary array with a leading time axis (shape: 1, ...).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">boundary_x</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span></div>
+
 
 
 <div class="viewcode-block" id="time_dependence_decay_01">
 <a class="viewcode-back" href="../../discrete1.boundary1d.html#discrete1.boundary1d.time_dependence_decay_01">[docs]</a>
-<span class="k">def</span> <span class="nf">time_dependence_decay_01</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">,</span> <span class="n">edges_t</span><span class="p">,</span> <span class="n">off_time</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">time_dependence_decay_01</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">,</span> <span class="n">edges_t</span><span class="p">,</span> <span class="n">off_time</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Turn off a previously time-independent boundary after a given time.</span>
+
+<span class="sd">    The function repeats the provided boundary over all time steps defined by</span>
+<span class="sd">    ``edges_t`` and zeros it out for all steps where the time exceeds</span>
+<span class="sd">    ``off_time``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    boundary_x : numpy.ndarray</span>
+<span class="sd">        Boundary array without a time axis.</span>
+<span class="sd">    edges_t : array_like</span>
+<span class="sd">        Time edge array. Number of time steps is ``edges_t.shape[0] - 1``.</span>
+<span class="sd">    off_time : float</span>
+<span class="sd">        Time threshold (same units as ``edges_t``) after which the boundary</span>
+<span class="sd">        is turned off.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Time-dependent boundary array with shape (n_steps, ...).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Turn off boundary at specific step</span>
     <span class="n">steps</span> <span class="o">=</span> <span class="n">edges_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
-    <span class="n">boundary_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">],</span> <span class="n">steps</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">boundary_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">steps</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">loc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">edges_t</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">&gt;</span> <span class="n">off_time</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
-    <span class="n">boundary_x</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span><span class="o">...</span><span class="p">]</span> <span class="o">*=</span> <span class="mf">0.0</span>
+    <span class="n">boundary_x</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">*=</span> <span class="mf">0.0</span>
     <span class="k">return</span> <span class="n">boundary_x</span></div>
+
 
 
 <div class="viewcode-block" id="time_dependence_decay_02">
 <a class="viewcode-back" href="../../discrete1.boundary1d.html#discrete1.boundary1d.time_dependence_decay_02">[docs]</a>
-<span class="k">def</span> <span class="nf">time_dependence_decay_02</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">,</span> <span class="n">edges_t</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">time_dependence_decay_02</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">,</span> <span class="n">edges_t</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply a smooth decay (erfc-based) to a boundary over time steps.</span>
+
+<span class="sd">    This function identifies non-zero entries in ``boundary_x`` and applies a</span>
+<span class="sd">    complementary error-function-based decay schedule over the provided</span>
+<span class="sd">    time edges. Times are converted to microseconds internally for the decay</span>
+<span class="sd">    logic.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    boundary_x : numpy.ndarray</span>
+<span class="sd">        Boundary array without time axis. Non-zero entries will be decayed.</span>
+<span class="sd">    edges_t : array_like</span>
+<span class="sd">        Time edge array. Number of time steps is ``edges_t.shape[0] - 1``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Time-dependent boundary array with shape (n_steps, ...).</span>
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: D202</span>
+
     <span class="c1"># Complementary Error Function</span>
-    <span class="n">erfc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">erf</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">erfc</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">erf</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
     <span class="c1"># Turn off boundary by decay</span>
     <span class="n">steps</span> <span class="o">=</span> <span class="n">edges_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
     <span class="c1"># Find where boundary != 0</span>
     <span class="n">idx</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">boundary_x</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
     <span class="c1"># Repeat over all groups</span>
-    <span class="n">boundary_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">],</span> <span class="n">edges_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">boundary_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">edges_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">tt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">steps</span><span class="p">):</span>
-        <span class="n">dt</span> <span class="o">=</span> <span class="n">edges_t</span><span class="p">[</span><span class="n">tt</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">edges_t</span><span class="p">[</span><span class="n">tt</span><span class="p">]</span>
+        <span class="c1"># dt = edges_t[tt + 1] - edges_t[tt]</span>
         <span class="c1"># Convert to microseconds</span>
-        <span class="n">t_us</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">edges_t</span><span class="p">[</span><span class="n">tt</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e6</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+        <span class="n">t_us</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">edges_t</span><span class="p">[</span><span class="n">tt</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e6</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t_us</span> <span class="o">&gt;=</span> <span class="mf">0.2</span><span class="p">:</span>
             <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="n">t_us</span> <span class="o">-</span> <span class="mf">0.2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">0.1</span><span class="p">)</span>
             <span class="n">err_arg</span> <span class="o">=</span> <span class="p">(</span><span class="n">t_us</span> <span class="o">-</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">k</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
@@ -136,70 +345,31 @@
 
 </pre></div>
 
+           </div>
           </div>
-          
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ben Whewell.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../../index.html">discrete1</a></h1>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
 
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../steady_state.html">steady_state</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../../index.html">Documentation overview</a><ul>
-  <li><a href="../index.html">Module code</a><ul>
-  </ul></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="footer">
-      &copy;2021, Ben Whewell.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
-      
-    </div>
-
-    
-
-    
-  </body>
+</body>
 </html>

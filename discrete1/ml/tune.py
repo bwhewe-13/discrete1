@@ -74,8 +74,7 @@ class RegressionDeepONet:
             Trunk input features (e.g., material labels or coordinates).
         y : numpy.ndarray, shape (n_samples, n_outputs)
             Target array for supervised regression.
-        **kwargs
-            Optional arguments:
+        **kwargs : dict
             - ``device`` (str): computation device ("cpu" or "cuda").
               Default "cpu".
             - ``seed`` (int): random seed used for train/val splitting.
@@ -437,8 +436,7 @@ class RegressionDeepONet:
 
         Parameters
         ----------
-        **kwargs
-            Optional arguments:
+        **kwargs : dict
             - ``n_trials`` (int): number of trials. Default 50.
             - ``study_name`` (str or None): Named study (uses SQLite file
               if provided). Default None.

@@ -1,143 +1,343 @@
+
+
 <!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<html lang="en" data-content_root="./">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>discrete1.boundary1d module &mdash; discrete1 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
-    <title>discrete1.boundary1d module &#8212; discrete1 0.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="_static/agogo.css?v=47acb022" />
-    <script src="_static/documentation_options.js?v=2709fde1"></script>
-    <script src="_static/doctools.js?v=888ff710"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
-  </head><body>
-    <div class="header-wrapper" role="banner">
-      <div class="header">
-        <div class="headertitle"><a
-          href="index.html">discrete1 0.1 documentation</a></div>
-        <div class="rel" role="navigation" aria-label="related navigation">
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a>
-        </div>
-       </div>
-    </div>
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="discrete1.constants module" href="discrete1.constants.html" />
+    <link rel="prev" title="discrete1.utils.manufactured module" href="discrete1.utils.manufactured.html" />
+</head>
 
-    <div class="content-wrapper">
-      <div class="content">
-        <div class="document">
-            
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body" role="main">
-            
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="index.html" class="icon icon-home">
+            discrete1
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="discrete1.html">discrete1 package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="discrete1.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="discrete1.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">discrete1.boundary1d module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.boundary1d.deuterium_deuterium"><code class="docutils literal notranslate"><span class="pre">deuterium_deuterium()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.boundary1d.deuterium_tritium"><code class="docutils literal notranslate"><span class="pre">deuterium_tritium()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.boundary1d.manufactured_ss_03"><code class="docutils literal notranslate"><span class="pre">manufactured_ss_03()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.boundary1d.manufactured_ss_04"><code class="docutils literal notranslate"><span class="pre">manufactured_ss_04()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.boundary1d.manufactured_ss_05"><code class="docutils literal notranslate"><span class="pre">manufactured_ss_05()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.boundary1d.manufactured_td_02"><code class="docutils literal notranslate"><span class="pre">manufactured_td_02()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.boundary1d.time_dependence_constant"><code class="docutils literal notranslate"><span class="pre">time_dependence_constant()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.boundary1d.time_dependence_decay_01"><code class="docutils literal notranslate"><span class="pre">time_dependence_decay_01()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.boundary1d.time_dependence_decay_02"><code class="docutils literal notranslate"><span class="pre">time_dependence_decay_02()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.constants.html">discrete1.constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.critical0d.html">discrete1.critical0d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.critical1d.html">discrete1.critical1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.djinn1d.html">discrete1.djinn1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.external1d.html">discrete1.external1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.fixed1d.html">discrete1.fixed1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.hybrid1d.html">discrete1.hybrid1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.main.html">discrete1.main module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.materials.html">discrete1.materials module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.multi_group.html">discrete1.multi_group module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.multi_group_0d.html">discrete1.multi_group_0d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.spatial_sweep.html">discrete1.spatial_sweep module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.timed1d.html">discrete1.timed1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.tools.html">discrete1.tools module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.vhybrid1d.html">discrete1.vhybrid1d module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.html#module-discrete1">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">discrete1</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="discrete1.html">discrete1 package</a></li>
+      <li class="breadcrumb-item active">discrete1.boundary1d module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/discrete1.boundary1d.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
   <section id="module-discrete1.boundary1d">
-<span id="discrete1-boundary1d-module"></span><h1>discrete1.boundary1d module<a class="headerlink" href="#module-discrete1.boundary1d" title="Link to this heading">¶</a></h1>
+<span id="discrete1-boundary1d-module"></span><h1>discrete1.boundary1d module<a class="headerlink" href="#module-discrete1.boundary1d" title="Link to this heading"></a></h1>
+<p>Built-in boundary condition factories for discrete1.</p>
+<p>This module provides a set of reusable boundary condition constructors
+used across tests and examples. Each function returns arrays shaped to
+match the solver interfaces (spatial boundaries, angles, energy groups,
+and optional time axes).</p>
+<p>Public functions
+- manufactured_ss_03, manufactured_ss_04, manufactured_ss_05
+- manufactured_td_02
+- deuterium_deuterium, deuterium_tritium
+- time_dependence_constant, time_dependence_decay_01, time_dependence_decay_02</p>
+<p>All functions return NumPy arrays suitable as boundary source inputs to
+the solver.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.boundary1d.deuterium_deuterium">
-<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">deuterium_deuterium</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">location</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_g</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#deuterium_deuterium"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.deuterium_deuterium" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">deuterium_deuterium</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">location</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_g</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#deuterium_deuterium"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.deuterium_deuterium" title="Link to this definition"></a></dt>
+<dd><p>Create a monoenergetic boundary source for D-D fusion (2.45 MeV).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>location</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Spatial boundary index (0 for left, 1 for right) where the source is
+applied.</p></li>
+<li><p><strong>edges_g</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Energy group edge values. Used to determine the group index nearest
+to 2.45 MeV.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Boundary array with shape (2, 1, n_groups) with a unit source in the
+selected group at the specified location.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.boundary1d.deuterium_tritium">
-<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">deuterium_tritium</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">location</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_g</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#deuterium_tritium"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.deuterium_tritium" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">deuterium_tritium</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">location</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_g</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#deuterium_tritium"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.deuterium_tritium" title="Link to this definition"></a></dt>
+<dd><p>Create a monoenergetic boundary source for D-T fusion (14.1 MeV).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>location</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Spatial boundary index (0 for left, 1 for right) where the source is
+applied.</p></li>
+<li><p><strong>edges_g</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Energy group edge values. Used to determine the group index nearest
+to 14.1 MeV.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Boundary array with shape (2, 1, n_groups) with a unit source in the
+selected group at the specified location.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.boundary1d.manufactured_ss_03">
-<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">manufactured_ss_03</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#manufactured_ss_03"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.manufactured_ss_03" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">manufactured_ss_03</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#manufactured_ss_03"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.manufactured_ss_03" title="Link to this definition"></a></dt>
+<dd><p>Manufactured steady-state boundary (case 03).</p>
+<p>One-group, angle-dependent boundary used for manufactured solution tests.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – 1D array of angular ordinates (mu values) with shape (n_angles,).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Boundary array with shape (2, n_angles, 1). Axis 0 indexes the
+two spatial boundaries (left, right).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.boundary1d.manufactured_ss_04">
-<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">manufactured_ss_04</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#manufactured_ss_04"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.manufactured_ss_04" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">manufactured_ss_04</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#manufactured_ss_04"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.manufactured_ss_04" title="Link to this definition"></a></dt>
+<dd><p>Manufactured steady-state boundary (case 04).</p>
+<p>One-group, angle-independent boundary used for manufactured solution tests.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Boundary array with shape (2, 1, 1).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.boundary1d.manufactured_ss_05">
-<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">manufactured_ss_05</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#manufactured_ss_05"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.manufactured_ss_05" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">manufactured_ss_05</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#manufactured_ss_05"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.manufactured_ss_05" title="Link to this definition"></a></dt>
+<dd><p>Manufactured steady-state boundary (case 05).</p>
+<p>One-group, angle-independent boundary (polynomial) used for tests.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Boundary array with shape (2, 1, 1).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.boundary1d.manufactured_td_02">
-<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">manufactured_td_02</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#manufactured_td_02"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.manufactured_td_02" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">manufactured_td_02</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#manufactured_td_02"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.manufactured_td_02" title="Link to this definition"></a></dt>
+<dd><p>Manufactured time-dependent boundary (case TD_02).</p>
+<p>Builds a time- and angle-dependent boundary array for manufactured
+time-dependent tests.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – 1D array of angular ordinates (mu values).</p></li>
+<li><p><strong>edges_t</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – 1D array of time edge values. The returned array has one entry per
+time edge.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Boundary array with shape (n_time_edges, 2, n_angles, 1).
+The two entries along axis=1 correspond to the two spatial boundaries.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.boundary1d.time_dependence_constant">
-<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">time_dependence_constant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">boundary_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#time_dependence_constant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.time_dependence_constant" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">time_dependence_constant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">boundary_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#time_dependence_constant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.time_dependence_constant" title="Link to this definition"></a></dt>
+<dd><p>Wrap a boundary array to add a time axis (constant in time).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>boundary_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – A boundary array without time dimension. The function will add a
+leading time axis of length 1.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Boundary array with a leading time axis (shape: 1, …).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.boundary1d.time_dependence_decay_01">
-<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">time_dependence_decay_01</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">boundary_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#time_dependence_decay_01"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.time_dependence_decay_01" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">time_dependence_decay_01</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">boundary_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#time_dependence_decay_01"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.time_dependence_decay_01" title="Link to this definition"></a></dt>
+<dd><p>Turn off a previously time-independent boundary after a given time.</p>
+<p>The function repeats the provided boundary over all time steps defined by
+<code class="docutils literal notranslate"><span class="pre">edges_t</span></code> and zeros it out for all steps where the time exceeds
+<code class="docutils literal notranslate"><span class="pre">off_time</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>boundary_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Boundary array without a time axis.</p></li>
+<li><p><strong>edges_t</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Time edge array. Number of time steps is <code class="docutils literal notranslate"><span class="pre">edges_t.shape[0]</span> <span class="pre">-</span> <span class="pre">1</span></code>.</p></li>
+<li><p><strong>off_time</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Time threshold (same units as <code class="docutils literal notranslate"><span class="pre">edges_t</span></code>) after which the boundary
+is turned off.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Time-dependent boundary array with shape (n_steps, …).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.boundary1d.time_dependence_decay_02">
-<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">time_dependence_decay_02</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">boundary_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#time_dependence_decay_02"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.time_dependence_decay_02" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.boundary1d.</span></span><span class="sig-name descname"><span class="pre">time_dependence_decay_02</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">boundary_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/boundary1d.html#time_dependence_decay_02"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.boundary1d.time_dependence_decay_02" title="Link to this definition"></a></dt>
+<dd><p>Apply a smooth decay (erfc-based) to a boundary over time steps.</p>
+<p>This function identifies non-zero entries in <code class="docutils literal notranslate"><span class="pre">boundary_x</span></code> and applies a
+complementary error-function-based decay schedule over the provided
+time edges. Times are converted to microseconds internally for the decay
+logic.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>boundary_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Boundary array without time axis. Non-zero entries will be decayed.</p></li>
+<li><p><strong>edges_t</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Time edge array. Number of time steps is <code class="docutils literal notranslate"><span class="pre">edges_t.shape[0]</span> <span class="pre">-</span> <span class="pre">1</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Time-dependent boundary array with shape (n_steps, …).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 </section>
 
 
-            <div class="clearer"></div>
+           </div>
           </div>
-        </div>
-      </div>
-        </div>
-        <div class="sidebar">
-          
-          <h3>Table of Contents</h3>
-          <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="steady_state.html">steady_state</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
-</ul>
-
-          <div role="search">
-            <h3 style="margin-top: 1.5em;">Search</h3>
-            <form class="search" action="search.html" method="get">
-                <input type="text" name="q" />
-                <input type="submit" value="Go" />
-            </form>
-          </div>
-
-        </div>
-        <div class="clearer"></div>
-      </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="discrete1.utils.manufactured.html" class="btn btn-neutral float-left" title="discrete1.utils.manufactured module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="discrete1.constants.html" class="btn btn-neutral float-right" title="discrete1.constants module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
-    <div class="footer-wrapper">
-      <div class="footer">
-        <div class="left">
-          <div role="navigation" aria-label="related navigaton">
-            <a href="py-modindex.html" title="Python Module Index"
-              >modules</a> |
-            <a href="genindex.html" title="General Index"
-              >index</a>
-          </div>
-          <div role="note" aria-label="source link">
-              <br/>
-              <a href="_sources/discrete1.boundary1d.rst.txt"
-                rel="nofollow">Show Source</a>
-          </div>
-        </div>
+  <hr/>
 
-        <div class="right">
-          
-    <div class="footer" role="contentinfo">
-    &#169; Copyright 2021, Ben Whewell.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
-    </div>
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ben Whewell.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
         </div>
-        <div class="clearer"></div>
       </div>
-    </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
 
-  </body>
+</body>
 </html>

@@ -1,36 +1,96 @@
-<!DOCTYPE html>
 
-<html lang="en" data-content_root="../../">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>discrete1.tools &#8212; discrete1 0.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=4f649999" />
-    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=039e1c02" />
-    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
-    <script src="../../_static/doctools.js?v=888ff710"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>discrete1.tools &mdash; discrete1 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-   
-  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+</head>
 
-  </head><body>
-  
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          
 
-          <div class="body" role="main">
-            
+
+          <a href="../../index.html" class="icon icon-home">
+            discrete1
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../discrete1.html">discrete1 package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">discrete1</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">discrete1.tools</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
   <h1>Source code for discrete1.tools</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">numba</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span></span><span class="sd">&quot;&quot;&quot;Utility routines used across the solver package.</span>
+
+<span class="sd">This module contains small helpers and performance-critical kernels</span>
+<span class="sd">used by the transport drivers. It includes multigroup helpers for</span>
+<span class="sd">assembling off-diagonal scatter sources, hybrid coarsening utilities,</span>
+<span class="sd">0D (spatially independent) variants of source and keff updates, and</span>
+<span class="sd">display/diagnostic helpers such as reaction rate computation. Where</span>
+<span class="sd">appropriate, functions are implemented as Numba-jitted kernels for</span>
+<span class="sd">performance.</span>
+
+<span class="sd">Public helpers:</span>
+<span class="sd">- reflector_corrector: manage reflective boundary bookkeeping</span>
+<span class="sd">- dmd: Dynamic Mode Decomposition extrapolation</span>
+<span class="sd">- reaction_rates: compute per-cell reaction rates</span>
+
+<span class="sd">Numba-decorated internal kernels (prefixed with `_`) implement the</span>
+<span class="sd">heavy numerical work and are not part of the high-level public API.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numba</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="c1">########################################################################</span>
 <span class="c1"># Multigroup functions</span>
@@ -40,7 +100,7 @@
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
     <span class="s2">&quot;void(f8[:,:], f8[:,:], i4[:], f8[:,:,:], f8[:], i4)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">_off_scatter</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">off_scatter</span><span class="p">,</span> <span class="n">gg</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_off_scatter</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">off_scatter</span><span class="p">,</span> <span class="n">gg</span><span class="p">):</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -62,7 +122,7 @@
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">_variable_off_scatter</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_variable_off_scatter</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span>
     <span class="n">flux_old</span><span class="p">,</span>
     <span class="n">medium_map</span><span class="p">,</span>
@@ -102,8 +162,8 @@
             <span class="k">continue</span>
 
 
-<span class="c1"># @numba.jit(&quot;void(f8[:,:], f8[:,:], i4[:])&quot;, nopython=True, cache=True)</span>
-<span class="k">def</span> <span class="nf">_coarsen_flux</span><span class="p">(</span><span class="n">fine_flux</span><span class="p">,</span> <span class="n">coarse_flux</span><span class="p">,</span> <span class="n">edges_gidx_c</span><span class="p">):</span>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;void(f8[:,:], f8[:,:], i4[:])&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_coarsen_flux</span><span class="p">(</span><span class="n">fine_flux</span><span class="p">,</span> <span class="n">coarse_flux</span><span class="p">,</span> <span class="n">edges_gidx_c</span><span class="p">):</span>
     <span class="c1"># Get parameters</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">groups_c</span> <span class="o">=</span> <span class="n">coarse_flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">gg</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -117,7 +177,29 @@
 
 <div class="viewcode-block" id="reflector_corrector">
 <a class="viewcode-back" href="../../discrete1.tools.html#discrete1.tools.reflector_corrector">[docs]</a>
-<span class="k">def</span> <span class="nf">reflector_corrector</span><span class="p">(</span><span class="n">reflector</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">edge</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">bc_x</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">reflector_corrector</span><span class="p">(</span><span class="n">reflector</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">edge</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">bc_x</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply reflector boundary correction for a paired angle.</span>
+
+<span class="sd">    When reflective boundary conditions are active, the outgoing edge</span>
+<span class="sd">    flux for one discrete ordinate is used to set the corresponding</span>
+<span class="sd">    reflected ordinate&#39;s incoming reflector buffer. This helper writes</span>
+<span class="sd">    the edge value into the reflector array at the symmetric angle</span>
+<span class="sd">    index when reflection flags are set in ``bc_x``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    reflector : numpy.ndarray</span>
+<span class="sd">        Array storing reflected edge values for each angle (n_angles,).</span>
+<span class="sd">    angle_x : array_like</span>
+<span class="sd">        Angular ordinates (n_angles,).</span>
+<span class="sd">    edge : float</span>
+<span class="sd">        Computed outgoing edge flux for the current angle.</span>
+<span class="sd">    nn : int</span>
+<span class="sd">        Current angle index.</span>
+<span class="sd">    bc_x : sequence</span>
+<span class="sd">        Boundary condition flags for left/right reflections.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="c1"># Get opposite angle</span>
     <span class="n">reflected_idx</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">nn</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">bc_x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">angle_x</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">bc_x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
@@ -128,7 +210,7 @@
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
     <span class="s2">&quot;void(f8[:,:,:], f8[:,:], f8[:,:,:], i4[:], f8[:,:,:])&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">_source_total</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">external</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_source_total</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">external</span><span class="p">):</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -159,7 +241,7 @@
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;void(f8[:,:,:], f8[:,:], f8[:,:,:], i4[:])&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_time_right_side</span><span class="p">(</span><span class="n">q_star</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_time_right_side</span><span class="p">(</span><span class="n">q_star</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">):</span>
     <span class="c1"># Create (sigma_s + sigma_f) * phi + external + 1/(v*dt) * psi function</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">q_star</span><span class="o">.</span><span class="n">shape</span>
@@ -210,7 +292,7 @@
 <span class="c1">########################################################################</span>
 
 
-<span class="k">def</span> <span class="nf">_svd_dmd</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">K</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_svd_dmd</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">K</span><span class="p">):</span>
     <span class="n">residual</span> <span class="o">=</span> <span class="mf">1e-09</span>
 
     <span class="c1"># Compute SVD</span>
@@ -239,7 +321,32 @@
 <span class="c1"># @numba.jit(&quot;f8[:,:](f8[:,:], f8[:,:,:], f8[:,:,:], i4)&quot;, nopython=True, cache=True)</span>
 <div class="viewcode-block" id="dmd">
 <a class="viewcode-back" href="../../discrete1.tools.html#discrete1.tools.dmd">[docs]</a>
-<span class="k">def</span> <span class="nf">dmd</span><span class="p">(</span><span class="n">flux_old</span><span class="p">,</span> <span class="n">y_minus</span><span class="p">,</span> <span class="n">y_plus</span><span class="p">,</span> <span class="n">K</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dmd</span><span class="p">(</span><span class="n">flux_old</span><span class="p">,</span> <span class="n">y_minus</span><span class="p">,</span> <span class="n">y_plus</span><span class="p">,</span> <span class="n">K</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Estimate flux via Dynamic Mode Decomposition (DMD) extrapolation.</span>
+
+<span class="sd">    Given snapshot differences (y_minus, y_plus) collected over K-1</span>
+<span class="sd">    timesteps/iterations, compute a low-rank DMD model and use it to</span>
+<span class="sd">    extrapolate the flux from the last known iterate.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Last known flux (n_cells, n_groups).</span>
+<span class="sd">    y_minus : numpy.ndarray</span>
+<span class="sd">        Snapshot difference array with shape (n_cells, n_groups, K-1)</span>
+<span class="sd">        containing previous (backward) differences.</span>
+<span class="sd">    y_plus : numpy.ndarray</span>
+<span class="sd">        Snapshot difference array with shape (n_cells, n_groups, K-1)</span>
+<span class="sd">        containing forward differences.</span>
+<span class="sd">    K : int</span>
+<span class="sd">        Number of snapshots (including the base) used for DMD.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Extrapolated flux array with shape (n_cells, n_groups).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="c1"># Collect dimensions</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span>
 
@@ -254,8 +361,8 @@
     <span class="n">Atilde</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">y_plus</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">S</span><span class="o">.</span><span class="n">T</span>
 
     <span class="c1"># Calculate delta_y</span>
-    <span class="n">I</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">Atilde</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="n">delta_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">I</span> <span class="o">-</span> <span class="n">Atilde</span><span class="p">,</span> <span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">y_plus</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">eye</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">Atilde</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">delta_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">eye</span> <span class="o">-</span> <span class="n">Atilde</span><span class="p">,</span> <span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">y_plus</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
     <span class="c1"># Estimate new flux</span>
     <span class="n">flux</span> <span class="o">=</span> <span class="p">(</span><span class="n">flux_old</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="o">-</span> <span class="n">y_plus</span><span class="p">[:,</span> <span class="n">K</span> <span class="o">-</span> <span class="mi">2</span><span class="p">])</span> <span class="o">+</span> <span class="p">(</span><span class="n">U</span> <span class="o">@</span> <span class="n">delta_y</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
@@ -273,7 +380,7 @@
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
     <span class="s2">&quot;f8[:,:,:](f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], f8)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">_fission_source</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_fission_source</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -299,7 +406,7 @@
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8(f8[:,:], f8[:,:], f8[:,:,:], i4[:], f8)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_update_keffective</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_update_keffective</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
     <span class="c1"># Get iterables</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -326,7 +433,7 @@
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">_hybrid_fission_source</span><span class="p">(</span><span class="n">flux_u</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source_c</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_fission_source</span><span class="p">(</span><span class="n">flux_u</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source_c</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">):</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_u</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -354,7 +461,7 @@
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;void(f8[:,:], f8[:,:], i4[:], f8[:])&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_hybrid_combine_fluxes</span><span class="p">(</span><span class="n">flux_u</span><span class="p">,</span> <span class="n">flux_c</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_combine_fluxes</span><span class="p">(</span><span class="n">flux_u</span><span class="p">,</span> <span class="n">flux_c</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_u</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -372,7 +479,7 @@
 <span class="c1"># Scatter source is of size (I x G) - for discrete ordinates dimensions</span>
 
 
-<span class="k">def</span> <span class="nf">_djinn_fission_predict</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_djinn_fission_predict</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">model_labels</span><span class="o">=</span><span class="kc">None</span>
 <span class="p">):</span>
     <span class="c1"># Zero out previous source</span>
@@ -414,7 +521,7 @@
         <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_djinn_scatter_predict</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_djinn_scatter_predict</span><span class="p">(</span>
     <span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">model_labels</span><span class="o">=</span><span class="kc">None</span>
 <span class="p">):</span>
     <span class="c1"># Zero out previous source</span>
@@ -451,7 +558,7 @@
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8[:,:](f8[:,:], f8[:,:,:], f8[:,:], i4[:])&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_scatter_source</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_scatter_source</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">):</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -483,7 +590,7 @@
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
     <span class="s2">&quot;void(f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], i4[:])&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">_hybrid_source_collided</span><span class="p">(</span><span class="n">flux_u</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source_c</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_source_collided</span><span class="p">(</span><span class="n">flux_u</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source_c</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">):</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_u</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -507,7 +614,7 @@
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">_hybrid_source_total</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_source_total</span><span class="p">(</span>
     <span class="n">flux_u</span><span class="p">,</span> <span class="n">flux_c</span><span class="p">,</span> <span class="n">xs_scatter_u</span><span class="p">,</span> <span class="n">q_star</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">,</span> <span class="n">factor</span>
 <span class="p">):</span>
     <span class="c1"># Get parameters</span>
@@ -538,7 +645,25 @@
 
 <div class="viewcode-block" id="reaction_rates">
 <a class="viewcode-back" href="../../discrete1.tools.html#discrete1.tools.reaction_rates">[docs]</a>
-<span class="k">def</span> <span class="nf">reaction_rates</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_matrix</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">reaction_rates</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_matrix</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute per-cell reaction rates from flux and cross sections.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar or angular-integrated flux with shape (n_cells, n_groups).</span>
+<span class="sd">    xs_matrix : numpy.ndarray</span>
+<span class="sd">        Cross-section matrix indexed by material (n_materials, n_groups, ...)</span>
+<span class="sd">        where the last axes align with group dimensions.</span>
+<span class="sd">    medium_map : array_like</span>
+<span class="sd">        Material index per spatial cell (n_cells,).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Reaction rate per cell and per group with shape (n_cells, n_groups).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="c1"># Flux parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="c1"># Initialize reaction rate data</span>
@@ -557,7 +682,7 @@
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8(f8[:], f8[:], f8[:,:], i4)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_off_scatter_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">gg</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_off_scatter_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">gg</span><span class="p">):</span>
     <span class="c1"># Get parameters</span>
     <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">off_scatter</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
@@ -572,7 +697,7 @@
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8[:,:](f8[:], f8[:,:], f8[:,:], f8)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_fission_source_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_fission_source_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
     <span class="c1"># Get parameters</span>
     <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">og</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -591,7 +716,7 @@
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8(f8[:], f8[:], f8[:,:], f8)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_update_keffective_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_update_keffective_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
     <span class="c1"># Get iterables</span>
     <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">og</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -607,70 +732,31 @@
     <span class="k">return</span> <span class="p">(</span><span class="n">rate_new</span> <span class="o">*</span> <span class="n">keff</span><span class="p">)</span> <span class="o">/</span> <span class="n">rate_old</span>
 </pre></div>
 
+           </div>
           </div>
-          
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ben Whewell.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../../index.html">discrete1</a></h1>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
 
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../steady_state.html">steady_state</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../../index.html">Documentation overview</a><ul>
-  <li><a href="../index.html">Module code</a><ul>
-  </ul></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="footer">
-      &copy;2021, Ben Whewell.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
-      
-    </div>
-
-    
-
-    
-  </body>
+</body>
 </html>

@@ -280,9 +280,9 @@ def dynamic_mode_decomp(
     Parameters
     ----------
     flux_old : numpy.ndarray
-        Initial scalar flux (n_cells, n_groups).
-    xs_total, xs_scatter, external, boundary, medium_map, delta_x,
-        angle_x, angle_w, bc_x, geometry :
+        Initial scalar flux guess with shape (n_cells, n_groups).
+    xs_total, xs_scatter, external, boundary, medium_map, delta_x, angle_x, \
+        angle_w, bc_x, geometry :
         See :func:`source_iteration` for descriptions.
     R : int
         Number of iterations before collecting DMD snapshots.
@@ -450,8 +450,8 @@ def known_source_scalar(
 
     Parameters
     ----------
-    xs_total, source, boundary, medium_map, delta_x, angle_x, angle_w,
-        bc_x, geometry, edges :
+    xs_total, source, boundary, medium_map, delta_x, angle_x, angle_w, bc_x, \
+        geometry, edges :
         See :func:`known_source_angular` for descriptions.
 
     Returns
@@ -521,9 +521,9 @@ def source_iteration_collect(
     Parameters
     ----------
     flux_old : numpy.ndarray
-        Initial scalar flux guess (n_cells, n_groups).
-    xs_total, xs_scatter, external, boundary, medium_map, delta_x,
-        angle_x, angle_w, bc_x, geometry :
+        Initial scalar flux guess with shape (n_cells, n_groups).
+    xs_total, xs_scatter, external, boundary, medium_map, delta_x, angle_x, \
+        angle_w, bc_x, geometry :
         See :func:`source_iteration` for descriptions.
     iteration : int
         Iteration index used to name the saved snapshot file.
@@ -612,9 +612,9 @@ def source_iteration_djinn(
     Parameters
     ----------
     flux_old : numpy.ndarray
-        Initial scalar flux guess (n_cells, n_groups).
-    xs_total, xs_scatter, external, boundary, medium_map, delta_x,
-        angle_x, angle_w, bc_x, geometry :
+        Initial scalar flux guess with shape (n_cells, n_groups).
+    xs_total, xs_scatter, external, boundary, medium_map, delta_x, angle_x, \
+        angle_w, bc_x, geometry :
         See :func:`source_iteration` for descriptions.
     scatter_models : list, optional
         Sequence of loaded DJINN models (or placeholders) indexed by
