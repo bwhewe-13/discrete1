@@ -3,7 +3,7 @@
 [![Documentation Status](https://github.com/bwhewe-13/discrete1/actions/workflows/docs.yml/badge.svg)](https://bwhewe-13.github.io/discrete1/)
 [![Tests](https://github.com/bwhewe-13/discrete1/actions/workflows/tests.yml/badge.svg)](https://github.com/bwhewe-13/discrete1/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/bwhewe-13/discrete1/branch/master/graph/badge.svg)](https://codecov.io/gh/bwhewe-13/discrete1)
-[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)
+[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)]
 
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⡋⢅⣂⣐⡨⠙⡻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⣩⣥⣬⢕⢰⣾⣿⣿⣿⣿⣷⣄⠊⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
@@ -118,4 +118,3 @@ Coverage reports will be generated in `coverage_html/index.html` and `coverage.x
 <sup>2</sup> Ben Whewell, Ryan G. McClarren, Cory D. Hauck, and Minwoo Shin,
     (2023). Multigroup Neutron Transport Using a Collision-Based Hybrid Method,
     Nuclear Science and Engineering, 197:7, 1386-1405, DOI: 10.1080/00295639.2022.2154119.
-

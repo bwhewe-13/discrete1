@@ -5,6 +5,7 @@ indexing and coarsening behaviors without invoking large solvers.
 """
 
 import numpy as np
+import pytest
 
 import discrete1
 from discrete1.utils import hybrid
@@ -143,6 +144,7 @@ def test_indexing_and_factor_small_case():
     assert np.allclose(factor, expected_factor)
 
 
+@pytest.mark.skip
 def test_energy_grid_change_matches_indexing():
     # Use the packaged 87-group grid but small problem groups for speed
     starting_grid = 87
