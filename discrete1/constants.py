@@ -63,6 +63,7 @@ HDPE_RHO = 0.97
 MANGANESE_RHO = 7.3
 OXYGEN_RHO = 1.429
 STAINLESS_440_RHO = 7.85
+STAINLESS_STEEL_RHO = 7.85
 CHROMIUM_RHO = 7.19
 COPPER_RHO = 8.96
 IRON_RHO = 7.86
@@ -90,3 +91,19 @@ SS_440_CHROMIUM = 0.18
 SS_440_CARBON = 0.01
 SS_440_SILICON = 0.01
 SS_440_MANGANESE = 0.01
+
+# Metal Element Dictionary
+STAINLESS_ELEMENTS = {
+    "fe-54": {"molar_mass": IRON_54_MM, "abundance": IRON_54},
+    "fe-56": {"molar_mass": IRON_56_MM, "abundance": IRON_56},
+    "fe-57": {"molar_mass": IRON_57_MM, "abundance": IRON_57},
+    "cr-50": {"molar_mass": CHROMIUM_50_MM, "abundance": CHROMIUM_50},
+    "cr-52": {"molar_mass": CHROMIUM_52_MM, "abundance": CHROMIUM_52},
+    "cr-53": {"molar_mass": CHROMIUM_53_MM, "abundance": CHROMIUM_53},
+    "cr-54": {"molar_mass": CHROMIUM_54_MM, "abundance": CHROMIUM_54},
+    "si-28": {"molar_mass": SILICON_28_MM, "abundance": SILICON_28},
+    "si-29": {"molar_mass": SILICON_29_MM, "abundance": SILICON_29},
+    "si-30": {"molar_mass": SILICON_30_MM, "abundance": SILICON_30},
+    "mn-55": {"molar_mass": MANGANESE_MM, "abundance": 1.0},
+    "c-12": {"molar_mass": CARBON_MM, "abundance": 1.0},
+}

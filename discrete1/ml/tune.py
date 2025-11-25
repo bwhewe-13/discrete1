@@ -124,7 +124,7 @@ class RegressionDeepONet:
                 self.labels,
                 self.y,
                 test_size=test_size,
-                seed=seed,
+                random_state=seed,
             )
         )
 

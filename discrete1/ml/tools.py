@@ -16,7 +16,7 @@ from glob import glob
 import numpy as np
 
 
-def _combine_flux_reaction(flux, xs_matrix, medium_map, labels):
+def combine_flux_reaction(flux, xs_matrix, medium_map, labels):
     """Build labeled input/target pairs from flux and cross sections.
 
     Combines group-wise flux with material-specific cross sections to
@@ -78,7 +78,7 @@ def _split_by_material(training_data, path, xs, splits):
     ----------
     training_data : numpy.ndarray, shape (2, N, G+1)
         Combined inputs/targets array produced by
-        :func:`_combine_flux_reaction`. Column 0 contains labels used for
+        :func:`combine_flux_reaction`. Column 0 contains labels used for
         splitting.
     path : str
         Output directory (prefix) where files are written.
@@ -156,7 +156,7 @@ def clean_data_fission(path, labels, splits=None):
     flux = np.load(path + "flux_fission_model.npy")
     xs_fission = np.load(path + "fission_cross_sections.npy")
     medium_map = np.load(path + "medium_map.npy")
-    training_data = _combine_flux_reaction(flux, xs_fission, medium_map, labels)
+    training_data = combine_flux_reaction(flux, xs_fission, medium_map, labels)
 
     if splits is not None:
         _split_by_material(training_data, path, "fission", splits)
@@ -201,7 +201,7 @@ def clean_data_scatter(path, labels, splits=None):
     training_data = np.empty((2, 0, xs_scatter.shape[1] + 1))
     for file in files:
         flux = np.load(file)
-        single_iteration = _combine_flux_reaction(flux, xs_scatter, medium_map, labels)
+        single_iteration = combine_flux_reaction(flux, xs_scatter, medium_map, labels)
         training_data = np.hstack((training_data, single_iteration))
     if splits is not None:
         _split_by_material(training_data, path, "scatter", splits)
