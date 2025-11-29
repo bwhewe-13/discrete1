@@ -216,7 +216,7 @@ class RegressionDeepONet:
         self.optimizer_name = kwargs.get("optimizer", "Adam")
         self.device = torch.device(kwargs.get("device", "cpu"))
         self.LOUD = kwargs.get("LOUD", True)
-        self.writer = SummaryWriter(kwargs.get("tensorboard", "run-01"))
+        self.writer = SummaryWriter(kwargs.get("tensorboard", None))
 
     def process_data(self, verbose=False, seed=3):
         """Split arrays into train/val/test sets and build data loaders.
@@ -460,8 +460,9 @@ class RegressionDeepONet:
                 best_model_weights = copy.deepcopy(self.network.state_dict())
 
             # Tensorboard logging
-            self.writer.add_scalar("Loss/Train", train_loss, epoch + 1)
-            self.writer.add_scalar("Loss/Validation", val_loss, epoch + 1)
+            if self.writer is not None:
+                self.writer.add_scalar("Loss/Train", train_loss, epoch + 1)
+                self.writer.add_scalar("Loss/Validation", val_loss, epoch + 1)
 
         # Testing
         with torch.no_grad():
@@ -489,7 +490,7 @@ class RegressionDeepONet:
             captured in ``metric_data``.
         """
         torch.save(self.network.state_dict(), f"{model_name}.pt")
-        np.savez(f"{model_name}_loss_metrics.npz", **self.metric_data)
+        np.savez(f"{model_name}-loss-metrics.npz", **self.metric_data)
 
     def load_model(self, model_name):
         """Load model parameters from disk into the network.

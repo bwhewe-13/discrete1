@@ -28,7 +28,7 @@ def test_combine_flux_reaction():
     medium_map = np.array([0, 0])  # Both cells use material 0
     labels = np.array([1.0, 2.0])  # Labels for each cell
 
-    result = tools._combine_flux_reaction(flux, xs_matrix, medium_map, labels)
+    result = tools.combine_flux_reaction(flux, xs_matrix, medium_map, labels)
 
     # Expected shape: (2, iterations*cells, groups+1)
     assert result.shape == (2, 2, 3)
