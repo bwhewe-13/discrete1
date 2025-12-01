@@ -1,20 +1,57 @@
-"""Utility routines used across the solver package.
+"""Utility routines and performance-critical kernels for neutron transport.
 
-This module contains small helpers and performance-critical kernels
-used by the transport drivers. It includes multigroup helpers for
-assembling off-diagonal scatter sources, hybrid coarsening utilities,
-0D (spatially independent) variants of source and keff updates, and
-display/diagnostic helpers such as reaction rate computation. Where
-appropriate, functions are implemented as Numba-jitted kernels for
-performance.
+This module provides computational tools for multigroup neutron transport
+calculations, including source term calculations, scattering operations,
+fission source handling, and hybrid machine learning / physics methods.
+Functions are optimized using Numba JIT compilation where appropriate
+for performance-critical operations.
 
-Public helpers:
-- reflector_corrector: manage reflective boundary bookkeeping
-- dmd: Dynamic Mode Decomposition extrapolation
-- reaction_rates: compute per-cell reaction rates
+The module is organized into several functional categories:
 
-Numba-decorated internal kernels (prefixed with `_`) implement the
-heavy numerical work and are not part of the high-level public API.
+**Multigroup Transport Functions**
+    - ``scatter_prod``: Compute scattering source terms
+    - ``fission_prod``: Compute fission source terms for eigenvalue problems
+    - ``reaction_rates``: Calculate per-cell reaction rates
+
+**Hybrid ML/Physics Functions**
+    - ``scatter_prod_predict``: Scatter source with ML model predictions
+    - ``fission_prod_predict``: Fission source with ML model predictions
+
+**Geometry and Boundary Utilities**
+    - ``reflector_corrector``: Manage reflective boundary conditions
+
+**Dynamic Mode Decomposition**
+    - ``dmd``: Accelerate convergence using DMD extrapolation
+
+**Spatially Independent (0D) Variants**
+    Functions prefixed with ``_0d`` provide zero-dimensional versions
+    of transport operations for homogeneous problems.
+
+**Internal Kernels**
+    Functions prefixed with ``_`` are Numba-decorated internal kernels that
+    implement heavy numerical work. These are used by higher-level solvers
+    and are generally not part of the public API.
+
+Notes
+-----
+Many functions use Numba's JIT compilation with ``nopython=True`` and
+``cache=True`` for optimal performance. Type signatures are explicitly
+specified for compiled functions to ensure type stability.
+
+The hybrid ML/physics functions allow material-specific predictions using
+trained machine learning models while falling back to traditional physics
+calculations when models are unavailable.
+
+Examples
+--------
+Compute scattering source for a multigroup problem:
+
+>>> source = np.zeros((n_cells, n_groups))
+>>> scatter_prod(flux, xs_scatter, source, medium_map)
+
+Use hybrid ML approach for fission source:
+
+>>> fission_prod_predict(flux, xs_fission, source, medium_map, keff, models)
 """
 
 import numba
@@ -302,7 +339,47 @@ def dmd(flux_old, y_minus, y_plus, K):
 @numba.jit(
     "f8[:,:,:](f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], f8)", nopython=True, cache=True
 )
-def _fission_source(flux, xs_fission, source, medium_map, keff):
+def fission_prod(flux, xs_fission, source, medium_map, keff):
+    r"""Calculate fission source term for criticality problems.
+
+    Computes the fission source for each spatial cell and energy group by
+    integrating the product of flux and fission cross sections, scaled by
+    the effective multiplication factor (keff). This is used in eigenvalue
+    (criticality) calculations.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Scalar flux array of shape (cells_x, groups). Contains the neutron
+        flux at each spatial cell and energy group.
+    xs_fission : numpy.ndarray
+        Fission production cross section array of shape (materials, groups, groups).
+        xs_fission[m, og, ig] is the cross section for neutrons in group ig
+        causing fission that produces neutrons in group og for material m.
+    source : numpy.ndarray
+        Fission source array of shape (cells_x, 1, groups) to be updated.
+        Zeroed out and overwritten with computed fission source.
+    medium_map : numpy.ndarray
+        Material index map of shape (cells_x,). Maps each spatial cell to
+        its material index.
+    keff : float
+        Effective multiplication factor. Used to normalize the fission source.
+
+    Returns
+    -------
+    numpy.ndarray
+        Updated fission source array of shape (cells_x, 1, groups).
+
+    Notes
+    -----
+    This function is JIT-compiled with Numba for performance. The fission
+    source for cell ii and output group og is:
+
+    .. math::
+        S_{f,ii,og} = \\frac{1}{k_{eff}} \\sum_{ig} \\phi_{ii,ig} \\sigma_{f,mat,og,ig}
+
+    where mat = medium_map[ii].
+    """
     # Get parameters
     cells_x, groups = flux.shape
     ii = numba.int32
@@ -401,86 +478,205 @@ def _hybrid_combine_fluxes(flux_u, flux_c, coarse_idx, factor):
 # Scatter source is of size (I x G) - for discrete ordinates dimensions
 
 
-def _djinn_fission_predict(
-    flux, xs_fission, source, medium_map, keff, models, model_labels=None
+def fission_prod_predict(
+    flux, xs_fission, source, medium_map, keff, models, label=None
 ):
+    r"""Calculate fission source using hybrid ML/physics approach.
+
+    Computes the fission source using a combination of machine learning models
+    and traditional physics calculations. For each material, if a trained ML
+    model is available, it predicts the fission source; otherwise, the standard
+    physics-based calculation is used.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Scalar flux array of shape (cells_x, groups). Contains the neutron
+        flux at each spatial cell and energy group.
+    xs_fission : numpy.ndarray
+        Fission production cross section array of shape (materials, groups, groups).
+        Used for scaling predictions and fallback calculations.
+    source : numpy.ndarray
+        Fission source array of shape (cells_x, 1, groups) to be updated.
+        Zeroed out and overwritten with computed fission source.
+    medium_map : numpy.ndarray
+        Material index map of shape (cells_x,). Maps each spatial cell to
+        its material index. Also used to index into the models list.
+    keff : float
+        Effective multiplication factor. Used to normalize the fission source.
+    models : list
+        List of trained ML models (or integers as placeholders). models[nn]
+        is used for material nn. If models[nn] is an integer (typically 0),
+        falls back to physics-based calculation.
+    label : numpy.ndarray, optional
+        Parameter/label array for parametric ML predictions. Passed to
+        model.predict() when making predictions. Default is None.
+
+    Returns
+    -------
+    None
+        The source array is modified in-place.
+
+    Notes
+    -----
+    The ML models predict the energy distribution of fission neutrons, which
+    is then scaled to conserve the total fission rate. The scaling factor is
+    computed as:
+
+    .. math::
+        scale_i = \\sum_g \\phi_{i,g} \\sigma_{f,mat,g,0}
+
+    The predicted source is then normalized by keff and rescaled to match
+    the physics-based total fission rate.
+    """
     # Zero out previous source
     source *= 0.0
 
     # Iterate over models
     for nn, model in enumerate(models):
         # Find which cells model is predicting
-        model_idx = np.argwhere(medium_map == nn).flatten()
+        idx = np.argwhere(medium_map == nn).flatten()
 
         # Check if model available
         if isinstance(model, int):
             # Calculate standard source
-            source[model_idx] = _fission_source(
-                flux[model_idx],
-                xs_fission,
-                source[model_idx],
-                medium_map[model_idx],
-                keff,
+            source[idx] = fission_prod(
+                flux[idx], xs_fission, source[idx], medium_map[idx], keff
             )
             continue
 
         # Separate predicting flux
-        predictor = flux[model_idx].copy()
+        mat_flux = flux[idx].copy()
         # Check for zero values
-        if np.sum(predictor) == 0:
+        if np.sum(mat_flux) == 0:
             continue
         # Get scaling factor
-        scale = np.sum(predictor * xs_fission[nn, :, 0], axis=1)
+        scale = np.sum(mat_flux * xs_fission[nn, :, 0], axis=1)
         # Check for labels and predict
-        if model_labels is not None:
-            predictor = np.hstack((model_labels[model_idx][:, None], predictor))
-            predictor = model.predict(predictor)
-        else:
-            predictor = model.predict(predictor)
+        mat_flux = model.predict(mat_flux, label)
         # Scale back and add to source
-        source[model_idx, 0] = (
-            predictor / keff * (scale / np.sum(predictor, axis=1))[:, None]
-        )
+        source[idx, 0] = mat_flux / keff * (scale / np.sum(mat_flux, axis=1))[:, None]
 
 
-def _djinn_scatter_predict(
-    flux, xs_scatter, source, medium_map, models, model_labels=None
-):
+def scatter_prod_predict(flux, xs_scatter, source, medium_map, models, label=None):
+    r"""Calculate scatter source using hybrid ML/physics approach.
+
+    Computes the scatter source using a combination of machine learning models
+    and traditional physics calculations. For each material, if a trained ML
+    model is available, it predicts the scatter source; otherwise, the standard
+    physics-based calculation is used.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Scalar flux array of shape (cells_x, groups). Contains the neutron
+        flux at each spatial cell and energy group.
+    xs_scatter : numpy.ndarray
+        Scattering cross section array of shape (materials, groups, groups).
+        xs_scatter[m, og, ig] is the cross section for scattering from
+        group ig to group og for material m.
+    source : numpy.ndarray
+        Scatter source array of shape (cells_x, groups) to be updated.
+        Zeroed out and overwritten with computed scatter source.
+    medium_map : numpy.ndarray
+        Material index map of shape (cells_x,). Maps each spatial cell to
+        its material index. Also used to index into the models list.
+    models : list
+        List of trained ML models (or integers as placeholders). models[nn]
+        is used for material nn. If models[nn] is an integer (typically 0),
+        falls back to physics-based calculation.
+    label : numpy.ndarray, optional
+        Parameter/label array for parametric ML predictions. Passed to
+        model.predict() when making predictions. Default is None.
+
+    Returns
+    -------
+    None
+        The source array is modified in-place.
+
+    Notes
+    -----
+    The ML models predict the energy distribution of scattered neutrons, which
+    is then scaled to conserve the total scatter rate. The scaling factor is
+    computed as:
+
+    .. math::
+        scale_i = \\sum_g \\phi_{i,g} \\sigma_{s,mat,g,0}
+
+    The predicted source is rescaled to match the physics-based total scatter rate:
+
+    .. math::
+        S_{s,predicted} = S_{ML} \\cdot \\frac{scale}{\\sum_g S_{ML,g}}
+    """
     # Zero out previous source
     source *= 0.0
 
     # Iterate over models
     for nn, model in enumerate(models):
         # Find which cells model is predicting
-        model_idx = np.argwhere(medium_map == nn).flatten()
+        idx = np.argwhere(medium_map == nn).flatten()
 
         # Check if model available
         if isinstance(model, int):
             # Calculate standard source
-            source[model_idx] = _scatter_source(
-                flux[model_idx], xs_scatter, source[model_idx], medium_map[model_idx]
+            source[idx] = scatter_prod(
+                flux[idx], xs_scatter, source[idx], medium_map[idx]
             )
             continue
 
         # Separate predicting flux
-        predictor = flux[model_idx].copy()
+        mat_flux = flux[idx].copy()
         # Check for zero values
-        if np.sum(predictor) == 0:
+        if np.sum(mat_flux) == 0:
             continue
         # Get scaling factor
-        scale = np.sum(predictor * xs_scatter[nn, :, 0], axis=1)
+        scale = np.sum(mat_flux * xs_scatter[nn, :, 0], axis=1)
         # Check for labels and predict
-        if model_labels is not None:
-            predictor = np.hstack((model_labels[model_idx][:, None], predictor))
-            predictor = model.predict(predictor)
-        else:
-            predictor = model.predict(predictor)
+        mat_flux = model.predict(mat_flux, label=label)
         # Scale back and add to source
-        source[model_idx] = predictor * (scale / np.sum(predictor, axis=1))[:, None]
+        source[idx] = mat_flux * (scale / np.sum(mat_flux, axis=1))[:, None]
 
 
 @numba.jit("f8[:,:](f8[:,:], f8[:,:,:], f8[:,:], i4[:])", nopython=True, cache=True)
-def _scatter_source(flux, xs_scatter, source, medium_map):
+def scatter_prod(flux, xs_scatter, source, medium_map):
+    r"""Calculate scatter source term for multigroup transport.
+
+    Computes the scattering source for each spatial cell and energy group by
+    integrating the product of flux and scattering cross sections. This
+    represents neutrons scattering from all energy groups into each output
+    energy group.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Scalar flux array of shape (cells_x, groups). Contains the neutron
+        flux at each spatial cell and energy group.
+    xs_scatter : numpy.ndarray
+        Scattering cross section array of shape (materials, groups, groups).
+        xs_scatter[m, og, ig] is the cross section for scattering from
+        group ig to group og for material m.
+    source : numpy.ndarray
+        Scatter source array of shape (cells_x, groups) to be updated.
+        Overwritten with computed scatter source.
+    medium_map : numpy.ndarray
+        Material index map of shape (cells_x,). Maps each spatial cell to
+        its material index.
+
+    Returns
+    -------
+    numpy.ndarray
+        Updated scatter source array of shape (cells_x, groups).
+
+    Notes
+    -----
+    This function is JIT-compiled with Numba for performance. The scatter
+    source for cell ii and output group og is:
+
+    .. math::
+        S_{s,ii,og} = \\sum_{ig} \\phi_{ii,ig} \\sigma_{s,mat,og,ig}
+
+    where mat = medium_map[ii].
+    """
     # Get parameters
     cells_x, groups = flux.shape
     ii = numba.int32

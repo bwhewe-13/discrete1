@@ -501,9 +501,9 @@ class RegressionDeepONet:
             Base filename used when saving (without extension). Reads
             ``f"{model_name}.pt"``.
         """
-        self.network.load_state_dict(torch.load(f"{model_name}.pt"))
+        self.network.load_state_dict(torch.load(f"{model_name}.pt", weights_only=True))
 
-    def predict(self, X_new, batch_size=1):
+    def predict(self, flux, labels, batch_size=1):
         """Run batched inference and return predictions.
 
         Parameters
@@ -521,14 +521,19 @@ class RegressionDeepONet:
         numpy.ndarray
             Stacked predictions of shape (n_samples, n_targets).
         """
-        test_dataset = TensorDataset(torch.tensor(X_new, dtype=torch.float32))
+        test_dataset = TensorDataset(
+            torch.tensor(flux, dtype=torch.float32),
+            torch.tensor(labels, dtype=torch.float32),
+        )
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
         predictions = []
         with torch.no_grad():
             self.network.eval()
-            for X_batch in test_loader:
-                outputs = self.network(X_batch[0].to(self.device))
+            for flux_batch, labels_batch in test_loader:
+                outputs = self.network(
+                    flux_batch.to(self.device), labels_batch.to(self.device)
+                )
                 predictions.append(outputs.cpu().numpy())
 
         return np.vstack(predictions)
