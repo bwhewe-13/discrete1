@@ -1,8 +1,16 @@
 """One-dimensional criticality drivers.
 
-This module contains helpers for running k-eigenvalue power iterations in
-1D slab geometries. Both standard and hybrid (coarse/fine) drivers are
-provided.
+This module provides solvers for k-eigenvalue problems in one-dimensional
+slab and spherical geometries using power iteration methods. It includes:
+
+- Standard power iteration for multigroup criticality calculations
+- Data collection utilities for DJINN machine learning model training
+- DJINN-accelerated power iteration with surrogate model predictions
+- Hybrid coarse/fine mesh power iteration for improved efficiency
+
+All drivers solve the multigroup neutron transport equation with vacuum or
+reflective boundary conditions to determine the critical multiplication
+factor (k-effective) and corresponding neutron flux distribution.
 """
 
 import numpy as np
@@ -14,6 +22,9 @@ from discrete1.utils import hybrid as hytools
 
 count_kk = 100
 change_kk = 1e-06
+
+count_pp = 20
+change_pp = 1e-05
 
 
 def power_iteration(
@@ -68,7 +79,7 @@ def power_iteration(
 
     while not (converged):
         # Update power source term
-        tools._fission_source(flux_old, xs_fission, source, medium_map, keff)
+        tools.fission_prod(flux_old, xs_fission, source, medium_map, keff)
 
         # Solve for scalar flux
         flux = mg.source_iteration(
@@ -103,6 +114,309 @@ def power_iteration(
     return flux, keff
 
 
+def collect_power_iteration(
+    xs_total,
+    xs_scatter,
+    xs_fission,
+    medium_map,
+    delta_x,
+    angle_x,
+    angle_w,
+    bc_x,
+    filepath,
+    geometry=1,
+):
+    """Collect training data for DJINN models during power iteration.
+
+    Runs a standard k-eigenvalue power iteration while collecting and saving
+    flux snapshots at each iteration step. The saved data includes scalar flux
+    distributions, cross-section arrays, and spatial medium mapping, which can
+    be used to train DJINN (Deep Joint Informed Neural Network) surrogate models
+    for accelerated neutron transport calculations.
+
+    Parameters
+    ----------
+    xs_total : numpy.ndarray
+        Total cross sections indexed by [material, group].
+    xs_scatter : numpy.ndarray
+        Scattering cross sections indexed by [material, group, group].
+    xs_fission : numpy.ndarray
+        Fission cross sections indexed by [material, group].
+    medium_map : array_like
+        Spatial material index mapping of length I (number of cells).
+    delta_x : array_like
+        Cell widths for spatial discretization.
+    angle_x : array_like
+        Discrete ordinates (angular quadrature points).
+    angle_w : array_like
+        Angular quadrature weights.
+    bc_x : list-like
+        Boundary condition indicators [left, right] (0=vacuum, 1=reflective).
+    filepath : str
+        Directory path where training data files will be saved.
+    geometry : int, optional
+        Geometry type (1=slab, 2=sphere). Default is 1.
+
+    Returns
+    -------
+    flux : numpy.ndarray
+        Converged scalar flux distribution indexed by [cell, group].
+    keff : float
+        Converged effective multiplication factor.
+
+    Notes
+    -----
+    The function saves the following NumPy arrays to disk:
+    - `flux_fission_model.npy` : Flux snapshots from each iteration
+    - `fission_cross_sections.npy` : Fission cross section data
+    - `scatter_cross_sections.npy` : Scattering cross section data
+    - `medium_map.npy` : Spatial material mapping
+
+    Additionally, source iteration data is saved during the transport sweeps
+    via `mg.source_iteration_collect()` for training DJINN scatter models.
+    """
+
+    # Set boundary source
+    boundary = np.zeros((2, 1, 1))
+
+    # Initialize and normalize flux
+    cells_x = medium_map.shape[0]
+    groups = xs_total.shape[1]
+
+    flux_old = np.random.rand(cells_x, groups)
+    keff = np.linalg.norm(flux_old)
+    flux_old /= np.linalg.norm(keff)
+
+    # Initialize power source
+    source = np.zeros((cells_x, 1, groups))
+    tracked_flux = np.zeros((count_kk, cells_x, groups))
+
+    converged = False
+    count = 0
+    change = 0.0
+
+    while not (converged):
+        # Update power source term
+        tools.fission_prod(flux_old, xs_fission, source, medium_map, keff)
+
+        # Solve for scalar flux
+        flux = mg.source_iteration_collect(
+            flux_old,
+            xs_total,
+            xs_scatter,
+            source,
+            boundary,
+            medium_map,
+            delta_x,
+            angle_x,
+            angle_w,
+            bc_x,
+            geometry,
+            count,
+            filepath,
+        )
+
+        # Update keffective
+        keff = tools._update_keffective(flux, flux_old, xs_fission, medium_map, keff)
+
+        # Normalize flux
+        flux /= np.linalg.norm(flux)
+
+        # Check for convergence
+        change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        print(f"Count: {count:>2}\tKeff: {keff:.8f}", end="\r")
+        converged = (change < change_kk) or (count >= count_kk)
+        count += 1
+
+        # Update old flux and tracked flux
+        flux_old = flux.copy()
+        tracked_flux[count - 2] = flux.copy()
+
+    print(f"\nConvergence: {change:2.6e}")
+    np.save(filepath + "flux_fission_model", tracked_flux[: count - 1])
+
+    # Save relevant information to file
+    np.save(filepath + "fission_cross_sections", xs_fission)
+    np.save(filepath + "scatter_cross_sections", xs_scatter)
+    np.save(filepath + "medium_map", medium_map)
+
+    return flux, keff
+
+
+def ml_power_iteration(
+    flux_old,
+    xs_total,
+    xs_scatter,
+    xs_fission,
+    medium_map,
+    delta_x,
+    angle_x,
+    angle_w,
+    bc_x,
+    geometry,
+    fission_models=[],
+    scatter_models=[],
+    fission_labels=None,
+    scatter_labels=None,
+):
+    """Power iteration with optional DJINN surrogate model acceleration.
+
+    Performs k-eigenvalue power iteration that can optionally use trained DJINN
+    (Deep Joint Informed Neural Network) models to predict fission and/or
+    scattering sources, significantly accelerating convergence. When no models
+    are provided, falls back to standard power iteration.
+
+    Parameters
+    ----------
+    flux_old : numpy.ndarray
+        Initial scalar flux guess indexed by [cell, group].
+    xs_total : numpy.ndarray
+        Total cross sections indexed by [material, group].
+    xs_scatter : numpy.ndarray
+        Scattering cross sections indexed by [material, group, group].
+    xs_fission : numpy.ndarray
+        Fission cross sections indexed by [material, group].
+    medium_map : array_like
+        Spatial material index mapping of length I (number of cells).
+    delta_x : array_like
+        Cell widths for spatial discretization.
+    angle_x : array_like
+        Discrete ordinates (angular quadrature points).
+    angle_w : array_like
+        Angular quadrature weights.
+    bc_x : list-like
+        Boundary condition indicators [left, right] (0=vacuum, 1=reflective).
+    geometry : int
+        Geometry type (1=slab, 2=sphere).
+    fission_models : list, optional
+        Trained DJINN models for fission source prediction. Empty list uses
+        traditional calculation. Default is [].
+    scatter_models : list, optional
+        Trained DJINN models for scattering source prediction. Empty list uses
+        traditional calculation. Default is [].
+    fission_labels : array_like, optional
+        Material labels for fission model predictions. Default is None.
+    scatter_labels : array_like, optional
+        Material labels for scatter model predictions. Default is None.
+
+    Returns
+    -------
+    flux : numpy.ndarray
+        Converged scalar flux distribution indexed by [cell, group].
+    keff : float
+        Converged effective multiplication factor.
+
+    Notes
+    -----
+    - Convergence criteria differ based on model usage: stricter for standard
+      iteration (change_kk), more relaxed for DJINN-accelerated (change_pp).
+    - Early termination occurs if flux change increases after 5 iterations,
+      preventing divergence.
+    - Normalization strategy changes when DJINN models are used to maintain
+      numerical stability.
+    """
+
+    # Set boundary source
+    boundary = np.zeros((2, 1, 1))
+
+    # Initialize keff
+    cells_x = medium_map.shape[0]
+    keff_old = 1.0
+
+    # Initialize power source
+    fission_source = np.zeros((cells_x, 1, xs_total.shape[1]))
+
+    converged = False
+    count = 0
+    change_old = 100.0
+
+    while not (converged):
+        # Update power source term
+        # No Fission DJINN predictions
+        if len(fission_models) == 0:
+            tools.fission_prod(
+                flux_old, xs_fission, fission_source, medium_map, keff_old
+            )
+
+        # Fission DJINN predictions
+        else:
+            tools._djinn_fission_predict(
+                flux_old,
+                xs_fission,
+                fission_source,
+                medium_map,
+                1.0,
+                fission_models,
+                fission_labels,
+            )
+
+        # Solve for scalar flux
+        # No Scatter DJINN predictions
+        if len(scatter_models) == 0:
+            flux = mg.source_iteration(
+                flux_old,
+                xs_total,
+                xs_scatter,
+                fission_source,
+                boundary,
+                medium_map,
+                delta_x,
+                angle_x,
+                angle_w,
+                bc_x,
+                geometry,
+            )
+        # Scatter DJINN predictions
+        else:
+            flux = mg.source_iteration_djinn(
+                flux_old,
+                xs_total,
+                xs_scatter,
+                fission_source,
+                boundary,
+                medium_map,
+                delta_x,
+                angle_x,
+                angle_w,
+                bc_x,
+                geometry,
+                scatter_models,
+                scatter_labels,
+            )
+
+        # Update keffective and normalize flux
+        if len(fission_models) == 0:
+            keff = tools._update_keffective(
+                flux, flux_old, xs_fission, medium_map, keff_old
+            )
+            flux /= np.linalg.norm(flux)
+
+        else:
+            keff = np.linalg.norm(flux)
+            flux /= keff
+
+        # Check for convergence
+        change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        # Early exit
+        if (change > change_old) and (count > 5):
+            print(f"\nConvergence: {change_old:2.6e}")
+            return flux_old, keff_old
+
+        print(f"Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}", end="\r")
+        if (len(fission_models) == 0) and (len(scatter_models) == 0):
+            converged = (change < change_kk) or (count >= count_kk)
+        else:
+            converged = (change < change_pp) or (count >= count_pp)
+        count += 1
+
+        flux_old = flux.copy()
+        change_old = change
+        keff_old = keff
+
+    print(f"\nConvergence: {change:2.6e}")
+    return flux, keff
+
+
 def hybrid_power_iteration(
     xs_total_u,
     xs_scatter_u,
@@ -117,11 +431,61 @@ def hybrid_power_iteration(
     energy_grid,
     geometry=1,
 ):
-    """Run the hybrid coarse/fine power iteration driver.
+    """Run hybrid coarse-fine mesh power iteration for k-eigenvalue problems.
 
-    This wraps the workflow needed to compute collided (coarse) and
-    uncollided (fine) contributions and combines them for a hybrid solve.
-    Returns a converged uncollided flux and keff.
+    Implements a two-level hybrid solver that separates the solution into
+    uncollided (fine resolution) and collided (coarse resolution) components.
+    The fine mesh captures detailed physics while the coarse mesh handles
+    computationally expensive collided contributions, significantly improving
+    efficiency for problems with many energy groups and angular directions.
+
+    Parameters
+    ----------
+    xs_total_u : numpy.ndarray
+        Fine (uncollided) total cross sections indexed by [material, group].
+    xs_scatter_u : numpy.ndarray
+        Fine (uncollided) scattering cross sections indexed by
+        [material, group, group].
+    xs_fission_u : numpy.ndarray
+        Fine (uncollided) fission cross sections indexed by [material, group].
+    medium_map : array_like
+        Spatial material index mapping of length I (number of cells).
+    delta_x : array_like
+        Cell widths for spatial discretization.
+    angle_xu : array_like
+        Fine mesh discrete ordinates (angular quadrature points).
+    angle_wu : array_like
+        Fine mesh angular quadrature weights.
+    bc_x : list-like
+        Boundary condition indicators [left, right] (0=vacuum, 1=reflective).
+    angles_c : int
+        Number of angular directions for coarse mesh discretization.
+    groups_c : int
+        Number of energy groups for coarse mesh discretization.
+    energy_grid : tuple
+        Energy grid specification (edges_g, edges_gidx_u, edges_gidx_c)
+        defining fine-to-coarse group mapping.
+    geometry : int, optional
+        Geometry type (1=slab, 2=sphere). Default is 1.
+
+    Returns
+    -------
+    flux_u : numpy.ndarray
+        Converged fine mesh scalar flux distribution indexed by [cell, group].
+    keff : float
+        Converged effective multiplication factor.
+
+    Notes
+    -----
+    The hybrid method works by:
+    1. Computing coarse mesh collided flux with reduced angular/energy resolution
+    2. Projecting fission source from fine to coarse mesh
+    3. Combining coarse collided contribution with fine uncollided solution
+    4. Iterating until convergence on the fine mesh
+
+    This approach is particularly effective for deep penetration problems or
+    systems with large spatial domains where full fine-mesh transport sweeps
+    would be prohibitively expensive.
     """
 
     # Collect hybrid parameters
