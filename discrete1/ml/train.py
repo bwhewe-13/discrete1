@@ -216,7 +216,9 @@ class RegressionDeepONet:
         self.optimizer_name = kwargs.get("optimizer", "Adam")
         self.device = torch.device(kwargs.get("device", "cpu"))
         self.LOUD = kwargs.get("LOUD", True)
-        self.writer = SummaryWriter(kwargs.get("tensorboard", None))
+        self.writer = kwargs.get("tensorboard", None)
+        if self.writer is not None:
+            self.writer = SummaryWriter(log_dir=self.writer)
 
     def process_data(self, verbose=False, seed=3):
         """Split arrays into train/val/test sets and build data loaders.

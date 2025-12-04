@@ -340,7 +340,7 @@ def ml_power_iteration(
 
         # Fission DJINN predictions
         else:
-            tools._djinn_fission_predict(
+            tools.fission_prod_predict(
                 flux_old,
                 xs_fission,
                 fission_source,
@@ -368,7 +368,7 @@ def ml_power_iteration(
             )
         # Scatter DJINN predictions
         else:
-            flux = mg.source_iteration_djinn(
+            flux = mg.ml_source_iteration(
                 flux_old,
                 xs_total,
                 xs_scatter,

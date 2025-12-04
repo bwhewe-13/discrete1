@@ -13,7 +13,7 @@ Public routines include:
 - variable_source_iteration: coarse/fine-group-aware iteration
 - dynamic_mode_decomp: DMD-accelerated solver
 - known_source_angular / known_source_scalar: wrappers for known-source problems
-- source_iteration_djinn: use DJINN models to predict scatter sources
+- ml_source_iteration: use DJINN models to predict scatter sources
 
 The multigroup drivers expect arrays shaped as used by the rest of
 the package (cell-major ordering, angular and group axes as described
@@ -587,7 +587,7 @@ def source_iteration_collect(
     return flux
 
 
-def source_iteration_djinn(
+def ml_source_iteration(
     flux_old,
     xs_total,
     xs_scatter,
@@ -639,7 +639,7 @@ def source_iteration_djinn(
     while not (converged):
         flux *= 0.0
 
-        tools._djinn_scatter_predict(
+        tools.scatter_prod_predict(
             flux_old,
             xs_scatter,
             scatter_source,
