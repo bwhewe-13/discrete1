@@ -60,6 +60,36 @@ def test_one_group_slab_plutonium_01a(bc_x):
     assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
 
 
+@pytest.mark.slab
+@pytest.mark.power_iteration
+@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
+def test_one_group_slab_plutonium_01a_chi(bc_x):
+    cells_x = 50
+    angles = 16
+    # groups = 1
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.32640]])
+    xs_scatter = np.array([[[0.225216]]])
+    nusigf = np.array([[3.24 * 0.0816]])
+    chi = np.array([[1.0]])
+    medium_map = np.zeros((cells_x,), dtype=np.int32)
+    length = 1.853722 * 2 if np.sum(bc_x) == 0 else 1.853722
+    delta_x = np.repeat(length / cells_x, cells_x)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
+        geometry=1,
+    )
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
 @pytest.mark.smoke
 @pytest.mark.slab
 @pytest.mark.power_iteration
@@ -85,6 +115,41 @@ def test_one_group_slab_plutonium_01b(bc_x):
         angle_x,
         angle_w,
         bc_x,
+        geometry=1,
+    )
+    ref_flux = np.array([0.9701734, 0.8810540, 0.7318131, 0.4902592])
+    flux = normalize(flux.flatten(), bc_x)
+    assert np.all(np.isclose(flux, ref_flux, atol=1e-2)), "flux not accurate"
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
+@pytest.mark.smoke
+@pytest.mark.slab
+@pytest.mark.power_iteration
+@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
+def test_one_group_slab_plutonium_01b_chi(bc_x):
+    cells_x = 75
+    angles = 16
+    # groups = 1
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.32640]])
+    xs_scatter = np.array([[[0.225216]]])
+    chi = np.array([[1.0]])
+    nusigf = np.array([[2.84 * 0.0816]])
+    cells_x = 150 if np.sum(bc_x) == 0 else 75
+    length = 2.256751 * 2 if np.sum(bc_x) == 0 else 2.256751
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    delta_x = np.repeat(length / cells_x, cells_x)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
         geometry=1,
     )
     ref_flux = np.array([0.9701734, 0.8810540, 0.7318131, 0.4902592])
@@ -125,6 +190,40 @@ def test_one_group_sphere_plutonium_01b():
     assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
 
 
+@pytest.mark.smoke
+@pytest.mark.sphere
+@pytest.mark.power_iteration
+def test_one_group_sphere_plutonium_01b_chi():
+    cells_x = 150
+    angles = 16
+    # groups = 1
+    bc_x = [1, 0]
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.32640]])
+    xs_scatter = np.array([[[0.225216]]])
+    chi = np.array([[1.0]])
+    nusigf = np.array([[2.84 * 0.0816]])
+    length = 6.082547
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    delta_x = np.repeat(length / cells_x, cells_x)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
+        geometry=2,
+    )
+    ref_flux = np.array([0.93538006, 0.75575352, 0.49884364, 0.19222603])
+    flux = normalize(flux.flatten(), bc_x)
+    assert np.all(np.isclose(flux, ref_flux, atol=1e-2)), "flux not accurate"
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
 @pytest.mark.slab
 @pytest.mark.power_iteration
 def test_one_group_slab_plutonium_02a():
@@ -150,6 +249,37 @@ def test_one_group_slab_plutonium_02a():
         angle_x,
         angle_w,
         bc_x,
+        geometry=1,
+    )
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
+@pytest.mark.slab
+@pytest.mark.power_iteration
+def test_one_group_slab_plutonium_02a_chi():
+    cells_x = 500
+    angles = 16
+    bc_x = [0, 0]
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.32640], [0.32640]])
+    xs_scatter = np.array([[[0.225216]], [[0.293760]]])
+    chi = np.array([[1.0], [0.0]])
+    nusigf = np.array([[3.24 * 0.0816], [0.0]])
+    length = 1.478401 * 2 + 3.063725
+    edges_x = np.linspace(0, length, cells_x + 1)
+    delta_x = np.repeat(length / cells_x, cells_x)
+    materials = [[0, "fuel", "0 - 2.956802"], [1, "moderator", "2.956802 - 6.020527"]]
+    medium_map = discrete1.spatial1d(materials, edges_x)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
         geometry=1,
     )
     assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
@@ -190,6 +320,41 @@ def test_one_group_slab_plutonium_02b():
 
 @pytest.mark.slab
 @pytest.mark.power_iteration
+def test_one_group_slab_plutonium_02b_chi():
+    cells_x = 502
+    angles = 16
+    # groups = 1
+    bc_x = [0, 0]
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.32640], [0.32640]])
+    xs_scatter = np.array([[[0.225216]], [[0.293760]]])
+    chi = np.array([[1.0], [0.0]])
+    nusigf = np.array([[3.24 * 0.0816], [0.0]])
+    length = np.sum([1.531863, 1.317831 * 2, 1.531863])
+    edges_x = np.linspace(0, length, cells_x + 1)
+    delta_x = np.repeat(length / cells_x, cells_x)
+    materials = [
+        [0, "fuel", "1.531863 - 4.167525"],
+        [1, "moderator", "0 - 1.531863, 4.167525 - 5.699388"],
+    ]
+    medium_map = discrete1.spatial1d(materials, edges_x)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
+        geometry=1,
+    )
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
+@pytest.mark.slab
+@pytest.mark.power_iteration
 @pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
 def test_one_group_slab_uranium_01a(bc_x):
     cells_x = 75
@@ -211,6 +376,39 @@ def test_one_group_slab_uranium_01a(bc_x):
         angle_x,
         angle_w,
         bc_x,
+        geometry=1,
+    )
+    ref_flux = np.array([0.9669506, 0.8686259, 0.7055218, 0.4461912])
+    flux = normalize(flux.flatten(), bc_x)
+    assert np.all(np.isclose(flux, ref_flux, atol=1e-2)), "flux not accurate"
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
+@pytest.mark.slab
+@pytest.mark.power_iteration
+@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
+def test_one_group_slab_uranium_01a_chi(bc_x):
+    cells_x = 75
+    angles = 16
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.32640]])
+    xs_scatter = np.array([[[0.248064]]])
+    chi = np.array([[1.0]])
+    nusigf = np.array([[2.70 * 0.065280]])
+    cells_x = 150 if np.sum(bc_x) == 0 else 75
+    length = 2.872934 * 2 if np.sum(bc_x) == 0 else 2.872934
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
         geometry=1,
     )
     ref_flux = np.array([0.9669506, 0.8686259, 0.7055218, 0.4461912])
@@ -241,6 +439,38 @@ def test_one_group_sphere_uranium_01a():
         angle_x,
         angle_w,
         bc_x,
+        geometry=2,
+    )
+    ref_flux = np.array([0.93244907, 0.74553332, 0.48095413, 0.17177706])
+    flux = normalize(flux.flatten(), bc_x)
+    assert np.all(np.isclose(flux, ref_flux, atol=1e-2)), "flux not accurate"
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
+@pytest.mark.sphere
+@pytest.mark.power_iteration
+def test_one_group_sphere_uranium_01a_chi():
+    cells_x = 150
+    angles = 16
+    bc_x = [1, 0]
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.32640]])
+    xs_scatter = np.array([[[0.248064]]])
+    chi = np.array([[1.0]])
+    nusigf = np.array([[2.70 * 0.065280]])
+    length = 7.428998
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
         geometry=2,
     )
     ref_flux = np.array([0.93244907, 0.74553332, 0.48095413, 0.17177706])
@@ -280,6 +510,39 @@ def test_one_group_slab_heavy_water_01a(bc_x):
     assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
 
 
+@pytest.mark.slab
+@pytest.mark.power_iteration
+@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
+def test_one_group_slab_heavy_water_01a_chi(bc_x):
+    cells_x = 600
+    angles = 16
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.54628]])
+    xs_scatter = np.array([[[0.464338]]])
+    chi = np.array([[1.0]])
+    nusigf = np.array([[1.70 * 0.054628]])
+    cells_x = 600 if np.sum(bc_x) == 0 else 300
+    length = 10.371065 * 2 if np.sum(bc_x) == 0 else 10.371065
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
+        geometry=1,
+    )
+    ref_flux = np.array([0.93945236, 0.76504084, 0.49690627, 0.13893858])
+    flux = normalize(flux.flatten(), bc_x)
+    assert np.all(np.isclose(flux, ref_flux, atol=1e-2)), "flux not accurate"
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
 @pytest.mark.sphere
 @pytest.mark.power_iteration
 def test_one_group_sphere_heavy_water_01a():
@@ -310,6 +573,38 @@ def test_one_group_sphere_heavy_water_01a():
     assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
 
 
+@pytest.mark.sphere
+@pytest.mark.power_iteration
+def test_one_group_sphere_heavy_water_01a_chi():
+    cells_x = 300
+    angles = 16
+    bc_x = [1, 0]
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.54628]])
+    xs_scatter = np.array([[[0.464338]]])
+    chi = np.array([[1.0]])
+    nusigf = np.array([[1.70 * 0.054628]])
+    length = 22.017156
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
+        geometry=2,
+    )
+    ref_flux = np.array([0.91063756, 0.67099621, 0.35561622, 0.04678614])
+    flux = normalize(flux.flatten(), bc_x)
+    assert np.all(np.isclose(flux, ref_flux, atol=1e-2)), "flux not accurate"
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
 @pytest.mark.slab
 @pytest.mark.power_iteration
 def test_one_group_slab_uranium_reactor_01a():
@@ -332,6 +627,36 @@ def test_one_group_slab_uranium_reactor_01a():
         angle_x,
         angle_w,
         bc_x,
+        geometry=1,
+    )
+    kinfinite = 2.1806667
+    assert abs(keff - kinfinite) < 2e-3, str(keff) + " not infinite value"
+
+
+@pytest.mark.slab
+@pytest.mark.power_iteration
+def test_one_group_slab_uranium_reactor_01a_chi():
+    cells_x = 200
+    angles = 16
+    bc_x = [0, 0]
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.407407]])
+    xs_scatter = np.array([[[0.328042]]])
+    chi = np.array([[1.0]])
+    nusigf = np.array([[2.50 * 0.06922744]])
+    length = 200 * 250
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
         geometry=1,
     )
     kinfinite = 2.1806667
@@ -371,6 +696,39 @@ def test_two_group_slab_plutonium_01(bc_x):
 
 
 @pytest.mark.smoke
+@pytest.mark.slab
+@pytest.mark.power_iteration
+@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
+def test_two_group_slab_plutonium_01_chi(bc_x):
+    cells_x = 200
+    angles = 20
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.3360, 0.2208]])
+    xs_scatter = np.array([np.array([[0.23616, 0.0], [0.0432, 0.0792]]).T])
+    chi = np.array([[0.425, 0.575]])
+    nu = np.array([[2.93, 3.10]])
+    sigmaf = np.array([[0.08544, 0.0936]])
+    nusigf = nu * sigmaf
+    cells_x = 200 if np.sum(bc_x) == 0 else 100
+    length = 1.795602 * 2 if np.sum(bc_x) == 0 else 1.795602
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
+        geometry=1,
+    )
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
+@pytest.mark.smoke
 @pytest.mark.sphere
 @pytest.mark.power_iteration
 def test_two_group_sphere_plutonium_01():
@@ -396,6 +754,38 @@ def test_two_group_sphere_plutonium_01():
         angle_x,
         angle_w,
         bc_x,
+        geometry=2,
+    )
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
+@pytest.mark.smoke
+@pytest.mark.sphere
+@pytest.mark.power_iteration
+def test_two_group_sphere_plutonium_01_chi():
+    cells_x = 200
+    angles = 20
+    bc_x = [1, 0]
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.3360, 0.2208]])
+    xs_scatter = np.array([np.array([[0.23616, 0.0], [0.0432, 0.0792]]).T])
+    chi = np.array([[0.425, 0.575]])
+    nu = np.array([[2.93, 3.10]])
+    sigmaf = np.array([[0.08544, 0.0936]])
+    nusigf = nu * sigmaf
+    length = 5.231567
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
         geometry=2,
     )
     assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
@@ -434,6 +824,39 @@ def test_two_group_slab_uranium_01(bc_x):
 
 
 @pytest.mark.skip(reason="Incorrect answer from Benchmarks")
+@pytest.mark.slab
+@pytest.mark.power_iteration
+@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
+def test_two_group_slab_uranium_01_chi(bc_x):
+    cells_x = 200
+    angles = 20
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.3456, 0.2160]])
+    xs_scatter = np.array([np.array([[0.26304, 0.0], [0.0720, 0.078240]]).T])
+    chi = np.array([[0.425, 0.575]])
+    nu = np.array([[2.50, 2.70]])
+    sigmaf = np.array([[0.06912, 0.06912]])
+    nusigf = nu * sigmaf
+    cells_x = 200 if np.sum(bc_x) == 0 else 100
+    length = 3.006375 * 2 if np.sum(bc_x) == 0 else 3.006375
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
+        geometry=1,
+    )
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
+@pytest.mark.skip(reason="Incorrect answer from Benchmarks")
 @pytest.mark.sphere
 @pytest.mark.power_iteration
 def test_two_group_sphere_uranium_01():
@@ -459,6 +882,38 @@ def test_two_group_sphere_uranium_01():
         angle_x,
         angle_w,
         bc_x,
+        geometry=2,
+    )
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
+@pytest.mark.skip(reason="Incorrect answer from Benchmarks")
+@pytest.mark.sphere
+@pytest.mark.power_iteration
+def test_two_group_sphere_uranium_01_chi():
+    cells_x = 200
+    angles = 20
+    bc_x = [1, 0]
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.3456, 0.2160]])
+    xs_scatter = np.array([np.array([[0.26304, 0.0], [0.0720, 0.078240]]).T])
+    chi = np.array([[0.425, 0.575]])
+    nu = np.array([[2.50, 2.70]])
+    sigmaf = np.array([[0.06912, 0.06912]])
+    nusigf = nu * sigmaf
+    length = 7.909444
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
         geometry=2,
     )
     assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
@@ -495,6 +950,38 @@ def test_two_group_slab_uranium_aluminum(bc_x):
     assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
 
 
+@pytest.mark.slab
+@pytest.mark.power_iteration
+@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
+def test_two_group_slab_uranium_aluminum_chi(bc_x):
+    cells_x = 200
+    angles = 20
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[1.27698, 0.26817]])
+    xs_scatter = np.array([np.array([[1.21313, 0.0], [0.020432, 0.247516]]).T])
+    chi = np.array([[0.0, 1.0]])
+    nu = np.array([[2.83, 0.0]])
+    sigmaf = np.array([[0.06070636042, 0.0]])
+    nusigf = nu * sigmaf
+    cells_x = 200 if np.sum(bc_x) == 0 else 100
+    length = 7.830630 * 2 if np.sum(bc_x) == 0 else 7.830630
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
+        geometry=1,
+    )
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
 @pytest.mark.sphere
 @pytest.mark.power_iteration
 def test_two_group_sphere_uranium_aluminum():
@@ -520,6 +1007,37 @@ def test_two_group_sphere_uranium_aluminum():
         angle_x,
         angle_w,
         bc_x,
+        geometry=2,
+    )
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
+@pytest.mark.sphere
+@pytest.mark.power_iteration
+def test_two_group_sphere_uranium_aluminum_chi():
+    cells_x = 200
+    angles = 20
+    bc_x = [1, 0]
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[1.27698, 0.26817]])
+    xs_scatter = np.array([np.array([[1.21313, 0.0], [0.020432, 0.247516]]).T])
+    chi = np.array([[0.0, 1.0]])
+    nu = np.array([[2.83, 0.0]])
+    sigmaf = np.array([[0.06070636042, 0.0]])
+    nusigf = nu * sigmaf
+    length = 17.66738
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
         geometry=2,
     )
     assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
@@ -556,6 +1074,38 @@ def test_two_group_slab_uranium_reactor_01(bc_x):
     assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
 
 
+@pytest.mark.slab
+@pytest.mark.power_iteration
+@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
+def test_two_group_slab_uranium_reactor_01_chi(bc_x):
+    cells_x = 200
+    angles = 20
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[2.52025, 0.65696]])
+    xs_scatter = np.array([np.array([[2.44383, 0.0], [0.029227, 0.62568]]).T])
+    chi = np.array([[0.0, 1.0]])
+    nu = np.array([[2.5, 2.5]])
+    sigmaf = np.array([[0.050632, 0.0010484]])
+    nusigf = nu * sigmaf
+    cells_x = 200 if np.sum(bc_x) == 0 else 100
+    length = 7.566853 * 2 if np.sum(bc_x) == 0 else 7.566853
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
+        geometry=1,
+    )
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
 @pytest.mark.sphere
 @pytest.mark.power_iteration
 def test_two_group_sphere_uranium_reactor_01():
@@ -581,6 +1131,37 @@ def test_two_group_sphere_uranium_reactor_01():
         angle_x,
         angle_w,
         bc_x,
+        geometry=2,
+    )
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
+@pytest.mark.sphere
+@pytest.mark.power_iteration
+def test_two_group_sphere_uranium_reactor_01_chi():
+    cells_x = 200
+    angles = 20
+    bc_x = [1, 0]
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[2.52025, 0.65696]])
+    xs_scatter = np.array([np.array([[2.44383, 0.0], [0.029227, 0.62568]]).T])
+    chi = np.array([[0.0, 1.0]])
+    nu = np.array([[2.5, 2.5]])
+    sigmaf = np.array([[0.050632, 0.0010484]])
+    nusigf = nu * sigmaf
+    length = 16.049836
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
         geometry=2,
     )
     assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"

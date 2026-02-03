@@ -36,6 +36,7 @@ def power_iteration(
     angle_x,
     angle_w,
     bc_x,
+    chi=None,
     geometry=1,
 ):
     """Run power iteration for 1D multigroup problems.
@@ -52,6 +53,8 @@ def power_iteration(
         Angular ordinates and weights.
     bc_x : list-like
         Boundary condition indicators.
+    chi : numpy.ndarray, optional
+        Fission Neutron Distribution. Must be included if xs_fission is nusigf.
     geometry : int, optional
         Geometry selector (1=slab, 2=sphere).
 
@@ -79,7 +82,10 @@ def power_iteration(
 
     while not (converged):
         # Update power source term
-        tools.fission_prod(flux_old, xs_fission, source, medium_map, keff)
+        if chi is None:
+            tools.fission_mat_prod(flux_old, xs_fission, source, medium_map, keff)
+        else:
+            tools.fission_vec_prod(flux_old, chi, xs_fission, source, medium_map, keff)
 
         # Solve for scalar flux
         flux = mg.source_iteration(
@@ -97,7 +103,12 @@ def power_iteration(
         )
 
         # Update keffective
-        keff = tools._update_keffective(flux, flux_old, xs_fission, medium_map, keff)
+        if chi is None:
+            keff = tools._update_keff_mat(flux, flux_old, xs_fission, medium_map, keff)
+        else:
+            keff = tools._update_keff_vec(
+                flux, flux_old, chi, xs_fission, medium_map, keff
+            )
 
         # Normalize flux
         flux /= np.linalg.norm(flux)
@@ -124,6 +135,7 @@ def collect_power_iteration(
     angle_w,
     bc_x,
     filepath,
+    chi=None,
     geometry=1,
 ):
     """Collect training data for DJINN models during power iteration.
@@ -154,6 +166,8 @@ def collect_power_iteration(
         Boundary condition indicators [left, right] (0=vacuum, 1=reflective).
     filepath : str
         Directory path where training data files will be saved.
+    chi : numpy.ndarray, optional
+        Fission Neutron Distribution. Must be included if xs_fission is nusigf.
     geometry : int, optional
         Geometry type (1=slab, 2=sphere). Default is 1.
 
@@ -197,7 +211,10 @@ def collect_power_iteration(
 
     while not (converged):
         # Update power source term
-        tools.fission_prod(flux_old, xs_fission, source, medium_map, keff)
+        if chi is None:
+            tools.fission_mat_prod(flux_old, xs_fission, source, medium_map, keff)
+        else:
+            tools.fission_vec_prod(flux_old, chi, xs_fission, source, medium_map, keff)
 
         # Solve for scalar flux
         flux = mg.source_iteration_collect(
@@ -217,7 +234,12 @@ def collect_power_iteration(
         )
 
         # Update keffective
-        keff = tools._update_keffective(flux, flux_old, xs_fission, medium_map, keff)
+        if chi is None:
+            keff = tools._update_keff_mat(flux, flux_old, xs_fission, medium_map, keff)
+        else:
+            keff = tools._update_keff_vec(
+                flux, flux_old, chi, xs_fission, medium_map, keff
+            )
 
         # Normalize flux
         flux /= np.linalg.norm(flux)
@@ -253,7 +275,8 @@ def ml_power_iteration(
     angle_x,
     angle_w,
     bc_x,
-    geometry,
+    chi=None,
+    geometry=1,
     fission_models=[],
     scatter_models=[],
     fission_labels=None,
@@ -286,8 +309,10 @@ def ml_power_iteration(
         Angular quadrature weights.
     bc_x : list-like
         Boundary condition indicators [left, right] (0=vacuum, 1=reflective).
-    geometry : int
-        Geometry type (1=slab, 2=sphere).
+    chi : numpy.ndarray, optional
+        Fission Neutron Distribution. Must be included if xs_fission is nusigf.
+    geometry : int, optional
+        Geometry type (1=slab, 2=sphere). Default is 1.
     fission_models : list, optional
         Trained DJINN models for fission source prediction. Empty list uses
         traditional calculation. Default is [].
@@ -333,11 +358,14 @@ def ml_power_iteration(
     while not (converged):
         # Update power source term
         # No Fission DJINN predictions
-        if len(fission_models) == 0:
-            tools.fission_prod(
+        if len(fission_models) == 0 and chi is None:
+            tools.fission_mat_prod(
                 flux_old, xs_fission, fission_source, medium_map, keff_old
             )
-
+        elif len(fission_models) == 0:
+            tools.fission_vec_prod(
+                flux_old, chi, xs_fission, fission_source, medium_map, keff_old
+            )
         # Fission DJINN predictions
         else:
             tools.fission_prod_predict(

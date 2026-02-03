@@ -10,7 +10,8 @@ The module is organized into several functional categories:
 
 **Multigroup Transport Functions**
     - ``scatter_prod``: Compute scattering source terms
-    - ``fission_prod``: Compute fission source terms for eigenvalue problems
+    - ``fission_mat_prod``: Compute fission source terms for eigenvalue problems
+    - ``fission_vec_prod``: Compute fission source terms for eigenvalue problems
     - ``reaction_rates``: Calculate per-cell reaction rates
 
 **Hybrid ML/Physics Functions**
@@ -57,9 +58,9 @@ Use hybrid ML approach for fission source:
 import numba
 import numpy as np
 
-########################################################################
+################################################################################
 # Multigroup functions
-########################################################################
+################################################################################
 
 
 @numba.jit(
@@ -223,9 +224,9 @@ def _time_right_side(q_star, flux, xs_scatter, medium_map):
             q_star[ii, :, og] += one_group
 
 
-########################################################################
+################################################################################
 # Anisotropic Scattering
-########################################################################
+################################################################################
 
 # def legendre_polynomial(moment, x):
 #     # Legendre polynomial using polynomial degree (moment) and
@@ -249,9 +250,9 @@ def _time_right_side(q_star, flux, xs_scatter, medium_map):
 #     return source
 
 
-########################################################################
+################################################################################
 # Multigroup functions - DMD
-########################################################################
+################################################################################
 
 
 def _svd_dmd(A, K):
@@ -331,15 +332,15 @@ def dmd(flux_old, y_minus, y_plus, K):
     return flux
 
 
-########################################################################
+################################################################################
 # K-eigenvalue functions
-########################################################################
+################################################################################
 
 
 @numba.jit(
     "f8[:,:,:](f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], f8)", nopython=True, cache=True
 )
-def fission_prod(flux, xs_fission, source, medium_map, keff):
+def fission_mat_prod(flux, xs_fission, source, medium_map, keff):
     r"""Calculate fission source term for criticality problems.
 
     Computes the fission source for each spatial cell and energy group by
@@ -405,7 +406,7 @@ def fission_prod(flux, xs_fission, source, medium_map, keff):
 
 
 @numba.jit("f8(f8[:,:], f8[:,:], f8[:,:,:], i4[:], f8)", nopython=True, cache=True)
-def _update_keffective(flux, flux_old, xs_fission, medium_map, keff):
+def _update_keff_mat(flux, flux_old, xs_fission, medium_map, keff):
     # Get iterables
     cells_x, groups = flux.shape
     ii = numba.int32
@@ -424,6 +425,104 @@ def _update_keffective(flux, flux_old, xs_fission, medium_map, keff):
             for ig in range(groups):
                 rate_new += flux[ii, ig] * xs_fission[mat, og, ig]
                 rate_old += flux_old[ii, ig] * xs_fission[mat, og, ig]
+    return (rate_new * keff) / rate_old
+
+
+@numba.jit(
+    "f8[:,:,:](f8[:,:], f8[:,:], f8[:,:], f8[:,:,:], i4[:], f8)",
+    nopython=True,
+    cache=True,
+)
+def fission_vec_prod(flux, chi, nusigf, source, medium_map, keff):
+    r"""Calculate fission source term for criticality problems.
+
+    Computes the fission source for each spatial cell and energy group by
+    integrating the product of flux and fission cross sections, scaled by
+    the effective multiplication factor (keff). This is used in eigenvalue
+    (criticality) calculations.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Scalar flux array of shape (cells_x, groups). Contains the neutron
+        flux at each spatial cell and energy group.
+    chi : numpy.ndarray
+        Fission neutron distribution of shape (materials, groups). chi[m, og] is
+        the fission probability output of group og for material m.
+    nusigf : numpy.ndarray
+        Fission production cross section array of shape (materials, groups).
+        nusigf[m, ig] is the cross section for neutrons in group ig
+        causing fission that produces neutrons for material m.
+    source : numpy.ndarray
+        Fission source array of shape (cells_x, 1, groups) to be updated.
+        Zeroed out and overwritten with computed fission source.
+    medium_map : numpy.ndarray
+        Material index map of shape (cells_x,). Maps each spatial cell to
+        its material index.
+    keff : float
+        Effective multiplication factor. Used to normalize the fission source.
+
+    Returns
+    -------
+    numpy.ndarray
+        Updated fission source array of shape (cells_x, 1, groups).
+
+    Notes
+    -----
+    This function is JIT-compiled with Numba for performance. The fission
+    source for cell ii and output group og is:
+
+    .. math::
+        S_{f,ii,og} = \\frac{1}{k_{eff}} \\sum_{ig} \\phi_{ii,ig} \\sigma_{f,mat,og,ig}
+
+    where mat = medium_map[ii].
+    """
+    # Get parameters
+    cells_x, groups = flux.shape
+    ii = numba.int32
+    mat = numba.int32
+    og = numba.int32
+    ig = numba.int32
+    one_group = numba.float64
+    # Zero out previous source
+    source *= 0.0
+    # Iterate over cells and groups
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+        if chi[mat].sum() == 0.0:
+            continue
+        for og in range(groups):
+            # source[ii,0,og] = np.sum(flux[ii] @ xs_fission[mat,og]) / keff
+            one_group = 0.0
+            for ig in range(groups):
+                one_group += flux[ii, ig] * chi[mat, og] * nusigf[mat, ig]
+            source[ii, 0, og] = one_group / keff
+    # Return matrix vector product
+    return source
+
+
+@numba.jit(
+    "f8(f8[:,:], f8[:,:], f8[:,:], f8[:,:], i4[:], f8)", nopython=True, cache=True
+)
+def _update_keff_vec(flux, flux_old, chi, nusigf, medium_map, keff):
+    # Get iterables
+    cells_x, groups = flux.shape
+    ii = numba.int32
+    mat = numba.int32
+    og = numba.int32
+    ig = numba.int32
+    # Initialize fission rates
+    rate_new = 0.0
+    rate_old = 0.0
+    # Iterate over cells and groups
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+        if chi[mat].sum() == 0.0:
+            continue
+        for og in range(groups):
+            for ig in range(groups):
+                rate_new += flux[ii, ig] * chi[mat, og] * nusigf[mat, ig]
+                rate_old += flux_old[ii, ig] * chi[mat, og] * nusigf[mat, ig]
     return (rate_new * keff) / rate_old
 
 
@@ -471,9 +570,9 @@ def _hybrid_combine_fluxes(flux_u, flux_c, coarse_idx, factor):
             flux_u[ii, gg] = flux_c[ii, coarse_idx[gg]] * factor[gg]
 
 
-########################################################################
+################################################################################
 # DJINN functions
-########################################################################
+################################################################################
 # Fission source is of size (I x 1 x G) - for source iteration dimensions
 # Scatter source is of size (I x G) - for discrete ordinates dimensions
 
@@ -540,7 +639,7 @@ def fission_prod_predict(
         # Check if model available
         if isinstance(model, int):
             # Calculate standard source
-            source[idx] = fission_prod(
+            source[idx] = fission_mat_prod(
                 flux[idx], xs_fission, source[idx], medium_map[idx], keff
             )
             continue
@@ -700,9 +799,9 @@ def scatter_prod(flux, xs_scatter, source, medium_map):
     return source
 
 
-########################################################################
+################################################################################
 # Hybrid functions
-########################################################################
+################################################################################
 
 
 @numba.jit(
@@ -756,9 +855,9 @@ def _hybrid_source_total(
                 q_star[ii, nn, og] += one_group
 
 
-########################################################################
+################################################################################
 # Display Options
-########################################################################
+################################################################################
 
 
 def reaction_rates(flux, xs_matrix, medium_map):
@@ -791,9 +890,9 @@ def reaction_rates(flux, xs_matrix, medium_map):
     return rate
 
 
-########################################################################
+################################################################################
 # Spatially Independent Functions
-########################################################################
+################################################################################
 
 
 @numba.jit("f8(f8[:], f8[:], f8[:,:], i4)", nopython=True, cache=True)
@@ -812,7 +911,7 @@ def _off_scatter_0d(flux, flux_old, xs_scatter, gg):
 
 
 @numba.jit("f8[:,:](f8[:], f8[:,:], f8[:,:], f8)", nopython=True, cache=True)
-def _fission_source_0d(flux, xs_fission, source, keff):
+def _fission_mat_source_0d(flux, xs_fission, source, keff):
     # Get parameters
     groups = flux.shape[0]
     og = numba.int32
@@ -830,8 +929,27 @@ def _fission_source_0d(flux, xs_fission, source, keff):
     return source
 
 
+@numba.jit("f8[:,:](f8[:], f8[:], f8[:], f8[:,:], f8)", nopython=True, cache=True)
+def _fission_vec_source_0d(flux, chi, nusigf, source, keff):
+    # Get parameters
+    groups = flux.shape[0]
+    og = numba.int32
+    ig = numba.int32
+    one_group = numba.float64
+    # Zero out previous source
+    source *= 0.0
+    # Iterate over groups
+    for og in range(groups):
+        one_group = 0.0
+        for ig in range(groups):
+            one_group += flux[ig] * chi[og] * nusigf[ig]
+        source[0, og] = one_group / keff
+    # Return matrix vector product
+    return source
+
+
 @numba.jit("f8(f8[:], f8[:], f8[:,:], f8)", nopython=True, cache=True)
-def _update_keffective_0d(flux, flux_old, xs_fission, keff):
+def _update_keff_mat_0d(flux, flux_old, xs_fission, keff):
     # Get iterables
     groups = flux.shape[0]
     og = numba.int32
@@ -844,4 +962,21 @@ def _update_keffective_0d(flux, flux_old, xs_fission, keff):
         for ig in range(groups):
             rate_new += flux[ig] * xs_fission[og, ig]
             rate_old += flux_old[ig] * xs_fission[og, ig]
+    return (rate_new * keff) / rate_old
+
+
+@numba.jit("f8(f8[:], f8[:], f8[:], f8[:], f8)", nopython=True, cache=True)
+def _update_keff_vec_0d(flux, flux_old, chi, nusigf, keff):
+    # Get iterables
+    groups = flux.shape[0]
+    og = numba.int32
+    ig = numba.int32
+    # Initialize fission rates
+    rate_new = 0.0
+    rate_old = 0.0
+    # Iterate over groups
+    for og in range(groups):
+        for ig in range(groups):
+            rate_new += flux[ig] * chi[og] * nusigf[ig]
+            rate_old += flux_old[ig] * chi[og] * nusigf[ig]
     return (rate_new * keff) / rate_old

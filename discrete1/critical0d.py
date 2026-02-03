@@ -14,7 +14,7 @@ count_kk = 100
 change_kk = 1e-06
 
 
-def power_iteration(angles, xs_total, xs_scatter, xs_fission):
+def power_iteration(angles, xs_total, xs_scatter, xs_fission, chi=None):
     """Run a simple power iteration for the 0D problem.
 
     Parameters
@@ -23,6 +23,8 @@ def power_iteration(angles, xs_total, xs_scatter, xs_fission):
         Number of angular ordinates to construct.
     xs_total, xs_scatter, xs_fission : numpy.ndarray
         Cross section arrays used by the multigroup solver.
+    chi : numpy.ndarray, optional
+        Fission Neutron Distribution. Must be included if xs_fission is nusigf.
 
     Returns
     -------
@@ -47,7 +49,10 @@ def power_iteration(angles, xs_total, xs_scatter, xs_fission):
 
     while not (converged):
         # Update power source term
-        tools._fission_source_0d(flux_old, xs_fission, source, keff)
+        if chi is None:
+            tools._fission_mat_source_0d(flux_old, xs_fission, source, keff)
+        else:
+            tools._fission_vec_source_0d(flux_old, chi, xs_fission, source, keff)
 
         # Solve for scalar flux
         flux = mg.source_iteration(
@@ -55,7 +60,10 @@ def power_iteration(angles, xs_total, xs_scatter, xs_fission):
         )
 
         # Update keffective
-        keff = tools._update_keffective_0d(flux, flux_old, xs_fission, keff)
+        if chi is None:
+            keff = tools._update_keff_mat_0d(flux, flux_old, xs_fission, keff)
+        else:
+            keff = tools._update_keff_vec_0d(flux, flux_old, chi, xs_fission, keff)
 
         # Normalize flux
         flux /= np.linalg.norm(flux)
