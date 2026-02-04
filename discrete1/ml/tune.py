@@ -156,7 +156,8 @@ class RegressionDeepONet:
             Populates ``self.search_space`` with lists of candidate values.
         """
         # NN Construction Parameters
-        max_layers = kwargs.get("max_fc_layers", 5)
+        max_b_layers = kwargs.get("max_b_layers", 5)
+        max_t_layers = kwargs.get("max_t_layers", 5)
         nodes = kwargs.get("nodes", [64, 128, 256])
         activations = kwargs.get("fc_activations", ["ReLU", "GELU", "Tanh"])
         dropout = kwargs.get("dropout", [0.0, 0.1, 0.2])
@@ -173,7 +174,8 @@ class RegressionDeepONet:
 
         # Store parameters
         self.search_space = {
-            "max_layers": max_layers,
+            "max_b_layers": max_b_layers,
+            "max_t_layers": max_t_layers,
             "nodes": nodes,
             "activations": activations,
             "dropout": dropout,
@@ -205,7 +207,11 @@ class RegressionDeepONet:
             A sequential model on the configured device.
         """
         # Suggest NN architecture
-        num_layers = trial.suggest_int("num_layers", 1, self.search_space["max_layers"])
+        if label == "b":
+            max_layers = self.search_space["max_b_layers"]
+        else:
+            max_layers = self.search_space["max_t_layers"]
+        num_layers = trial.suggest_int(f"num_{label}_layers", 1, max_layers)
         layers = []
 
         for i in range(num_layers):
