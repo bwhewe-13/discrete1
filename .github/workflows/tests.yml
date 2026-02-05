@@ -30,9 +30,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install .[all]
 
-    - name: Decode test dependencies
+    - name: Decode test data dependencies
       run: |
         echo "${{ secrets.TEST_ENERGY_DATA }}" | base64 --decode > tests/energy_grids.npz
+        echo "${{ secrets.TEST_G087_DATA }}" | base64 --decode > tests/G087_grid_index.npz
+        echo "${{ secrets.TEST_G361_DATA }}" | base64 --decode > tests/G361_grid_index.npz
+        echo "${{ secrets.TEST_G618_DATA }}" | base64 --decode > tests/G618_grid_index.npz
 
     - name: Run tests with coverage
       run: |

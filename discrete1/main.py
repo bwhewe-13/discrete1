@@ -98,12 +98,11 @@ def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
     """
     # Create energy grid
     if grid in [87, 361, 618]:
-        edges_g = np.load(DATA_PATH + "energy_grids.npz")[str(grid)]
+        edges_g = np.load(os.path.join(DATA_PATH, "energy_grids.npz"))[str(grid)]
 
         # Collect grid boundary indices
         fgrid = str(grid).zfill(3)
-        edges_data = np.load(DATA_PATH + f"G{fgrid}_grid_index.npz")
-
+        edges_data = np.load(os.path.join(DATA_PATH, f"G{fgrid}_grid_index.npz"))
     # Calculate the indices for the specific fine grid
     if (grid in [87, 361, 618]) and (optimize):
         # Predefined fine grid index
@@ -235,6 +234,4 @@ def spatial1d(layers, edges_x, labels=False, check=True):
     if check:
         assert np.all(medium_map != -1)
 
-    return medium_map
-    return medium_map
     return medium_map
