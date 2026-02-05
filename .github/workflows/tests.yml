@@ -30,6 +30,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install .[all]
 
+    - name: Decode test dependencies
+      run: |
+        echo "${{ secrets.TEST_ENERGY_DATA }}" | base64 --decode > tests/energy_grids.npz
+
     - name: Run tests with coverage
       run: |
         pytest --ml --cov=discrete1 --cov-report=xml

@@ -13,13 +13,17 @@ Public helpers
 - spatial1d
 """
 
+import os
+from importlib.resources import files
+
 import numpy as np
-import pkg_resources
 
 import discrete1.constants as const
 from discrete1.utils.hybrid import energy_coarse_index
 
-DATA_PATH = pkg_resources.resource_filename("discrete1", "sources/energy/")
+DATA_PATH = str(files("discrete1").joinpath("sources/energy"))
+if not os.path.exists(DATA_PATH):
+    DATA_PATH = str(files("discrete1").joinpath("../tests"))
 
 
 def angular_x(angles, bc_x=[0, 0]):
@@ -231,4 +235,6 @@ def spatial1d(layers, edges_x, labels=False, check=True):
     if check:
         assert np.all(medium_map != -1)
 
+    return medium_map
+    return medium_map
     return medium_map
