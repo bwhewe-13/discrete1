@@ -1,4 +1,9 @@
-# Called for time dependent source problems
+"""Time-dependent 1D transport problems.
+
+This module provides solvers for time-dependent (transient) 1D transport
+problems using discrete ordinates methods. It implements Backward Euler (BDF1)
+and second-order Backward Differentiation Formula (BDF2) time integration schemes.
+"""
 
 import numpy as np
 from tqdm import tqdm
@@ -24,6 +29,49 @@ def backward_euler(
     dt,
     geometry=1,
 ):
+    """Solve time-dependent transport using first-order Backward Differentiation.
+
+    Advances solution through multiple time steps using implicit BDF1 (Backward Euler)
+    time integration with source iteration for the spatial problem.
+
+    Parameters
+    ----------
+    flux_last : numpy.ndarray
+        Angular flux at previous time step (cells, angles, groups).
+    xs_total : numpy.ndarray
+        Total macroscopic cross section (cells, groups).
+    xs_scatter : numpy.ndarray
+        Scattering cross section (cells, groups).
+    xs_fission : numpy.ndarray
+        Fission cross section (cells, groups).
+    velocity : numpy.ndarray
+        Particle velocity (groups,).
+    external : numpy.ndarray
+        External source (steps/1, cells, angles, groups).
+    boundary : numpy.ndarray
+        Boundary conditions (steps/1, 2, angles, groups).
+    medium_map : numpy.ndarray
+        Material region map (cells,).
+    delta_x : numpy.ndarray
+        Cell widths (cells,).
+    angle_x : numpy.ndarray
+        Discrete ordinates (angles,).
+    angle_w : numpy.ndarray
+        Quadrature weights (angles,).
+    bc_x : int
+        Boundary condition type (0=vacuum, 1=reflective).
+    steps : int
+        Number of time steps.
+    dt : float
+        Time step size.
+    geometry : int, optional
+        Geometry type (1=slab, 2=cylindrical, 3=spherical).
+
+    Returns
+    -------
+    numpy.ndarray
+        Scalar flux at all time steps (steps, cells, groups).
+    """
 
     # Scalar flux approximation
     flux_old = np.sum(flux_last * angle_w[None, :, None], axis=1)
@@ -99,7 +147,49 @@ def bdf2(
     dt,
     geometry=1,
 ):
+    """Solve time-dependent transport using second-order Backward Differentiation.
 
+    Advances solution through multiple time steps using implicit BDF2 time integration,
+    starting with BDF1 on the first step and switching to BDF2 thereafter.
+
+    Parameters
+    ----------
+    flux_last_1 : numpy.ndarray
+        Angular flux at previous time step (cells, angles, groups).
+    xs_total : numpy.ndarray
+        Total macroscopic cross section (cells, groups).
+    xs_scatter : numpy.ndarray
+        Scattering cross section (cells, groups).
+    xs_fission : numpy.ndarray
+        Fission cross section (cells, groups).
+    velocity : numpy.ndarray
+        Particle velocity (groups,).
+    external : numpy.ndarray
+        External source (steps/1, cells, angles, groups).
+    boundary : numpy.ndarray
+        Boundary conditions (steps/1, 2, angles, groups).
+    medium_map : numpy.ndarray
+        Material region map (cells,).
+    delta_x : numpy.ndarray
+        Cell widths (cells,).
+    angle_x : numpy.ndarray
+        Discrete ordinates (angles,).
+    angle_w : numpy.ndarray
+        Quadrature weights (angles,).
+    bc_x : int
+        Boundary condition type (0=vacuum, 1=reflective).
+    steps : int
+        Number of time steps.
+    dt : float
+        Time step size.
+    geometry : int, optional
+        Geometry type (1=slab, 2=cylindrical, 3=spherical).
+
+    Returns
+    -------
+    numpy.ndarray
+        Scalar flux at all time steps (steps, cells, groups).
+    """
     # Scalar flux approximation
     flux_old = np.sum(flux_last_1 * angle_w[None, :, None], axis=1)
 

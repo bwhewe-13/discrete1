@@ -1,4 +1,9 @@
-# Called for fixed source problems
+"""Fixed source 1D transport problems.
+
+This module provides solvers for fixed source (non-fissile) 1D transport problems
+using discrete ordinates methods. It includes source iteration and dynamic mode
+decomposition techniques.
+"""
 
 import numpy as np
 
@@ -21,6 +26,47 @@ def source_iteration(
     angular=False,
     edges=0,
 ):
+    """Solve fixed source problem using source iteration.
+
+    Uses the multi-group source iteration method to solve for scalar flux
+    (and optionally angular flux or edge fluxes) in a fixed source transport
+    problem.
+
+    Parameters
+    ----------
+    xs_total : numpy.ndarray
+        Total macroscopic cross section (cells, groups).
+    xs_scatter : numpy.ndarray
+        Scattering cross section (cells, groups).
+    xs_fission : numpy.ndarray
+        Fission cross section (cells, groups).
+    external : numpy.ndarray
+        External source (steps/1, cells, angles, groups).
+    boundary : numpy.ndarray
+        Boundary conditions (steps/1, 2, angles, groups).
+    medium_map : numpy.ndarray
+        Material region map (cells,).
+    delta_x : numpy.ndarray
+        Cell widths (cells,).
+    angle_x : numpy.ndarray
+        Discrete ordinates (angles,).
+    angle_w : numpy.ndarray
+        Quadrature weights (angles,).
+    bc_x : int
+        Boundary condition type (0=vacuum, 1=reflective).
+    geometry : int, optional
+        Geometry type (1=slab, 2=cylindrical, 3=spherical).
+    angular : bool, optional
+        If True, return angular flux instead of scalar.
+    edges : int, optional
+        If 1, return fluxes at cell edges; if 0, at cell centers.
+
+    Returns
+    -------
+    numpy.ndarray
+        Scalar flux at cell centers (cells, groups) if angular=False and
+        edges=0, otherwise returns angular or edge flux as specified.
+    """
 
     # Initialize flux
     cells_x = medium_map.shape[0]
@@ -83,6 +129,50 @@ def dynamic_mode_decomp(
     R=2,
     K=10,
 ):
+    """Solve fixed source problem using dynamic mode decomposition.
+
+    Uses dynamic mode decomposition for reduced-order approximation of scalar
+    flux in fixed source transport problems.
+
+    Parameters
+    ----------
+    xs_total : numpy.ndarray
+        Total macroscopic cross section (cells, groups).
+    xs_scatter : numpy.ndarray
+        Scattering cross section (cells, groups).
+    xs_fission : numpy.ndarray
+        Fission cross section (cells, groups).
+    external : numpy.ndarray
+        External source (steps/1, cells, angles, groups).
+    boundary : numpy.ndarray
+        Boundary conditions (steps/1, 2, angles, groups).
+    medium_map : numpy.ndarray
+        Material region map (cells,).
+    delta_x : numpy.ndarray
+        Cell widths (cells,).
+    angle_x : numpy.ndarray
+        Discrete ordinates (angles,).
+    angle_w : numpy.ndarray
+        Quadrature weights (angles,).
+    bc_x : int
+        Boundary condition type (0=vacuum, 1=reflective).
+    geometry : int, optional
+        Geometry type (1=slab, 2=cylindrical, 3=spherical).
+    angular : bool, optional
+        If True, return angular flux instead of scalar.
+    edges : int, optional
+        If 1, return fluxes at cell edges; if 0, at cell centers.
+    R : int, optional
+        Number of modes to retain.
+    K : int, optional
+        Number of snapshots for decomposition.
+
+    Returns
+    -------
+    numpy.ndarray
+        Scalar flux at cell centers (cells, groups) if angular=False and
+        edges=0, otherwise returns angular or edge flux as specified.
+    """
 
     # Initialize flux
     cells_x = medium_map.shape[0]
@@ -130,7 +220,6 @@ def dynamic_mode_decomp(
     )
 
 
-# This is for calculating angular flux or edge flux
 def known_source_calculation(
     flux,
     xs_total,
@@ -146,6 +235,46 @@ def known_source_calculation(
     angular,
     edges,
 ):
+    """Calculate angular flux or edge flux from scalar flux.
+
+    Computes angular flux at cell centers/edges or scalar flux at cell edges
+    from a known scalar flux solution.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Scalar flux at cell centers (cells, groups).
+    xs_total : numpy.ndarray
+        Total macroscopic cross section (cells, groups).
+    xs_scatter : numpy.ndarray
+        Scattering cross section (cells, groups).
+    external : numpy.ndarray
+        External source (cells, angles, groups).
+    boundary : numpy.ndarray
+        Boundary conditions (2, angles, groups).
+    medium_map : numpy.ndarray
+        Material region map (cells,).
+    delta_x : numpy.ndarray
+        Cell widths (cells,).
+    angle_x : numpy.ndarray
+        Discrete ordinates (angles,).
+    angle_w : numpy.ndarray
+        Quadrature weights (angles,).
+    bc_x : int
+        Boundary condition type (0=vacuum, 1=reflective).
+    geometry : int
+        Geometry type (1=slab, 2=cylindrical, 3=spherical).
+    angular : bool
+        If True, return angular flux; if False, return scalar flux.
+    edges : int
+        If 1, return flux at cell edges; if 0, at cell centers.
+
+    Returns
+    -------
+    numpy.ndarray
+        Angular flux (cells, angles, groups) if angular=True, or
+        scalar flux at edges (cells+1, groups) if angular=False and edges=1.
+    """
 
     cells_x, groups = flux.shape
     angles = angle_x.shape[0]

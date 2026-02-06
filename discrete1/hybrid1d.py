@@ -1,4 +1,9 @@
-# Called for time dependent source problems
+"""Hybrid multi-group transport solver for 1D time-dependent problems.
+
+This module provides hybrid multi-group methods that automatically coarsen energy
+groups and/or angular discretization for improved computational efficiency in
+time-dependent 1D transport problems.
+"""
 
 import numpy as np
 from tqdm import tqdm
@@ -29,6 +34,55 @@ def auto_bdf1(
     dt,
     geometry=1,
 ):
+    """Hybrid solver with automatic coarsening using first-order time integration.
+
+    Automatically coarsens energy groups and/or angular discretization for improved
+    efficiency, then solves using backward Euler (BDF1) time stepping.
+
+    Parameters
+    ----------
+    flux_last : numpy.ndarray
+        Angular flux at previous time (cells, angles, groups).
+    xs_total_u : numpy.ndarray
+        Fine-group total cross section (cells, groups_u).
+    xs_scatter_u : numpy.ndarray
+        Fine-group scattering cross section (cells, groups_u).
+    xs_fission_u : numpy.ndarray
+        Fine-group fission cross section (cells, groups_u).
+    velocity_u : numpy.ndarray
+        Fine-group velocity (groups_u,).
+    external_u : numpy.ndarray
+        Fine-group external source (steps/1, cells, angles, groups_u).
+    boundary_u : numpy.ndarray
+        Fine-group boundary conditions (steps/1, 2, angles, groups_u).
+    medium_map : numpy.ndarray
+        Material region map (cells,).
+    delta_x : numpy.ndarray
+        Cell widths (cells,).
+    angle_xu : numpy.ndarray
+        Fine angular discretization (angles_u,).
+    angle_wu : numpy.ndarray
+        Fine quadrature weights (angles_u,).
+    bc_x : int
+        Boundary condition type (0=vacuum, 1=reflective).
+    angles_c : int
+        Target coarse angular discretization.
+    groups_c : int
+        Target coarse energy groups.
+    energy_grid : tuple
+        Energy grid specification (edges, indices_u, indices_c).
+    steps : int
+        Number of time steps.
+    dt : float
+        Time step size.
+    geometry : int, optional
+        Geometry type (1=slab, 2=cylindrical, 3=spherical).
+
+    Returns
+    -------
+    numpy.ndarray
+        Scalar flux at all time steps (steps, cells, groups_u).
+    """
 
     # Get hybrid parameters
     edges_g, edges_gidx_u, edges_gidx_c = energy_grid
@@ -108,7 +162,67 @@ def backward_euler(
     dt,
     geometry=1,
 ):
+    """Hybrid solver with explicit coarsening using first-order time integration.
 
+    Solves using two independent energy group systems (uncollided and collided)
+    and recombines with first-order backward Euler time stepping.
+
+    Parameters
+    ----------
+    flux_last : numpy.ndarray
+        Angular flux at previous time (cells, angles_u, groups_u).
+    xs_total_u : numpy.ndarray
+        Fine-group total cross section (cells, groups_u).
+    xs_total_c : numpy.ndarray
+        Coarse-group total cross section (cells, groups_c).
+    xs_scatter_u : numpy.ndarray
+        Fine-group scattering (cells, groups_u).
+    xs_scatter_c : numpy.ndarray
+        Coarse-group scattering (cells, groups_c).
+    xs_fission_u : numpy.ndarray
+        Fine-group fission (cells, groups_u).
+    xs_fission_c : numpy.ndarray
+        Coarse-group fission (cells, groups_c).
+    velocity_u : numpy.ndarray
+        Fine-group velocity (groups_u,).
+    velocity_c : numpy.ndarray
+        Coarse-group velocity (groups_c,).
+    external_u : numpy.ndarray
+        Fine-group external source (steps/1, cells, angles_u, groups_u).
+    boundary_u : numpy.ndarray
+        Fine-group boundary (steps/1, 2, angles_u, groups_u).
+    medium_map : numpy.ndarray
+        Material region map (cells,).
+    delta_x : numpy.ndarray
+        Cell widths (cells,).
+    angle_xu : numpy.ndarray
+        Fine angular discretization (angles_u,).
+    angle_xc : numpy.ndarray
+        Coarse angular discretization (angles_c,).
+    angle_wu : numpy.ndarray
+        Fine quadrature weights (angles_u,).
+    angle_wc : numpy.ndarray
+        Coarse quadrature weights (angles_c,).
+    bc_x : int
+        Boundary condition type (0=vacuum, 1=reflective).
+    fine_idx : numpy.ndarray
+        Mapping from coarse to fine groups.
+    coarse_idx : numpy.ndarray
+        Mapping from fine to coarse groups.
+    factor : float
+        Energy group coarsening factor.
+    steps : int
+        Number of time steps.
+    dt : float
+        Time step size.
+    geometry : int, optional
+        Geometry type (1=slab, 2=cylindrical, 3=spherical).
+
+    Returns
+    -------
+    numpy.ndarray
+        Scalar flux at all time steps (steps, cells, groups_u).
+    """
     # Scalar flux approximation
     flux_u = np.sum(flux_last * angle_wu[None, :, None], axis=1)
     flux_c = np.zeros((medium_map.shape[0], xs_total_c.shape[1]))
@@ -202,7 +316,56 @@ def auto_bdf2(
     dt,
     geometry=1,
 ):
+    """Hybrid solver with automatic coarsening using second-order time integration.
 
+    Automatically coarsens energy groups and/or angular discretization for improved
+    efficiency, then solves using second-order backward differentiation formula (BDF2)
+    time stepping.
+
+    Parameters
+    ----------
+    flux_last_1 : numpy.ndarray
+        Angular flux at previous time (cells, angles, groups).
+    xs_total_u : numpy.ndarray
+        Fine-group total cross section (cells, groups_u).
+    xs_scatter_u : numpy.ndarray
+        Fine-group scattering cross section (cells, groups_u).
+    xs_fission_u : numpy.ndarray
+        Fine-group fission cross section (cells, groups_u).
+    velocity_u : numpy.ndarray
+        Fine-group velocity (groups_u,).
+    external_u : numpy.ndarray
+        Fine-group external source (steps/1, cells, angles, groups_u).
+    boundary_u : numpy.ndarray
+        Fine-group boundary conditions (steps/1, 2, angles, groups_u).
+    medium_map : numpy.ndarray
+        Material region map (cells,).
+    delta_x : numpy.ndarray
+        Cell widths (cells,).
+    angle_xu : numpy.ndarray
+        Fine angular discretization (angles_u,).
+    angle_wu : numpy.ndarray
+        Fine quadrature weights (angles_u,).
+    bc_x : int
+        Boundary condition type (0=vacuum, 1=reflective).
+    angles_c : int
+        Target coarse angular discretization.
+    groups_c : int
+        Target coarse energy groups.
+    energy_grid : tuple
+        Energy grid specification (edges, indices_u, indices_c).
+    steps : int
+        Number of time steps.
+    dt : float
+        Time step size.
+    geometry : int, optional
+        Geometry type (1=slab, 2=cylindrical, 3=spherical).
+
+    Returns
+    -------
+    numpy.ndarray
+        Scalar flux at all time steps (steps, cells, groups_u).
+    """
     # Get hybrid parameters
     edges_g, edges_gidx_u, edges_gidx_c = energy_grid
     fine_idx, coarse_idx, factor = hytools.indexing(*energy_grid)
@@ -281,7 +444,68 @@ def bdf2(
     dt,
     geometry=1,
 ):
+    """Hybrid solver with explicit coarsening using second-order time integration.
 
+    Solves using two independent energy group systems (uncollided and collided)
+    and recombines with second-order backward differentiation formula (BDF2)
+    time stepping.
+
+    Parameters
+    ----------
+    flux_last_1 : numpy.ndarray
+        Angular flux at previous time (cells, angles_u, groups_u).
+    xs_total_u : numpy.ndarray
+        Fine-group total cross section (cells, groups_u).
+    xs_total_c : numpy.ndarray
+        Coarse-group total cross section (cells, groups_c).
+    xs_scatter_u : numpy.ndarray
+        Fine-group scattering (cells, groups_u).
+    xs_scatter_c : numpy.ndarray
+        Coarse-group scattering (cells, groups_c).
+    xs_fission_u : numpy.ndarray
+        Fine-group fission (cells, groups_u).
+    xs_fission_c : numpy.ndarray
+        Coarse-group fission (cells, groups_c).
+    velocity_u : numpy.ndarray
+        Fine-group velocity (groups_u,).
+    velocity_c : numpy.ndarray
+        Coarse-group velocity (groups_c,).
+    external_u : numpy.ndarray
+        Fine-group external source (steps/1, cells, angles_u, groups_u).
+    boundary_u : numpy.ndarray
+        Fine-group boundary (steps/1, 2, angles_u, groups_u).
+    medium_map : numpy.ndarray
+        Material region map (cells,).
+    delta_x : numpy.ndarray
+        Cell widths (cells,).
+    angle_xu : numpy.ndarray
+        Fine angular discretization (angles_u,).
+    angle_xc : numpy.ndarray
+        Coarse angular discretization (angles_c,).
+    angle_wu : numpy.ndarray
+        Fine quadrature weights (angles_u,).
+    angle_wc : numpy.ndarray
+        Coarse quadrature weights (angles_c,).
+    bc_x : int
+        Boundary condition type (0=vacuum, 1=reflective).
+    fine_idx : numpy.ndarray
+        Mapping from coarse to fine groups.
+    coarse_idx : numpy.ndarray
+        Mapping from fine to coarse groups.
+    factor : float
+        Energy group coarsening factor.
+    steps : int
+        Number of time steps.
+    dt : float
+        Time step size.
+    geometry : int, optional
+        Geometry type (1=slab, 2=cylindrical, 3=spherical).
+
+    Returns
+    -------
+    numpy.ndarray
+        Scalar flux at all time steps (steps, cells, groups_u).
+    """
     # Scalar flux approximation
     flux_u = np.sum(flux_last_1 * angle_wu[None, :, None], axis=1)
     flux_c = np.zeros((medium_map.shape[0], xs_total_c.shape[1]))
