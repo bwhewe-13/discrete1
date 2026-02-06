@@ -58,9 +58,54 @@ Use hybrid ML approach for fission source:
 import numba
 import numpy as np
 
+
 ################################################################################
 # Multigroup functions
 ################################################################################
+def transfer_matrix(xs_scatter, xs_fission, chi=None):
+    """Combine scatter and fission matrices.
+
+    Allows for combining the scattering and fission matrices for fixed source
+    and time dependent problems. If ``chi`` is not None, ``xs_fission``
+    represents the nusigf vector.
+
+    Parameters
+    ----------
+    xs_scatter : numpy.ndarray
+        Scattering cross sections indexed by [material, group, group].
+    xs_fission : numpy.ndarray
+        Fission cross sections indexed by [material, group, group] or
+        [material, group] if chi is not None.
+    chi : numpy.ndarray, optional
+        Fission Neutron Distribution indexed by [material, group]. Must be
+        included if xs_fission is nusigf. Default is None.
+
+    Returns
+    -------
+    flux : numpy.ndarray
+        Converged scalar flux distribution indexed by [cell, group].
+    """
+    if chi is None:
+        return xs_scatter + xs_fission
+    xs_matrix = np.zeros(xs_scatter.shape)
+    _transfer_matrix(xs_matrix, xs_scatter, chi, xs_fission)
+    return xs_matrix
+
+
+@numba.jit("void(f8[:,:,:], f8[:,:,:], f8[:,:], f8[:,:])", nopython=True, cache=True)
+def _transfer_matrix(xs_matrix, xs_scatter, chi, nusigf):
+    # Get parameters
+    materials, groups, _ = xs_matrix.shape
+    mat = numba.int32
+    og = numba.int32
+    ig = numba.int32
+    # Iterate over cells and groups
+    for mat in range(materials):
+        for og in range(groups):
+            for ig in range(groups):
+                xs_matrix[mat, og, ig] = (
+                    xs_scatter[mat, og, ig] + chi[mat, og] + nusigf[mat, ig]
+                )
 
 
 @numba.jit(

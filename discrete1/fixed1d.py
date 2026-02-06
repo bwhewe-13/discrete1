@@ -22,6 +22,7 @@ def source_iteration(
     angle_x,
     angle_w,
     bc_x,
+    chi=None,
     geometry=1,
     angular=False,
     edges=0,
@@ -74,7 +75,7 @@ def source_iteration(
     flux_old = np.zeros((cells_x, groups))
 
     # Combine scattering and fission
-    xs_matrix = xs_scatter + xs_fission
+    xs_matrix = tools.transfer_matrix(xs_scatter, xs_fission, chi)
 
     # Run source iteration for scalar flux centers
     flux = mg.source_iteration(
@@ -123,6 +124,7 @@ def dynamic_mode_decomp(
     angle_x,
     angle_w,
     bc_x,
+    chi=None,
     geometry=1,
     angular=False,
     edges=0,
@@ -180,7 +182,7 @@ def dynamic_mode_decomp(
     flux_old = np.zeros((cells_x, groups))
 
     # Combine scattering and fission
-    xs_matrix = xs_scatter + xs_fission
+    xs_matrix = tools.transfer_matrix(xs_scatter, xs_fission, chi)
 
     # Run dynamic mode decomposition for scalar flux centers
     flux = mg.dynamic_mode_decomp(

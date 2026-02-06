@@ -27,6 +27,7 @@ def backward_euler(
     bc_x,
     steps,
     dt,
+    chi=None,
     geometry=1,
 ):
     """Solve time-dependent transport using first-order Backward Differentiation.
@@ -80,7 +81,7 @@ def backward_euler(
     flux_time = np.zeros((steps,) + flux_old.shape)
 
     # Combine scattering and fission
-    xs_matrix = xs_scatter + xs_fission
+    xs_matrix = tools.transfer_matrix(xs_scatter, xs_fission, chi)
 
     # Create xs_total_star
     xs_total_v = xs_total + 1 / (velocity * dt)
@@ -145,6 +146,7 @@ def bdf2(
     bc_x,
     steps,
     dt,
+    chi=None,
     geometry=1,
 ):
     """Solve time-dependent transport using second-order Backward Differentiation.
@@ -200,7 +202,7 @@ def bdf2(
     flux_time = np.zeros((steps,) + flux_old.shape)
 
     # Combine scattering and fission
-    xs_matrix = xs_scatter + xs_fission
+    xs_matrix = tools.transfer_matrix(xs_scatter, xs_fission, chi)
 
     # Create xs_total_star (for BDF1 step)
     xs_total_v = xs_total + 1 / (velocity * dt)

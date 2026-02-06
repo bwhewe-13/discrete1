@@ -311,6 +311,7 @@ def ml_power_iteration(
         Boundary condition indicators [left, right] (0=vacuum, 1=reflective).
     chi : numpy.ndarray, optional
         Fission Neutron Distribution. Must be included if xs_fission is nusigf.
+        Default is None.
     geometry : int, optional
         Geometry type (1=slab, 2=sphere). Default is 1.
     fission_models : list, optional

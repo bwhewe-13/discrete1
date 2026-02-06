@@ -32,6 +32,8 @@ def auto_bdf1(
     energy_grid,
     steps,
     dt,
+    chi_u=None,
+    chi_c=None,
     geometry=1,
 ):
     """Hybrid solver with automatic coarsening using first-order time integration.
@@ -132,6 +134,8 @@ def auto_bdf1(
         factor,
         steps,
         dt,
+        chi_u,
+        chi_c,
         geometry,
     )
 
@@ -160,6 +164,8 @@ def backward_euler(
     factor,
     steps,
     dt,
+    chi_u=None,
+    chi_c=None,
     geometry=1,
 ):
     """Hybrid solver with explicit coarsening using first-order time integration.
@@ -231,8 +237,8 @@ def backward_euler(
     flux_time = np.zeros((steps,) + flux_u.shape)
 
     # Combine scattering and fission
-    xs_matrix_u = xs_scatter_u + xs_fission_u
-    xs_matrix_c = xs_scatter_c + xs_fission_c
+    xs_matrix_u = tools.transfer_matrix(xs_scatter_u, xs_fission_u, chi_u)
+    xs_matrix_c = tools.transfer_matrix(xs_scatter_c, xs_fission_c, chi_c)
 
     # Create xs_total_star
     xs_total_vu = xs_total_u + 1 / (velocity_u * dt)
@@ -314,6 +320,8 @@ def auto_bdf2(
     energy_grid,
     steps,
     dt,
+    chi_u=None,
+    chi_c=None,
     geometry=1,
 ):
     """Hybrid solver with automatic coarsening using second-order time integration.
@@ -414,6 +422,8 @@ def auto_bdf2(
         factor,
         steps,
         dt,
+        chi_u,
+        chi_c,
         geometry,
     )
 
@@ -442,6 +452,8 @@ def bdf2(
     factor,
     steps,
     dt,
+    chi_u=None,
+    chi_c=None,
     geometry=1,
 ):
     """Hybrid solver with explicit coarsening using second-order time integration.
@@ -517,8 +529,8 @@ def bdf2(
     flux_time = np.zeros((steps,) + flux_u.shape)
 
     # Combine scattering and fission
-    xs_matrix_u = xs_scatter_u + xs_fission_u
-    xs_matrix_c = xs_scatter_c + xs_fission_c
+    xs_matrix_u = tools.transfer_matrix(xs_scatter_u, xs_fission_u, chi_u)
+    xs_matrix_c = tools.transfer_matrix(xs_scatter_c, xs_fission_c, chi_c)
 
     # Create xs_total_star
     xs_total_vu = xs_total_u + 1 / (velocity_u * dt)
