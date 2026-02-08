@@ -38,6 +38,7 @@ tests/problems.py
 tests/test_critical.py
 tests/test_critical_0d.py
 tests/test_hybrid.py
+tests/test_main.py
 tests/test_ml_tools.py
 tests/test_spatial_accuracy.py
 tests/test_temporal_accuracy.py
