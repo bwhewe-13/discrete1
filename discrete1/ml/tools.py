@@ -11,6 +11,8 @@ The utilities support both fission and scatter rate prediction models,
 with helpers for data splitting, normalization, and error analysis.
 """
 
+import os
+import string
 from glob import glob
 
 import numpy as np
@@ -384,3 +386,70 @@ def update_cross_sections(xs_matrix, model_idx):
         else:
             updated_xs[mat] = xs_matrix[mat].copy()
     return updated_xs
+
+
+def _alphabet_generator():
+    alphabet = string.ascii_lowercase
+    idx1 = 0
+    idx2 = 1
+    tmp = ""
+    letter = 0
+    while True:
+        if idx2 == len(alphabet) + 1:
+            idx1 = 0
+            idx2 = 1
+            tmp = alphabet[letter]
+            letter += 1
+        yield f"{tmp}{alphabet[idx1:idx2]}"
+        idx1 += 1
+        idx2 += 1
+
+
+def _number_generator(fill):
+    idx = 1
+    while True:
+        fidx = str(idx).zfill(fill)
+        idx += 1
+        yield fidx
+
+
+def update_file_name(file_name, fmt, label="alphabet", fill=3):
+    """Update file names for continued training of saved model.
+
+    Sums cross sections over specified axes while preserving array shape
+    for materials that are handled by DJINN models.
+
+    Parameters
+    ----------
+    file_name : str
+        Name of the original file.
+    fmt : str
+        File extension type.
+    label : str, optional
+        Selection between alphabet and number versioning.
+        default is 'alphabet'
+    fill : int, optional
+        Number of zero padding for label='number'.
+        default is 3
+
+    Returns
+    -------
+    str
+        New file name to prevent overwriting files.
+    """
+    if label == "alphabet":
+        generator = _alphabet_generator()
+    elif label == "number":
+        generator = _number_generator(fill)
+    else:
+        print("Label version type not available")
+        return
+
+    tmp_name = file_name
+    version_not_found = os.path.exists(f"{tmp_name}.{fmt}")
+
+    while version_not_found:
+        label = next(generator)
+        tmp_name = f"{file_name}{label}"
+        version_not_found = os.path.exists(f"{tmp_name}.{fmt}")
+    return f"{tmp_name}.{fmt}"

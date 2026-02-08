@@ -214,6 +214,10 @@ class RegressionDeepONet:
         self.loss_function = kwargs.get("loss_function", "MSELoss")
         self.scheduler = kwargs.get("scheduler", None)
         self.optimizer_name = kwargs.get("optimizer", "Adam")
+        self.sched_mode = kwargs.get("sched_mode", None)
+        self.sched_factor = kwargs.get("sched_factor", 0.1)
+        self.sched_patience = kwargs.get("sched_patience", 5)
+        self.sched_cooldown = kwargs.get("sched_cooldown", 0)
         self.device = torch.device(kwargs.get("device", "cpu"))
         self.LOUD = kwargs.get("LOUD", True)
         self.writer = kwargs.get("tensorboard", None)
@@ -279,27 +283,59 @@ class RegressionDeepONet:
         if verbose:
             return train_dataset, val_dataset, test_dataset
 
-    def _training_optimizer_loss_fn(self):
-        """Construct optimizer and loss criterion for training.
+    def _init_optimizer(self):
+        """Construct optimizer for training.
 
         Returns
         -------
-        tuple
-            A pair ``(optimizer, loss_criterion)`` where ``optimizer`` is a
-            ``torch.optim.Optimizer`` instance configured from the class
-            attributes, and ``loss_criterion`` is a ``torch.nn.modules.loss._Loss``
-            instance resolved from ``loss_function``.
+        torch.optim.Optimizer
+            Configured optimizer instance.
         """
         optimizer = getattr(optim, self.optimizer_name)(
             self.network.parameters(),
             lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
+        return optimizer
+
+    def _init_scheduler(self, optimizer):
+        """Construct learning rate scheduler for training.
+
+        Parameters
+        ----------
+        optimizer : torch.optim.Optimizer
+            Configured optimizer instance.
+
+        Returns
+        -------
+        torch.optim.lr_scheduler.ReduceLROnPlateau
+            Configured learning rate scheduler instance.
+        """
+        if self.sched_mode is None:
+            return None
+
+        sched_params = {
+            "mode": self.sched_mode,
+            "factor": self.sched_factor,
+            "patience": self.sched_patience,
+            "cooldown": self.sched_cooldown,
+        }
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, **sched_params)
+        return scheduler
+
+    def _init_loss_fn(self):
+        """Construct loss function for training.
+
+        Returns
+        -------
+        torch.nn.modules.loss._Loss
+            Configured loss function instance.
+        """
         if isinstance(self.loss_function, str):
             loss_criterion = getattr(nn, self.loss_function)()
         else:
             loss_criterion = self.loss_function
-        return optimizer, loss_criterion
+        return loss_criterion
 
     def _batch_to_device(self, flux_batch, labels_batch, y_batch):
         """Move a mini-batch to the configured computation device.
@@ -382,13 +418,15 @@ class RegressionDeepONet:
 
         return train_loss / len(self.train_loader.dataset)
 
-    def _val_batch(self, data_loader, loss_fn):
+    def _val_batch(self, data_loader, scheduler, loss_fn):
         """Evaluate the model on a data loader without gradient updates.
 
         Parameters
         ----------
         data_loader : torch.utils.data.DataLoader
             Data loader to iterate over for evaluation.
+        scheduler : torch.optim.lr_scheduler.ReduceLROnPlateau
+            Learning rate scheduler.
         loss_fn : callable
             Loss function mapping ``(outputs, targets)`` to a scalar loss.
 
@@ -409,7 +447,10 @@ class RegressionDeepONet:
                 loss = loss_fn(outputs, y_batch)
                 val_loss += loss.item() * flux_batch.size(0)
 
-        return val_loss / len(data_loader.dataset)
+        val_loss /= len(data_loader.dataset)
+        if scheduler is not None:
+            scheduler.step(val_loss)
+        return val_loss
 
     def train(self, verbose=True):
         """Train the network with validation and test evaluation.
@@ -438,7 +479,9 @@ class RegressionDeepONet:
         -----
         Metrics are also stored on the instance as ``metric_data``.
         """
-        optimizer, loss_criterion = self._training_optimizer_loss_fn()
+        optimizer = self._init_optimizer()
+        scheduler = self._init_scheduler()
+        loss_criterion = self._init_loss_fn()
 
         best_error = np.inf
         best_model_weights = None
@@ -455,7 +498,7 @@ class RegressionDeepONet:
 
             # Validation
             self.network.eval()
-            val_loss = self._val_batch(self.val_loader, loss_criterion)
+            val_loss = self._val_batch(self.val_loader, scheduler, loss_criterion)
             val_loss_history.append(val_loss / len(self.val_loader.dataset))
             if val_loss < best_error:
                 best_error = val_loss

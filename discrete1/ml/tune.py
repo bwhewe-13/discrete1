@@ -168,6 +168,10 @@ class RegressionDeepONet:
         optimizer = kwargs.get("optimizer", ["Adam", "SGD"])
         learning_rate = kwargs.get("learning_rate", [1e-4, 1e-3, 1e-2])
         weight_decay = kwargs.get("weight_decay", [0.0, 1e-5, 1e-4])
+        sched_mode = kwargs.get("sched_mode", [None])
+        sched_factor = kwargs.get("sched_factor", (1, 1))
+        sched_patience = kwargs.get("sched_patience", 5)
+        sched_cooldown = kwargs.get("sched_cooldown", 2)
         loss_functions = kwargs.get(
             "loss_functions", ["MSELoss", "L1Loss", "SmoothL1Loss"]
         )
@@ -184,6 +188,10 @@ class RegressionDeepONet:
             "optimizer": optimizer,
             "learning_rate": learning_rate,
             "weight_decay": weight_decay,
+            "sched_mode": sched_mode,
+            "sched_factor": sched_factor,
+            "sched_patience": sched_patience,
+            "sched_cooldown": sched_cooldown,
             "loss_functions": loss_functions,
         }
 
@@ -293,7 +301,40 @@ class RegressionDeepONet:
         optimizer = getattr(optim, optimizer_name)(
             model.parameters(), lr=learning_rate, weight_decay=weight_decay
         )
+
         return optimizer
+
+    def _init_scheduler(self, trial, optimizer):
+        """Instantiate an optimizer from the search space.
+
+        Parameters
+        ----------
+        trial : optuna.trial.Trial
+            Trial object that selects optimizer hyperparameters.
+        optimizer : torch.optim.Optimizer
+            Configured optimizer instance.
+
+        Returns
+        -------
+        torch.optim.lr_scheduler.ReduceLROnPlateau
+            Configured learning rate scheduler instance.
+        """
+        sched_mode = trial.suggest_categorical("sched_mode", self.params["sched_mode"])
+        factor = trial.suggest_float("sched_factor", *self.params["sched_factor"])
+        patience = trial.suggest_int("sched_patience", *self.params["sched_patience"])
+        cooldown = trial.suggest_int("sched_cooldown", *self.params["sched_cooldown"])
+
+        if sched_mode is None:
+            return None
+
+        sched_params = {
+            "mode": sched_mode,
+            "factor": factor,
+            "patience": patience,
+            "cooldown": cooldown,
+        }
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, **sched_params)
+        return scheduler
 
     def _init_loss_function(self, trial):
         """Create the loss criterion from the search space.
@@ -365,13 +406,15 @@ class RegressionDeepONet:
             loss.backward()
             optimizer.step()
 
-    def _validate(self, model, loss_criterion, val_loader):
+    def _validate(self, model, scheduler, loss_criterion, val_loader):
         """Compute average validation loss across ``val_loader``.
 
         Parameters
         ----------
         model : torch.nn.Module
             Model to evaluate.
+        scheduler : torch.optim.lr_scheduler.ReduceLROnPlateau
+            Scheduler for changing the learning rate based on validation loss.
         loss_criterion : callable
             Loss function mapping ``(outputs, targets)`` to a scalar loss.
         val_loader : torch.utils.data.DataLoader
@@ -391,7 +434,11 @@ class RegressionDeepONet:
                 outputs = model(flux_batch, labels_batch)
                 loss = loss_criterion(outputs, y_batch)
                 val_loss += loss.item() * flux_batch.size(0)
-        return val_loss / len(val_loader.dataset)
+
+        val_loss /= len(val_loader.dataset)
+        if scheduler is not None:
+            scheduler.step(val_loss)
+        return val_loss
 
     def objective(self, trial):
         """Optuna objective function minimizing validation loss.
@@ -409,6 +456,7 @@ class RegressionDeepONet:
         # Generate the model
         model = self._init_onet_model(trial)
         optimizer = self._init_optimizer(trial, model)
+        scheduler = self._init_scheduler(trial, optimizer)
         loss_criterion = self._init_loss_function(trial)
         epochs = trial.suggest_categorical("n_epochs", self.search_space["n_epochs"])
         batch_size = trial.suggest_categorical(
@@ -428,7 +476,7 @@ class RegressionDeepONet:
 
             # Validation
             model.eval()
-            metric = self._validate(model, loss_criterion, val_loader)
+            metric = self._validate(model, scheduler, loss_criterion, val_loader)
             print(epoch, metric, end="\r")
             trial.report(metric, epoch)
 

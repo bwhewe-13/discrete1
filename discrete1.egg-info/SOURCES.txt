@@ -8,7 +8,6 @@ discrete1/boundary1d.py
 discrete1/constants.py
 discrete1/critical0d.py
 discrete1/critical1d.py
-discrete1/djinn1d.py
 discrete1/external1d.py
 discrete1/fixed1d.py
 discrete1/hybrid1d.py

@@ -16,6 +16,7 @@ Requires-Dist: tqdm
 Provides-Extra: ml
 Requires-Dist: optuna; extra == "ml"
 Requires-Dist: scikit-learn>=1.4.0; extra == "ml"
+Requires-Dist: tensorboard; extra == "ml"
 Requires-Dist: tensorflow>=2.4.0; extra == "ml"
 Requires-Dist: djinnml@ git+https://git@github.com/bwhewe-13/DJINN.git ; extra == "ml"
 Provides-Extra: dev
@@ -28,6 +29,7 @@ Requires-Dist: pre-commit; extra == "dev"
 Provides-Extra: all
 Requires-Dist: optuna; extra == "all"
 Requires-Dist: scikit-learn>=1.4.0; extra == "all"
+Requires-Dist: tensorboard; extra == "all"
 Requires-Dist: tensorflow>=2.4.0; extra == "all"
 Requires-Dist: djinnml@ git+https://git@github.com/bwhewe-13/DJINN.git ; extra == "all"
 Requires-Dist: pytest>=6.0; extra == "all"
@@ -45,7 +47,7 @@ Dynamic: license-file
 [![Documentation Status](https://github.com/bwhewe-13/discrete1/actions/workflows/docs.yml/badge.svg)](https://bwhewe-13.github.io/discrete1/)
 [![Tests](https://github.com/bwhewe-13/discrete1/actions/workflows/tests.yml/badge.svg)](https://github.com/bwhewe-13/discrete1/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/bwhewe-13/discrete1/branch/master/graph/badge.svg)](https://codecov.io/gh/bwhewe-13/discrete1)
-[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)]
+![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)
 
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⡋⢅⣂⣐⡨⠙⡻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⣩⣥⣬⢕⢰⣾⣿⣿⣿⣿⣷⣄⠊⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
