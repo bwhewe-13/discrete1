@@ -169,9 +169,9 @@ class RegressionDeepONet:
         learning_rate = kwargs.get("learning_rate", [1e-4, 1e-3, 1e-2])
         weight_decay = kwargs.get("weight_decay", [0.0, 1e-5, 1e-4])
         sched_mode = kwargs.get("sched_mode", [None])
-        sched_factor = kwargs.get("sched_factor", (1, 1))
-        sched_patience = kwargs.get("sched_patience", 5)
-        sched_cooldown = kwargs.get("sched_cooldown", 2)
+        sched_factor = kwargs.get("sched_factor", (0.1, 1.0))
+        sched_patience = kwargs.get("sched_patience", (1, 10))
+        sched_cooldown = kwargs.get("sched_cooldown", (0, 5))
         loss_functions = kwargs.get(
             "loss_functions", ["MSELoss", "L1Loss", "SmoothL1Loss"]
         )
@@ -319,10 +319,18 @@ class RegressionDeepONet:
         torch.optim.lr_scheduler.ReduceLROnPlateau
             Configured learning rate scheduler instance.
         """
-        sched_mode = trial.suggest_categorical("sched_mode", self.params["sched_mode"])
-        factor = trial.suggest_float("sched_factor", *self.params["sched_factor"])
-        patience = trial.suggest_int("sched_patience", *self.params["sched_patience"])
-        cooldown = trial.suggest_int("sched_cooldown", *self.params["sched_cooldown"])
+        sched_mode = trial.suggest_categorical(
+            "sched_mode", self.search_space["sched_mode"]
+        )
+        factor = trial.suggest_float(
+            "sched_factor", *self.search_space["sched_factor"]
+        )
+        patience = trial.suggest_int(
+            "sched_patience", *self.search_space["sched_patience"]
+        )
+        cooldown = trial.suggest_int(
+            "sched_cooldown", *self.search_space["sched_cooldown"]
+        )
 
         if sched_mode is None:
             return None

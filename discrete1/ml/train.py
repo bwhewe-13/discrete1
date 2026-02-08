@@ -414,7 +414,8 @@ class RegressionDeepONet:
             optimizer.step()
 
             train_loss += loss.item() * flux_batch.size(0)
-            progress_bar.set_postfix({"loss": train_loss})
+            avg_loss = train_loss / len(self.train_loader.dataset)
+            progress_bar.set_postfix({"loss": avg_loss})
 
         return train_loss / len(self.train_loader.dataset)
 
@@ -480,7 +481,7 @@ class RegressionDeepONet:
         Metrics are also stored on the instance as ``metric_data``.
         """
         optimizer = self._init_optimizer()
-        scheduler = self._init_scheduler()
+        scheduler = self._init_scheduler(optimizer)
         loss_criterion = self._init_loss_fn()
 
         best_error = np.inf
@@ -494,12 +495,12 @@ class RegressionDeepONet:
             # Training
             self.network.train()
             train_loss = self._train_batch(progress_bar, optimizer, loss_criterion)
-            train_loss_history.append(train_loss / len(self.train_loader.dataset))
+            train_loss_history.append(train_loss)
 
             # Validation
             self.network.eval()
             val_loss = self._val_batch(self.val_loader, scheduler, loss_criterion)
-            val_loss_history.append(val_loss / len(self.val_loader.dataset))
+            val_loss_history.append(val_loss)
             if val_loss < best_error:
                 best_error = val_loss
                 best_model_weights = copy.deepcopy(self.network.state_dict())
@@ -512,14 +513,14 @@ class RegressionDeepONet:
         # Testing
         with torch.no_grad():
             self.network.eval()
-            test_loss = self._val_batch(self.test_loader, loss_criterion)
+            test_loss = self._val_batch(self.test_loader, None, loss_criterion)
 
         # Return best model
         self.network.load_state_dict(best_model_weights)
         self.metric_data = {
             "train_loss": train_loss_history,
             "val_loss": val_loss_history,
-            "test_loss": test_loss / len(self.test_loader.dataset),
+            "test_loss": test_loss,
         }
         if verbose:
             return self.metric_data
