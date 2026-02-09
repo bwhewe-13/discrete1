@@ -322,9 +322,7 @@ class RegressionDeepONet:
         sched_mode = trial.suggest_categorical(
             "sched_mode", self.search_space["sched_mode"]
         )
-        factor = trial.suggest_float(
-            "sched_factor", *self.search_space["sched_factor"]
-        )
+        factor = trial.suggest_float("sched_factor", *self.search_space["sched_factor"])
         patience = trial.suggest_int(
             "sched_patience", *self.search_space["sched_patience"]
         )
