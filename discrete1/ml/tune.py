@@ -16,6 +16,8 @@ The tuner uses PyTorch for model definition/training and Optuna for
 hyperparameter optimization.
 """
 
+import warnings
+
 import optuna
 import torch
 import torch.nn as nn
@@ -63,6 +65,28 @@ class RegressionDeepONet:
     True
     """
 
+    __valid_kwargs = {
+        "device",
+        "seed",
+        "test_size",
+        "prebuilt",
+        "max_b_layers",
+        "max_t_layers",
+        "nodes",
+        "fc_activations",
+        "dropout",
+        "n_epochs",
+        "batch_size",
+        "optimizer",
+        "learning_rate",
+        "weight_decay",
+        "sched_mode",
+        "sched_factor",
+        "sched_patience",
+        "sched_cooldown",
+        "loss_functions",
+    }
+
     def __init__(self, flux, labels, y, **kwargs):
         """Initialize the tuner with datasets and defaults.
 
@@ -82,9 +106,11 @@ class RegressionDeepONet:
             - ``test_size`` (float): validation fraction in the split.
               Default 0.2.
             - Search space overrides used by :meth:`_init_search_parameters`:
-              ``max_fc_layers``, ``nodes``, ``fc_activations``, ``dropout``,
-              ``n_epochs``, ``batch_size``, ``optimizer``, ``learning_rate``,
-              ``weight_decay``, ``loss_functions``.
+              ``prebuilt``, ``max_b_layers``, ``max_t_layers``, ``nodes``,
+              ``fc_activations``, ``dropout``, ``n_epochs``, ``batch_size``,
+              ``optimizer``, ``learning_rate``, ``weight_decay``, ``sched_mode``,
+              ``sched_factor``, ``sched_patience``, ``sched_cooldown``,
+              ``loss_functions``.
 
         Notes
         -----
@@ -98,6 +124,13 @@ class RegressionDeepONet:
         self.flux_input_size = flux.shape[1]
         self.labels_input_size = labels.shape[1]
         self.output_size = y.shape[1]
+
+        # Raise a UserWarning for unexpected arguments
+        unexpected_kwargs = set(kwargs.keys()) - RegressionDeepONet.__valid_kwargs
+        for kwarg in unexpected_kwargs:
+            warning_string = f"Unexpected keyword arguments: {kwarg}"
+            warnings.warn(warning_string, UserWarning, stacklevel=2)
+
         self.device = torch.device(kwargs.get("device", "cpu"))
         self._process_data(**kwargs)
         self._init_search_parameters(**kwargs)
@@ -146,15 +179,20 @@ class RegressionDeepONet:
         ----------
         **kwargs
             Optional overrides for search lists. Recognized keys:
-            ``max_fc_layers``, ``nodes``, ``fc_activations``, ``dropout``,
-            ``n_epochs``, ``batch_size``, ``optimizer``, ``learning_rate``,
-            ``weight_decay``, ``loss_functions``.
+            ``prebuilt``, ``max_b_layers``, ``max_t_layers``, ``nodes``,
+            ``fc_activations``, ``dropout``, ``n_epochs``, ``batch_size``,
+            ``optimizer``, ``learning_rate``, ``weight_decay``, ``sched_mode``,
+            ``sched_factor``, ``sched_patience``, ``sched_cooldown``,
+            ``loss_functions``.
 
         Returns
         -------
         None
             Populates ``self.search_space`` with lists of candidate values.
         """
+        # Layer/Nodes Prebuilt
+        self.prebuilt = kwargs.get("prebuilt", {})
+
         # NN Construction Parameters
         max_b_layers = kwargs.get("max_b_layers", 5)
         max_t_layers = kwargs.get("max_t_layers", 5)
@@ -215,10 +253,7 @@ class RegressionDeepONet:
             A sequential model on the configured device.
         """
         # Suggest NN architecture
-        if label == "b":
-            max_layers = self.search_space["max_b_layers"]
-        else:
-            max_layers = self.search_space["max_t_layers"]
+        max_layers = self.search_space[f"max_{label}_layers"]
         num_layers = trial.suggest_int(f"num_{label}_layers", 1, max_layers)
         layers = []
 
@@ -274,6 +309,74 @@ class RegressionDeepONet:
         model = model.to(self.device)
         return model
 
+    def _init_prebuilt_nn_model(self, trial, in_dim, label):
+        """Build a feed-forward subnetwork defined by a trial.
+
+        Parameters
+        ----------
+        trial : optuna.trial.Trial
+            Trial object used to suggest architecture choices.
+        in_dim : int
+            Input feature dimension for the first layer.
+        onet_out_dim : int
+            Output dimension for the subnetwork (latent features).
+        label : str
+            Prefix used to name per-layer trial parameters (e.g., "b" or "t").
+
+        Returns
+        -------
+        torch.nn.Sequential
+            A sequential model on the configured device.
+        """
+        # Suggest NN architecture
+        num_layers = self.prebuilt[f"max_{label}_layers"]
+        nodes = self.prebuilt[f"{label}_nodes"]
+
+        layers = []
+        for i in range(num_layers):
+            # Add FC Layer
+            out_dim = nodes[i]
+            layers.append(nn.Linear(in_dim, out_dim))
+
+            # Add Activation Function
+            activation_name = trial.suggest_categorical(
+                f"{label}_layer_{i+1}_activation", self.search_space["activations"]
+            )
+            layers.append(getattr(nn, activation_name)())
+
+            # Add Dropout Layer
+            dropout_rate = trial.suggest_categorical(
+                f"{label}_layer_{i+1}_dropout", self.search_space["dropout"]
+            )
+            if dropout_rate > 0.0:
+                layers.append(nn.Dropout(dropout_rate))
+
+            in_dim = out_dim
+
+        layers.append(nn.Linear(in_dim, self.prebuilt["onet_out_dim"]))
+        model = nn.Sequential(*layers).to(self.device)
+        return model
+
+    def _init_prebuilt_onet_model(self, trial):
+        """Construct a DeepONet from branch and trunk subnetworks.
+
+        Parameters
+        ----------
+        trial : optuna.trial.Trial
+            Trial object that selects the latent feature size.
+
+        Returns
+        -------
+        DeepONet
+            A DeepONet model moved to the configured device.
+        """
+        branch_model = self._init_prebuilt_nn_model(trial, self.flux_input_size, "b")
+        trunk_model = self._init_prebuilt_nn_model(trial, self.labels_input_size, "t")
+        onet_out_dim = self.prebuilt["onet_out_dim"]
+        model = DeepONet(branch_model, trunk_model, onet_out_dim, self.output_size)
+        model = model.to(self.device)
+        return model
+
     def _init_optimizer(self, trial, model):
         """Instantiate an optimizer from the search space.
 
@@ -322,6 +425,12 @@ class RegressionDeepONet:
         sched_mode = trial.suggest_categorical(
             "sched_mode", self.search_space["sched_mode"]
         )
+        if sched_mode is None:
+            factor = trial.suggest_categorical("sched_factor", [None])
+            patience = trial.suggest_categorical("sched_patience", [None])
+            cooldown = trial.suggest_categorical("sched_cooldown", [None])
+            return None
+
         factor = trial.suggest_float("sched_factor", *self.search_space["sched_factor"])
         patience = trial.suggest_int(
             "sched_patience", *self.search_space["sched_patience"]
@@ -329,9 +438,6 @@ class RegressionDeepONet:
         cooldown = trial.suggest_int(
             "sched_cooldown", *self.search_space["sched_cooldown"]
         )
-
-        if sched_mode is None:
-            return None
 
         sched_params = {
             "mode": sched_mode,
@@ -460,7 +566,11 @@ class RegressionDeepONet:
             Final validation metric for the last epoch.
         """
         # Generate the model
-        model = self._init_onet_model(trial)
+        if self.prebuilt:
+            model = self._init_prebuilt_onet_model(trial)
+        else:
+            model = self._init_onet_model(trial)
+
         optimizer = self._init_optimizer(trial, model)
         scheduler = self._init_scheduler(trial, optimizer)
         loss_criterion = self._init_loss_function(trial)
@@ -498,8 +608,9 @@ class RegressionDeepONet:
         ----------
         **kwargs : dict
             - ``n_trials`` (int): number of trials. Default 50.
-            - ``study_name`` (str or None): Named study (uses SQLite file
-              if provided). Default None.
+            - ``study_name`` (str or None): Named study in SQLite file. Default None.
+            - ``storage_name`` (str or None): Named SQLite file.
+              Default "hyperparameter-tuning".
             - ``output`` (str): Prefix for trial CSV output. Default
               "hyperparameter_search".
 
@@ -510,7 +621,8 @@ class RegressionDeepONet:
         """
         n_trials = kwargs.get("n_trials", 50)
         study_name = kwargs.get("study_name", None)
-        storage_name = None if study_name is None else f"sqlite:///{study_name}.db"
+        storage_name = kwargs.get("storage_name", "hyperparameter-tuning")
+        storage_name = None if study_name is None else f"sqlite:///{storage_name}.db"
         output = kwargs.get("output", "hyperparameter_search")
 
         study = optuna.create_study(
