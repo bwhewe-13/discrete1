@@ -16,6 +16,7 @@ The tuner uses PyTorch for model definition/training and Optuna for
 hyperparameter optimization.
 """
 
+import signal
 import warnings
 
 import optuna
@@ -24,6 +25,22 @@ import torch.nn as nn
 import torch.optim as optim
 from sklearn import model_selection
 from torch.utils.data import DataLoader, TensorDataset
+
+
+def finish_trial(study):
+    """End Optuna after current trial.
+
+    Parameters
+    ----------
+    study : optuna.study.study.Study
+        Optuna study to allow for early stopping.
+    """
+
+    def handler(sig, frame):
+        print("\nCtrl+C detected. Will exit after current trial...")
+        study.stop()
+
+    signal.signal(signal.SIGINT, handler)
 
 
 class RegressionDeepONet:
@@ -631,6 +648,7 @@ class RegressionDeepONet:
             storage=storage_name,
             load_if_exists=True,
         )
+        finish_trial(study)
         study.optimize(self.objective, n_trials=n_trials)
         study.trials_dataframe().to_csv(f"{output}_trials.csv", index=False)
         return study.best_params
