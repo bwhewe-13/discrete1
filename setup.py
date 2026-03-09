@@ -40,8 +40,14 @@ setup(
             "optuna",
             "scikit-learn>=1.4.0",
             "tensorboard",
-            "tensorflow>=2.4.0",
             "djinnml @ git+https://git@github.com/bwhewe-13/DJINN.git",
+        ],
+        "tf-ml": [
+            "optuna",
+            "scikit-learn>=1.4.0",
+            "tensorboard",
+            "tensorflow>=2.4.0",
+            "djinnml @ git+https://github.com/llnl/DJINN.git@master#subdirectory=djinn",
         ],
         "dev": [
             "pytest>=6.0",
@@ -55,7 +61,6 @@ setup(
             "optuna",
             "scikit-learn>=1.4.0",
             "tensorboard",
-            "tensorflow>=2.4.0",
             "djinnml @ git+https://git@github.com/bwhewe-13/DJINN.git",
             "pytest>=6.0",
             "pytest-cov",

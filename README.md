@@ -58,11 +58,8 @@ saving techniques related to the neutron transport equation.
     into the S<sub>N</sub> code for &Sigma;<sub>s</sub> &Phi;
     and &Sigma;<sub>f</sub> &Phi; calculations<sup>1</sup>.
 
-2. SVD-DJINN incorporates an SVD into the S<sub>N</sub> code for the
-    &Sigma;<sub>s</sub> and &Sigma;<sub>f</sub> matrices<sup>1</sup>.
-
-3. HYBRID separates the collided and uncollided terms to be used with
-    different numbers of ordinates (N) and energy groups (G) for
+2. Collision-Based Hybrid Method separates the collided and uncollided terms to
+    be used with different numbers of ordinates (N) and energy groups (G) for
     time-dependent problems<sup>2</sup>.
 
 
@@ -83,6 +80,48 @@ cd docs
 make html
 # Output will be in docs/build/html
 ```
+
+## ML Installation Options
+
+Choose one optional ML extra depending on which DJINN backend you want:
+
+- `discrete1[ml]`: PyTorch-oriented DJINN fork (`bwhewe-13/DJINN`)
+- `discrete1[tf-ml]`: TensorFlow-oriented DJINN fork (`llnl/DJINN`, `djinn` subdirectory)
+
+Install examples:
+
+```bash
+python -m pip install -e ".[ml]"
+python -m pip install -e ".[tf-ml]"
+```
+
+AutoDJINN backend selection examples:
+
+```python
+from discrete1.ml.predict import AutoDJINN
+
+# PyTorch backend
+model_torch = AutoDJINN(
+    "encoder.pt",
+    "djinn_model",
+    "decoder.pt",
+    transformer=lambda x: x,
+    detransformer=lambda x: x,
+    backend="torch",
+)
+
+# TensorFlow backend
+model_tf = AutoDJINN(
+    "encoder.h5",
+    "djinn_model",
+    "decoder.h5",
+    transformer=lambda x: x,
+    detransformer=lambda x: x,
+    backend="tensorflow",
+)
+```
+
+**Note:** The PyTorch ML path (`discrete1[ml]`) is expected to be the preferred option going forward, since it is currently receiving active updates and development.
 
 ## Development
 
