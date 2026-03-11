@@ -4,7 +4,7 @@ This module exposes two primary entry points:
 
 - djinn_regression: Trains DJINN regression ensembles over combinations of
   tree counts and depths, saving model checkpoints and evaluation metrics.
-- RegressionNeuralNetwork: A lightweight training harness for PyTorch networks
+- RegressionDeepONet: A lightweight training harness for PyTorch models
   with train/validation/test splits, progress display, checkpointing, and
   batched inference.
 
@@ -20,6 +20,7 @@ This module relies on optional ML dependencies (``torch``, ``sklearn`` and
 import copy
 import importlib
 import itertools
+import warnings
 
 import numpy as np
 import torch
@@ -36,6 +37,7 @@ from discrete1.ml.tools import (
     mean_squared_error,
     r2_score,
 )
+from discrete1.utils.decorators import break_loop, grange
 
 
 def _import_djinn_module():
@@ -172,10 +174,10 @@ def djinn_regression(X, y, path, trees, depth, **kwargs):
 
 
 class RegressionDeepONet:
-    """Simple training harness for regression-style PyTorch networks.
+    """Simple training harness for regression-style PyTorch models.
 
     This class wraps common training utilities for regression-style neural
-    networks, including dataset preparation, training with validation, testing,
+    models, including dataset preparation, training with validation, testing,
     checkpointing, and batched inference.
 
     Notes
@@ -184,12 +186,27 @@ class RegressionDeepONet:
     with an underscore are internal implementation details.
     """
 
-    def __init__(self, network, flux, labels, y, **kwargs):
-        """Initialize the trainer with a network and datasets.
+    __valid_kwargs = {
+        "n_epochs",
+        "batch_size",
+        "loss_fn",
+        "optimizer",
+        "lr",
+        "weight_decay",
+        "lr_scheduler",
+        "lr_scheduler_params",
+        "checkpoint",
+        "device",
+        "LOUD",
+        "tensorboard",
+    }
+
+    def __init__(self, model, flux, labels, y, **kwargs):
+        """Initialize the trainer with a PyTorch model and datasets.
 
         Parameters
         ----------
-        network : torch.nn.Module
+        model : torch.nn.Module
             The PyTorch model to train. Its ``forward`` should accept two
             inputs ``(flux, labels)`` and return predictions compatible with ``y``.
         flux : numpy.ndarray, shape (n_samples, n_flux_features)
@@ -203,17 +220,21 @@ class RegressionDeepONet:
             Number of training epochs.
         batch_size : int, default 32
             Mini-batch size for training and evaluation.
-        learning_rate : float, default 1e-3
-            Optimizer learning rate.
-        weight_decay : float, default 0.0
-            L2 weight decay (regularization) for the optimizer.
-        loss_function : str or torch.nn.modules.loss._Loss, default "MSELoss"
+        loss_fn : str or torch.nn.modules.loss._Loss, default "MSELoss"
             Either an instantiated loss object or the name of a loss class
             in ``torch.nn`` (e.g., "MSELoss").
         optimizer : str, default "Adam"
             Name of an optimizer in ``torch.optim`` to use.
-        scheduler : torch.optim.lr_scheduler._LRScheduler or None, optional
+        lr : float, default 1e-3
+            Optimizer learning rate.
+        weight_decay : float, default 0.0
+            L2 weight decay (regularization) for the optimizer.
+        lr_scheduler : torch.optim.lr_scheduler._LRScheduler or None, optional
             Optional learning rate scheduler. Not applied by default.
+        lr_scheduler_params : dict
+            Parameters for learning rate scheduler.
+        checkpoint : str, default "ckpt.pt"
+            If non-empty string, saves checkpoint data at end of n_epochs
         device : str, default "cpu"
             Device specifier for computation (e.g., "cpu", "cuda").
         LOUD : bool, default True
@@ -221,21 +242,26 @@ class RegressionDeepONet:
         tensorboard : str, default "run-01"
             TensorBoard log directory passed to ``SummaryWriter``.
         """
-        self.network = network
+        self.model = model
         self.flux = flux
         self.labels = labels
         self.y = y
+
+        # Raise a UserWarning for unexpected arguments
+        unexpected_kwargs = set(kwargs.keys()) - RegressionDeepONet.__valid_kwargs
+        for kwarg in unexpected_kwargs:
+            warning_string = f"Unexpected keyword arguments: {kwarg}"
+            warnings.warn(warning_string, UserWarning, stacklevel=2)
+
         self.n_epochs = kwargs.get("n_epochs", 100)
         self.batch_size = kwargs.get("batch_size", 32)
-        self.learning_rate = kwargs.get("learning_rate", 0.001)
-        self.weight_decay = kwargs.get("weight_decay", 0.0)
-        self.loss_function = kwargs.get("loss_function", "MSELoss")
-        self.scheduler = kwargs.get("scheduler", None)
+        self.loss_fn = kwargs.get("loss_fn", "MSELoss")
         self.optimizer_name = kwargs.get("optimizer", "Adam")
-        self.sched_mode = kwargs.get("sched_mode", None)
-        self.sched_factor = kwargs.get("sched_factor", 0.1)
-        self.sched_patience = kwargs.get("sched_patience", 5)
-        self.sched_cooldown = kwargs.get("sched_cooldown", 0)
+        self.lr = kwargs.get("lr", 0.001)
+        self.weight_decay = kwargs.get("weight_decay", 0.0)
+        self.lr_scheduler = kwargs.get("lr_scheduler", None)
+        self.lr_scheduler_params = kwargs.get("lr_scheduler_params", {})
+        self.ckpt_name = kwargs.get("checkpoint", "ckpt.pt")
         self.device = torch.device(kwargs.get("device", "cpu"))
         self.LOUD = kwargs.get("LOUD", True)
         self.writer = kwargs.get("tensorboard", None)
@@ -310,13 +336,13 @@ class RegressionDeepONet:
             Configured optimizer instance.
         """
         optimizer = getattr(optim, self.optimizer_name)(
-            self.network.parameters(),
-            lr=self.learning_rate,
+            self.model.parameters(),
+            lr=self.lr,
             weight_decay=self.weight_decay,
         )
         return optimizer
 
-    def _init_scheduler(self, optimizer):
+    def _init_lr_scheduler(self, optimizer):
         """Construct learning rate scheduler for training.
 
         Parameters
@@ -326,19 +352,14 @@ class RegressionDeepONet:
 
         Returns
         -------
-        torch.optim.lr_scheduler.ReduceLROnPlateau
+        torch.optim.lr_scheduler._LRScheduler
             Configured learning rate scheduler instance.
         """
-        if self.sched_mode is None:
-            return None
-
-        sched_params = {
-            "mode": self.sched_mode,
-            "factor": self.sched_factor,
-            "patience": self.sched_patience,
-            "cooldown": self.sched_cooldown,
-        }
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, **sched_params)
+        scheduler = None
+        if self.lr_scheduler is not None:
+            scheduler = getattr(optim.lr_scheduler, self.lr_scheduler)(
+                optimizer, **self.lr_scheduler_params
+            )
         return scheduler
 
     def _init_loss_fn(self):
@@ -349,10 +370,10 @@ class RegressionDeepONet:
         torch.nn.modules.loss._Loss
             Configured loss function instance.
         """
-        if isinstance(self.loss_function, str):
-            loss_criterion = getattr(nn, self.loss_function)()
+        if isinstance(self.loss_fn, str):
+            loss_criterion = getattr(nn, self.loss_fn)()
         else:
-            loss_criterion = self.loss_function
+            loss_criterion = self.loss_fn
         return loss_criterion
 
     def _batch_to_device(self, flux_batch, labels_batch, y_batch):
@@ -399,6 +420,7 @@ class RegressionDeepONet:
             unit="batch",
             mininterval=0,
             disable=not self.LOUD,
+            ncols=0,
         )
 
     def _train_batch(self, progress_bar, optimizer, loss_fn):
@@ -426,7 +448,7 @@ class RegressionDeepONet:
             )
 
             optimizer.zero_grad()
-            outputs = self.network(flux_batch, labels_batch)
+            outputs = self.model(flux_batch, labels_batch)
             loss = loss_fn(outputs, y_batch)
             loss.backward()
             optimizer.step()
@@ -444,7 +466,7 @@ class RegressionDeepONet:
         ----------
         data_loader : torch.utils.data.DataLoader
             Data loader to iterate over for evaluation.
-        scheduler : torch.optim.lr_scheduler.ReduceLROnPlateau
+        scheduler : torch.optim.lr_scheduler._LRScheduler
             Learning rate scheduler.
         loss_fn : callable
             Loss function mapping ``(outputs, targets)`` to a scalar loss.
@@ -462,17 +484,60 @@ class RegressionDeepONet:
                 flux_batch, labels_batch, y_batch = self._batch_to_device(
                     flux_batch, labels_batch, y_batch
                 )
-                outputs = self.network(flux_batch, labels_batch)
+                outputs = self.model(flux_batch, labels_batch)
                 loss = loss_fn(outputs, y_batch)
                 val_loss += loss.item() * flux_batch.size(0)
 
         val_loss /= len(data_loader.dataset)
         if scheduler is not None:
-            scheduler.step(val_loss)
+            if self.lr_scheduler == "ReduceLROnPlateau":
+                scheduler.step(val_loss)
+            else:
+                scheduler.step()
+
         return val_loss
 
-    def train(self, verbose=True):
-        """Train the network with validation and test evaluation.
+    def train_one_epoch(self, epoch, loss_fn, optimizer, scheduler):
+        """Train and validate one epoch.
+
+        Parameters
+        ----------
+        epoch : int
+            The current epoch to train.
+        loss_fn : callable
+            Loss function mapping ``(outputs, targets)`` to a scalar loss.
+        optimizer : torch.optim.Optimizer
+            Optimizer used to update model parameters.
+        scheduler : torch.optim.lr_scheduler._LRScheduler
+            Learning rate scheduler.
+
+        Returns
+        -------
+        tuple of float, float
+            Training and validation loss.
+        """
+        progress_bar = self._update_progress_bar(epoch)
+
+        # Training
+        self.model.train()
+        train_loss = self._train_batch(progress_bar, optimizer, loss_fn)
+
+        # Validation
+        self.model.eval()
+        val_loss = self._val_batch(self.val_loader, scheduler, loss_fn)
+
+        # Tensorboard logging
+        if self.writer is not None:
+            self.writer.add_scalar("Loss/Train", train_loss, epoch + 1)
+            self.writer.add_scalar("Loss/Validation", val_loss, epoch + 1)
+            current_lr = optimizer.param_groups[0]["lr"]
+            self.writer.add_scalar("Learning Rate", current_lr, epoch)
+
+        return train_loss, val_loss
+
+    @break_loop
+    def train(wrapper, self, verbose=True):
+        """Train the model with validation and test evaluation.
 
         Performs epoch-wise training using the configured optimizer and loss
         function, tracks training/validation loss, selects the best model
@@ -498,48 +563,159 @@ class RegressionDeepONet:
         -----
         Metrics are also stored on the instance as ``metric_data``.
         """
-        optimizer = self._init_optimizer()
-        scheduler = self._init_scheduler(optimizer)
         loss_criterion = self._init_loss_fn()
+        optimizer = self._init_optimizer()
+        scheduler = self._init_lr_scheduler(optimizer)
 
-        best_error = np.inf
+        best_val_loss = np.inf
         best_model_weights = None
         train_loss_history = []
         val_loss_history = []
 
-        for epoch in range(self.n_epochs):
-            progress_bar = self._update_progress_bar(epoch)
-
-            # Training
-            self.network.train()
-            train_loss = self._train_batch(progress_bar, optimizer, loss_criterion)
+        for epoch in grange(self.n_epochs, stop_event=wrapper.stop_event):
+            train_loss, val_loss = self.train_one_epoch(
+                epoch, loss_criterion, optimizer, scheduler
+            )
             train_loss_history.append(train_loss)
-
-            # Validation
-            self.network.eval()
-            val_loss = self._val_batch(self.val_loader, scheduler, loss_criterion)
             val_loss_history.append(val_loss)
-            if val_loss < best_error:
-                best_error = val_loss
-                best_model_weights = copy.deepcopy(self.network.state_dict())
-
-            # Tensorboard logging
-            if self.writer is not None:
-                self.writer.add_scalar("Loss/Train", train_loss, epoch + 1)
-                self.writer.add_scalar("Loss/Validation", val_loss, epoch + 1)
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_model_weights = copy.deepcopy(self.model.state_dict())
 
         # Testing
         with torch.no_grad():
-            self.network.eval()
+            self.model.eval()
             test_loss = self._val_batch(self.test_loader, None, loss_criterion)
 
-        # Return best model
-        self.network.load_state_dict(best_model_weights)
+        # Load best model
+        self.model.load_state_dict(best_model_weights)
+
+        # Save checkpoint
+        if self.ckpt_name is not None:
+            self.save_checkpoint(epoch, best_val_loss, optimizer, scheduler)
+
+        # Return history
         self.metric_data = {
             "train_loss": train_loss_history,
             "val_loss": val_loss_history,
             "test_loss": test_loss,
         }
+        if verbose:
+            return self.metric_data
+
+    def save_checkpoint(self, epoch, val_loss, optimizer, scheduler):
+        """Save checkpoint data after epoch to ``self.ckpt_name``.
+
+        Parameters
+        ----------
+        epoch : int
+            The current epoch to train.
+        val_loss : float
+            Best validation loss from training.
+        optimizer : torch.optim.Optimizer
+            Optimizer used to update model parameters.
+        scheduler : torch.optim.lr_scheduler._LRScheduler
+            Learning rate scheduler.
+        """
+        ckpt = {
+            "epoch": epoch + 1,
+            "model_state": self.model.state_dict(),
+            "optimizer_state": optimizer.state_dict(),
+            "scheduler_state": scheduler.state_dict() if scheduler else None,
+            "best_val_loss": val_loss,
+        }
+        torch.save(ckpt, self.ckpt_name)
+
+    def load_checkpoint(self, optimizer, scheduler):
+        """Load checkpoint data to continue training from ``self.ckpt_name``.
+
+        Parameters
+        ----------
+        optimizer : torch.optim.Optimizer
+            Optimizer used to update model parameters.
+        scheduler : torch.optim.lr_scheduler._LRScheduler
+            Learning rate scheduler.
+
+        Returns
+        -------
+        tuple of int, float
+            Starting epoch and best validation loss.
+        """
+        ckpt = torch.load(self.ckpt_name, map_location=self.device)
+
+        self.model.load_state_dict(ckpt["model_state"])
+        optimizer.load_state_dict(ckpt["optimizer_state"])
+
+        if scheduler is not None and ckpt["scheduler_state"] is not None:
+            scheduler.load_state_dict(ckpt["scheduler_state"])
+
+        return ckpt["epoch"], ckpt["best_val_loss"]
+
+    @break_loop
+    def continue_training(wrapper, self, verbose=True):
+        """Continue train the model with validation and test evaluation.
+
+        Performs epoch-wise training using the configured optimizer and loss
+        function, tracks training/validation loss, selects the best model
+        weights by validation loss, evaluates on the test set, and restores
+        the best weights.
+
+        Parameters
+        ----------
+        verbose : bool, default True
+            If True, returns a dictionary of tracked metrics.
+
+        Returns
+        -------
+        dict or None
+            If ``verbose`` is True, returns a dictionary with: \
+            - ``train_loss`` (list of float): Average training loss per epoch. \
+            - ``val_loss`` (list of float): Average validation loss per epoch. \
+            - ``test_loss`` (float): Average test loss computed with the best \
+                model.
+            Otherwise, returns None.
+
+        Notes
+        -----
+        Metrics are also stored on the instance as ``metric_data``.
+        """
+        loss_criterion = self._init_loss_fn()
+        optimizer = self._init_optimizer()
+        scheduler = self._init_lr_scheduler(optimizer)
+
+        epoch_start, best_val_loss = self.load_checkpoint(optimizer, scheduler)
+        self.n_epochs += epoch_start
+
+        best_model_weights = None
+        train_loss_history = []
+        val_loss_history = []
+
+        for epoch in grange(epoch_start, self.n_epochs, stop_event=wrapper.stop_event):
+            train_loss, val_loss = self.train_one_epoch(
+                epoch, loss_criterion, optimizer, scheduler
+            )
+            train_loss_history.append(train_loss)
+            val_loss_history.append(val_loss)
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_model_weights = copy.deepcopy(self.model.state_dict())
+
+        # Testing
+        with torch.no_grad():
+            self.model.eval()
+            test_loss = self._val_batch(self.test_loader, None, loss_criterion)
+
+        # Return best model
+        self.model.load_state_dict(best_model_weights)
+        self.metric_data = {
+            "train_loss": train_loss_history,
+            "val_loss": val_loss_history,
+            "test_loss": test_loss,
+        }
+
+        if self.ckpt_name is not None:
+            self.save_checkpoint(epoch, best_val_loss, optimizer, scheduler)
+
         if verbose:
             return self.metric_data
 
@@ -553,11 +729,11 @@ class RegressionDeepONet:
             model weights and ``f"{model_name}_loss_metrics.npz"`` for metrics
             captured in ``metric_data``.
         """
-        torch.save(self.network.state_dict(), f"{model_name}.pt")
+        torch.save(self.model.state_dict(), f"{model_name}.pt")
         np.savez(f"{model_name}-loss-metrics.npz", **self.metric_data)
 
     def load_model(self, model_name):
-        """Load model parameters from disk into the network.
+        """Load model parameters from disk into the model.
 
         Parameters
         ----------
@@ -565,7 +741,7 @@ class RegressionDeepONet:
             Base filename used when saving (without extension). Reads
             ``f"{model_name}.pt"``.
         """
-        self.network.load_state_dict(torch.load(f"{model_name}.pt", weights_only=True))
+        self.model.load_state_dict(torch.load(f"{model_name}.pt", weights_only=True))
 
     def predict(self, flux, labels, batch_size=1):
         """Run batched inference and return predictions.
@@ -574,7 +750,7 @@ class RegressionDeepONet:
         ----------
         X_new : numpy.ndarray
             Input features of shape (n_samples, n_features). This helper
-            assumes the wrapped network accepts a single tensor input. If your
+            assumes the wrapped model accepts a single tensor input. If your
             model requires multiple inputs (e.g., ``flux`` and ``labels``),
             implement a custom prediction routine consistent with ``forward``.
         batch_size : int, default 1
@@ -593,12 +769,11 @@ class RegressionDeepONet:
 
         predictions = []
         with torch.no_grad():
-            self.network.eval()
+            self.model.eval()
             for flux_batch, labels_batch in test_loader:
-                outputs = self.network(
+                outputs = self.model(
                     flux_batch.to(self.device), labels_batch.to(self.device)
                 )
                 predictions.append(outputs.cpu().numpy())
 
-        return np.vstack(predictions)
         return np.vstack(predictions)

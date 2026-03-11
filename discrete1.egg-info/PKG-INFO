@@ -98,17 +98,28 @@ criticality problems.
 
 
 ## Current Research Techniques
+
 This is an experimental code that explores different acceleration and data
 saving techniques related to the neutron transport equation.
 
+- Deep Jointly-Informed Neural Networks (DJINN)
+    - Use DJINN to replace the matrix-vector multiplication (&sigma;<sup>s</sup>&phi;
+    and &sigma;<sup>f</sup>&phi;) in the neutron transport equation.
+    - Memory reduced by upwards of 98% of original footprint.
+    - **Citation:** Ben Whewell and Ryan G. McClarren, (2022). Data Reduction in
+    Deterministic Neutron Transport Calculations Using Machine Learning.
+    Annals of Nuclear Energy, 176, p .109276. DOI: 10.1016/j.anucene.2022.109276.
 
-1. DJINN incorporates Deep Jointly-Informed Neural Networks
-    into the S<sub>N</sub> code for &Sigma;<sub>s</sub> &Phi;
-    and &Sigma;<sub>f</sub> &Phi; calculations<sup>1</sup>.
-
-2. Collision-Based Hybrid Method separates the collided and uncollided terms to
-    be used with different numbers of ordinates (N) and energy groups (G) for
-    time-dependent problems<sup>2</sup>.
+- Collision-Based Hybrid Method
+    - Separate the collided and uncollided terms in the neutron transport equation
+    to use on different energy and angle grids.
+    - High fidelity grids for the uncollided solve (one sweep) with low fidelity
+    grids on the collided solve.
+    - More accurate than both portions using the low fidelity and faster than using
+    the high fidelity grid.
+    - **Citation:** Ben Whewell, Ryan G. McClarren, Cory D. Hauck, and Minwoo Shin,
+    (2023). Multigroup Neutron Transport Using a Collision-Based Hybrid Method,
+    Nuclear Science and Engineering, 197:7, 1386-1405, DOI: 10.1080/00295639.2022.2154119.
 
 
 ## Documentation
@@ -196,12 +207,3 @@ pytest
 ```
 
 Coverage reports will be generated in `coverage_html/index.html` and `coverage.xml`.
-
-
-<sup>1</sup> Ben Whewell and Ryan G. McClarren, (2022). Data Reduction in
-    Deterministic Neutron Transport Calculations Using Machine Learning.
-    Annals of Nuclear Energy, 176, p .109276. DOI: 10.1016/j.anucene.2022.109276.
-
-<sup>2</sup> Ben Whewell, Ryan G. McClarren, Cory D. Hauck, and Minwoo Shin,
-    (2023). Multigroup Neutron Transport Using a Collision-Based Hybrid Method,
-    Nuclear Science and Engineering, 197:7, 1386-1405, DOI: 10.1080/00295639.2022.2154119.

@@ -1,6 +1,6 @@
 [coverage:run]
 source = discrete1
-omit = 
+omit =
     discrete1/__pycache__/*
     discrete1/*/__pycache__/*
 
