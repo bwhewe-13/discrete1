@@ -20,6 +20,7 @@ This module relies on optional ML dependencies (``torch``, ``sklearn`` and
 import copy
 import importlib
 import itertools
+import pickle
 import warnings
 
 import numpy as np
@@ -28,7 +29,7 @@ import torch.nn as nn
 import torch.optim as optim
 import tqdm
 from sklearn import model_selection
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, Dataset, TensorDataset
 from torch.utils.tensorboard import SummaryWriter
 
 from discrete1.ml.tools import (
@@ -173,6 +174,166 @@ def djinn_regression(X, y, path, trees, depth, **kwargs):
         model.close_model()
 
 
+def deeponet_memmap(filename, flux, labels, y, seed=3):
+    """Save flux, labels, and y data for DeepONets into a memmap file.
+
+    Takes flux, labels, and y data and converts it into a datatype which can
+    be used with the DeepONetDataset class to incrementally load large datasets.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the memmap file to save to
+    flux : numpy.ndarray
+        Flux data of size (n_samples, n_groups).
+    labels : numpy.ndarray
+        Label data of size (n_samples, n_labels).
+    y : numpy.ndarray
+        Target data of size (n_samples, n_groups).
+    seed : int, default 3
+        Random seed for reproducible splits.
+
+    Notes
+    -----
+    There is also a pickle file saved using the same file name. This is to make
+    it easy to use with ``RegressionDeepONet.process_data_memmap``.
+    """
+    samples, flux_shape = flux.shape
+    labels_shape = labels.shape[1]
+    y_shape = y.shape[1]
+
+    dtype = np.dtype(
+        [
+            ("flux", np.float32, (flux_shape,)),
+            ("labels", np.float32, (labels_shape,)),
+            ("y", np.float32, (y_shape,)),
+        ]
+    )
+
+    # Shuffling the data
+    idx = np.arange(samples, dtype=int)
+    train_idx, test_idx = model_selection.train_test_split(
+        idx, test_size=0.2, random_state=seed
+    )
+    train_idx, val_idx = model_selection.train_test_split(
+        train_idx, test_size=0.25, random_state=seed
+    )
+    idx = np.concatenate((train_idx, val_idx, test_idx))
+
+    data = np.memmap(filename, dtype=dtype, mode="w+", shape=(samples,))
+    data["flux"][:] = flux[idx].astype(np.float32)
+    data["labels"][:] = labels[idx].astype(np.float32)
+    data["y"][:] = y[idx].astype(np.float32)
+
+    data.flush()
+    print(f"File saved as: {filename}")
+
+    # Save shape data
+    pickle_file = filename.replace("memmap", "pickle")
+    with open(pickle_file, "wb") as file:
+        pickle.dump((samples, flux_shape, labels_shape, y_shape), file)
+
+
+class DeepONetDataset(Dataset):
+    """Custom PyTorch Dataset for Deep Operator Networks using numpy.memmap."""
+
+    def __init__(self, path, dtype, shape, batch_size=1, start_idx=0, end_idx=None):
+        """Initialize the DeepONet Dataset.
+
+        Parameters
+        ----------
+        path : str
+            Location of the memmap file
+        dtype : type
+            Type of data stored in the memmap file. Typically use np.float32.
+        shape : tuple
+            Shape of the data in the memmap file.
+        batch_size : int, default 1
+            Batch size used for chunking the data. Replaces the batch_size in
+            the DataLoader.
+        start_idx : int, default 0
+            Starting index if splitting the data into training, validation,
+            and testing datasets.
+        end_idx : int, default None
+            Ending index if splitting the data into training, validation, and
+            testing datasets.
+        """
+        super().__init__()
+        self.path = path
+        self.dtype = dtype
+        self.shape = shape
+        self.batch_size = batch_size
+        self.start_idx = start_idx
+        self.end_idx = end_idx or shape[0]
+
+        self._data = None
+
+        self.num_samples = self.end_idx - self.start_idx
+        self.num_batches = self.num_samples // batch_size
+
+    def _ensure_open(self):
+        """Ensure that the memmap file has not been opened.
+
+        Notes
+        -----
+        This protects multiple workers.
+        """
+        if self._data is None:
+            self._data = np.memmap(
+                self.path, shape=self.shape, dtype=self.dtype, mode="r"
+            )
+
+    def __len__(self):
+        """Length of the chunked dataset."""
+        return self.num_batches
+
+    def __getitem__(self, batch_idx):
+        """Fetch the batch given the index.
+
+        Parameters
+        ----------
+        batch_idx : int
+            Batch index.
+        """
+        self._ensure_open()
+
+        if torch.is_tensor(batch_idx):
+            batch_idx = batch_idx.item()
+
+        start = self.start_idx + batch_idx * self.batch_size
+        end = start + self.batch_size
+        batch = self._data[start:end]
+
+        flux = np.array(batch["flux"], dtype=np.float32, copy=True)
+        labels = np.array(batch["labels"], dtype=np.float32, copy=True)
+        y = np.array(batch["y"], dtype=np.float32, copy=True)
+
+        return torch.from_numpy(flux), torch.from_numpy(labels), torch.from_numpy(y)
+
+
+class BatchShuffleSampler(torch.utils.data.Sampler):
+    """Shuffles the memmap batches for training."""
+
+    def __init__(self, dataset):
+        """Initialize BatchShuffleSampler.
+
+        Parameters
+        ----------
+        dataset : DeepONetDataset
+            Training dataset.
+        """
+        self.dataset = dataset
+
+    def __iter__(self):
+        """Shuffle the batch chunks."""
+        indices = torch.randperm(len(self.dataset)).tolist()
+        return iter(indices)
+
+    def __len__(self):
+        """Length of the dataset."""
+        return len(self.dataset)
+
+
 class RegressionDeepONet:
     """Simple training harness for regression-style PyTorch models.
 
@@ -233,8 +394,8 @@ class RegressionDeepONet:
             Optional learning rate scheduler. Not applied by default.
         lr_scheduler_params : dict
             Parameters for learning rate scheduler.
-        checkpoint : str, default "ckpt.pt"
-            If non-empty string, saves checkpoint data at end of n_epochs
+        checkpoint : str, default None
+            If not None, saves checkpoint data at end of n_epochs
         device : str, default "cpu"
             Device specifier for computation (e.g., "cpu", "cuda").
         LOUD : bool, default True
@@ -261,7 +422,7 @@ class RegressionDeepONet:
         self.weight_decay = kwargs.get("weight_decay", 0.0)
         self.lr_scheduler = kwargs.get("lr_scheduler", None)
         self.lr_scheduler_params = kwargs.get("lr_scheduler_params", {})
-        self.ckpt_name = kwargs.get("checkpoint", "ckpt.pt")
+        self.ckpt_name = kwargs.get("checkpoint", None)
         self.device = torch.device(kwargs.get("device", "cpu"))
         self.LOUD = kwargs.get("LOUD", True)
         self.writer = kwargs.get("tensorboard", None)
@@ -324,6 +485,103 @@ class RegressionDeepONet:
         )
         self.val_loader = DataLoader(val_dataset, batch_size=self.batch_size)
         self.test_loader = DataLoader(test_dataset, batch_size=self.batch_size)
+        if verbose:
+            return train_dataset, val_dataset, test_dataset
+
+    def process_data_memmap(
+        self,
+        filename,
+        batch_size=1,
+        train_size=0.6,
+        val_size=0.2,
+        verbose=False,
+    ):
+        """Split arrays into train/val/test sets and build data loaders.
+
+        This uses the ``DeepONetDataset`` Dataset and memmap files to work with
+        large datasets when training with RegressionDeepONet.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the memmap file. File stored using the
+            ``train.deeponet_memmap`` function.
+        batch_size : int, default 1
+            batch_size used for memmap batch chunking. Replaces the batch_size
+            in the __init__ call.
+        train_size : float, default 0.6
+            Fraction of the data used for training data.
+        val_size : float, default 0.2
+            Fraction of the data used for validation data.
+        verbose : bool, default False
+            If True, also return the created ``TensorDataset`` objects.
+
+        Returns
+        -------
+        tuple of torch.utils.data.TensorDataset or None
+            If ``verbose`` is True, returns
+            ``(train_dataset, val_dataset, test_dataset)``. Otherwise, returns
+            None.
+
+        Notes
+        -----
+        The datasets pack triples ``(flux, labels, y)``. DataLoader instances
+        are stored on the instance as ``train_loader``, ``val_loader``, and
+        ``test_loader``. There is a pickle file with the same name as
+        ``filename`` that loads the appropriate shape for the custom dtype.
+        """
+        # Load pickle file
+        pickle_file = filename.replace("memmap", "pickle")
+        with open(pickle_file, "rb") as file:
+            shape = pickle.load(file)
+        n_samples, flux_shape, labels_shape, y_shape = shape
+
+        # Sizes of train/test/validation
+        train_end = int(train_size * n_samples)
+        val_end = int((train_size + val_size) * n_samples)
+
+        dtype = np.dtype(
+            [
+                ("flux", np.float32, (flux_shape,)),
+                ("labels", np.float32, (labels_shape,)),
+                ("y", np.float32, (y_shape,)),
+            ]
+        )
+
+        # Custom datasets
+        train_dataset = DeepONetDataset(
+            filename,
+            dtype,
+            (n_samples,),
+            batch_size=batch_size,
+            start_idx=0,
+            end_idx=train_end,
+        )
+        val_dataset = DeepONetDataset(
+            filename,
+            dtype,
+            (n_samples,),
+            batch_size=batch_size,
+            start_idx=train_end,
+            end_idx=val_end,
+        )
+        test_dataset = DeepONetDataset(
+            filename,
+            dtype,
+            (n_samples,),
+            batch_size=batch_size,
+            start_idx=val_end,
+            end_idx=n_samples,
+        )
+
+        # Convert to DataLoader
+        self.train_loader = DataLoader(
+            train_dataset,
+            batch_size=1,
+            sampler=BatchShuffleSampler(train_dataset),
+        )
+        self.val_loader = DataLoader(val_dataset, batch_size=1)
+        self.test_loader = DataLoader(test_dataset, batch_size=1)
         if verbose:
             return train_dataset, val_dataset, test_dataset
 
@@ -536,28 +794,13 @@ class RegressionDeepONet:
         return train_loss, val_loss
 
     @break_loop
-    def train(wrapper, self, verbose=True):
+    def train(wrapper, self):
         """Train the model with validation and test evaluation.
 
         Performs epoch-wise training using the configured optimizer and loss
         function, tracks training/validation loss, selects the best model
         weights by validation loss, evaluates on the test set, and restores
         the best weights.
-
-        Parameters
-        ----------
-        verbose : bool, default True
-            If True, returns a dictionary of tracked metrics.
-
-        Returns
-        -------
-        dict or None
-            If ``verbose`` is True, returns a dictionary with: \
-            - ``train_loss`` (list of float): Average training loss per epoch. \
-            - ``val_loss`` (list of float): Average validation loss per epoch. \
-            - ``test_loss`` (float): Average test loss computed with the best \
-                model.
-            Otherwise, returns None.
 
         Notes
         -----
@@ -594,14 +837,12 @@ class RegressionDeepONet:
         if self.ckpt_name is not None:
             self.save_checkpoint(epoch, best_val_loss, optimizer, scheduler)
 
-        # Return history
+        # History
         self.metric_data = {
             "train_loss": train_loss_history,
             "val_loss": val_loss_history,
             "test_loss": test_loss,
         }
-        if verbose:
-            return self.metric_data
 
     def save_checkpoint(self, epoch, val_loss, optimizer, scheduler):
         """Save checkpoint data after epoch to ``self.ckpt_name``.
@@ -652,28 +893,13 @@ class RegressionDeepONet:
         return ckpt["epoch"], ckpt["best_val_loss"]
 
     @break_loop
-    def continue_training(wrapper, self, verbose=True):
+    def continue_training(wrapper, self):
         """Continue train the model with validation and test evaluation.
 
         Performs epoch-wise training using the configured optimizer and loss
         function, tracks training/validation loss, selects the best model
         weights by validation loss, evaluates on the test set, and restores
         the best weights.
-
-        Parameters
-        ----------
-        verbose : bool, default True
-            If True, returns a dictionary of tracked metrics.
-
-        Returns
-        -------
-        dict or None
-            If ``verbose`` is True, returns a dictionary with: \
-            - ``train_loss`` (list of float): Average training loss per epoch. \
-            - ``val_loss`` (list of float): Average validation loss per epoch. \
-            - ``test_loss`` (float): Average test loss computed with the best \
-                model.
-            Otherwise, returns None.
 
         Notes
         -----
@@ -707,17 +933,16 @@ class RegressionDeepONet:
 
         # Return best model
         self.model.load_state_dict(best_model_weights)
+
+        if self.ckpt_name is not None:
+            self.save_checkpoint(epoch, best_val_loss, optimizer, scheduler)
+
+        # History
         self.metric_data = {
             "train_loss": train_loss_history,
             "val_loss": val_loss_history,
             "test_loss": test_loss,
         }
-
-        if self.ckpt_name is not None:
-            self.save_checkpoint(epoch, best_val_loss, optimizer, scheduler)
-
-        if verbose:
-            return self.metric_data
 
     def save_model(self, model_name):
         """Save the trained model parameters and loss metrics to disk.
