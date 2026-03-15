@@ -26,6 +26,12 @@ import torch.optim as optim
 from sklearn import model_selection
 from torch.utils.data import DataLoader, TensorDataset
 
+from discrete1.ml.data import (
+    BatchShuffleSampler,
+    DeepONetDataset,
+    load_deeponet_memmap_metadata,
+)
+
 
 def finish_trial(study):
     """End Optuna after current trial.
@@ -64,6 +70,12 @@ class RegressionDeepONet:
         - ``device`` (str): computation device ("cpu" or "cuda"). Default "cpu".
         - ``seed`` (int): random seed for train/val split. Default 3.
         - ``test_size`` (float): validation fraction. Default 0.2.
+                - ``memmap_file`` (str or None): path to memmap data file created by
+                    ``discrete1.ml.data.deeponet_memmap``.
+                - ``train_size`` (float): training fraction for memmap mode.
+                    Default 0.6.
+                - ``val_size`` (float): validation fraction for memmap mode.
+                    Default 0.2.
         - Search-space overrides, see :meth:`_init_search_parameters`.
 
     Examples
@@ -102,6 +114,9 @@ class RegressionDeepONet:
         "sched_patience",
         "sched_cooldown",
         "loss_functions",
+        "memmap_file",
+        "train_size",
+        "val_size",
     }
 
     def __init__(self, flux, labels, y, **kwargs):
@@ -122,6 +137,13 @@ class RegressionDeepONet:
               Default 3.
             - ``test_size`` (float): validation fraction in the split.
               Default 0.2.
+                - ``memmap_file`` (str or None): path to a memmap dataset
+                    produced by ``discrete1.ml.data.deeponet_memmap``. If set,
+                    ``flux``, ``labels``, and ``y`` may be ``None``.
+                - ``train_size`` (float): training fraction in memmap mode.
+                    Default 0.6.
+                - ``val_size`` (float): validation fraction in memmap mode.
+                    Default 0.2.
             - Search space overrides used by :meth:`_init_search_parameters`:
               ``prebuilt``, ``max_b_layers``, ``max_t_layers``, ``nodes``,
               ``fc_activations``, ``dropout``, ``n_epochs``, ``batch_size``,
@@ -132,15 +154,35 @@ class RegressionDeepONet:
         Notes
         -----
         This constructor computes input/output sizes, sets ``self.device``,
-        and calls :meth:`_process_data` and :meth:`_init_search_parameters` to
-        prepare datasets and define the hyperparameter search space.
+        and calls :meth:`_process_data` (in-memory mode only) and
+        :meth:`_init_search_parameters` to prepare data and define the
+        hyperparameter search space.
         """
         self.flux = flux
         self.labels = labels
         self.y = y
-        self.flux_input_size = flux.shape[1]
-        self.labels_input_size = labels.shape[1]
-        self.output_size = y.shape[1]
+        self.memmap_file = kwargs.get("memmap_file", None)
+        self.train_size = kwargs.get("train_size", 0.6)
+        self.val_size = kwargs.get("val_size", 0.2)
+
+        if self.memmap_file is None:
+            if flux is None or labels is None or y is None:
+                raise ValueError(
+                    "flux, labels, and y are required when memmap_file is not provided"
+                )
+            self.flux_input_size = flux.shape[1]
+            self.labels_input_size = labels.shape[1]
+            self.output_size = y.shape[1]
+        else:
+            n_samples, flux_shape, labels_shape, y_shape, memmap_dtype = (
+                load_deeponet_memmap_metadata(self.memmap_file)
+            )
+            self._memmap_n_samples = n_samples
+            self._memmap_shape = (n_samples,)
+            self._memmap_dtype = memmap_dtype
+            self.flux_input_size = flux_shape
+            self.labels_input_size = labels_shape
+            self.output_size = y_shape
 
         # Raise a UserWarning for unexpected arguments
         unexpected_kwargs = set(kwargs.keys()) - RegressionDeepONet.__valid_kwargs
@@ -149,8 +191,40 @@ class RegressionDeepONet:
             warnings.warn(warning_string, UserWarning, stacklevel=2)
 
         self.device = torch.device(kwargs.get("device", "cpu"))
-        self._process_data(**kwargs)
+        if self.memmap_file is None:
+            self._process_data(**kwargs)
         self._init_search_parameters(**kwargs)
+
+    def _create_memmap_datasets(self, batch_size):
+        """Create train/validation datasets backed by numpy.memmap."""
+        n_samples = self._memmap_n_samples
+        train_end = int(self.train_size * n_samples)
+        val_end = int((self.train_size + self.val_size) * n_samples)
+
+        train_samples = train_end
+        val_samples = max(0, val_end - train_end)
+        max_batch = min(train_samples, val_samples)
+        if max_batch < 1:
+            raise ValueError("memmap split produced an empty train or validation set")
+
+        effective_batch_size = min(batch_size, max_batch)
+        train_dataset = DeepONetDataset(
+            self.memmap_file,
+            self._memmap_dtype,
+            self._memmap_shape,
+            batch_size=effective_batch_size,
+            start_idx=0,
+            end_idx=train_end,
+        )
+        val_dataset = DeepONetDataset(
+            self.memmap_file,
+            self._memmap_dtype,
+            self._memmap_shape,
+            batch_size=effective_batch_size,
+            start_idx=train_end,
+            end_idx=val_end,
+        )
+        return train_dataset, val_dataset
 
     def _process_data(self, **kwargs):
         """Create train/validation datasets.
@@ -164,7 +238,8 @@ class RegressionDeepONet:
         -------
         None
             Sets ``self.train_dataset`` and ``self.val_dataset`` as
-            ``TensorDataset`` instances on CPU tensors.
+            ``TensorDataset`` instances on CPU tensors. This path is used only
+            when ``memmap_file`` is not provided.
         """
         seed = kwargs.get("seed", 3)
         test_size = kwargs.get("test_size", 0.2)
@@ -597,10 +672,19 @@ class RegressionDeepONet:
         )
 
         # Create train and validation dataloaders
-        train_loader = DataLoader(
-            self.train_dataset, batch_size=batch_size, shuffle=True
-        )
-        val_loader = DataLoader(self.val_dataset, batch_size=batch_size)
+        if self.memmap_file is None:
+            train_loader = DataLoader(
+                self.train_dataset, batch_size=batch_size, shuffle=True
+            )
+            val_loader = DataLoader(self.val_dataset, batch_size=batch_size)
+        else:
+            train_dataset, val_dataset = self._create_memmap_datasets(batch_size)
+            train_loader = DataLoader(
+                train_dataset,
+                batch_size=1,
+                sampler=BatchShuffleSampler(train_dataset),
+            )
+            val_loader = DataLoader(val_dataset, batch_size=1)
 
         # Training loop
         for epoch in range(epochs):

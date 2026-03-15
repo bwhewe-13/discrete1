@@ -20,7 +20,6 @@ This module relies on optional ML dependencies (``torch``, ``sklearn`` and
 import copy
 import importlib
 import itertools
-import pickle
 import warnings
 
 import numpy as np
@@ -29,9 +28,14 @@ import torch.nn as nn
 import torch.optim as optim
 import tqdm
 from sklearn import model_selection
-from torch.utils.data import DataLoader, Dataset, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.tensorboard import SummaryWriter
 
+from discrete1.ml.data import (
+    BatchShuffleSampler,
+    DeepONetDataset,
+    load_deeponet_memmap_metadata,
+)
 from discrete1.ml.tools import (
     explained_variance_score,
     mean_absolute_error,
@@ -172,166 +176,6 @@ def djinn_regression(X, y, path, trees, depth, **kwargs):
 
         # close model
         model.close_model()
-
-
-def deeponet_memmap(filename, flux, labels, y, seed=3):
-    """Save flux, labels, and y data for DeepONets into a memmap file.
-
-    Takes flux, labels, and y data and converts it into a datatype which can
-    be used with the DeepONetDataset class to incrementally load large datasets.
-
-    Parameters
-    ----------
-    filename : str
-        Name of the memmap file to save to
-    flux : numpy.ndarray
-        Flux data of size (n_samples, n_groups).
-    labels : numpy.ndarray
-        Label data of size (n_samples, n_labels).
-    y : numpy.ndarray
-        Target data of size (n_samples, n_groups).
-    seed : int, default 3
-        Random seed for reproducible splits.
-
-    Notes
-    -----
-    There is also a pickle file saved using the same file name. This is to make
-    it easy to use with ``RegressionDeepONet.process_data_memmap``.
-    """
-    samples, flux_shape = flux.shape
-    labels_shape = labels.shape[1]
-    y_shape = y.shape[1]
-
-    dtype = np.dtype(
-        [
-            ("flux", np.float32, (flux_shape,)),
-            ("labels", np.float32, (labels_shape,)),
-            ("y", np.float32, (y_shape,)),
-        ]
-    )
-
-    # Shuffling the data
-    idx = np.arange(samples, dtype=int)
-    train_idx, test_idx = model_selection.train_test_split(
-        idx, test_size=0.2, random_state=seed
-    )
-    train_idx, val_idx = model_selection.train_test_split(
-        train_idx, test_size=0.25, random_state=seed
-    )
-    idx = np.concatenate((train_idx, val_idx, test_idx))
-
-    data = np.memmap(filename, dtype=dtype, mode="w+", shape=(samples,))
-    data["flux"][:] = flux[idx].astype(np.float32)
-    data["labels"][:] = labels[idx].astype(np.float32)
-    data["y"][:] = y[idx].astype(np.float32)
-
-    data.flush()
-    print(f"File saved as: {filename}")
-
-    # Save shape data
-    pickle_file = filename.replace("memmap", "pickle")
-    with open(pickle_file, "wb") as file:
-        pickle.dump((samples, flux_shape, labels_shape, y_shape), file)
-
-
-class DeepONetDataset(Dataset):
-    """Custom PyTorch Dataset for Deep Operator Networks using numpy.memmap."""
-
-    def __init__(self, path, dtype, shape, batch_size=1, start_idx=0, end_idx=None):
-        """Initialize the DeepONet Dataset.
-
-        Parameters
-        ----------
-        path : str
-            Location of the memmap file
-        dtype : type
-            Type of data stored in the memmap file. Typically use np.float32.
-        shape : tuple
-            Shape of the data in the memmap file.
-        batch_size : int, default 1
-            Batch size used for chunking the data. Replaces the batch_size in
-            the DataLoader.
-        start_idx : int, default 0
-            Starting index if splitting the data into training, validation,
-            and testing datasets.
-        end_idx : int, default None
-            Ending index if splitting the data into training, validation, and
-            testing datasets.
-        """
-        super().__init__()
-        self.path = path
-        self.dtype = dtype
-        self.shape = shape
-        self.batch_size = batch_size
-        self.start_idx = start_idx
-        self.end_idx = end_idx or shape[0]
-
-        self._data = None
-
-        self.num_samples = self.end_idx - self.start_idx
-        self.num_batches = self.num_samples // batch_size
-
-    def _ensure_open(self):
-        """Ensure that the memmap file has not been opened.
-
-        Notes
-        -----
-        This protects multiple workers.
-        """
-        if self._data is None:
-            self._data = np.memmap(
-                self.path, shape=self.shape, dtype=self.dtype, mode="r"
-            )
-
-    def __len__(self):
-        """Length of the chunked dataset."""
-        return self.num_batches
-
-    def __getitem__(self, batch_idx):
-        """Fetch the batch given the index.
-
-        Parameters
-        ----------
-        batch_idx : int
-            Batch index.
-        """
-        self._ensure_open()
-
-        if torch.is_tensor(batch_idx):
-            batch_idx = batch_idx.item()
-
-        start = self.start_idx + batch_idx * self.batch_size
-        end = start + self.batch_size
-        batch = self._data[start:end]
-
-        flux = np.array(batch["flux"], dtype=np.float32, copy=True)
-        labels = np.array(batch["labels"], dtype=np.float32, copy=True)
-        y = np.array(batch["y"], dtype=np.float32, copy=True)
-
-        return torch.from_numpy(flux), torch.from_numpy(labels), torch.from_numpy(y)
-
-
-class BatchShuffleSampler(torch.utils.data.Sampler):
-    """Shuffles the memmap batches for training."""
-
-    def __init__(self, dataset):
-        """Initialize BatchShuffleSampler.
-
-        Parameters
-        ----------
-        dataset : DeepONetDataset
-            Training dataset.
-        """
-        self.dataset = dataset
-
-    def __iter__(self):
-        """Shuffle the batch chunks."""
-        indices = torch.randperm(len(self.dataset)).tolist()
-        return iter(indices)
-
-    def __len__(self):
-        """Length of the dataset."""
-        return len(self.dataset)
 
 
 class RegressionDeepONet:
@@ -505,7 +349,7 @@ class RegressionDeepONet:
         ----------
         filename : str
             Name of the memmap file. File stored using the
-            ``train.deeponet_memmap`` function.
+            ``data.deeponet_memmap`` function.
         batch_size : int, default 1
             batch_size used for memmap batch chunking. Replaces the batch_size
             in the __init__ call.
@@ -530,23 +374,13 @@ class RegressionDeepONet:
         ``test_loader``. There is a pickle file with the same name as
         ``filename`` that loads the appropriate shape for the custom dtype.
         """
-        # Load pickle file
-        pickle_file = filename.replace("memmap", "pickle")
-        with open(pickle_file, "rb") as file:
-            shape = pickle.load(file)
-        n_samples, flux_shape, labels_shape, y_shape = shape
+        n_samples, flux_shape, labels_shape, y_shape, dtype = (
+            load_deeponet_memmap_metadata(filename)
+        )
 
         # Sizes of train/test/validation
         train_end = int(train_size * n_samples)
         val_end = int((train_size + val_size) * n_samples)
-
-        dtype = np.dtype(
-            [
-                ("flux", np.float32, (flux_shape,)),
-                ("labels", np.float32, (labels_shape,)),
-                ("y", np.float32, (y_shape,)),
-            ]
-        )
 
         # Custom datasets
         train_dataset = DeepONetDataset(
