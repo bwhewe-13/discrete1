@@ -11,8 +11,8 @@ operate on NumPy arrays. Public API (typical callers):
 
 - ``discrete_ordinates``: generic dispatcher to slab/sphere handlers
 - ``slab_ordinates`` / ``sphere_ordinates``: full sweep drivers
-- ``slab_ordinates_source`` / ``sphere_ordinates_source``: known-source
-- ``slab_ordinates_scatter`` / ``sphere_ordinates_scatter``: DJINN scatter
+- ``slab_known_source_sn`` / ``sphere_known_source_sn``: known-source
+- ``slab_scatter_source_sn`` / ``sphere_scatter_source_sn``: DJINN scatter
 
 Docstrings on the individual functions describe parameter shapes and
 return values expected by the rest of the package.
@@ -44,6 +44,8 @@ def discrete_ordinates(
     angle_w,
     bc_x,
     geometry,
+    P=None,
+    P_weights=None,
 ):
     """Dispatch to the appropriate spatial sweep for the geometry.
 
@@ -53,30 +55,36 @@ def discrete_ordinates(
 
     Parameters
     ----------
-    flux_old : numpy.ndarray
-        Previous iterate of the scalar flux (shape: n_cells,).
-    xs_total : array_like
-        Total macroscopic cross sections per material.
-    xs_scatter : array_like
-        Scatter cross section (per material) used in source evaluation.
-    off_scatter : numpy.ndarray
-        Off-diagonal scatter correction/source term (shape: n_cells,).
-    external : numpy.ndarray
-        External source array (shape varies: spatial x angles x groups).
-    boundary : numpy.ndarray
-        Boundary condition array (2, n_angles, ...).
-    medium_map : array_like
-        Integer material index per spatial cell (length n_cells).
-    delta_x : array_like
-        Cell widths (length n_cells).
-    angle_x : array_like
-        Angular ordinates (length n_angles).
-    angle_w : array_like
-        Quadrature weights (length n_angles).
+    flux_old : numpy.ndarray, shape (n_cells,)
+        Previous iterate of the scalar flux.
+    xs_total : numpy.ndarray, shape (n_materials,)
+        Total macroscopic cross sections per material for this group.
+    xs_scatter : numpy.ndarray
+        Within-group scatter cross sections mapped to cells.
+        - Isotropic: shape (n_cells,) — scalar xs_s0 per cell.
+        - Anisotropic: shape (n_cells, L+1) — Legendre moments per cell.
+    off_scatter : numpy.ndarray, shape (n_cells,)
+        Off-diagonal scatter source.
+    external : numpy.ndarray, shape (n_cells, n_angles or 1)
+        External source for this group.
+    boundary : numpy.ndarray, shape (2, n_angles or 1)
+        Boundary conditions for this group.
+    medium_map : numpy.ndarray, shape (n_cells,)
+        Material index per cell.
+    delta_x : numpy.ndarray, shape (n_cells,)
+        Cell widths.
+    angle_x : numpy.ndarray, shape (angles,)
+        Angular quadrature points.
+    angle_w : numpy.ndarray, shape (angles,)
+        Angular quadrature weights.
     bc_x : sequence
         Boundary condition flags for left/right boundaries.
     geometry : int
-        Geometry selector: 1 -> slab, 2 -> sphere.
+        1 = slab, 2 = sphere.
+    P : numpy.ndarray, shape (L+1, angles), optional
+        Precomputed Legendre polynomials. Required for anisotropic.
+    P_weights : numpy.ndarray, shape (L+1, angles), optional
+        Precomputed w_n * P_l(mu_n). Required for anisotropic.
 
     Returns
     -------
@@ -84,10 +92,12 @@ def discrete_ordinates(
         Updated scalar flux at cell centers (shape: n_cells,).
     """
     edges = 0
+    isotropic = xs_scatter.ndim == 1  # (cells_x, L+1) vs (cells_x,)
 
-    # Slab geometry
-    if geometry == 1:
-        return slab_ordinates(
+    # Isotropic slab geometry
+    if geometry == 1 and isotropic:
+
+        return slab_isotropic_sn(
             flux_old,
             xs_total,
             xs_scatter,
@@ -101,10 +111,30 @@ def discrete_ordinates(
             bc_x,
             edges,
         )
+    # Anisotropic slab geometry
+    elif geometry == 1 and not isotropic:
+        xs_scatter_w = xs_scatter * (2 * np.arange(xs_scatter.shape[1]) + 1)[None, :]
+        return slab_anisotropic_sn(
+            flux_old,
+            xs_total,
+            xs_scatter,
+            xs_scatter_w,
+            off_scatter,
+            external,
+            boundary,
+            medium_map,
+            delta_x,
+            angle_x,
+            angle_w,
+            P,
+            P_weights,
+            bc_x,
+            edges,
+        )
 
-    # Sphere geometry
-    elif geometry == 2:
-        return sphere_ordinates(
+    # Isotropic sphere geometry
+    elif geometry == 2 and isotropic:
+        return sphere_isotropic_sn(
             flux_old,
             xs_total,
             xs_scatter,
@@ -118,9 +148,29 @@ def discrete_ordinates(
             bc_x,
             edges,
         )
+    # Anisotropic sphere geometry
+    elif geometry == 2 and not isotropic:
+        xs_scatter_w = xs_scatter * (2 * np.arange(xs_scatter.shape[1]) + 1)[None, :]
+        return sphere_anisotropic_sn(
+            flux_old,
+            xs_total,
+            xs_scatter,
+            xs_scatter_w,
+            off_scatter,
+            external,
+            boundary,
+            medium_map,
+            delta_x,
+            angle_x,
+            angle_w,
+            bc_x,
+            edges,
+            P,
+            P_weights,
+        )
 
 
-def _known_source(
+def known_source_sn(
     flux,
     xs_total,
     zero,
@@ -134,10 +184,10 @@ def _known_source(
     geometry,
     edges,
 ):
-
+    """Sweep with a fully prescribed source (no scatter iteration)."""
     # Slab geometry
     if geometry == 1:
-        return slab_ordinates_source(
+        return slab_known_source_sn(
             flux,
             xs_total,
             zero,
@@ -153,7 +203,7 @@ def _known_source(
 
     # Sphere geometry
     elif geometry == 2:
-        return sphere_ordinates_source(
+        return sphere_known_source_sn(
             flux,
             xs_total,
             zero,
@@ -168,7 +218,7 @@ def _known_source(
         )
 
 
-def _known_scatter(
+def scatter_source_sn(
     xs_total,
     scatter_source,
     external,
@@ -180,10 +230,10 @@ def _known_scatter(
     bc_x,
     geometry,
 ):
-
+    """Sweep with a prescribed scatter source (DJINN variant)."""
     # Slab geometry
     if geometry == 1:
-        return slab_ordinates_scatter(
+        return slab_scatter_source_sn(
             xs_total,
             scatter_source,
             external,
@@ -197,7 +247,7 @@ def _known_scatter(
 
     # Sphere geometry
     elif geometry == 2:
-        return sphere_ordinates_scatter(
+        return sphere_scatter_source_sn(
             xs_total,
             scatter_source,
             external,
@@ -211,11 +261,11 @@ def _known_scatter(
 
 
 ########################################################################
-# Slab Sweeps
+# Slab Sweeps - Isotropic
 ########################################################################
 
 
-def slab_ordinates(
+def slab_isotropic_sn(
     flux_old,
     xs_total,
     xs_scatter,
@@ -229,7 +279,7 @@ def slab_ordinates(
     bc_x,
     edges,
 ):
-    """Perform a slab-geometry discrete-ordinates spatial sweep.
+    """Isotropic slab-geometry discrete-ordinates spatial sweep.
 
     The solver iterates over angular ordinates and performs forward and
     backward diamond-difference passes until the scalar flux converges
@@ -240,31 +290,31 @@ def slab_ordinates(
     ----------
     flux_old : numpy.ndarray
         Initial flux guess (n_cells,).
-    xs_total : array_like
-        Total cross sections indexed by material.
-    xs_scatter : array_like
-        Scatter cross sections indexed by material.
-    off_scatter : numpy.ndarray
-        Precomputed off-scatter source (n_cells,).
-    external : numpy.ndarray
-        External source (n_x, n_angles or 1, 1).
-    boundary : numpy.ndarray
-        Boundary conditions (2, n_angles, ...).
-    medium_map : array_like
-        Material index per cell (n_cells,).
-    delta_x : array_like
-        Cell widths (n_cells,).
-    angle_x, angle_w : array_like
-        Angular ordinates and weights.
+    xs_total : numpy.ndarray, shape (n_materials,)
+        Total cross sections per material.
+    xs_scatter : numpy.ndarray, shape (n_cells,)
+        Within-group isotropic scatter cross section mapped to cells.
+    off_scatter : numpy.ndarray, shape (n_cells,)
+        Off-diagonal scatter source.
+    external : numpy.ndarray, shape (n_cells, n_angles or 1)
+        External source.
+    boundary : numpy.ndarray, shape (2, n_angles or 1)
+        Boundary conditions.
+    medium_map : numpy.ndarray, shape (n_cells,)
+        Material index per cell.
+    delta_x : numpy.ndarray, shape (n_cells,)
+        Cell widths.
+    angle_x, angle_w : numpy.ndarray, shape (angles,)
+        Angular quadrature points and weights.
     bc_x : sequence
-        Boundary condition flags for left/right.
+        Boundary condition flags.
     edges : int
-        If 1, compute edge flux contributions; otherwise compute center flux.
+        If 1, accumulate edge fluxes; else cell-center fluxes.
 
     Returns
     -------
-    numpy.ndarray
-        Converged scalar flux at cell centers (n_cells,).
+    numpy.ndarray, shape (n_cells,)
+        Converged scalar flux at cell centers.
     """
 
     cells_x = flux_old.shape[0]
@@ -279,18 +329,16 @@ def slab_ordinates(
     change = 0.0
 
     while not (converged):
-
         flux *= 0.0
         reflector *= 0.0
 
         for nn in range(angles):
-
             qq = 0 if external.shape[1] == 1 else nn
             bc = 0 if boundary.shape[1] == 1 else nn
 
             if angle_x[nn] > 0.0:
                 edge1 = reflector[nn] + boundary[0, bc]
-                edge1 = slab_forward(
+                edge1 = slab_forward_iso(
                     flux,
                     flux_old,
                     xs_total,
@@ -307,7 +355,7 @@ def slab_ordinates(
 
             elif angle_x[nn] < 0.0:
                 edge1 = reflector[nn] + boundary[1, bc]
-                edge1 = slab_backward(
+                edge1 = slab_backward_iso(
                     flux,
                     flux_old,
                     xs_total,
@@ -345,7 +393,7 @@ def slab_ordinates(
     nopython=True,
     cache=True,
 )
-def slab_forward(
+def slab_forward_iso(
     flux,
     flux_old,
     xs_total,
@@ -359,51 +407,38 @@ def slab_forward(
     angle_w,
     edges,
 ):
-    """Perform the forward sweep for slab geometry for one ordinate.
+    """Forward (left to right) isotropic slab sweep for one ordinate.
 
-    This kernel marches from the left boundary toward the right and
-    computes either edge or center flux contributions for a single
-    angular ordinate.
-
-    Notes
-    -----
-    This function is JIT-compiled with numba for performance and
-    operates in-place on the ``flux`` array.
+    Returns
+    -------
+    float
+        Outgoing edge flux at i = I.
     """
-
-    # Get iterables
     cells_x = numba.int32(medium_map.shape[0])
     mat = numba.int32
     ii = numba.int32
-    # Initialize unknown cell edge
     edge2 = numba.float64(0.0)
-    # Determine flux edge
+
     if edges == 1:
         flux[0] += angle_w * edge1
-    # Iterate over cells
+
     for ii in range(cells_x):
-        # Determining material cross section
         mat = medium_map[ii]
-        # Calculate cell edge unknown
+
         edge2 = (
-            (
-                xs_scatter[mat] * flux_old[ii]
-                + external[ii]
-                + off_scatter[ii]
-                + edge1 * (angle_x / delta_x[ii] - 0.5 * xs_total[mat])
-            )
-            * 1
-            / (angle_x / delta_x[ii] + 0.5 * xs_total[mat])
-        )
-        # Update flux with cell edges
+            xs_scatter[mat] * flux_old[ii]
+            + external[ii]
+            + off_scatter[ii]
+            + edge1 * (angle_x / delta_x[ii] - 0.5 * xs_total[mat])
+        ) / (angle_x / delta_x[ii] + 0.5 * xs_total[mat])
+
+        # Update flux with cell edges or centers
         if edges == 1:
             flux[ii + 1] += angle_w * edge2
-        # Update flux with cell centers
         else:
             flux[ii] += 0.5 * angle_w * (edge1 + edge2)
-        # Update unknown cell edge
         edge1 = edge2
-    # Return cell at i = I
+
     return edge1
 
 
@@ -413,7 +448,7 @@ def slab_forward(
     nopython=True,
     cache=True,
 )
-def slab_backward(
+def slab_backward_iso(
     flux,
     flux_old,
     xs_total,
@@ -427,48 +462,293 @@ def slab_backward(
     angle_w,
     edges,
 ):
-    """Perform the backward sweep for slab geometry for one ordinate.
+    """Backward (right to left) isotropic slab sweep for one ordinate.
 
-    Marches from the right boundary toward the left and updates the
-    provided ``flux`` array with center or edge contributions for the
-    given angular ordinate. This kernel is jitted with numba and
-    mutates its inputs in-place for performance.
+    Returns
+    -------
+    float
+        Outgoing edge flux at i = 0.
     """
-
-    # Get iterables
     cells_x = numba.int32(medium_map.shape[0])
     mat = numba.int32
     ii = numba.int32
-    # Initialize unknown cell edge
     edge2 = numba.float64(0.0)
+
     # Determine flux edge
     if edges == 1:
         flux[cells_x] += angle_w * edge1
-    # Iterate over cells
+
     for ii in range(cells_x - 1, -1, -1):
-        # Determining material cross section
         mat = medium_map[ii]
-        # Calculate cell edge unknown
+
         edge2 = (
-            (
-                xs_scatter[mat] * flux_old[ii]
-                + external[ii]
-                + off_scatter[ii]
-                + edge1 * (-angle_x / delta_x[ii] - 0.5 * xs_total[mat])
-            )
-            * 1
-            / (-angle_x / delta_x[ii] + 0.5 * xs_total[mat])
-        )
-        # Update flux with cell edges
+            xs_scatter[mat] * flux_old[ii]
+            + external[ii]
+            + off_scatter[ii]
+            + edge1 * (-angle_x / delta_x[ii] - 0.5 * xs_total[mat])
+        ) / (-angle_x / delta_x[ii] + 0.5 * xs_total[mat])
+
+        # Update flux with cell edges or centers
         if edges == 1:
             flux[ii] += angle_w * edge2
-        # Update flux with cell centers
         else:
             flux[ii] += 0.5 * angle_w * (edge1 + edge2)
-        # Update unknown cell edge
         edge1 = edge2
-    # Return cell at i = 0
+
     return edge1
+
+
+########################################################################
+# Slab Sweeps — Anisotropic
+########################################################################
+
+
+def slab_anisotropic_sn(
+    flux_old,
+    xs_total,
+    xs_self_scatter,
+    xs_scatter_w,
+    off_scatter,
+    external,
+    boundary,
+    medium_map,
+    delta_x,
+    angle_x,
+    angle_w,
+    bc_x,
+    edges,
+    P,
+    P_weights,
+):
+    """Anisotropic slab-geometry discrete-ordinates sweep.
+
+    Parameters
+    ----------
+    flux_old : numpy.ndarray, shape (n_cells,)
+        Initial scalar flux guess.
+    xs_total : numpy.ndarray, shape (n_materials,)
+        Total cross sections per material.
+    xs_self_scatter : numpy.ndarray, shape (n_cells, L+1)
+        Within-group Legendre scatter moments mapped to cells.
+    xs_scatter_w : numpy.ndarray, shape (n_cells, L+1)
+        Precomputed (2l+1) * xs_self_scatter.
+    off_scatter : numpy.ndarray, shape (n_cells,)
+        Off-diagonal scatter source.
+    external : numpy.ndarray, shape (n_cells, n_angles or 1)
+        External source.
+    boundary : numpy.ndarray, shape (2, n_angles or 1)
+        Boundary conditions.
+    medium_map : numpy.ndarray, shape (n_cells,)
+        Material index per cell.
+    delta_x : numpy.ndarray, shape (n_cells,)
+        Cell widths.
+    angle_x, angle_w : numpy.ndarray, shape (angles,)
+        Angular quadrature points and weights.
+    bc_x : sequence
+        Boundary condition flags.
+    edges : int
+        If 1, accumulate edge fluxes; else cell-centre fluxes.
+    P : numpy.ndarray, shape (L+1, angles)
+        Precomputed P[l, n] = P_l(mu_n).
+    P_weights : numpy.ndarray, shape (L+1, angles)
+        Precomputed w_n * P_l(mu_n).
+
+    Returns
+    -------
+    numpy.ndarray, shape (n_cells,)
+        Converged scalar flux at cell centres.
+    """
+    cells_x = flux_old.shape[0]
+    angles = angle_x.shape[0]
+    n_moments = xs_self_scatter.shape[1]
+
+    flux = np.zeros((cells_x,))
+    reflector = np.zeros((angles,))
+    edge1 = 0.0
+
+    # Seed L=0 flux moment from initial guess; higher moments start zero.
+    flux_moments = np.zeros((cells_x, n_moments))
+    flux_moments[:, 0] = flux_old.copy()
+    anisotropic = np.zeros((cells_x, angles))
+
+    converged = False
+    count = 1
+    change = 0.0
+
+    while not converged:
+        flux *= 0.0
+        reflector *= 0.0
+
+        # Build anisotropic scatter source from moments of previous sweep.
+        anisotropic = np.einsum("xl,xl,ln->xn", xs_scatter_w, flux_moments, P)
+
+        # Reset moment accumulator for this sweep.
+        flux_moments *= 0.0
+
+        for nn in range(angles):
+            qq = 0 if external.shape[1] == 1 else nn
+            bc = 0 if boundary.shape[1] == 1 else nn
+
+            if angle_x[nn] > 0.0:
+                edge1 = reflector[nn] + boundary[0, bc]
+                edge1, psi_nn = slab_forward_aniso(
+                    flux,
+                    xs_total,
+                    anisotropic[:, nn],
+                    off_scatter,
+                    external[:, qq],
+                    edge1,
+                    medium_map,
+                    delta_x,
+                    angle_x[nn],
+                    angle_w[nn],
+                    edges,
+                )
+            elif angle_x[nn] < 0.0:
+                edge1 = reflector[nn] + boundary[1, bc]
+                edge1, psi_nn = slab_backward_aniso(
+                    flux,
+                    xs_total,
+                    anisotropic[:, nn],
+                    off_scatter,
+                    external[:, qq],
+                    edge1,
+                    medium_map,
+                    delta_x,
+                    angle_x[nn],
+                    angle_w[nn],
+                    edges,
+                )
+            else:
+                raise Exception("Discontinuity at 0")
+
+            # Accumulate flux moments: one rank-1 outer-product per ordinate.
+            flux_moments += np.outer(psi_nn, P_weights[:, nn])
+            tools.reflector_corrector(reflector, angle_x, edge1, nn, bc_x)
+
+        try:
+            change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        except RuntimeWarning:
+            change = 0.0
+        converged = (change < change_nn) or (count >= count_nn)
+        count += 1
+        flux_old = flux.copy()
+
+    return flux
+
+
+@numba.jit(
+    "Tuple((f8, f8[:]))(f8[:], f8[:], f8[:], f8[:], f8[:], f8, i4[:], "
+    "f8[:], f8, f8, i4)",
+    nopython=True,
+    cache=True,
+)
+def slab_forward_aniso(
+    flux,
+    xs_total,
+    anisotropic,
+    off_scatter,
+    external,
+    edge1,
+    medium_map,
+    delta_x,
+    angle_x,
+    angle_w,
+    edges,
+):
+    """Forward (left to right) anisotropic slab sweep for one ordinate.
+
+    Returns
+    -------
+    edge1 : float
+        Outgoing edge flux at i = I.
+    psi : numpy.ndarray, shape (n_cells,)
+        Cell-centre angular flux for moment accumulation.
+    """
+    cells_x = numba.int32(medium_map.shape[0])
+    mat = numba.int32
+    ii = numba.int32
+    edge2 = numba.float64(0.0)
+    psi = np.empty((cells_x,))
+
+    if edges == 1:
+        flux[0] += angle_w * edge1
+
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+        edge2 = (
+            anisotropic[ii]
+            + external[ii]
+            + off_scatter[ii]
+            + edge1 * (angle_x / delta_x[ii] - 0.5 * xs_total[mat])
+        ) / (angle_x / delta_x[ii] + 0.5 * xs_total[mat])
+        psi[ii] = 0.5 * (edge1 + edge2)
+
+        # Update flux with cell edges or centers
+        if edges == 1:
+            flux[ii + 1] += angle_w * edge2
+        else:
+            flux[ii] += 0.5 * angle_w * (edge1 + edge2)
+        edge1 = edge2
+
+    return (edge1, psi)
+
+
+@numba.jit(
+    "Tuple((f8, f8[:]))(f8[:], f8[:], f8[:], f8[:], f8[:], f8, i4[:], "
+    "f8[:], f8, f8, i4)",
+    nopython=True,
+    cache=True,
+)
+def slab_backward_aniso(
+    flux,
+    xs_total,
+    anisotropic,
+    off_scatter,
+    external,
+    edge1,
+    medium_map,
+    delta_x,
+    angle_x,
+    angle_w,
+    edges,
+):
+    """Backward (right to left) anisotropic slab sweep for one ordinate.
+
+    Returns
+    -------
+    edge1 : float
+        Outgoing edge flux at i = 0.
+    psi : numpy.ndarray, shape (n_cells,)
+        Cell-centre angular flux for moment accumulation.
+    """
+    cells_x = numba.int32(medium_map.shape[0])
+    mat = numba.int32
+    ii = numba.int32
+    edge2 = numba.float64(0.0)
+    psi = np.empty((cells_x,))
+
+    if edges == 1:
+        flux[cells_x] += angle_w * edge1
+
+    for ii in range(cells_x - 1, -1, -1):
+        mat = medium_map[ii]
+        edge2 = (
+            anisotropic[ii]
+            + external[ii]
+            + off_scatter[ii]
+            + edge1 * (-angle_x / delta_x[ii] - 0.5 * xs_total[mat])
+        ) / (-angle_x / delta_x[ii] + 0.5 * xs_total[mat])
+        psi[ii] = 0.5 * (edge1 + edge2)
+
+        # Update flux with cell edges or centers
+        if edges == 1:
+            flux[ii] += angle_w * edge2
+        else:
+            flux[ii] += 0.5 * angle_w * (edge1 + edge2)
+        edge1 = edge2
+
+    return (edge1, psi)
 
 
 ########################################################################
@@ -476,7 +756,7 @@ def slab_backward(
 ########################################################################
 
 
-def sphere_ordinates(
+def sphere_isotropic_sn(
     flux_old,
     xs_total,
     xs_scatter,
@@ -490,7 +770,7 @@ def sphere_ordinates(
     bc_x,
     edges,
 ):
-    """Perform a spherical-geometry discrete-ordinates spatial sweep.
+    """Isotropic spherical-geometry discrete-ordinates spatial sweep.
 
     The spherical sweep uses half-angle bookkeeping and angular
     differencing coefficients appropriate for radial geometry. The
@@ -501,7 +781,7 @@ def sphere_ordinates(
     ----------
     flux_old, xs_total, xs_scatter, off_scatter, external, boundary, \
     medium_map, delta_x, angle_x, angle_w, bc_x, edges :
-        See :func:`slab_ordinates` for parameter shapes and meanings.
+        See :func:`slab_isotropic_sn` for parameter shapes and meanings.
 
     Returns
     -------
@@ -526,7 +806,7 @@ def sphere_ordinates(
 
         flux *= 0.0
         # Calculate the initial half angle
-        _half_angle(
+        _half_angle_iso(
             flux_old,
             half_angle,
             xs_total,
@@ -538,9 +818,7 @@ def sphere_ordinates(
             boundary[1, 0],
         )
 
-        # Iterate over the discrete ordinates
         for nn in range(angles):
-
             qq = 0 if external.shape[1] == 1 else nn
             bc = 0 if boundary.shape[1] == 1 else nn
 
@@ -555,7 +833,7 @@ def sphere_ordinates(
 
             # Iterate from 0 -> I
             if angle_x[nn] > 0.0:
-                sphere_forward(
+                sphere_forward_iso(
                     flux,
                     flux_old,
                     half_angle,
@@ -576,7 +854,7 @@ def sphere_ordinates(
 
             # Iterate from I -> 0
             elif angle_x[nn] < 0.0:
-                sphere_backward(
+                sphere_backward_iso(
                     flux,
                     flux_old,
                     half_angle,
@@ -598,16 +876,12 @@ def sphere_ordinates(
             else:
                 raise Exception("Discontinuity at 0")
 
-            # Update the angular differencing coefficient
             alpha_minus = alpha_plus
-            # Update the half angle
             angle_minus = angle_plus
 
-        # Check for convergence
         change = np.linalg.norm((flux - flux_old) / flux / cells_x)
         converged = (change < change_nn) or (count >= count_nn)
         count += 1
-
         flux_old = flux.copy()
 
     return flux
@@ -619,7 +893,7 @@ def sphere_ordinates(
     nopython=True,
     cache=True,
 )
-def _half_angle(
+def _half_angle_iso(
     flux,
     half_angle,
     xs_total,
@@ -630,22 +904,19 @@ def _half_angle(
     delta_x,
     angle_plus,
 ):
-    # Get iterables
+    """Seed the half-angle array for the isotropic sphere sweep."""
     cells_x = numba.int32(flux.shape[0])
     mat = numba.int32
     ii = numba.int32
-    # Zero out half angle
     half_angle *= 0.0
-    # Iterate from sphere surface to center
+
     for ii in range(cells_x - 1, -1, -1):
         mat = medium_map[ii]
-        # Calculate angular flux half angle
         half_angle[ii] = (
             2 * angle_plus
             + delta_x[ii]
             * (external[ii] + off_scatter[ii] + xs_scatter[mat] * flux[ii])
         ) / (2 + xs_total[mat] * delta_x[ii])
-        # Update half angle coefficient
         angle_plus = 2 * half_angle[ii] - angle_plus
 
 
@@ -685,7 +956,7 @@ def angle_coef_corrector(alpha_minus, angle_x, angle_w, nn, angles):
     nopython=True,
     cache=True,
 )
-def sphere_forward(
+def sphere_forward_iso(
     flux,
     flux_old,
     half_angle,
@@ -709,16 +980,11 @@ def sphere_forward(
     radius using the provided half-angle and differencing coefficients.
     This kernel is performance-critical and compiled with numba.
     """
-
-    # Get iterables
     cells_x = numba.int32(flux.shape[0])
     mat = numba.int32
     ii = numba.int32
-
-    # Initialize known cell edge
     edge1 = numba.float64(half_angle[0])
 
-    # Determine flux edge
     if edges == 1:
         flux[0] += weight * edge1
 
@@ -728,24 +994,19 @@ def sphere_forward(
     center = numba.float64
     volume = numba.float64
 
-    # Iterate over cells from 0 -> I (center to edge)
     for ii in range(cells_x):
-        # For determining the material cross sections
         mat = medium_map[ii]
 
-        # Calculate surface areas
+        # Calculate surface area and volume of cell
         area1 = 4 * np.pi * (ii * delta_x[ii]) ** 2
         area2 = 4 * np.pi * ((ii + 1) * delta_x[ii]) ** 2
-        # Calculate volume of cell
         volume = (
             4 / 3.0 * np.pi * (((ii + 1) * delta_x[ii]) ** 3 - (ii * delta_x[ii]) ** 3)
         )
 
-        # Calculate flux at cell center
         center = (
             angle_x * (area2 + area1) * edge1
-            + 1
-            / angle_w
+            + (1 / angle_w)
             * (area2 - area1)
             * (alpha_plus + alpha_minus)
             * (half_angle[ii])
@@ -756,17 +1017,12 @@ def sphere_forward(
             + xs_total[mat] * volume
         )
 
-        # Update flux with cell edges
+        # Update flux with cell edges or cell centers
         if edges == 1:
             flux[ii + 1] += weight * (2 * center - edge1)
-        # Update flux with cell centers
         else:
             flux[ii] += weight * center
-
-        # Update cell edge
         edge1 = 2 * center - edge1
-
-        # Update half angle coefficient
         if ii != 0:
             half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
 
@@ -777,7 +1033,7 @@ def sphere_forward(
     nopython=True,
     cache=True,
 )
-def sphere_backward(
+def sphere_backward_iso(
     flux,
     flux_old,
     half_angle,
@@ -802,43 +1058,31 @@ def sphere_backward(
     in-place. The kernel uses geometry-specific surface area and
     volume factors to compute center contributions.
     """
-
-    # Get iterables
     cells_x = numba.int32(flux.shape[0])
     mat = numba.int32
     ii = numba.int32
-
-    # Initialize known cell edge
     edge1 = numba.float64(boundary)
 
-    # Determine flux edge
     if edges == 1:
         flux[cells_x] += weight * edge1
 
-    # Initialize surface area on cell edges, cell volume, flux center
     area1 = numba.float64
     area2 = numba.float64
     center = numba.float64
     volume = numba.float64
 
-    # Iterate over cells from I -> 0 (edge to center)
     for ii in range(cells_x - 1, -1, -1):
-        # For determining the material cross sections
         mat = medium_map[ii]
-
-        # Calculate surface areas
+        # Calculate surface area and volume of cell
         area1 = 4 * np.pi * (ii * delta_x[ii]) ** 2
         area2 = 4 * np.pi * ((ii + 1) * delta_x[ii]) ** 2
-        # Calculate volume of cell
         volume = (
             4 / 3.0 * np.pi * (((ii + 1) * delta_x[ii]) ** 3 - (ii * delta_x[ii]) ** 3)
         )
 
-        # Calculate the flux at the cell center
         center = (
             -angle_x * (area2 + area1) * edge1
-            + 1
-            / angle_w
+            + (1 / angle_w)
             * (area2 - area1)
             * (alpha_plus + alpha_minus)
             * (half_angle[ii])
@@ -849,27 +1093,344 @@ def sphere_backward(
             + xs_total[mat] * volume
         )
 
-        # Update flux with cell edges
+        # Update flux with cell edges or cell centers
         if edges == 1:
             flux[ii + 1] += weight * (2 * center - edge1)
-        # Update flux with cell centers
         else:
             flux[ii] += weight * center
-
-        # Update cell edge
         edge1 = 2 * center - edge1
-
-        # Update half angle coefficient
         if ii != 0:
             half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
 
 
 ########################################################################
-# Slab Sweeps - Known Source
+# Sphere Sweeps — Anisotropic
 ########################################################################
 
 
-def slab_ordinates_source(
+def sphere_anisotropic_sn(
+    flux_old,
+    xs_total,
+    xs_self_scatter,
+    xs_scatter_w,
+    off_scatter,
+    external,
+    boundary,
+    medium_map,
+    delta_x,
+    angle_x,
+    angle_w,
+    bc_x,
+    edges,
+    P,
+    P_weights,
+):
+    """Anisotropic sphere-geometry discrete-ordinates sweep.
+
+    Parameters match :func:`slab_anisotropic_sn` with sphere-specific
+    half-angle bookkeeping. See that function for parameter descriptions.
+
+    Returns
+    -------
+    numpy.ndarray, shape (n_cells,)
+        Converged scalar flux at cell centres.
+    """
+    cells_x = flux_old.shape[0]
+    angles = angle_x.shape[0]
+    n_moments = xs_self_scatter.shape[1]
+
+    flux = np.zeros((cells_x,))
+    half_angle = np.zeros((cells_x,))
+
+    flux_moments = np.zeros((cells_x, n_moments))
+    flux_moments[:, 0] = flux_old
+    anisotropic = np.zeros((cells_x, angles))
+
+    converged = False
+    count = 1
+    change = 0.0
+
+    while not converged:
+        flux *= 0.0
+        angle_minus = -1.0
+        alpha_minus = 0.0
+
+        anisotropic = np.einsum("xl,xl,ln->xn", xs_scatter_w, flux_moments, P)
+        flux_moments *= 0.0
+
+        _half_angle_aniso(
+            flux_old,
+            half_angle,
+            xs_total,
+            xs_self_scatter[:, 0],
+            off_scatter,
+            external[:, 0],
+            medium_map,
+            delta_x,
+            boundary[1, 0],
+        )
+
+        for nn in range(angles):
+            qq = 0 if external.shape[1] == 1 else nn
+            bc = 0 if boundary.shape[1] == 1 else nn
+
+            angle_plus = angle_minus + 2 * angle_w[nn]
+            tau = (angle_x[nn] - angle_minus) / (angle_plus - angle_minus)
+            alpha_plus = angle_coef_corrector(
+                alpha_minus, angle_x[nn], angle_w[nn], nn, angles
+            )
+
+            if angle_x[nn] > 0.0:
+                psi_nn = sphere_forward_aniso(
+                    flux,
+                    half_angle,
+                    xs_total,
+                    anisotropic[:, nn],
+                    off_scatter,
+                    external[:, qq],
+                    medium_map,
+                    delta_x,
+                    angle_x[nn],
+                    angle_w[nn],
+                    angle_w[nn],
+                    tau,
+                    alpha_plus,
+                    alpha_minus,
+                    edges,
+                )
+            elif angle_x[nn] < 0.0:
+                psi_nn = sphere_backward_aniso(
+                    flux,
+                    half_angle,
+                    xs_total,
+                    anisotropic[:, nn],
+                    off_scatter,
+                    external[:, qq],
+                    boundary[1, bc],
+                    medium_map,
+                    delta_x,
+                    angle_x[nn],
+                    angle_w[nn],
+                    angle_w[nn],
+                    tau,
+                    alpha_plus,
+                    alpha_minus,
+                    edges,
+                )
+            else:
+                raise Exception("Discontinuity at 0")
+
+            flux_moments += np.outer(psi_nn, P_weights[:, nn])
+            alpha_minus = alpha_plus
+            angle_minus = angle_plus
+
+        change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        converged = (change < change_nn) or (count >= count_nn)
+        count += 1
+        flux_old = flux.copy()
+
+    return flux
+
+
+@numba.jit(
+    "void(f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], i4[:], f8[:], f8)",
+    nopython=True,
+    cache=True,
+)
+def _half_angle_aniso(
+    flux,
+    half_angle,
+    xs_total,
+    xs_scatter_l0,
+    off_scatter,
+    external,
+    medium_map,
+    delta_x,
+    angle_plus,
+):
+    """Seed the half-angle array for the anisotropic sphere sweep.
+
+    Uses the L=0 scatter moment only, consistent with the treatment of
+    the initial half-angle before any ordinate-specific information is
+    available.
+    """
+    cells_x = numba.int32(flux.shape[0])
+    mat = numba.int32
+    ii = numba.int32
+    half_angle *= 0.0
+    for ii in range(cells_x - 1, -1, -1):
+        mat = medium_map[ii]
+        half_angle[ii] = (
+            2 * angle_plus
+            + delta_x[ii]
+            * (external[ii] + off_scatter[ii] + xs_scatter_l0[ii] * flux[ii])
+        ) / (2 + xs_total[mat] * delta_x[ii])
+        angle_plus = 2 * half_angle[ii] - angle_plus
+
+
+@numba.jit(
+    "f8[:](f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], i4[:], "
+    "f8[:], f8, f8, f8, f8, f8, f8, i4)",
+    nopython=True,
+    cache=True,
+)
+def sphere_forward_aniso(
+    flux,
+    half_angle,
+    xs_total,
+    anisotropic,
+    off_scatter,
+    external,
+    medium_map,
+    delta_x,
+    angle_x,
+    angle_w,
+    weight,
+    tau,
+    alpha_plus,
+    alpha_minus,
+    edges,
+):
+    """Forward (center to edge) anisotropic sphere sweep for one ordinate.
+
+    Returns
+    -------
+    psi : numpy.ndarray, shape (n_cells,)
+        Cell-centre angular flux for moment accumulation.
+    """
+    cells_x = numba.int32(flux.shape[0])
+    mat = numba.int32
+    ii = numba.int32
+    edge1 = numba.float64(half_angle[0])
+    psi = np.empty((cells_x,))
+
+    if edges == 1:
+        flux[0] += weight * edge1
+
+    area1 = numba.float64
+    area2 = numba.float64
+    center = numba.float64
+    volume = numba.float64
+
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+
+        # Calculate surface areas and volume of cell
+        area1 = 4 * np.pi * (ii * delta_x[ii]) ** 2
+        area2 = 4 * np.pi * ((ii + 1) * delta_x[ii]) ** 2
+        volume = (
+            4 / 3.0 * np.pi * (((ii + 1) * delta_x[ii]) ** 3 - (ii * delta_x[ii]) ** 3)
+        )
+
+        center = (
+            angle_x * (area2 + area1) * edge1
+            + (1 / angle_w)
+            * (area2 - area1)
+            * (alpha_plus + alpha_minus)
+            * half_angle[ii]
+            + volume * (external[ii] + off_scatter[ii] + anisotropic[ii])
+        ) / (
+            2 * angle_x * area2
+            + 2 / angle_w * (area2 - area1) * alpha_plus
+            + xs_total[mat] * volume
+        )
+        psi[ii] = center
+        if edges == 1:
+            flux[ii + 1] += weight * (2 * center - edge1)
+        else:
+            flux[ii] += weight * center
+        edge1 = 2 * center - edge1
+        if ii != 0:
+            half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
+
+    return psi
+
+
+@numba.jit(
+    "f8[:](f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], f8, i4[:], "
+    "f8[:], f8, f8, f8, f8, f8, f8, i4)",
+    nopython=True,
+    cache=True,
+)
+def sphere_backward_aniso(
+    flux,
+    half_angle,
+    xs_total,
+    anisotropic,
+    off_scatter,
+    external,
+    boundary,
+    medium_map,
+    delta_x,
+    angle_x,
+    angle_w,
+    weight,
+    tau,
+    alpha_plus,
+    alpha_minus,
+    edges,
+):
+    """Backward (edge to center) anisotropic sphere sweep for one ordinate.
+
+    Returns
+    -------
+    psi : numpy.ndarray, shape (n_cells,)
+        Cell-centre angular flux for moment accumulation.
+    """
+    cells_x = numba.int32(flux.shape[0])
+    mat = numba.int32
+    ii = numba.int32
+    edge1 = numba.float64(boundary)
+    psi = np.empty((cells_x,))
+
+    if edges == 1:
+        flux[cells_x] += weight * edge1
+
+    area1 = numba.float64
+    area2 = numba.float64
+    center = numba.float64
+    volume = numba.float64
+
+    for ii in range(cells_x - 1, -1, -1):
+        mat = medium_map[ii]
+
+        # Calculate surface areas and volume of cell
+        area1 = 4 * np.pi * (ii * delta_x[ii]) ** 2
+        area2 = 4 * np.pi * ((ii + 1) * delta_x[ii]) ** 2
+        volume = (
+            4 / 3.0 * np.pi * (((ii + 1) * delta_x[ii]) ** 3 - (ii * delta_x[ii]) ** 3)
+        )
+
+        center = (
+            -angle_x * (area2 + area1) * edge1
+            + (1 / angle_w)
+            * (area2 - area1)
+            * (alpha_plus + alpha_minus)
+            * half_angle[ii]
+            + volume * (external[ii] + off_scatter[ii] + anisotropic[ii])
+        ) / (
+            2 * -angle_x * area1
+            + 2 / angle_w * (area2 - area1) * alpha_plus
+            + xs_total[mat] * volume
+        )
+        psi[ii] = center
+        if edges == 1:
+            flux[ii + 1] += weight * (2 * center - edge1)
+        else:
+            flux[ii] += weight * center
+        edge1 = 2 * center - edge1
+        if ii != 0:
+            half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
+
+    return psi
+
+
+########################################################################
+# Known Sweeps Source with no scatter iteration
+########################################################################
+
+
+def slab_known_source_sn(
     flux,
     xs_total,
     zero,
@@ -891,15 +1452,17 @@ def slab_ordinates_source(
     Parameters
     ----------
     flux : numpy.ndarray
-        Output array for scalar or angular fluxes (shape: n_cells x xdim).
-    xs_total : array_like
-        Total cross sections indexed by material.
-    zero : numpy.ndarray
-        Zero-array placeholder used for kernels that expect an array.
-    source : numpy.ndarray
-        Prescribed source (spatial x angular-or-1).
-    boundary, medium_map, delta_x, angle_x, angle_w, bc_x, edges
-        See :func:`slab_ordinates` for descriptions.
+        Output array for scalar or angular fluxes (shape: n_cells, xdim).
+    xs_total : numpy.ndarray, shape (n_materials,)
+        Total cross sections per material.
+    zero : numpy.ndarray, shape (n_cells,)
+        Zero placeholder (passed to sweep kernels for unused arguments).
+    source : numpy.ndarray, shape (n_cells, n_angles or 1)
+        Prescribed source for this group.
+    boundary : numpy.ndarray, shape (2, n_angles or 1)
+        Boundary conditions.
+    medium_map, delta_x, angle_x, angle_w, bc_x, edges :
+        See :func:`slab_isotropic_sn`.
 
     Returns
     -------
@@ -909,19 +1472,17 @@ def slab_ordinates_source(
 
     _, xdim = flux.shape
     angles = angle_x.shape[0]
-
     reflector = np.zeros((angles,))
     edge1 = 0.0
 
     for nn in range(angles):
-
         qq = 0 if source.shape[1] == 1 else nn
         bc = 0 if boundary.shape[1] == 1 else nn
 
         # Scalar flux calculation
         if (angle_x[nn] > 0.0) and (xdim == 1):
             edge1 = reflector[nn] + boundary[0, bc]
-            edge1 = slab_forward(
+            edge1 = slab_forward_iso(
                 flux[:, 0],
                 zero,
                 xs_total,
@@ -938,7 +1499,7 @@ def slab_ordinates_source(
 
         elif (angle_x[nn] < 0.0) and (xdim == 1):
             edge1 = reflector[nn] + boundary[1, bc]
-            edge1 = slab_backward(
+            edge1 = slab_backward_iso(
                 flux[:, 0],
                 zero,
                 xs_total,
@@ -956,7 +1517,7 @@ def slab_ordinates_source(
         # Angular flux calculation
         elif (angle_x[nn] > 0.0) and (xdim > 1):
             edge1 = reflector[nn] + boundary[0, bc]
-            edge1 = slab_forward(
+            edge1 = slab_forward_iso(
                 flux[:, nn],
                 zero,
                 xs_total,
@@ -973,7 +1534,7 @@ def slab_ordinates_source(
 
         elif (angle_x[nn] < 0.0) and (xdim > 1):
             edge1 = reflector[nn] + boundary[1, bc]
-            edge1 = slab_backward(
+            edge1 = slab_backward_iso(
                 flux[:, nn],
                 zero,
                 xs_total,
@@ -993,7 +1554,7 @@ def slab_ordinates_source(
     return flux
 
 
-def sphere_ordinates_source(
+def sphere_known_source_sn(
     flux,
     xs_total,
     zero,
@@ -1015,7 +1576,7 @@ def sphere_ordinates_source(
     Parameters
     ----------
     flux : numpy.ndarray
-        Output array for scalar/angular fluxes (n_cells x xdim).
+        Output array for scalar/angular fluxes (n_cells, xdim).
     xs_total : array_like
         Total cross sections indexed by material.
     zero : numpy.ndarray
@@ -1045,16 +1606,13 @@ def sphere_ordinates_source(
 
     cells_x, xdim = flux.shape
     angles = angle_x.shape[0]
-
     flux = np.zeros((cells_x,))
     half_angle = np.zeros((cells_x,))
 
-    # Initialize sphere coefficients
     angle_minus = -1.0
     alpha_minus = 0.0
 
-    # Calculate the initial half angle
-    _half_angle(
+    _half_angle_iso(
         zero,
         half_angle,
         xs_total,
@@ -1066,24 +1624,19 @@ def sphere_ordinates_source(
         boundary[1, 0],
     )
 
-    # Iterate over the discrete ordinates
     for nn in range(angles):
-
         qq = 0 if source.shape[1] == 1 else nn
         bc = 0 if boundary.shape[1] == 1 else nn
 
-        # Calculate the half angle coefficient
         angle_plus = angle_minus + 2 * angle_w[nn]
-        # Calculate the weighted diamond
         tau = (angle_x[nn] - angle_minus) / (angle_plus - angle_minus)
-        # Calculate the angular differencing coefficient
         alpha_plus = angle_coef_corrector(
             alpha_minus, angle_x[nn], angle_w[nn], nn, angles
         )
 
         # Scalar flux calculation
         if (angle_x[nn] > 0.0) and (xdim == 1):
-            sphere_forward(
+            sphere_forward_iso(
                 flux[:, 0],
                 zero,
                 half_angle,
@@ -1103,7 +1656,7 @@ def sphere_ordinates_source(
             )
 
         elif (angle_x[nn] < 0.0) and (xdim == 1):
-            sphere_backward(
+            sphere_backward_iso(
                 flux[:, 0],
                 zero,
                 half_angle,
@@ -1125,7 +1678,7 @@ def sphere_ordinates_source(
 
         # Angular flux calculation
         if (angle_x[nn] > 0.0) and (xdim > 1):
-            sphere_forward(
+            sphere_forward_iso(
                 flux[:, nn],
                 zero,
                 half_angle,
@@ -1145,7 +1698,7 @@ def sphere_ordinates_source(
             )
 
         elif (angle_x[nn] < 0.0) and (xdim > 1):
-            sphere_backward(
+            sphere_backward_iso(
                 flux[:, nn],
                 zero,
                 half_angle,
@@ -1165,9 +1718,7 @@ def sphere_ordinates_source(
                 edges,
             )
 
-        # Update the angular differencing coefficient
         alpha_minus = alpha_plus
-        # Update the half angle
         angle_minus = angle_plus
 
     return flux
@@ -1178,7 +1729,7 @@ def sphere_ordinates_source(
 ########################################################################
 
 
-def slab_ordinates_scatter(
+def slab_scatter_source_sn(
     xs_total,
     scatter_source,
     external,
@@ -1197,22 +1748,22 @@ def slab_ordinates_scatter(
 
     Parameters
     ----------
-    xs_total : array_like
+    xs_total : numpy.ndarray, shape (n_materials,)
         Total cross sections indexed by material.
-    scatter_source : numpy.ndarray
-        Precomputed scatter source (n_cells,).
-    external : numpy.ndarray
-        External source term (n_cells, n_angles or 1).
-    boundary : numpy.ndarray
-        Boundary conditions (2, n_angles or 1).
-    medium_map : array_like
-        Material indices (n_cells,).
-    delta_x : array_like
-        Cell widths (n_cells,).
-    angle_x : array_like
-        Angular ordinates (n_angles,).
-    angle_w : array_like
-        Quadrature weights (n_angles,).
+    scatter_source : numpy.ndarray, shape (n_cells,)
+        Precomputed scatter source.
+    external : numpy.ndarray, shape (n_cells, n_angles or 1)
+        External source term.
+    boundary : numpy.ndarray, shape (2, n_angles or 1)
+        Boundary conditions.
+    medium_map : numpy.ndarray, shape (n_cells,)
+        Material indices.
+    delta_x : numpy.ndarray, shape (n_cells,)
+        Cell widths.
+    angle_x : numpy.ndarray, shape (n_angles,)
+        Angular ordinates.
+    angle_w : numpy.ndarray, shape (n_angles,)
+        Quadrature weights.
     bc_x : sequence
         Boundary condition flags.
 
@@ -1287,25 +1838,25 @@ def slab_forward_scatter(
 ):
     """Forward sweep kernel for slab geometry with known scatter source.
 
-    Performs a forward (left-to-right) sweep through slab cells using
+    Performs a forward (left to right) sweep through slab cells using
     diamond difference with prescribed scatter source. Used by DJINN
     accelerated variants.
 
     Parameters
     ----------
-    flux : numpy.ndarray
-        Scalar flux array to update (n_cells).
-    xs_total : array_like
+    flux : numpy.ndarray, shape (n_cells,)
+        Scalar flux array to update.
+    xs_total : numpy.ndarray, shape (n_materials,)
         Total cross sections by material.
-    scatter_source : array_like
+    scatter_source : numpy.ndarray, shape (n_cells)
         Known scatter source by cell.
-    external : array_like
+    external : numpy.ndarray, shape (n_cells)
         External source by cell.
     edge1 : float
-        Left edge flux for current cell.
-    medium_map : array_like
+        Right edge flux for current cell.
+    medium_map : numpy.ndarray, shape (n_cells,)
         Material indices by cell.
-    delta_x : array_like
+    delta_x : numpy.ndarray, shape (n_cells,)
         Cell widths.
     angle_x : float
         Current angular ordinate.
@@ -1317,31 +1868,23 @@ def slab_forward_scatter(
     float
         Outgoing edge flux for sweep continuation.
     """
-    # Get iterables
     cells_x = numba.int32(flux.shape[0])
     mat = numba.int32
     ii = numba.int32
-    # Initialize unknown cell edge
     edge2 = numba.float64(0.0)
-    # Iterate over cells
+
     for ii in range(cells_x):
-        # Determining material cross section
         mat = medium_map[ii]
-        # Calculate cell edge unknown
+
         edge2 = (
-            (
-                scatter_source[ii]
-                + external[ii]
-                + edge1 * (angle_x / delta_x[ii] - 0.5 * xs_total[mat])
-            )
-            * 1
-            / (angle_x / delta_x[ii] + 0.5 * xs_total[mat])
-        )
-        # Update flux with cell centers
+            scatter_source[ii]
+            + external[ii]
+            + edge1 * (angle_x / delta_x[ii] - 0.5 * xs_total[mat])
+        ) / (angle_x / delta_x[ii] + 0.5 * xs_total[mat])
+
         flux[ii] += 0.5 * angle_w * (edge1 + edge2)
-        # Update unknown cell edge
         edge1 = edge2
-    # Return cell at i = I
+
     return edge1
 
 
@@ -1363,26 +1906,26 @@ def slab_backward_scatter(
 ):
     """Backward sweep kernel for slab geometry with known scatter source.
 
-    Performs a backward (right-to-left) sweep through slab cells using
+    Performs a backward (right to left) sweep through slab cells using
     diamond difference with prescribed scatter source. Used by DJINN
     accelerated variants.
 
     Parameters
     ----------
     flux : numpy.ndarray
-        Scalar flux array to update (n_cells).
-    xs_total : array_like
-        Total cross sections by material.
-    scatter_source : array_like
-        Known scatter source by cell.
-    external : array_like
-        External source by cell.
+        Scalar flux array to update, shape (n_cells,).
+    xs_total : numpy.ndarray
+        Total cross sections by material, shape (n_materials,).
+    scatter_source : numpy.ndarray
+        Known scatter source by cell, shape (n_cells).
+    external : numpy.ndarray
+        External source by cell, shape (n_cells).
     edge1 : float
         Right edge flux for current cell.
-    medium_map : array_like
-        Material indices by cell.
-    delta_x : array_like
-        Cell widths.
+    medium_map : numpy.ndarray
+        Material indices by cell, shape (n_cells,).
+    delta_x : numpy.ndarray
+        Cell widths, shape (n_cells,).
     angle_x : float
         Current angular ordinate.
     angle_w : float
@@ -1393,31 +1936,23 @@ def slab_backward_scatter(
     float
         Outgoing edge flux for sweep continuation.
     """
-    # Get iterables
     cells_x = numba.int32(flux.shape[0])
     mat = numba.int32
     ii = numba.int32
-    # Initialize unknown cell edge
     edge2 = numba.float64(0.0)
-    # Iterate over cells
+
     for ii in range(cells_x - 1, -1, -1):
-        # Determining material cross section
         mat = medium_map[ii]
-        # Calculate cell edge unknown
+
         edge2 = (
-            (
-                scatter_source[ii]
-                + external[ii]
-                + edge1 * (-angle_x / delta_x[ii] - 0.5 * xs_total[mat])
-            )
-            * 1
-            / (-angle_x / delta_x[ii] + 0.5 * xs_total[mat])
-        )
-        # Update flux with cell centers
+            scatter_source[ii]
+            + external[ii]
+            + edge1 * (-angle_x / delta_x[ii] - 0.5 * xs_total[mat])
+        ) / (-angle_x / delta_x[ii] + 0.5 * xs_total[mat])
+
         flux[ii] += 0.5 * angle_w * (edge1 + edge2)
-        # Update unknown cell edge
         edge1 = edge2
-    # Return cell at i = 0
+
     return edge1
 
 
@@ -1426,7 +1961,7 @@ def slab_backward_scatter(
 ########################################################################
 
 
-def sphere_ordinates_scatter(
+def sphere_scatter_source_sn(
     xs_total,
     scatter_source,
     external,
@@ -1445,29 +1980,31 @@ def sphere_ordinates_scatter(
 
     Parameters
     ----------
-    xs_total : array_like
-        Total cross sections indexed by material.
-    scatter_source : numpy.ndarray
-        Precomputed scatter source (n_cells,).
-    external : numpy.ndarray
-        External source term (n_cells, n_angles or 1).
-    boundary : numpy.ndarray
-        Boundary conditions (2, n_angles or 1).
-    medium_map : array_like
-        Material indices (n_cells,).
-    delta_x : array_like
-        Cell widths (n_cells,).
-    angle_x : array_like
-        Angular ordinates (n_angles,).
-    angle_w : array_like
-        Quadrature weights (n_angles,).
+    flux : numpy.ndarray, shape (n_cells,)
+        Scalar flux array to update.
+    xs_total : numpy.ndarray, shape (n_materials,)
+        Total cross sections by material.
+    scatter_source : numpy.ndarray, shape (n_cells)
+        Known scatter source by cell.
+    external : numpy.ndarray, shape (n_cells)
+        External source by cell.
+    edge1 : float
+        Right edge flux for current cell.
+    medium_map : numpy.ndarray, shape (n_cells,)
+        Material indices by cell.
+    delta_x : numpy.ndarray, shape (n_cells,)
+        Cell widths.
+    angle_x : float
+        Current angular ordinate.
+    angle_w : float
+        Quadrature weight.
     bc_x : sequence
         Boundary condition flags.
 
     Returns
     -------
-    numpy.ndarray
-        Scalar flux at cell centers (n_cells,).
+    numpy.ndarray, shape (n_cells)
+        Scalar flux at cell centers.
     """
 
     cells_x = medium_map.shape[0]
@@ -1490,22 +2027,16 @@ def sphere_ordinates_scatter(
         boundary[1, 0],
     )
 
-    # Iterate over the discrete ordinates
     for nn in range(angles):
-
         qq = 0 if external.shape[1] == 1 else nn
         bc = 0 if external.shape[1] == 1 else nn
 
-        # Calculate the half angle coefficient
         angle_plus = angle_minus + 2 * angle_w[nn]
-        # Calculate the weighted diamond
         tau = (angle_x[nn] - angle_minus) / (angle_plus - angle_minus)
-        # Calculate the angular differencing coefficient
         alpha_plus = angle_coef_corrector(
             alpha_minus, angle_x[nn], angle_w[nn], nn, angles
         )
 
-        # Iterate from 0 -> I
         if angle_x[nn] > 0.0:
             sphere_forward_scatter(
                 flux,
@@ -1523,7 +2054,6 @@ def sphere_ordinates_scatter(
                 alpha_minus,
             )
 
-        # Iterate from I -> 0
         elif angle_x[nn] < 0.0:
             sphere_backward_scatter(
                 flux,
@@ -1544,9 +2074,7 @@ def sphere_ordinates_scatter(
         else:
             raise Exception("Discontinuity at 0")
 
-        # Update the angular differencing coefficient
         alpha_minus = alpha_plus
-        # Update the half angle
         angle_minus = angle_plus
 
     return flux
@@ -1558,20 +2086,16 @@ def sphere_ordinates_scatter(
 def _half_angle_scatter(
     half_angle, xs_total, scatter_source, external, medium_map, delta_x, angle_plus
 ):
-    # Get iterables
     cells_x = numba.int32(medium_map.shape[0])
     mat = numba.int32
     ii = numba.int32
-    # Zero out half angle
     half_angle *= 0.0
-    # Iterate from sphere surface to center
+
     for ii in range(cells_x - 1, -1, -1):
         mat = medium_map[ii]
-        # Calculate angular flux half angle
         half_angle[ii] = (
             2 * angle_plus + delta_x[ii] * (external[ii] + scatter_source[ii])
         ) / (2 + xs_total[mat] * delta_x[ii])
-        # Update half angle coefficient
         angle_plus = 2 * half_angle[ii] - angle_plus
 
 
@@ -1598,26 +2122,26 @@ def sphere_forward_scatter(
 ):
     """Forward sweep kernel for spherical geometry with known scatter source.
 
-    Performs a forward (center-to-edge) sweep through spherical shells using
+    Performs a forward (center to edge) sweep through spherical shells using
     diamond difference with prescribed scatter source and proper spherical
     geometry factors. Used by DJINN accelerated variants.
 
     Parameters
     ----------
-    flux : numpy.ndarray
-        Scalar flux array to update (n_cells).
-    half_angle : array_like
+    flux : numpy.ndarray, shape (n_cells,)
+        Scalar flux array to update.
+    half_angle : numpy.ndarray, shape (n_cells,)
         Half-angle flux values at cell edges.
-    xs_total : array_like
+    xs_total : numpy.ndarray, shape (n_materials,)
         Total cross sections by material.
-    scatter_source : array_like
+    scatter_source : numpy.ndarray, shape (n_cells)
         Known scatter source by cell.
-    external : array_like
+    external : numpy.ndarray, shape (n_cells)
         External source by cell.
-    medium_map : array_like
+    medium_map : numpy.ndarray, shape (n_cells,)
         Material indices by cell.
-    delta_x : array_like
-        Shell thicknesses.
+    delta_x : numpy.ndarray, shape (n_cells,)
+        Cell widths.
     angle_x : float
         Current angular ordinate.
     angle_w : float
@@ -1631,39 +2155,29 @@ def sphere_forward_scatter(
     alpha_minus : float
         Backward angular coefficient.
     """
-    # Get iterables
     cells_x = numba.int32(flux.shape[0])
     mat = numba.int32
     ii = numba.int32
-
-    # Initialize known cell edge
     edge1 = numba.float64(half_angle[0])
 
-    # Initialize surface area on cell edges, cell volume, flux center
     area1 = numba.float64
     area2 = numba.float64
     center = numba.float64
     volume = numba.float64
 
-    # Iterate over cells from 0 -> I (center to edge)
     for ii in range(cells_x):
-        # For determining the material cross sections
         mat = medium_map[ii]
 
-        # Calculate surface areas
+        # Calculate surface areas and volume of cell
         area1 = 4 * np.pi * (ii * delta_x[ii]) ** 2
         area2 = 4 * np.pi * ((ii + 1) * delta_x[ii]) ** 2
-
-        # Calculate volume of cell
         volume = (
             4 / 3.0 * np.pi * (((ii + 1) * delta_x[ii]) ** 3 - (ii * delta_x[ii]) ** 3)
         )
 
-        # Calculate flux at cell center
         center = (
             angle_x * (area2 + area1) * edge1
-            + 1
-            / angle_w
+            + (1 / angle_w)
             * (area2 - area1)
             * (alpha_plus + alpha_minus)
             * (half_angle[ii])
@@ -1676,8 +2190,6 @@ def sphere_forward_scatter(
 
         flux[ii] += weight * center
         edge1 = 2 * center - edge1
-
-        # Update half angle coefficient
         if ii != 0:
             half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
 
@@ -1712,22 +2224,20 @@ def sphere_backward_scatter(
 
     Parameters
     ----------
-    flux : numpy.ndarray
-        Scalar flux array to update (n_cells).
-    half_angle : array_like
+    flux : numpy.ndarray, shape (n_cells,)
+        Scalar flux array to update.
+    half_angle : numpy.ndarray, shape (n_cells,)
         Half-angle flux values at cell edges.
-    xs_total : array_like
+    xs_total : numpy.ndarray, shape (n_materials,)
         Total cross sections by material.
-    scatter_source : array_like
+    scatter_source : numpy.ndarray, shape (n_cells)
         Known scatter source by cell.
-    external : array_like
+    external : numpy.ndarray, shape (n_cells)
         External source by cell.
-    boundary : float
-        Outer boundary condition.
-    medium_map : array_like
+    medium_map : numpy.ndarray, shape (n_cells,)
         Material indices by cell.
-    delta_x : array_like
-        Shell thicknesses.
+    delta_x : numpy.ndarray, shape (n_cells,)
+        Cell widths.
     angle_x : float
         Current angular ordinate.
     angle_w : float
@@ -1741,39 +2251,30 @@ def sphere_backward_scatter(
     alpha_minus : float
         Backward angular coefficient.
     """
-    # Get iterables
     cells_x = numba.int32(flux.shape[0])
     mat = numba.int32
     ii = numba.int32
+    # edge1 = numba.float64(boundary)
+    edge1 = numba.float64(0.0)
 
-    # Initialize known cell edge
-    edge1 = numba.float64(boundary)
-    edge1 = 0.0
-
-    # Initialize surface area on cell edges, cell volume, flux center
     area1 = numba.float64
     area2 = numba.float64
     center = numba.float64
     volume = numba.float64
 
-    # Iterate over cells from I -> 0 (edge to center)
     for ii in range(cells_x - 1, -1, -1):
-        # For determining the material cross sections
         mat = medium_map[ii]
 
-        # Calculate surface areas
+        # Calculate surface areas and volume of cell
         area1 = 4 * np.pi * (ii * delta_x[ii]) ** 2
         area2 = 4 * np.pi * ((ii + 1) * delta_x[ii]) ** 2
-        # Calculate volume of cell
         volume = (
             4 / 3.0 * np.pi * (((ii + 1) * delta_x[ii]) ** 3 - (ii * delta_x[ii]) ** 3)
         )
 
-        # Calculate the flux at the cell center
         center = (
             -angle_x * (area2 + area1) * edge1
-            + 1
-            / angle_w
+            + (1 / angle_w)
             * (area2 - area1)
             * (alpha_plus + alpha_minus)
             * (half_angle[ii])
@@ -1786,7 +2287,5 @@ def sphere_backward_scatter(
 
         flux[ii] += weight * center
         edge1 = 2 * center - edge1
-
-        # Update half angle coefficient
         if ii != 0:
             half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
