@@ -37,24 +37,27 @@ jobs:
         echo "${{ secrets.TEST_G361_DATA }}" | base64 --decode > tests/G361_grid_index.npz
         echo "${{ secrets.TEST_G618_DATA }}" | base64 --decode > tests/G618_grid_index.npz
 
-    - name: Run tests with coverage
+    - name: Run tests with coverage and JUnit output
       run: |
-        pytest --ml --cov=discrete1 --cov-report=xml
+        pytest --ml --cov=discrete1 --cov-report=xml --junitxml=pytest-report.xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        report_type: test_results
         files: ./coverage.xml
         fail_ci_if_error: true
         verbose: true
 
     - name: Upload test results to Codecov
       if: ${{ !cancelled() }}
-      uses: codecov/test-results-action@v1
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        report_type: test_results
+        files: ./pytest-report.xml
+        fail_ci_if_error: true
+        verbose: true
 
   quality:
     runs-on: ubuntu-latest
