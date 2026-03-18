@@ -25,6 +25,7 @@ discrete1.egg-info/dependency_links.txt
 discrete1.egg-info/requires.txt
 discrete1.egg-info/top_level.txt
 discrete1/ml/__init__.py
+discrete1/ml/data.py
 discrete1/ml/predict.py
 discrete1/ml/tools.py
 discrete1/ml/train.py
@@ -40,8 +41,11 @@ tests/test_critical.py
 tests/test_critical_0d.py
 tests/test_hybrid.py
 tests/test_main.py
+tests/test_ml_data.py
 tests/test_ml_import_fallbacks.py
 tests/test_ml_tools.py
+tests/test_ml_train.py
+tests/test_ml_tune.py
 tests/test_spatial_accuracy.py
 tests/test_temporal_accuracy.py
 tests/test_utils_hybrid.py

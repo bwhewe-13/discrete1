@@ -82,18 +82,47 @@ def transfer_matrix(xs_scatter, xs_fission, chi=None):
 
     Returns
     -------
-    flux : numpy.ndarray
-        Converged scalar flux distribution indexed by [cell, group].
+    numpy.ndarray
+        Combined transfer matrix indexed by [material, group, group, moment].
     """
-    if chi is None:
-        return xs_scatter + xs_fission
-    xs_matrix = np.zeros(xs_scatter.shape)
-    _transfer_matrix(xs_matrix, xs_scatter, chi, xs_fission)
+    xs_matrix = xs_scatter.copy()
+
+    # Anisotropic scattering with fission matrix
+    if (chi is None) and (xs_scatter.ndim == 4):
+        xs_matrix[:, :, :, 0] += xs_fission
+    # Anisotropic scattering with nusigf vector and chi
+    elif (chi is not None) and (xs_scatter.ndim == 4):
+        _transfer_matrix(xs_matrix[:, :, :, 0], xs_scatter[:, :, :, 0], chi, xs_fission)
+    # Isotropic scattering with fission matrix
+    elif (chi is None) and (xs_scatter.ndim == 3):
+        xs_matrix += xs_fission
+    # Isotropic scattering with nusigf vector and chi
+    else:
+        _transfer_matrix(xs_matrix, xs_scatter, chi, xs_fission)
+
     return xs_matrix
 
 
 @numba.jit("void(f8[:,:,:], f8[:,:,:], f8[:,:], f8[:,:])", nopython=True, cache=True)
 def _transfer_matrix(xs_matrix, xs_scatter, chi, nusigf):
+    """Assemble the isotropic transfer matrix from scatter and fission data.
+
+    Parameters
+    ----------
+    xs_matrix : numpy.ndarray
+        Output transfer matrix of shape ``(materials, groups, groups)``.
+    xs_scatter : numpy.ndarray
+        Scattering matrix of shape ``(materials, groups, groups)``.
+    chi : numpy.ndarray
+        Fission spectrum of shape ``(materials, groups)``.
+    nusigf : numpy.ndarray
+        Fission production vector of shape ``(materials, groups)``.
+
+    Returns
+    -------
+    None
+        The combined matrix is written into ``xs_matrix`` in-place.
+    """
     # Get parameters
     materials, groups, _ = xs_matrix.shape
     mat = numba.int32
@@ -104,7 +133,7 @@ def _transfer_matrix(xs_matrix, xs_scatter, chi, nusigf):
         for og in range(groups):
             for ig in range(groups):
                 xs_matrix[mat, og, ig] = (
-                    xs_scatter[mat, og, ig] + chi[mat, og] + nusigf[mat, ig]
+                    xs_scatter[mat, og, ig] + chi[mat, og] * nusigf[mat, ig]
                 )
 
 
@@ -112,6 +141,28 @@ def _transfer_matrix(xs_matrix, xs_scatter, chi, nusigf):
     "void(f8[:,:], f8[:,:], i4[:], f8[:,:,:], f8[:], i4)", nopython=True, cache=True
 )
 def _off_scatter(flux, flux_old, medium_map, xs_scatter, off_scatter, gg):
+    """Accumulate off-diagonal scatter contributions for one group sweep.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Current scalar flux iterate with shape ``(cells_x, groups)``.
+    flux_old : numpy.ndarray
+        Previous scalar flux iterate with shape ``(cells_x, groups)``.
+    medium_map : numpy.ndarray
+        Material index per cell with shape ``(cells_x,)``.
+    xs_scatter : numpy.ndarray
+        Scattering matrix of shape ``(materials, groups, groups)``.
+    off_scatter : numpy.ndarray
+        Output array of shape ``(cells_x,)`` filled in-place.
+    gg : int
+        Energy group currently being solved.
+
+    Returns
+    -------
+    None
+        The off-scatter source is written into ``off_scatter``.
+    """
     # Get parameters
     cells_x, groups = flux.shape
     ii = numba.int32
@@ -134,15 +185,37 @@ def _off_scatter(flux, flux_old, medium_map, xs_scatter, off_scatter, gg):
     cache=True,
 )
 def _variable_off_scatter(
-    flux,
-    flux_old,
-    medium_map,
-    xs_scatter,
-    off_scatter,
-    gg,
-    edges_gidx_c,
+    flux, flux_old, medium_map, xs_scatter, off_scatter, gg, edges_gidx_c
 ):
-    # Get parameters
+    """Compute off-diagonal scatter source for variable coarse/fine groups.
+
+    Uses only the L=0 Legendre moment for group-to-group transfer,
+    consistent with the treatment in _off_scatter. The anisotropic
+    correction for within-group scattering is handled separately inside
+    the sweep via flux_moments accumulation.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray, shape (cells_x, groups_c)
+        Current scalar flux iterate.
+    flux_old : numpy.ndarray, shape (cells_x, groups_c)
+        Previous scalar flux iterate.
+    medium_map : numpy.ndarray, shape (cells_x,)
+        Material index per cell.
+    xs_scatter : numpy.ndarray, shape (n_materials, groups, groups, L+1)
+        Legendre moments of scatter cross sections.
+    off_scatter : numpy.ndarray, shape (cells_x,)
+        Off-diagonal scatter accumulator, zeroed and filled in-place.
+    gg : int
+        Current group index being solved.
+    edges_gidx_c : numpy.ndarray, shape (groups_c + 1,)
+        Coarse-to-fine group boundary indices.
+
+    Returns
+    -------
+    None
+        The off-diagonal scatter source is written into ``off_scatter``.
+    """
     cells_x, groups_c = flux.shape
     ii = numba.int32
     mat = numba.int32
@@ -151,30 +224,44 @@ def _variable_off_scatter(
     # Zero out previous off scatter term
     off_scatter *= 0.0
 
-    # Iterate over cells and groups
     for og in range(groups_c):
-
         idx1 = edges_gidx_c[og]
         idx2 = edges_gidx_c[og + 1]
 
         if og < gg:
             for ii in range(cells_x):
                 mat = medium_map[ii]
+                # L=0 moment only for group-to-group transfer
                 off_scatter[ii] += np.sum(xs_scatter[mat, :, idx1:idx2]) * flux[ii, og]
-
         elif og > gg:
             for ii in range(cells_x):
                 mat = medium_map[ii]
                 off_scatter[ii] += (
                     np.sum(xs_scatter[mat, :, idx1:idx2]) * flux_old[ii, og]
                 )
-
         elif og == gg:
             continue
 
 
 @numba.jit("void(f8[:,:], f8[:,:], i4[:])", nopython=True, cache=True)
 def _coarsen_flux(fine_flux, coarse_flux, edges_gidx_c):
+    """Collapse fine-group flux into a coarse-group representation.
+
+    Parameters
+    ----------
+    fine_flux : numpy.ndarray
+        Fine-group flux of shape ``(cells_x, groups)``.
+    coarse_flux : numpy.ndarray
+        Output coarse-group flux of shape ``(cells_x, groups_c)``.
+    edges_gidx_c : numpy.ndarray
+        Fine-group edge indices for each coarse group with shape
+        ``(groups_c + 1,)``.
+
+    Returns
+    -------
+    None
+        The coarsened flux is written into ``coarse_flux`` in-place.
+    """
     # Get parameters
     _, groups_c = coarse_flux.shape
     gg = numba.int32
@@ -207,6 +294,11 @@ def reflector_corrector(reflector, angle_x, edge, nn, bc_x):
         Current angle index.
     bc_x : sequence
         Boundary condition flags for left/right reflections.
+
+    Returns
+    -------
+    None
+        The reflected edge value is written into ``reflector`` when needed.
     """
 
     # Get opposite angle
@@ -219,6 +311,26 @@ def reflector_corrector(reflector, angle_x, edge, nn, bc_x):
     "void(f8[:,:,:], f8[:,:], f8[:,:,:], i4[:], f8[:,:,:])", nopython=True, cache=True
 )
 def _source_total(source, flux, xs_scatter, medium_map, external):
+    """Build the total isotropic source from scatter and external terms.
+
+    Parameters
+    ----------
+    source : numpy.ndarray
+        Output source array of shape ``(cells_x, angles, groups)``.
+    flux : numpy.ndarray
+        Scalar flux array of shape ``(cells_x, groups)``.
+    xs_scatter : numpy.ndarray
+        Scattering matrix of shape ``(materials, groups, groups)``.
+    medium_map : numpy.ndarray
+        Material index per cell with shape ``(cells_x,)``.
+    external : numpy.ndarray
+        External source of shape ``(cells_x, angles or 1, groups or 1)``.
+
+    Returns
+    -------
+    None
+        The total source is written into ``source`` in-place.
+    """
     # Get parameters
     cells_x, angles, groups = source.shape
     ii = numba.int32
@@ -248,8 +360,109 @@ def _source_total(source, flux, xs_scatter, medium_map, external):
                 source[ii, nn, og] = one_group + external[ii, nn_q, og_q]
 
 
+@numba.jit(
+    "void(f8[:,:,:], f8[:,:], f8[:,:,:,:], i4[:], f8[:,:,:], f8[:,:])",
+    nopython=True,
+    cache=True,
+)
+def _source_total_aniso(source, flux, xs_scatter, medium_map, external, P):
+    """Build total source array including anisotropic scatter and external.
+
+    For each cell, group, and angle the source is:
+
+        S(x, mu_n, g) = sum_l (2l+1) * [sum_ig xs_l(x,g,ig) * phi_l(x,ig)]
+                        * P_l(mu_n) + external(x, mu_n, g)
+
+    Since only the scalar flux is available here, phi_0(x, g) = flux(x, g)
+    and all higher moments are zero. The full anisotropic correction for
+    within-group scattering is handled inside the sweep via flux_moments.
+
+    Parameters
+    ----------
+    source : numpy.ndarray, shape (cells_x, angles, groups)
+        Output source array, zeroed and filled in-place.
+    flux : numpy.ndarray, shape (cells_x, groups)
+        Scalar flux (L=0 moment).
+    xs_scatter : numpy.ndarray, shape (n_materials, groups, groups, L+1)
+        Legendre moments of scatter cross sections.
+    medium_map : numpy.ndarray, shape (cells_x,)
+        Material index per cell.
+    external : numpy.ndarray, shape (cells_x, angles or 1, groups or 1)
+        External source.
+    P : numpy.ndarray, shape (L+1, angles)
+        Precomputed Legendre polynomials P[l, n] = P_l(mu_n).
+
+    Returns
+    -------
+    None
+        The total source is written into ``source`` in-place.
+    """
+    # Get parameters
+    cells_x, angles, groups = source.shape
+    n_moments = numba.int32(xs_scatter.shape[3])
+    ii = numba.int32
+    nn = numba.int32
+    nn_q = numba.int32
+    mat = numba.int32
+    og = numba.int32
+    og_q = numba.int32
+    ig = numba.int32
+    ll = numba.int32
+    group_sum = numba.float64
+    scatter = numba.float64
+
+    # Zero out previous source term
+    source *= 0.0
+
+    # Iterate over cells
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+
+        # Iterate over outgoing groups
+        for og in range(groups):
+            og_q = 0 if external.shape[2] == 1 else og
+
+            # Iterate over angles
+            for nn in range(angles):
+                nn_q = 0 if external.shape[1] == 1 else nn
+                scatter = 0.0
+
+                # Sum over Legendre moments
+                for ll in range(n_moments):
+                    # Only L=0 contributes since higher flux moments are
+                    # unavailable here (no angular flux). Loop is kept
+                    # general so it works correctly if higher moments are
+                    # ever passed in via an extended flux array.
+                    group_sum = 0.0
+                    for ig in range(groups):
+                        # phi_l(x, ig) = flux[ii, ig] for l=0, 0 otherwise
+                        if ll == 0:
+                            group_sum += xs_scatter[mat, og, ig, ll] * flux[ii, ig]
+                    scatter += (2 * ll + 1) * group_sum * P[ll, nn]
+
+                source[ii, nn, og] = scatter + external[ii, nn_q, og_q]
+
+
 @numba.jit("void(f8[:,:,:], f8[:,:], f8[:,:,:], i4[:])", nopython=True, cache=True)
 def _time_right_side(q_star, flux, xs_scatter, medium_map):
+    """Add isotropic scattering contributions to a transient right-hand side.
+
+    Parameters
+    ----------
+    q_star : numpy.ndarray
+        Right-hand side accumulator of shape ``(cells_x, angles, groups)``.
+    flux : numpy.ndarray
+        Scalar flux array of shape ``(cells_x, groups)``.
+    xs_scatter : numpy.ndarray
+        Scattering matrix of shape ``(materials, groups, groups)``.
+    medium_map : numpy.ndarray
+        Material index per cell with shape ``(cells_x,)``.
+
+    Returns
+    -------
+    None
+        ``q_star`` is updated in-place.
+    """
     # Create (sigma_s + sigma_f) * phi + external + 1/(v*dt) * psi function
     # Get parameters
     cells_x, angles, groups = q_star.shape
@@ -269,30 +482,105 @@ def _time_right_side(q_star, flux, xs_scatter, medium_map):
             q_star[ii, :, og] += one_group
 
 
+@numba.jit(
+    "void(f8[:,:,:], f8[:,:], f8[:,:,:,:], i4[:], f8[:,:])",
+    nopython=True,
+    cache=True,
+)
+def _time_right_side_aniso(q_star, flux, xs_scatter, medium_map, P):
+    """Update q_star with anisotropic scatter contribution.
+
+    Adds (sigma_s * phi) to q_star for each cell, angle, and group,
+    using the Legendre expansion of the scatter cross section. Since
+    only the scalar flux is available here, only the L=0 moment
+    contributes; higher moments are zero and their terms vanish.
+
+    Parameters
+    ----------
+    q_star : numpy.ndarray, shape (cells_x, angles, groups)
+        Right-hand side accumulator, updated in-place.
+    flux : numpy.ndarray, shape (cells_x, groups)
+        Scalar flux (L=0 moment).
+    xs_scatter : numpy.ndarray, shape (n_materials, groups, groups, L+1)
+        Legendre moments of scatter cross sections.
+    medium_map : numpy.ndarray, shape (cells_x,)
+        Material index per cell.
+    P : numpy.ndarray, shape (L+1, angles)
+        Precomputed Legendre polynomials P[l, n] = P_l(mu_n).
+
+    Returns
+    -------
+    None
+        ``q_star`` is updated in-place.
+    """
+    # Get parameters
+    cells_x, angles, groups = q_star.shape
+    n_moments = numba.int32(xs_scatter.shape[3])
+    ii = numba.int32
+    nn = numba.int32
+    mat = numba.int32
+    og = numba.int32
+    ig = numba.int32
+    ll = numba.int32
+    group_sum = numba.float64
+    scatter = numba.float64
+
+    # Iterate over cells
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+
+        # Iterate over outgoing groups
+        for og in range(groups):
+
+            # Iterate over angles — scatter source is now direction-dependent
+            for nn in range(angles):
+                scatter = 0.0
+
+                # Sum over Legendre moments
+                for ll in range(n_moments):
+                    # Only L=0 contributes since higher flux moments
+                    # are unavailable here (scalar flux only)
+                    if ll == 0:
+                        group_sum = 0.0
+                        for ig in range(groups):
+                            group_sum += flux[ii, ig] * xs_scatter[mat, og, ig, ll]
+                        scatter += (2 * ll + 1) * group_sum * P[ll, nn]
+
+                q_star[ii, nn, og] += scatter
+
+
 ################################################################################
 # Anisotropic Scattering
 ################################################################################
 
-# def legendre_polynomial(moment, x):
-#     # Legendre polynomial using polynomial degree (moment) and
-#     # evaluation point (mu)
-#     if moment == 0:
-#         return 1
-#     elif moment == 1:
-#         return mu
-#     else:
-#         return ((2 * moment - 1) * mu * legendre_polynomial(moment - 1, mu) \
-#                 - (moment - 1) * legendre_polynomial(moment - 2, mu)) / moment
 
+def legendre_polynomials(n_moments, angle_x):
+    """Evaluate all Legendre polynomials P_0..P_{L} at every quadrature point.
 
-# @numba.jit("f8(f8, f8[:], f8, f8)", nopython=True, cache=True)
-# def anisotropic_scattering(angular_flux, xs_scatter, angle_x, angle_w):
-#     moment = numba.int32
-#     source = numba.float64(0.0)
-#     for moment in range(xs_scatter.shape[0]):
-#         source += (2 * moment + 1) * xs_scatter[moment] * angle_w \
-#                     * legendre_polynomial(moment, angle_x) * angular_flux
-#     return source
+    Uses the three-term recurrence relation, avoiding the overhead of the
+    recursive ``legendre_polynomial`` function.  Called once per solve.
+
+    Parameters
+    ----------
+    n_moments : int
+        Number of Legendre moments (L+1).
+    angle_x : numpy.ndarray, shape (angles,)
+        Angular quadrature points on [-1, 1].
+
+    Returns
+    -------
+    P : numpy.ndarray, shape (n_moments, angles)
+        P[l, n] = P_l(mu_n).
+    """
+    angles = angle_x.shape[0]
+    P = np.zeros((n_moments, angles))
+    P[0] = 1.0
+    if n_moments == 1:
+        return P
+    P[1] = angle_x
+    for ii in range(2, n_moments):
+        P[ii] = ((2 * ii - 1) * angle_x * P[ii - 1] - (ii - 1) * P[ii - 2]) / ii
+    return P
 
 
 ################################################################################
@@ -301,6 +589,21 @@ def _time_right_side(q_star, flux, xs_scatter, medium_map):
 
 
 def _svd_dmd(A, K):
+    """Compute the truncated SVD factors used by the DMD extrapolation.
+
+    Parameters
+    ----------
+    A : numpy.ndarray
+        Snapshot matrix with shape ``(n_state, n_snapshots)``.
+    K : int
+        Maximum rank retained for the decomposition.
+
+    Returns
+    -------
+    tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
+        Left singular vectors, inverse singular-value diagonal matrix, and
+        right singular vectors truncated to the retained rank.
+    """
     residual = 1e-09
 
     # Compute SVD
@@ -452,6 +755,26 @@ def fission_mat_prod(flux, xs_fission, source, medium_map, keff):
 
 @numba.jit("f8(f8[:,:], f8[:,:], f8[:,:,:], i4[:], f8)", nopython=True, cache=True)
 def _update_keff_mat(flux, flux_old, xs_fission, medium_map, keff):
+    """Update $k_{eff}$ using matrix-form fission production data.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Current flux iterate with shape ``(cells_x, groups)``.
+    flux_old : numpy.ndarray
+        Previous flux iterate with shape ``(cells_x, groups)``.
+    xs_fission : numpy.ndarray
+        Fission production matrix of shape ``(materials, groups, groups)``.
+    medium_map : numpy.ndarray
+        Material index per cell with shape ``(cells_x,)``.
+    keff : float
+        Previous estimate of the effective multiplication factor.
+
+    Returns
+    -------
+    float
+        Updated effective multiplication factor.
+    """
     # Get iterables
     cells_x, groups = flux.shape
     ii = numba.int32
@@ -550,6 +873,28 @@ def fission_vec_prod(flux, chi, nusigf, source, medium_map, keff):
     "f8(f8[:,:], f8[:,:], f8[:,:], f8[:,:], i4[:], f8)", nopython=True, cache=True
 )
 def _update_keff_vec(flux, flux_old, chi, nusigf, medium_map, keff):
+    """Update $k_{eff}$ using vector-form fission data.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Current flux iterate with shape ``(cells_x, groups)``.
+    flux_old : numpy.ndarray
+        Previous flux iterate with shape ``(cells_x, groups)``.
+    chi : numpy.ndarray
+        Fission spectrum of shape ``(materials, groups)``.
+    nusigf : numpy.ndarray
+        Production vector of shape ``(materials, groups)``.
+    medium_map : numpy.ndarray
+        Material index per cell with shape ``(cells_x,)``.
+    keff : float
+        Previous estimate of the effective multiplication factor.
+
+    Returns
+    -------
+    float
+        Updated effective multiplication factor.
+    """
     # Get iterables
     cells_x, groups = flux.shape
     ii = numba.int32
@@ -577,6 +922,28 @@ def _update_keff_vec(flux, flux_old, chi, nusigf, medium_map, keff):
     cache=True,
 )
 def _hybrid_fission_source(flux_u, xs_fission, source_c, medium_map, keff, coarse_idx):
+    """Project fine-group fission production into coarse-group source bins.
+
+    Parameters
+    ----------
+    flux_u : numpy.ndarray
+        Fine-group uncollided flux of shape ``(cells_x, groups)``.
+    xs_fission : numpy.ndarray
+        Fine-group fission matrix of shape ``(materials, groups, groups)``.
+    source_c : numpy.ndarray
+        Coarse-group source accumulator of shape ``(cells_x, 1, coarse_groups)``.
+    medium_map : numpy.ndarray
+        Material index per cell with shape ``(cells_x,)``.
+    keff : float
+        Effective multiplication factor.
+    coarse_idx : numpy.ndarray
+        Mapping from fine group to coarse group with shape ``(groups,)``.
+
+    Returns
+    -------
+    numpy.ndarray
+        Updated coarse-group fission source array.
+    """
     # Get parameters
     cells_x, groups = flux_u.shape
     ii = numba.int32
@@ -605,6 +972,24 @@ def _hybrid_fission_source(flux_u, xs_fission, source_c, medium_map, keff, coars
 
 @numba.jit("void(f8[:,:], f8[:,:], i4[:], f8[:])", nopython=True, cache=True)
 def _hybrid_combine_fluxes(flux_u, flux_c, coarse_idx, factor):
+    """Reconstruct fine-group flux from coarse-group corrections.
+
+    Parameters
+    ----------
+    flux_u : numpy.ndarray
+        Fine-group flux updated in-place with shape ``(cells_x, groups)``.
+    flux_c : numpy.ndarray
+        Coarse-group flux of shape ``(cells_x, coarse_groups)``.
+    coarse_idx : numpy.ndarray
+        Mapping from fine group to coarse group with shape ``(groups,)``.
+    factor : numpy.ndarray
+        Per-group scaling factors with shape ``(groups,)``.
+
+    Returns
+    -------
+    None
+        ``flux_u`` is overwritten with the combined fine-group flux.
+    """
     # Get parameters
     cells_x, groups = flux_u.shape
     ii = numba.int32
@@ -853,6 +1238,26 @@ def scatter_prod(flux, xs_scatter, source, medium_map):
     "void(f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], i4[:])", nopython=True, cache=True
 )
 def _hybrid_source_collided(flux_u, xs_scatter, source_c, medium_map, coarse_idx):
+    """Build the collided coarse-group source from isotropic scatter.
+
+    Parameters
+    ----------
+    flux_u : numpy.ndarray
+        Uncollided fine-group flux of shape ``(cells_x, groups)``.
+    xs_scatter : numpy.ndarray
+        Fine-group scattering matrix of shape ``(materials, groups, groups)``.
+    source_c : numpy.ndarray
+        Coarse-group source accumulator of shape ``(cells_x, 1, coarse_groups)``.
+    medium_map : numpy.ndarray
+        Material index per cell with shape ``(cells_x,)``.
+    coarse_idx : numpy.ndarray
+        Mapping from fine group to coarse group with shape ``(groups,)``.
+
+    Returns
+    -------
+    None
+        The collided coarse-group source is written into ``source_c``.
+    """
     # Get parameters
     cells_x, groups = flux_u.shape
     ii = numba.int32
@@ -872,6 +1277,58 @@ def _hybrid_source_collided(flux_u, xs_scatter, source_c, medium_map, coarse_idx
 
 
 @numba.jit(
+    "void(f8[:,:], f8[:,:,:,:], f8[:,:,:], i4[:], i4[:])",
+    nopython=True,
+    cache=True,
+)
+def _hybrid_source_collided_aniso(flux_u, xs_scatter, source_c, medium_map, coarse_idx):
+    """Build collided source with anisotropic scatter.
+
+    Accumulates the scatter source from the uncollided flux into the
+    coarse-group collided source. Since source_c has a singleton angle
+    dimension (shape cells_x, 1, coarse_groups), the scatter source is
+    direction-integrated (L=0 only), consistent with the original.
+
+    Parameters
+    ----------
+    flux_u : numpy.ndarray, shape (cells_x, groups)
+        Uncollided scalar flux.
+    xs_scatter : numpy.ndarray, shape (n_materials, groups, groups, L+1)
+        Legendre moments of scatter cross sections.
+    source_c : numpy.ndarray, shape (cells_x, 1, coarse_groups)
+        Collided source accumulator, zeroed and filled in-place.
+    medium_map : numpy.ndarray, shape (cells_x,)
+        Material index per cell.
+    coarse_idx : numpy.ndarray, shape (groups,)
+        Maps fine group og to coarse group index.
+
+    Returns
+    -------
+    None
+        The collided coarse-group source is written into ``source_c``.
+    """
+    cells_x, groups = flux_u.shape
+    ii = numba.int32
+    mat = numba.int32
+    og = numba.int32
+    ig = numba.int32
+
+    # Zero out previous source
+    source_c *= 0.0
+
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+        for og in range(groups):
+            for ig in range(groups):
+                # L=0 moment only - source_c has singleton angle dimension
+                # so the scatter source is direction-integrated here.
+                # The (2*0+1)=1 prefactor is implicit.
+                source_c[ii, 0, coarse_idx[og]] += (
+                    flux_u[ii, ig] * xs_scatter[mat, og, ig, 0]
+                )
+
+
+@numba.jit(
     "void(f8[:,:], f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], i4[:], f8[:])",
     nopython=True,
     cache=True,
@@ -879,6 +1336,30 @@ def _hybrid_source_collided(flux_u, xs_scatter, source_c, medium_map, coarse_idx
 def _hybrid_source_total(
     flux_u, flux_c, xs_scatter_u, q_star, medium_map, coarse_idx, factor
 ):
+    """Add hybrid scatter source contributions to the transport right-hand side.
+
+    Parameters
+    ----------
+    flux_u : numpy.ndarray
+        Fine-group uncollided flux of shape ``(cells_x, groups)``.
+    flux_c : numpy.ndarray
+        Coarse-group collided flux of shape ``(cells_x, coarse_groups)``.
+    xs_scatter_u : numpy.ndarray
+        Fine-group scattering matrix of shape ``(materials, groups, groups)``.
+    q_star : numpy.ndarray
+        Right-hand side accumulator of shape ``(cells_x, angles, groups)``.
+    medium_map : numpy.ndarray
+        Material index per cell with shape ``(cells_x,)``.
+    coarse_idx : numpy.ndarray
+        Mapping from fine group to coarse group with shape ``(groups,)``.
+    factor : numpy.ndarray
+        Per-group scaling factors with shape ``(groups,)``.
+
+    Returns
+    -------
+    None
+        ``flux_u`` and ``q_star`` are updated in-place.
+    """
     # Get parameters
     cells_x, angles, groups = q_star.shape
     ii = numba.int32
@@ -898,6 +1379,78 @@ def _hybrid_source_total(
                 one_group += flux_u[ii, ig] * xs_scatter_u[mat, og, ig]
             for nn in range(angles):
                 q_star[ii, nn, og] += one_group
+
+
+@numba.jit(
+    "void(f8[:,:], f8[:,:], f8[:,:,:,:], f8[:,:,:], i4[:], i4[:], f8[:], f8[:,:])",
+    nopython=True,
+    cache=True,
+)
+def _hybrid_source_total_aniso(
+    flux_u, flux_c, xs_scatter_u, q_star, medium_map, coarse_idx, factor, P
+):
+    """Build total hybrid source with anisotropic scatter.
+
+    Updates flux_u by adding the coarse-group correction, then accumulates
+    the anisotropic scatter source into q_star for each cell, angle, and
+    group. Since only the scalar flux is available here, only the L=0
+    moment contributes; the angle dependence enters via P[ll, nn].
+
+    Parameters
+    ----------
+    flux_u : numpy.ndarray, shape (cells_x, groups)
+        Uncollided scalar flux, updated in-place with coarse correction.
+    flux_c : numpy.ndarray, shape (cells_x, coarse_groups)
+        Collided scalar flux on coarse group structure.
+    xs_scatter_u : numpy.ndarray, shape (n_materials, groups, groups, L+1)
+        Legendre moments of fine-group scatter cross sections.
+    q_star : numpy.ndarray, shape (cells_x, angles, groups)
+        Right-hand side accumulator, updated in-place.
+    medium_map : numpy.ndarray, shape (cells_x,)
+        Material index per cell.
+    coarse_idx : numpy.ndarray, shape (groups,)
+        Maps fine group og to coarse group index.
+    factor : numpy.ndarray, shape (groups,)
+        Scaling factor per fine group for coarse-to-fine mapping.
+    P : numpy.ndarray, shape (L+1, angles)
+        Precomputed Legendre polynomials P[l, n] = P_l(mu_n).
+
+    Returns
+    -------
+    None
+        ``flux_u`` and ``q_star`` are updated in-place.
+    """
+    cells_x, angles, groups = q_star.shape
+    n_moments = numba.int32(xs_scatter_u.shape[3])
+    ii = numba.int32
+    nn = numba.int32
+    mat = numba.int32
+    og = numba.int32
+    ig = numba.int32
+    ll = numba.int32
+    group_sum = numba.float64
+    scatter = numba.float64
+
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+
+        # Update uncollided flux with coarse-group correction
+        for og in range(groups):
+            flux_u[ii, og] = flux_u[ii, og] + flux_c[ii, coarse_idx[og]] * factor[og]
+
+        # Build anisotropic scatter source and accumulate into q_star
+        for og in range(groups):
+            for nn in range(angles):
+                scatter = 0.0
+                for ll in range(n_moments):
+                    # Only L=0 contributes since only scalar flux is
+                    # available here; higher moment terms are zero
+                    if ll == 0:
+                        group_sum = 0.0
+                        for ig in range(groups):
+                            group_sum += flux_u[ii, ig] * xs_scatter_u[mat, og, ig, ll]
+                        scatter += (2 * ll + 1) * group_sum * P[ll, nn]
+                q_star[ii, nn, og] += scatter
 
 
 ################################################################################
@@ -942,6 +1495,24 @@ def reaction_rates(flux, xs_matrix, medium_map):
 
 @numba.jit("f8(f8[:], f8[:], f8[:,:], i4)", nopython=True, cache=True)
 def _off_scatter_0d(flux, flux_old, xs_scatter, gg):
+    """Compute off-diagonal scatter for a zero-dimensional group solve.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Current scalar flux iterate with shape ``(groups,)``.
+    flux_old : numpy.ndarray
+        Previous scalar flux iterate with shape ``(groups,)``.
+    xs_scatter : numpy.ndarray
+        Scattering matrix of shape ``(groups, groups)``.
+    gg : int
+        Energy group currently being solved.
+
+    Returns
+    -------
+    float
+        Off-diagonal scatter source for group ``gg``.
+    """
     # Get parameters
     groups = flux.shape[0]
     off_scatter = numba.float64
@@ -957,6 +1528,24 @@ def _off_scatter_0d(flux, flux_old, xs_scatter, gg):
 
 @numba.jit("f8[:,:](f8[:], f8[:,:], f8[:,:], f8)", nopython=True, cache=True)
 def _fission_mat_source_0d(flux, xs_fission, source, keff):
+    """Build the zero-dimensional fission source from a full fission matrix.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Scalar flux vector with shape ``(groups,)``.
+    xs_fission : numpy.ndarray
+        Fission matrix of shape ``(groups, groups)``.
+    source : numpy.ndarray
+        Output source array of shape ``(1, groups)``.
+    keff : float
+        Effective multiplication factor.
+
+    Returns
+    -------
+    numpy.ndarray
+        Updated zero-dimensional fission source.
+    """
     # Get parameters
     groups = flux.shape[0]
     og = numba.int32
@@ -976,6 +1565,26 @@ def _fission_mat_source_0d(flux, xs_fission, source, keff):
 
 @numba.jit("f8[:,:](f8[:], f8[:], f8[:], f8[:,:], f8)", nopython=True, cache=True)
 def _fission_vec_source_0d(flux, chi, nusigf, source, keff):
+    """Build the zero-dimensional fission source from vector-form data.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Scalar flux vector with shape ``(groups,)``.
+    chi : numpy.ndarray
+        Fission spectrum with shape ``(groups,)``.
+    nusigf : numpy.ndarray
+        Fission production vector with shape ``(groups,)``.
+    source : numpy.ndarray
+        Output source array of shape ``(1, groups)``.
+    keff : float
+        Effective multiplication factor.
+
+    Returns
+    -------
+    numpy.ndarray
+        Updated zero-dimensional fission source.
+    """
     # Get parameters
     groups = flux.shape[0]
     og = numba.int32
@@ -995,6 +1604,24 @@ def _fission_vec_source_0d(flux, chi, nusigf, source, keff):
 
 @numba.jit("f8(f8[:], f8[:], f8[:,:], f8)", nopython=True, cache=True)
 def _update_keff_mat_0d(flux, flux_old, xs_fission, keff):
+    """Update $k_{eff}$ for a zero-dimensional matrix fission model.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Current flux iterate with shape ``(groups,)``.
+    flux_old : numpy.ndarray
+        Previous flux iterate with shape ``(groups,)``.
+    xs_fission : numpy.ndarray
+        Fission matrix of shape ``(groups, groups)``.
+    keff : float
+        Previous estimate of the effective multiplication factor.
+
+    Returns
+    -------
+    float
+        Updated effective multiplication factor.
+    """
     # Get iterables
     groups = flux.shape[0]
     og = numba.int32
@@ -1012,6 +1639,26 @@ def _update_keff_mat_0d(flux, flux_old, xs_fission, keff):
 
 @numba.jit("f8(f8[:], f8[:], f8[:], f8[:], f8)", nopython=True, cache=True)
 def _update_keff_vec_0d(flux, flux_old, chi, nusigf, keff):
+    """Update $k_{eff}$ for a zero-dimensional vector fission model.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Current flux iterate with shape ``(groups,)``.
+    flux_old : numpy.ndarray
+        Previous flux iterate with shape ``(groups,)``.
+    chi : numpy.ndarray
+        Fission spectrum with shape ``(groups,)``.
+    nusigf : numpy.ndarray
+        Fission production vector with shape ``(groups,)``.
+    keff : float
+        Previous estimate of the effective multiplication factor.
+
+    Returns
+    -------
+    float
+        Updated effective multiplication factor.
+    """
     # Get iterables
     groups = flux.shape[0]
     og = numba.int32
