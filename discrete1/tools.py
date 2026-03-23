@@ -58,6 +58,8 @@ Use hybrid ML approach for fission source:
 import numba
 import numpy as np
 
+# from scipy.linalg import svd
+
 
 ################################################################################
 # Multigroup functions
@@ -607,29 +609,27 @@ def _svd_dmd(A, K):
     residual = 1e-09
 
     # Compute SVD
-    U, S, V = np.linalg.svd(A, full_matrices=False)
+    U, S, Vt = np.linalg.svd(A, full_matrices=False)
+    # U, S, Vt = svd(A, full_matrices=False, check_finite=False)
 
     # Find the non-zero singular values
-    if S[(1 - np.cumsum(S) / np.sum(S)) > residual].size >= 1:
-        spos = S[(1 - np.cumsum(S) / np.sum(S)) > residual].copy()
-    else:
-        spos = S[S > 0].copy()
+    energy = np.cumsum(S**2) / np.sum(S**2)
+    mask = (1 - energy) > residual
+    spos = S[mask] if mask.any() else S[S > 0]
 
     # Create diagonal matrix
-    mat_size = np.min([K, len(spos)])
-    S = np.zeros((mat_size, mat_size))
+    mat_size = min(K, len(spos))
 
     # Select the u and v that correspond with the nonzero singular values
-    U = U[:, :mat_size].copy()
-    V = V[:mat_size, :].copy()
+    U = U[:, :mat_size]
+    Vt = Vt[:mat_size, :]
 
     # S will be the inverse of the singular value diagonal matrix
-    S[np.diag_indices(mat_size)] = 1 / spos
+    S_inv = np.diag(1 / spos[:mat_size])
 
-    return U, S, V
+    return U, S_inv, Vt
 
 
-# @numba.jit("f8[:,:](f8[:,:], f8[:,:,:], f8[:,:,:], i4)", nopython=True, cache=True)
 def dmd(flux_old, y_minus, y_plus, K):
     """Estimate flux via Dynamic Mode Decomposition (DMD) extrapolation.
 
@@ -642,10 +642,10 @@ def dmd(flux_old, y_minus, y_plus, K):
     flux_old : numpy.ndarray
         Last known flux (n_cells, n_groups).
     y_minus : numpy.ndarray
-        Snapshot difference array with shape (n_cells, n_groups, K-1)
+        Snapshot difference array with shape (n_cells * n_groups, K-1)
         containing previous (backward) differences.
     y_plus : numpy.ndarray
-        Snapshot difference array with shape (n_cells, n_groups, K-1)
+        Snapshot difference array with shape (n_cells * n_groups, K-1)
         containing forward differences.
     K : int
         Number of snapshots (including the base) used for DMD.
@@ -655,29 +655,20 @@ def dmd(flux_old, y_minus, y_plus, K):
     numpy.ndarray
         Extrapolated flux array with shape (n_cells, n_groups).
     """
-
-    # Collect dimensions
-    cells_x, groups = flux_old.shape
-
-    # Flatten y_minus, y_plus
-    y_minus = y_minus.reshape(cells_x * groups, K - 1)
-    y_plus = y_plus.reshape(cells_x * groups, K - 1)
-
     # Call SVD
-    U, S, V = _svd_dmd(y_minus, K)
+    U, S_inv, Vt = _svd_dmd(y_minus, K)
 
     # Calculate Atilde
-    Atilde = U.T @ y_plus @ V.T @ S.T
+    Atilde = U.T @ y_plus @ Vt.T @ S_inv
 
     # Calculate delta_y
-    eye = np.identity(Atilde.shape[0])
-    delta_y = np.linalg.solve(eye - Atilde, (U.T @ y_plus[:, -1]).T)
+    rhs = U.T @ y_plus[:, -1]
+    delta_y = np.linalg.solve(np.eye(Atilde.shape[0]) - Atilde, rhs)
 
     # Estimate new flux
-    flux = (flux_old.flatten() - y_plus[:, K - 2]) + (U @ delta_y).T
-    flux = flux.reshape(cells_x, groups)
+    flux = (flux_old.flatten() - y_plus[:, K - 2]) + (U @ delta_y)
 
-    return flux
+    return flux.reshape(flux_old.shape)
 
 
 ################################################################################
@@ -1671,4 +1662,6 @@ def _update_keff_vec_0d(flux, flux_old, chi, nusigf, keff):
         for ig in range(groups):
             rate_new += flux[ig] * chi[og] * nusigf[ig]
             rate_old += flux_old[ig] * chi[og] * nusigf[ig]
+    return (rate_new * keff) / rate_old
+    return (rate_new * keff) / rate_old
     return (rate_new * keff) / rate_old

@@ -2,8 +2,6 @@
 name: Deploy site
 
 on:
-  push:
-    branches: ["master"]
   workflow_dispatch:
 
 permissions:
