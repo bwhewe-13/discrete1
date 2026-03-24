@@ -500,3 +500,337 @@ def test_v_bdf2_01(groups_c, angles_c, varying):
         assert np.sum(np.fabs(vhy_flux[step] - hy_flux[step])) < 2e-7, (
             str(step) + " not equivalent"
         )
+
+
+@pytest.mark.slab
+@pytest.mark.bdf1
+@pytest.mark.multigroup
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_auto_bdf1_step_external_matches_static_external():
+    """Exercise step-dependent external source path in hybrid1d.auto_bdf1."""
+    groups_u = 87
+    groups_c = 43
+    angles_u = 4
+    angles_c = 2
+
+    problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c)
+    hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
+
+    steps = 2
+    ext_static = problem_dict["external"]
+    ext_steps = np.repeat(ext_static, steps, axis=0)
+
+    hy_static = hybrid1d.auto_bdf1(
+        problem_dict["flux_last"],
+        problem_dict["xs_total_u"],
+        problem_dict["xs_scatter_u"],
+        problem_dict["xs_fission_u"],
+        problem_dict["velocity_u"],
+        ext_static,
+        problem_dict["boundary"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_wu"],
+        problem_dict["bc_x"],
+        angles_c,
+        groups_c,
+        hybrid_dict["energy_grid"],
+        steps=steps,
+        dt=problem_dict["dt"],
+        geometry=1,
+    )
+
+    hy_steps = hybrid1d.auto_bdf1(
+        problem_dict["flux_last"],
+        problem_dict["xs_total_u"],
+        problem_dict["xs_scatter_u"],
+        problem_dict["xs_fission_u"],
+        problem_dict["velocity_u"],
+        ext_steps,
+        problem_dict["boundary"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_wu"],
+        problem_dict["bc_x"],
+        angles_c,
+        groups_c,
+        hybrid_dict["energy_grid"],
+        steps=steps,
+        dt=problem_dict["dt"],
+        geometry=1,
+    )
+
+    assert np.allclose(hy_static, hy_steps, atol=1e-8, rtol=0.0)
+
+
+@pytest.mark.slab
+@pytest.mark.bdf1
+@pytest.mark.multigroup
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_v_backward_euler_step_external_matches_static_external():
+    """Exercise step-dependent external source path in vhybrid1d.backward_euler."""
+    groups_u = 87
+    groups_c = 43
+    angles_u = 4
+    angles_c = 2
+
+    problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c)
+
+    steps = 2
+    ext_static = problem_dict["external"]
+    ext_steps = np.repeat(ext_static, steps, axis=0)
+
+    hy_static = vhybrid1d.backward_euler(
+        groups_c,
+        angles_c,
+        problem_dict["flux_last"],
+        problem_dict["xs_total_u"],
+        problem_dict["xs_scatter_u"],
+        problem_dict["xs_fission_u"],
+        problem_dict["velocity_u"],
+        ext_static,
+        problem_dict["boundary"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_wu"],
+        problem_dict["bc_x"],
+        steps=steps,
+        dt=problem_dict["dt"],
+        geometry=1,
+        energy_grid=87,
+    )
+
+    hy_steps = vhybrid1d.backward_euler(
+        groups_c,
+        angles_c,
+        problem_dict["flux_last"],
+        problem_dict["xs_total_u"],
+        problem_dict["xs_scatter_u"],
+        problem_dict["xs_fission_u"],
+        problem_dict["velocity_u"],
+        ext_steps,
+        problem_dict["boundary"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_wu"],
+        problem_dict["bc_x"],
+        steps=steps,
+        dt=problem_dict["dt"],
+        geometry=1,
+        energy_grid=87,
+    )
+
+    assert np.allclose(hy_static, hy_steps, atol=1e-8, rtol=0.0)
+
+
+@pytest.mark.slab
+@pytest.mark.bdf1
+@pytest.mark.multigroup
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_v_backward_euler_truly_varying_schedule_runs():
+    """Ensure vhybrid supports changing group/angle schedules across time steps."""
+    groups_u = 87
+    groups_c = 87
+    angles_u = 4
+    angles_c = 4
+
+    problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c)
+
+    steps = 3
+    groups_schedule = np.array([87, 43, 87])
+    angles_schedule = np.array([4, 2, 4])
+
+    flux = vhybrid1d.backward_euler(
+        groups_schedule,
+        angles_schedule,
+        problem_dict["flux_last"],
+        problem_dict["xs_total_u"],
+        problem_dict["xs_scatter_u"],
+        problem_dict["xs_fission_u"],
+        problem_dict["velocity_u"],
+        problem_dict["external"],
+        problem_dict["boundary"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_wu"],
+        problem_dict["bc_x"],
+        steps=steps,
+        dt=problem_dict["dt"],
+        geometry=1,
+        energy_grid=87,
+    )
+
+    assert flux.shape == (steps, problem_dict["flux_last"].shape[0], groups_u)
+    assert np.all(np.isfinite(flux))
+
+
+@pytest.mark.slab
+@pytest.mark.bdf2
+@pytest.mark.multigroup
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_auto_bdf2_step_external_matches_static_external():
+    """Exercise step-dependent external source path in hybrid1d.auto_bdf2."""
+    groups_u = 87
+    groups_c = 43
+    angles_u = 4
+    angles_c = 2
+
+    problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c)
+    hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
+
+    steps = 2
+    ext_static = problem_dict["external"]
+    ext_steps = np.repeat(ext_static, steps, axis=0)
+
+    hy_static = hybrid1d.auto_bdf2(
+        problem_dict["flux_last"],
+        problem_dict["xs_total_u"],
+        problem_dict["xs_scatter_u"],
+        problem_dict["xs_fission_u"],
+        problem_dict["velocity_u"],
+        ext_static,
+        problem_dict["boundary"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_wu"],
+        problem_dict["bc_x"],
+        angles_c,
+        groups_c,
+        hybrid_dict["energy_grid"],
+        steps=steps,
+        dt=problem_dict["dt"],
+        geometry=1,
+    )
+
+    hy_steps = hybrid1d.auto_bdf2(
+        problem_dict["flux_last"],
+        problem_dict["xs_total_u"],
+        problem_dict["xs_scatter_u"],
+        problem_dict["xs_fission_u"],
+        problem_dict["velocity_u"],
+        ext_steps,
+        problem_dict["boundary"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_wu"],
+        problem_dict["bc_x"],
+        angles_c,
+        groups_c,
+        hybrid_dict["energy_grid"],
+        steps=steps,
+        dt=problem_dict["dt"],
+        geometry=1,
+    )
+
+    assert np.allclose(hy_static, hy_steps, atol=1e-8, rtol=0.0)
+
+
+@pytest.mark.slab
+@pytest.mark.bdf2
+@pytest.mark.multigroup
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_v_bdf2_step_external_matches_static_external():
+    """Exercise step-dependent external source path in vhybrid1d.bdf2."""
+    groups_u = 87
+    groups_c = 43
+    angles_u = 4
+    angles_c = 2
+
+    problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c)
+
+    steps = 2
+    ext_static = problem_dict["external"]
+    ext_steps = np.repeat(ext_static, steps, axis=0)
+
+    hy_static = vhybrid1d.bdf2(
+        groups_c,
+        angles_c,
+        problem_dict["flux_last"],
+        problem_dict["xs_total_u"],
+        problem_dict["xs_scatter_u"],
+        problem_dict["xs_fission_u"],
+        problem_dict["velocity_u"],
+        ext_static,
+        problem_dict["boundary"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_wu"],
+        problem_dict["bc_x"],
+        steps=steps,
+        dt=problem_dict["dt"],
+        geometry=1,
+        energy_grid=87,
+    )
+
+    hy_steps = vhybrid1d.bdf2(
+        groups_c,
+        angles_c,
+        problem_dict["flux_last"],
+        problem_dict["xs_total_u"],
+        problem_dict["xs_scatter_u"],
+        problem_dict["xs_fission_u"],
+        problem_dict["velocity_u"],
+        ext_steps,
+        problem_dict["boundary"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_wu"],
+        problem_dict["bc_x"],
+        steps=steps,
+        dt=problem_dict["dt"],
+        geometry=1,
+        energy_grid=87,
+    )
+
+    assert np.allclose(hy_static, hy_steps, atol=1e-8, rtol=0.0)
+
+
+@pytest.mark.slab
+@pytest.mark.bdf2
+@pytest.mark.multigroup
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_v_bdf2_truly_varying_schedule_runs():
+    """Ensure vhybrid bdf2 supports changing group/angle schedules per step."""
+    groups_u = 87
+    groups_c = 87
+    angles_u = 4
+    angles_c = 4
+
+    problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c)
+
+    steps = 3
+    groups_schedule = np.array([87, 43, 87])
+    angles_schedule = np.array([4, 2, 4])
+
+    flux = vhybrid1d.bdf2(
+        groups_schedule,
+        angles_schedule,
+        problem_dict["flux_last"],
+        problem_dict["xs_total_u"],
+        problem_dict["xs_scatter_u"],
+        problem_dict["xs_fission_u"],
+        problem_dict["velocity_u"],
+        problem_dict["external"],
+        problem_dict["boundary"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_wu"],
+        problem_dict["bc_x"],
+        steps=steps,
+        dt=problem_dict["dt"],
+        geometry=1,
+        energy_grid=87,
+    )
+
+    assert flux.shape == (steps, problem_dict["flux_last"].shape[0], groups_u)
+    assert np.all(np.isfinite(flux))
