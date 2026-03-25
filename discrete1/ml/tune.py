@@ -162,7 +162,7 @@ class RegressionDeepONet:
         self.labels = labels
         self.y = y
         self.memmap_file = kwargs.get("memmap_file", None)
-        self.train_size = kwargs.get("train_size", 0.6)
+        self.train_size = kwargs.get("train_size", 0.8)
         self.val_size = kwargs.get("val_size", 0.2)
 
         if self.memmap_file is None:
@@ -708,6 +708,7 @@ class RegressionDeepONet:
         Parameters
         ----------
         **kwargs : dict
+            - ``direction`` (str): maximize or minimize metric. Default minimize.
             - ``n_trials`` (int): number of trials. Default 50.
             - ``study_name`` (str or None): Named study in SQLite file. Default None.
             - ``storage_name`` (str or None): Named SQLite file.
@@ -720,6 +721,7 @@ class RegressionDeepONet:
         dict
             Best parameter set found by the study.
         """
+        direction = kwargs.get("direction", "minimize")
         n_trials = kwargs.get("n_trials", 50)
         study_name = kwargs.get("study_name", None)
         storage_name = kwargs.get("storage_name", "hyperparameter-tuning")
@@ -727,7 +729,7 @@ class RegressionDeepONet:
         output = kwargs.get("output", "hyperparameter_search")
 
         study = optuna.create_study(
-            direction="minimize",
+            direction=direction,
             study_name=study_name,
             storage=storage_name,
             load_if_exists=True,

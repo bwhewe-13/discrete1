@@ -13,6 +13,8 @@ reflective boundary conditions to determine the critical multiplication
 factor (k-effective) and corresponding neutron flux distribution.
 """
 
+import warnings
+
 import numpy as np
 
 import discrete1
@@ -342,6 +344,21 @@ def ml_power_iteration(
       numerical stability.
     """
 
+    if (len(fission_models) == 0) and (len(scatter_models) == 0):
+        warnings.warn("No ML models loaded, reverting to power_iteration")
+        return power_iteration(
+            xs_total,
+            xs_scatter,
+            xs_fission,
+            medium_map,
+            delta_x,
+            angle_x,
+            angle_w,
+            bc_x,
+            chi=chi,
+            geometry=geometry,
+        )
+
     # Set boundary source
     boundary = np.zeros((2, 1, 1))
 
@@ -432,10 +449,7 @@ def ml_power_iteration(
             return flux_old, keff_old
 
         print(f"Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}", end="\r")
-        if (len(fission_models) == 0) and (len(scatter_models) == 0):
-            converged = (change < change_kk) or (count >= count_kk)
-        else:
-            converged = (change < change_pp) or (count >= count_pp)
+        converged = (change < change_pp) or (count >= count_pp)
         count += 1
 
         flux_old = flux.copy()
