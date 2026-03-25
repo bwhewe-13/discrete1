@@ -45,9 +45,16 @@ Use an AutoDJINN composite model:
 >>> predictions = auto_model.predict(flux_data)
 """
 
-import importlib
-
 import numpy as np
+
+try:
+    from djinn import djinn  # pyright: ignore[reportMissingImports]
+except ImportError as e:
+    raise ImportError(
+        "DJINN dependencies are not installed. Install with one of:\n"
+        "   pip install discrete1[ml]\n"
+        "   pip install discrete1[tf-ml]"
+    ) from e
 
 try:
     import torch  # noqa: E402
@@ -66,30 +73,6 @@ except ImportError:
             "   pip install discrete1[ml]\n"
             "   pip install discrete1[tf-ml]"
         )
-
-
-def _import_djinn_module():
-    """Import DJINN module from either supported package layout."""
-    for name in ("djinn.djinn", "djinn"):
-        try:
-            return importlib.import_module(name)
-        except ImportError:
-            continue
-    raise ImportError(
-        "DJINN dependencies are not installed. Install with one of:\n"
-        "   pip install discrete1[ml]\n"
-        "   pip install discrete1[tf-ml]"
-    )
-
-
-_DJINN_MODULE = None
-
-
-def _get_djinn_module():
-    global _DJINN_MODULE
-    if _DJINN_MODULE is None:
-        _DJINN_MODULE = _import_djinn_module()
-    return _DJINN_MODULE
 
 
 def load_djinn_models(model_path):
@@ -112,7 +95,6 @@ def load_djinn_models(model_path):
     included in the returned list instead of a loaded model.
     """
     print("Loading DJINN Models...\n{}".format("=" * 30))
-    djinn = _get_djinn_module()
     if isinstance(model_path, str):
         return djinn.load(model_name=model_path)
     models = []
@@ -192,7 +174,6 @@ class DJINN:
             Function to inverse transform/denormalize output predictions.
             If None, no inverse transformation is applied.
         """
-        djinn = _get_djinn_module()
         self.model = djinn.load(model_name=file)
         self.transformer = transformer
         self.detransformer = detransformer
@@ -370,7 +351,6 @@ class AutoDJINN:
             self.encoder.eval()
             self.decoder.eval()
 
-        djinn = _get_djinn_module()
         self.model_djinn = djinn.load(model_name=file_djinn)
         self.backend = selected_backend
 

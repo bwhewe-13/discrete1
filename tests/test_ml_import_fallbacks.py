@@ -1,40 +1,37 @@
 """Tests for ML import fallback logic and AutoDJINN backend guards."""
 
+import builtins
 import importlib
+import sys
 
 import pytest
 
 
 @pytest.mark.machine_learning
-def test_predict_import_djinn_module_uses_primary_path(monkeypatch):
+def test_predict_module_exposes_djinn_namespace():
     module = importlib.import_module("discrete1.ml.predict")
+    assert hasattr(module, "djinn")
+    assert module.djinn is not None
 
-    calls = []
 
-    def fake_import(name):
-        calls.append(name)
-        if name == "djinn.djinn":
-            return object()
-        raise ImportError("missing")
+def _block_djinn_import(monkeypatch):
+    original_import = builtins.__import__
 
-    monkeypatch.setattr(module.importlib, "import_module", fake_import)
-    loaded = module._import_djinn_module()
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "djinn":
+            raise ImportError("missing")
+        return original_import(name, globals, locals, fromlist, level)
 
-    assert loaded is not None
-    assert calls[0] == "djinn.djinn"
+    monkeypatch.setattr(builtins, "__import__", fake_import)
 
 
 @pytest.mark.machine_learning
 def test_predict_import_djinn_module_error_message(monkeypatch):
-    module = importlib.import_module("discrete1.ml.predict")
-
-    def fake_import(_name):
-        raise ImportError("missing")
-
-    monkeypatch.setattr(module.importlib, "import_module", fake_import)
+    _block_djinn_import(monkeypatch)
+    sys.modules.pop("discrete1.ml.predict", None)
 
     with pytest.raises(ImportError) as exc:
-        module._import_djinn_module()
+        importlib.import_module("discrete1.ml.predict")
 
     assert "discrete1[ml]" in str(exc.value)
     assert "discrete1[tf-ml]" in str(exc.value)
@@ -42,15 +39,11 @@ def test_predict_import_djinn_module_error_message(monkeypatch):
 
 @pytest.mark.machine_learning
 def test_train_import_djinn_module_error_message(monkeypatch):
-    module = importlib.import_module("discrete1.ml.train")
-
-    def fake_import(_name):
-        raise ImportError("missing")
-
-    monkeypatch.setattr(module.importlib, "import_module", fake_import)
+    _block_djinn_import(monkeypatch)
+    sys.modules.pop("discrete1.ml.train", None)
 
     with pytest.raises(ImportError) as exc:
-        module._import_djinn_module()
+        importlib.import_module("discrete1.ml.train")
 
     assert "discrete1[ml]" in str(exc.value)
     assert "discrete1[tf-ml]" in str(exc.value)
