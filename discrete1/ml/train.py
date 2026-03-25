@@ -18,7 +18,6 @@ This module relies on optional ML dependencies (``torch``, ``sklearn`` and
 """
 
 import copy
-import importlib
 import itertools
 import warnings
 
@@ -30,6 +29,15 @@ import tqdm
 from sklearn import model_selection
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.tensorboard import SummaryWriter
+
+try:
+    from djinn import djinn  # pyright: ignore[reportMissingImports]
+except ImportError as e:
+    raise ImportError(
+        "DJINN dependencies are not installed. Install with one of:\n"
+        "   pip install discrete1[ml]\n"
+        "   pip install discrete1[tf-ml]"
+    ) from e
 
 from discrete1.ml.data import (
     BatchShuffleSampler,
@@ -43,30 +51,6 @@ from discrete1.ml.tools import (
     r2_score,
 )
 from discrete1.utils.decorators import break_loop, grange
-
-
-def _import_djinn_module():
-    """Import DJINN module from either supported package layout."""
-    for name in ("djinn.djinn", "djinn"):
-        try:
-            return importlib.import_module(name)
-        except ImportError:
-            continue
-    raise ImportError(
-        "DJINN dependencies are not installed. Install with one of:\n"
-        "   pip install discrete1[ml]\n"
-        "   pip install discrete1[tf-ml]"
-    )
-
-
-_DJINN_MODULE = None
-
-
-def _get_djinn_module():
-    global _DJINN_MODULE
-    if _DJINN_MODULE is None:
-        _DJINN_MODULE = _import_djinn_module()
-    return _DJINN_MODULE
 
 
 def djinn_regression(X, y, path, trees, depth, **kwargs):
@@ -137,7 +121,6 @@ def djinn_regression(X, y, path, trees, depth, **kwargs):
         modelname = f"model_{fntrees}{fmaxdepth}"
 
         # initialize the model
-        djinn = _get_djinn_module()
         model = djinn.DJINN_Regressor(ntrees, maxdepth, dropout_keep)
 
         # find optimal settings
