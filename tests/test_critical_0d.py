@@ -9,6 +9,10 @@ import pytest
 
 from discrete1.critical0d import power_iteration
 
+################################################################################
+# One Group Isotropic Scattering
+################################################################################
+
 
 @pytest.mark.infinite
 @pytest.mark.power_iteration
@@ -190,10 +194,68 @@ def test_one_group_uranium_reactor_01a_chi():
     angles = 16
     xs_total = np.array([0.407407])
     xs_scatter = np.array([[0.328042]])
-    chi = np.array([[1.0]])
-    nusigf = np.array([[2.50 * 0.06922744]]).flatten()
-    _, keff = power_iteration(angles, xs_total, xs_scatter, nusigf, chi.flatten())
+    chi = np.array([1.0])
+    nusigf = np.array([2.50 * 0.06922744])
+    _, keff = power_iteration(angles, xs_total, xs_scatter, nusigf, chi)
     assert abs(keff - 2.1806667) < 1e-4, str(keff) + " not infinite value"
+
+
+################################################################################
+# One Group Anisotropic Scattering
+################################################################################
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_one_group_aniso_plutonium_01a():
+    angles = 16
+    xs_total = np.array([1.0])
+    xs_scatter = np.array([[[0.733333, 0.2, 0.075]]])
+    xs_fission = np.array([[2.5 * 0.266667]])
+    _, keff = power_iteration(angles, xs_total, xs_scatter, xs_fission)
+    assert abs(keff - 2.5) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_one_group_aniso_plutonium_01a_chi():
+    angles = 16
+    xs_total = np.array([1.0])
+    xs_scatter = np.array([[[0.733333, 0.2, 0.075]]])
+    chi = np.array([1.0])
+    nusigf = np.array([2.5 * 0.266667])
+    _, keff = power_iteration(angles, xs_total, xs_scatter, nusigf, chi=chi)
+    assert abs(keff - 2.5) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_one_group_aniso_plutonium_01b():
+    angles = 16
+    xs_total = np.array([1.0])
+    xs_scatter = np.array([[[0.733333, 0.333333, 0.125]]])
+    xs_fission = np.array([[2.5 * 0.266667]])
+    _, keff = power_iteration(angles, xs_total, xs_scatter, xs_fission)
+    assert abs(keff - 2.5) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_one_group_aniso_plutonium_01b_chi():
+    angles = 16
+    xs_total = np.array([1.0])
+    xs_scatter = np.array([[[0.733333, 0.333333, 0.125]]])
+    chi = np.array([1.0])
+    nusigf = np.array([2.5 * 0.266667])
+    _, keff = power_iteration(angles, xs_total, xs_scatter, nusigf, chi=chi)
+    assert abs(keff - 2.5) < 1e-4, str(keff) + " not infinite value"
+
+
+################################################################################
+# Two Group Isotropic Scattering
+################################################################################
 
 
 @pytest.mark.smoke
