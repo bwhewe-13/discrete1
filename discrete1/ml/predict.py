@@ -532,4 +532,3 @@ class DeepONet:
             scaled_flux, labels, batch_size=scaled_flux.shape[0]
         )
         return self.detransformer(pred_y)
-        return self.detransformer(pred_y)
