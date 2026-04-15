@@ -13,8 +13,6 @@ reflective boundary conditions to determine the critical multiplication
 factor (k-effective) and corresponding neutron flux distribution.
 """
 
-import warnings
-
 import numpy as np
 
 import discrete1
@@ -25,7 +23,7 @@ from discrete1.utils import hybrid as hytools
 count_kk = 100
 change_kk = 1e-06
 
-count_pp = 20
+count_pp = 50
 change_pp = 1e-05
 
 
@@ -117,13 +115,15 @@ def power_iteration(
 
         # Check for convergence
         change = np.linalg.norm((flux - flux_old) / flux / cells_x)
-        print(f"Count: {count:>2}\tKeff: {keff:.8f}", end="\r")
+        print(f"Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}", end="\r")
         converged = (change < change_kk) or (count >= count_kk)
         count += 1
 
         flux_old = flux.copy()
 
-    print(f"\nConvergence: {change:2.6e}")
+    # print(f"\nConvergence: {change:2.6e}")
+    print("\033[2K", end="")
+    print(f"FINAL:: Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}")
     return flux, keff
 
 
@@ -338,14 +338,14 @@ def ml_power_iteration(
     -----
     - Convergence criteria differ based on model usage: stricter for standard
       iteration (change_kk), more relaxed for DJINN-accelerated (change_pp).
-    - Early termination occurs if flux change increases after 5 iterations,
+    - Early termination occurs if flux change increases after 20 iterations,
       preventing divergence.
     - Normalization strategy changes when DJINN models are used to maintain
       numerical stability.
     """
 
     if (len(fission_models) == 0) and (len(scatter_models) == 0):
-        warnings.warn("No ML models loaded, reverting to power_iteration")
+        print("WARNING: No ML models loaded, reverting to power_iteration")
         return power_iteration(
             xs_total,
             xs_scatter,
@@ -431,9 +431,15 @@ def ml_power_iteration(
             )
 
         # Update keffective and normalize flux
-        if len(fission_models) == 0:
-            keff = tools._update_keffective(
+        if len(fission_models) == 0 and chi is None:
+            keff = tools._update_keff_mat(
                 flux, flux_old, xs_fission, medium_map, keff_old
+            )
+            flux /= np.linalg.norm(flux)
+
+        elif len(fission_models) == 0:
+            keff = tools._update_keff_vec(
+                flux, flux_old, chi, xs_fission, medium_map, keff_old
             )
             flux /= np.linalg.norm(flux)
 
@@ -444,8 +450,9 @@ def ml_power_iteration(
         # Check for convergence
         change = np.linalg.norm((flux - flux_old) / flux / cells_x)
         # Early exit
-        if (change > change_old) and (count > 5):
-            print(f"\nConvergence: {change_old:2.6e}")
+        if (change > change_old) and (count > 20):
+            print("\033[2K", end="")
+            print(f"FINAL:: Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}")
             return flux_old, keff_old
 
         print(f"Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}", end="\r")
@@ -456,7 +463,9 @@ def ml_power_iteration(
         change_old = change
         keff_old = keff
 
-    print(f"\nConvergence: {change:2.6e}")
+    # print(f"\nConvergence: {change:2.6e}")
+    print("\033[2K", end="")
+    print(f"FINAL:: Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}")
     return flux, keff
 
 
