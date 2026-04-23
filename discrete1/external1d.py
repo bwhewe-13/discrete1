@@ -16,9 +16,9 @@ directory via pkg_resources.
 """
 
 import numpy as np
-import pkg_resources
+import importlib.resources
 
-DATA_PATH = pkg_resources.resource_filename("discrete1", "sources/")
+DATA_PATH = importlib.resources.files("discrete1") / "sources"
 
 
 def manufactured_ss_03(x, angle_x):

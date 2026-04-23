@@ -38,6 +38,7 @@ def power_iteration(
     bc_x,
     chi=None,
     geometry=1,
+    counter=False
 ):
     """Run power iteration for 1D multigroup problems.
 
@@ -57,11 +58,17 @@ def power_iteration(
         Fission Neutron Distribution. Must be included if xs_fission is nusigf.
     geometry : int, optional
         Geometry selector (1=slab, 2=sphere).
+    counter : bool, optional 
+        Default False. Returns number of power iterations if True.
 
     Returns
     -------
-    tuple
-        (flux, keff) converged scalar flux and multiplication factor.
+    flux : numpy.ndarray
+        Converged scalar flux distribution indexed by [cell, group].
+    keff : float
+        Converged effective multiplication factor.
+    counter : int, optional
+        Number of power iterations for convergence. Returned if counter=True.
     """
 
     # Set boundary source
@@ -114,16 +121,17 @@ def power_iteration(
         flux /= np.linalg.norm(flux)
 
         # Check for convergence
+        count += 1
         change = np.linalg.norm((flux - flux_old) / flux / cells_x)
         print(f"Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}", end="\r")
         converged = (change < change_kk) or (count >= count_kk)
-        count += 1
 
         flux_old = flux.copy()
 
-    # print(f"\nConvergence: {change:2.6e}")
     print("\033[2K", end="")
     print(f"FINAL:: Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}")
+    if counter:
+        return flux, keff, count
     return flux, keff
 
 
@@ -279,6 +287,7 @@ def ml_power_iteration(
     bc_x,
     chi=None,
     geometry=1,
+    counter=False,
     fission_models=[],
     scatter_models=[],
     fission_labels=None,
@@ -316,6 +325,8 @@ def ml_power_iteration(
         Default is None.
     geometry : int, optional
         Geometry type (1=slab, 2=sphere). Default is 1.
+    counter : bool, optional 
+        Default False. Returns number of power iterations if True.
     fission_models : list, optional
         Trained DJINN models for fission source prediction. Empty list uses
         traditional calculation. Default is [].
@@ -333,6 +344,8 @@ def ml_power_iteration(
         Converged scalar flux distribution indexed by [cell, group].
     keff : float
         Converged effective multiplication factor.
+    counter : int, optional
+        Number of power iterations for convergence. Returned if counter=True.
 
     Notes
     -----
@@ -357,6 +370,7 @@ def ml_power_iteration(
             bc_x,
             chi=chi,
             geometry=geometry,
+            counter=counter
         )
 
     # Set boundary source
@@ -448,24 +462,27 @@ def ml_power_iteration(
             flux /= keff
 
         # Check for convergence
+        count += 1
         change = np.linalg.norm((flux - flux_old) / flux / cells_x)
         # Early exit
-        if (change > change_old) and (count > 20):
+        if (change > change_old) and (count >= 20):
             print("\033[2K", end="")
             print(f"FINAL:: Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}")
+            if counter:
+                return flux_old, keff_old, count
             return flux_old, keff_old
 
         print(f"Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}", end="\r")
         converged = (change < change_pp) or (count >= count_pp)
-        count += 1
 
         flux_old = flux.copy()
         change_old = change
         keff_old = keff
 
-    # print(f"\nConvergence: {change:2.6e}")
     print("\033[2K", end="")
     print(f"FINAL:: Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}")
+    if counter:
+        return flux, keff, count
     return flux, keff
 
 
