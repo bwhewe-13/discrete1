@@ -1,8 +1,8 @@
-"""Criticality (1-D) benchmark tests for discrete1.
+"""Isotropic-scattering criticality (1-D) benchmark tests for discrete1.
 
 These tests run the 1-D power-iteration solvers across a set of
-benchmark configurations and verify flux shapes and multiplication
-factors against reference values.
+benchmark configurations with isotropic scattering and verify flux
+shapes and multiplication factors against reference values.
 """
 
 import numpy as np
@@ -665,135 +665,6 @@ def test_one_group_slab_uranium_reactor_01a_chi():
     )
     kinfinite = 2.1806667
     assert abs(keff - kinfinite) < 2e-3, str(keff) + " not infinite value"
-
-
-################################################################################
-# One Group Anisotropic Scattering
-################################################################################
-
-
-@pytest.mark.smoke
-@pytest.mark.slab
-@pytest.mark.anisotropic
-@pytest.mark.power_iteration
-@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
-def test_one_group_aniso_slab_plutonium_01a(bc_x: list[int]):
-    cells_x = 75
-    angles = 16
-    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
-    xs_total = np.array([[1.0]])
-    xs_scatter = np.array([[[[0.733333, 0.2, 0.075]]]])
-    xs_fission = np.array([[[2.5 * 0.266667]]])
-    cells_x = 150 if np.sum(bc_x) == 0 else 75
-    length = 0.76378 * 2 if np.sum(bc_x) == 0 else 0.76378
-    medium_map = np.zeros((cells_x), dtype=np.int32)
-    delta_x = np.repeat(length / cells_x, cells_x)
-    flux, keff = power_iteration(
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        medium_map,
-        delta_x,
-        angle_x,
-        angle_w,
-        bc_x,
-        geometry=1,
-    )
-    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
-
-
-@pytest.mark.smoke
-@pytest.mark.slab
-@pytest.mark.anisotropic
-@pytest.mark.power_iteration
-@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
-def test_one_group_aniso_slab_plutonium_01a_chi(bc_x: list[int]):
-    cells_x = 75
-    angles = 16
-    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
-    xs_total = np.array([[1.0]])
-    xs_scatter = np.array([[[[0.733333, 0.2, 0.075]]]])
-    chi = np.array([[1.0]])
-    nusigf = np.array([[2.5 * 0.266667]])
-    cells_x = 150 if np.sum(bc_x) == 0 else 75
-    length = 0.76378 * 2 if np.sum(bc_x) == 0 else 0.76378
-    medium_map = np.zeros((cells_x), dtype=np.int32)
-    delta_x = np.repeat(length / cells_x, cells_x)
-    flux, keff = power_iteration(
-        xs_total,
-        xs_scatter,
-        nusigf,
-        medium_map,
-        delta_x,
-        angle_x,
-        angle_w,
-        bc_x,
-        chi=chi,
-        geometry=1,
-    )
-    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
-
-
-@pytest.mark.smoke
-@pytest.mark.slab
-@pytest.mark.anisotropic
-@pytest.mark.power_iteration
-@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
-def test_one_group_aniso_slab_plutonium_01b(bc_x: list[int]):
-    cells_x = 75
-    angles = 16
-    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
-    xs_total = np.array([[1.0]])
-    xs_scatter = np.array([[[[0.733333, 0.333333, 0.125]]]])
-    xs_fission = np.array([[[2.5 * 0.266667]]])
-    cells_x = 150 if np.sum(bc_x) == 0 else 75
-    length = 0.78396 * 2 if np.sum(bc_x) == 0 else 0.78396
-    medium_map = np.zeros((cells_x), dtype=np.int32)
-    delta_x = np.repeat(length / cells_x, cells_x)
-    flux, keff = power_iteration(
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        medium_map,
-        delta_x,
-        angle_x,
-        angle_w,
-        bc_x,
-        geometry=1,
-    )
-    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
-
-
-@pytest.mark.smoke
-@pytest.mark.slab
-@pytest.mark.anisotropic
-@pytest.mark.power_iteration
-@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
-def test_one_group_aniso_slab_plutonium_01b_chi(bc_x: list[int]):
-    cells_x = 75
-    angles = 16
-    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
-    xs_total = np.array([[1.0]])
-    xs_scatter = np.array([[[[0.733333, 0.333333, 0.125]]]])
-    chi = np.array([[1.0]])
-    nusigf = np.array([[2.5 * 0.266667]])
-    cells_x = 150 if np.sum(bc_x) == 0 else 75
-    length = 0.78396 * 2 if np.sum(bc_x) == 0 else 0.78396
-    medium_map = np.zeros((cells_x), dtype=np.int32)
-    delta_x = np.repeat(length / cells_x, cells_x)
-    flux, keff = power_iteration(
-        xs_total,
-        xs_scatter,
-        nusigf,
-        medium_map,
-        delta_x,
-        angle_x,
-        angle_w,
-        bc_x,
-        chi=chi,
-        geometry=1,
-    )
-    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
 
 
 ################################################################################

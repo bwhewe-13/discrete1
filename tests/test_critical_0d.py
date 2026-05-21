@@ -253,6 +253,85 @@ def test_one_group_aniso_plutonium_01b_chi():
     assert abs(keff - 2.5) < 1e-4, str(keff) + " not infinite value"
 
 
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_one_group_aniso_heavy_water_01a():
+    # UD20(a)-1-1-IN (Problem 38): k_inf = 1.205587
+    angles = 16
+    xs_total = np.array([0.54628])
+    xs_scatter = np.array([[[0.464338, 0.056312624]]])
+    xs_fission = np.array([[1.808381 * 0.054628]])
+    _, keff = power_iteration(angles, xs_total, xs_scatter, xs_fission)
+    assert abs(keff - 1.205587) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_one_group_aniso_heavy_water_01a_chi():
+    angles = 16
+    xs_total = np.array([0.54628])
+    xs_scatter = np.array([[[0.464338, 0.056312624]]])
+    chi = np.array([1.0])
+    nusigf = np.array([1.808381 * 0.054628])
+    _, keff = power_iteration(angles, xs_total, xs_scatter, nusigf, chi=chi)
+    assert abs(keff - 1.205587) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_one_group_aniso_heavy_water_01b():
+    # UD20(b)-1-1-IN (Problem 40): k_inf = 1.227391
+    angles = 16
+    xs_total = np.array([0.54628])
+    xs_scatter = np.array([[[0.464338, 0.112982569]]])
+    xs_fission = np.array([[1.841086 * 0.054628]])
+    _, keff = power_iteration(angles, xs_total, xs_scatter, xs_fission)
+    assert abs(keff - 1.227391) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_one_group_aniso_heavy_water_01b_chi():
+    angles = 16
+    xs_total = np.array([0.54628])
+    xs_scatter = np.array([[[0.464338, 0.112982569]]])
+    chi = np.array([1.0])
+    nusigf = np.array([1.841086 * 0.054628])
+    _, keff = power_iteration(angles, xs_total, xs_scatter, nusigf, chi=chi)
+    assert abs(keff - 1.227391) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_one_group_aniso_heavy_water_01c():
+    # UD20(c)-1-1-IN (Problem 42): k_inf = 1.130933
+    # Negative Sigma_s1 - report warns of negative scattering for |mu| near -1
+    angles = 16
+    xs_total = np.array([0.54628])
+    xs_scatter = np.array([[[0.464338, -0.27850447]]])
+    xs_fission = np.array([[1.6964 * 0.054628]])
+    _, keff = power_iteration(angles, xs_total, xs_scatter, xs_fission)
+    assert abs(keff - 1.130933) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_one_group_aniso_heavy_water_01c_chi():
+    angles = 16
+    xs_total = np.array([0.54628])
+    xs_scatter = np.array([[[0.464338, -0.27850447]]])
+    chi = np.array([1.0])
+    nusigf = np.array([1.6964 * 0.054628])
+    _, keff = power_iteration(angles, xs_total, xs_scatter, nusigf, chi=chi)
+    assert abs(keff - 1.130933) < 1e-4, str(keff) + " not infinite value"
+
+
 ################################################################################
 # Two Group Isotropic Scattering
 ################################################################################
@@ -428,3 +507,157 @@ def test_two_group_uranium_reactor_01c_chi():
     nusigf = (nu * sigmaf).flatten()
     _, keff = power_iteration(angles, xs_total, xs_scatter, nusigf, chi.flatten())
     assert abs(keff - 1.633380) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_two_group_uranium_reactor_01d():
+    # URRd-2-0-IN (Problem 62): k_inf = 1.034970
+    # Note: nu_fast = 1.004 is slightly unphysical per report
+    angles = 20
+    xs_total = np.array([2.13800, 0.650917])
+    xs_scatter = np.array([[2.06880, 0.0], [0.0342008, 0.0]]).T
+    chi = np.array([[0.0], [1.0]])
+    nu = np.array([[2.50, 1.004]])
+    sigmaf = np.array([[0.045704, 0.61475]])
+    xs_fission = chi @ (nu * sigmaf)
+    _, keff = power_iteration(angles, xs_total, xs_scatter, xs_fission)
+    assert abs(keff - 1.034970) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_two_group_uranium_reactor_01d_chi():
+    angles = 20
+    xs_total = np.array([2.13800, 0.650917])
+    xs_scatter = np.array([[2.06880, 0.0], [0.0342008, 0.0]]).T
+    chi = np.array([[0.0, 1.0]])
+    nu = np.array([[2.50, 1.004]])
+    sigmaf = np.array([[0.045704, 0.61475]])
+    nusigf = (nu * sigmaf).flatten()
+    _, keff = power_iteration(angles, xs_total, xs_scatter, nusigf, chi.flatten())
+    assert abs(keff - 1.034970) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_two_group_heavy_water_01():
+    # UD20-2-0-IN (Problem 67): k_inf = 1.000196
+    angles = 20
+    xs_total = np.array([0.54628, 0.33588])
+    xs_scatter = np.array([[0.42410, 0.0], [0.004555, 0.31980]]).T
+    chi = np.array([[0.0], [1.0]])
+    nu = np.array([[2.50, 2.50]])
+    sigmaf = np.array([[0.097, 0.002817]])
+    xs_fission = chi @ (nu * sigmaf)
+    _, keff = power_iteration(angles, xs_total, xs_scatter, xs_fission)
+    assert abs(keff - 1.000196) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_two_group_heavy_water_01_chi():
+    angles = 20
+    xs_total = np.array([0.54628, 0.33588])
+    xs_scatter = np.array([[0.42410, 0.0], [0.004555, 0.31980]]).T
+    chi = np.array([[0.0, 1.0]])
+    nu = np.array([[2.50, 2.50]])
+    sigmaf = np.array([[0.097, 0.002817]])
+    nusigf = (nu * sigmaf).flatten()
+    _, keff = power_iteration(angles, xs_total, xs_scatter, nusigf, chi.flatten())
+    assert abs(keff - 1.000196) < 1e-4, str(keff) + " not infinite value"
+
+
+################################################################################
+# Two Group Anisotropic Scattering
+################################################################################
+
+
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_two_group_aniso_uranium_reactor_01a():
+    # URRa-2-1-IN (Problem 70): k_inf = 1.631452
+    # Same as Problem 53 (URRa-2-0-IN); k_inf is invariant to anisotropic moments
+    # in infinite medium. L1 moments from the same cross-section set as Problem 71.
+    angles = 20
+    xs_total = np.array([2.52025, 0.65696])
+    xs_scatter = np.stack(
+        [
+            np.array([[2.44383, 0.0], [0.029227, 0.62568]]).T,  # L0
+            np.array([[0.83318, 0.0], [0.0075737, 0.27459]]).T,  # L1
+        ],
+        axis=-1,
+    )
+    chi = np.array([[0.0], [1.0]])
+    nu = np.array([[2.5, 2.5]])
+    sigmaf = np.array([[0.050632, 0.0010484]])
+    xs_fission = chi @ (nu * sigmaf)
+    _, keff = power_iteration(angles, xs_total, xs_scatter, xs_fission)
+    assert abs(keff - 1.631452) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_two_group_aniso_uranium_reactor_01a_chi():
+    angles = 20
+    xs_total = np.array([2.52025, 0.65696])
+    xs_scatter = np.stack(
+        [
+            np.array([[2.44383, 0.0], [0.029227, 0.62568]]).T,
+            np.array([[0.83318, 0.0], [0.0075737, 0.27459]]).T,
+        ],
+        axis=-1,
+    )
+    chi = np.array([[0.0, 1.0]])
+    nu = np.array([[2.5, 2.5]])
+    sigmaf = np.array([[0.050632, 0.0010484]])
+    nusigf = (nu * sigmaf).flatten()
+    _, keff = power_iteration(angles, xs_total, xs_scatter, nusigf, chi.flatten())
+    assert abs(keff - 1.631452) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_two_group_aniso_heavy_water_01():
+    # UD20-2-1-IN (Problem 72): k_inf = 1.000196
+    # Same as Problem 67 (UD20-2-0-IN); k_inf is invariant to anisotropic moments
+    # in infinite medium. L1 moments from Tables 56/57 of LA-13511.
+    angles = 20
+    xs_total = np.array([0.54628, 0.33588])
+    xs_scatter = np.stack(
+        [
+            np.array([[0.42410, 0.0], [0.004555, 0.31980]]).T,  # L0
+            np.array([[0.06694, -0.0003972], [0.0, 0.05439]]).T,  # L1
+        ],
+        axis=-1,
+    )
+    chi = np.array([[0.0], [1.0]])
+    nu = np.array([[2.50, 2.50]])
+    sigmaf = np.array([[0.097, 0.002817]])
+    xs_fission = chi @ (nu * sigmaf)
+    _, keff = power_iteration(angles, xs_total, xs_scatter, xs_fission)
+    assert abs(keff - 1.000196) < 1e-4, str(keff) + " not infinite value"
+
+
+@pytest.mark.anisotropic
+@pytest.mark.infinite
+@pytest.mark.power_iteration
+def test_two_group_aniso_heavy_water_01_chi():
+    angles = 20
+    xs_total = np.array([0.54628, 0.33588])
+    xs_scatter = np.stack(
+        [
+            np.array([[0.42410, 0.0], [0.004555, 0.31980]]).T,
+            np.array([[0.06694, -0.0003972], [0.0, 0.05439]]).T,
+        ],
+        axis=-1,
+    )
+    chi = np.array([[0.0, 1.0]])
+    nu = np.array([[2.50, 2.50]])
+    sigmaf = np.array([[0.097, 0.002817]])
+    nusigf = (nu * sigmaf).flatten()
+    _, keff = power_iteration(angles, xs_total, xs_scatter, nusigf, chi.flatten())
+    assert abs(keff - 1.000196) < 1e-4, str(keff) + " not infinite value"

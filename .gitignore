@@ -17,6 +17,7 @@ build/
 dist/
 
 # Sphinx documentation
+docs/_build/
 docs/build/
 
 # Coverage files
