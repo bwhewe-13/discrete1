@@ -38,7 +38,7 @@ def power_iteration(
     bc_x,
     chi=None,
     geometry=1,
-    counter=False
+    counter=False,
 ):
     """Run power iteration for 1D multigroup problems.
 
@@ -58,7 +58,7 @@ def power_iteration(
         Fission Neutron Distribution. Must be included if xs_fission is nusigf.
     geometry : int, optional
         Geometry selector (1=slab, 2=sphere).
-    counter : bool, optional 
+    counter : bool, optional
         Default False. Returns number of power iterations if True.
 
     Returns
@@ -325,7 +325,7 @@ def ml_power_iteration(
         Default is None.
     geometry : int, optional
         Geometry type (1=slab, 2=sphere). Default is 1.
-    counter : bool, optional 
+    counter : bool, optional
         Default False. Returns number of power iterations if True.
     fission_models : list, optional
         Trained DJINN models for fission source prediction. Empty list uses
@@ -370,7 +370,7 @@ def ml_power_iteration(
             bc_x,
             chi=chi,
             geometry=geometry,
-            counter=counter
+            counter=counter,
         )
 
     # Set boundary source

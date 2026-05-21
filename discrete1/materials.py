@@ -12,8 +12,9 @@ The module handles:
 - Vacuum/void material properties
 """
 
-import numpy as np
 import importlib.resources
+
+import numpy as np
 
 import discrete1.constants as const
 

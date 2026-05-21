@@ -15,8 +15,9 @@ Data files for some sources are loaded from the package `sources/`
 directory via pkg_resources.
 """
 
-import numpy as np
 import importlib.resources
+
+import numpy as np
 
 DATA_PATH = importlib.resources.files("discrete1") / "sources"
 
