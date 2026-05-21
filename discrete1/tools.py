@@ -1105,9 +1105,11 @@ def scatter_prod_predict(flux, xs_scatter, source, medium_map, models, label=Non
         List of trained ML models (or integers as placeholders). models[nn]
         is used for material nn. If models[nn] is an integer (typically 0),
         falls back to physics-based calculation.
-    label : numpy.ndarray, optional
+    label : list, optional
         Parameter/label array for parametric ML predictions. Passed to
-        model.predict() when making predictions. Default is None.
+        model.predict() when making predictions. Can be a list (for one model
+        or all models having the same label) or a list of lists (label for
+        each model). Default is None.
 
     Returns
     -------
@@ -1131,6 +1133,8 @@ def scatter_prod_predict(flux, xs_scatter, source, medium_map, models, label=Non
     # Zero out previous source
     source *= 0.0
 
+    one_label = True if isinstance(label[0], float) else False
+
     # Iterate over models
     for nn, model in enumerate(models):
         # Find which cells model is predicting
@@ -1152,7 +1156,10 @@ def scatter_prod_predict(flux, xs_scatter, source, medium_map, models, label=Non
         # Get scaling factor
         scale = np.sum(mat_flux * xs_scatter[nn, :, 0], axis=1)
         # Check for labels and predict
-        mat_flux = model.predict(mat_flux, label=label)
+        if one_label:
+            mat_flux = model.predict(mat_flux, label=label)
+        else:
+            mat_flux = model.predict(mat_flux, label=label[nn])
         # Scale back and add to source
         source[idx] = mat_flux * (scale / np.sum(mat_flux, axis=1))[:, None]
 

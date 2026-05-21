@@ -13,11 +13,11 @@ The module handles:
 """
 
 import numpy as np
-import pkg_resources
+import importlib.resources
 
 import discrete1.constants as const
 
-DATA_PATH = pkg_resources.resource_filename("discrete1", "sources/")
+DATA_PATH = importlib.resources.files("discrete1") / "sources"
 
 ########################################################################
 # Material Cross Sections

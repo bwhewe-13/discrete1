@@ -723,6 +723,7 @@ class RegressionDeepONet:
         """
         direction = kwargs.get("direction", "minimize")
         n_trials = kwargs.get("n_trials", 50)
+        n_jobs = kwargs.get("n_jobs", 1)
         study_name = kwargs.get("study_name", None)
         storage_name = kwargs.get("storage_name", "hyperparameter-tuning")
         storage_name = None if study_name is None else f"sqlite:///{storage_name}.db"
@@ -735,7 +736,7 @@ class RegressionDeepONet:
             load_if_exists=True,
         )
         finish_trial(study)
-        study.optimize(self.objective, n_trials=n_trials)
+        study.optimize(self.objective, n_trials=n_trials, n_jobs=n_jobs)
         study.trials_dataframe().to_csv(f"{output}_trials.csv", index=False)
         return study.best_params
 

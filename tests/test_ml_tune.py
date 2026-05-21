@@ -167,10 +167,11 @@ def test_tune_run_uses_optuna_study_and_writes_trials_csv(monkeypatch, tmp_path)
             self.best_params = {"batch_size": 32}
             self.optimized = False
 
-        def optimize(self, objective, n_trials):
+        def optimize(self, objective, n_trials, n_jobs):
             self.optimized = True
             assert callable(objective)
             assert n_trials == 2
+            assert n_jobs == 1
 
         def trials_dataframe(self):
             return _FakeTrialsFrame()
@@ -194,7 +195,7 @@ def test_tune_run_uses_optuna_study_and_writes_trials_csv(monkeypatch, tmp_path)
     y = np.random.rand(12, 1).astype(np.float32)
     tuner = tune.RegressionDeepONet(flux, labels, y)
 
-    best = tuner.run(n_trials=2, output="tune_unit")
+    best = tuner.run(n_trials=2, n_jobs=1, output="tune_unit")
 
     assert best == {"batch_size": 32}
     assert finish_called["value"] is True
