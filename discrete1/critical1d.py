@@ -573,19 +573,20 @@ def hybrid_power_iteration(
     )
     xs_total_c, xs_scatter_c, angle_xc, angle_wc = collided
 
-    # Set boundary source
-    boundary = np.zeros((2, 1, 1))
+    # Set boundary sources for fine and coarse meshes
+    boundary_u = np.zeros((2, 1, 1))
+    boundary_c = np.zeros((2, 1, 1))
 
-    # Initialize and normalize flux
+    # Initialize and normalize fine-mesh flux
     cells_x = medium_map.shape[0]
     flux_u = np.random.rand(cells_x, xs_total_u.shape[1])
     keff = np.linalg.norm(flux_u)
     flux_u /= np.linalg.norm(keff)
     flux_old = flux_u.copy()
 
-    # Initialize power source
-    flux_c = np.random.rand(cells_x, xs_total_c.shape[1])
-    flux_c /= np.linalg.norm(flux_c)
+    # Initialize coarse-mesh flux and sources
+    flux_c = np.zeros((cells_x, xs_total_c.shape[1]))
+    source_u = np.zeros((cells_x, 1, xs_total_u.shape[1]))
     source_c = np.zeros((cells_x, 1, xs_total_c.shape[1]))
 
     converged = False
@@ -593,18 +594,35 @@ def hybrid_power_iteration(
     change = 0.0
 
     while not (converged):
-        # Update power source term
-        tools._hybrid_fission_source(
-            flux_u, xs_fission_u, source_c, medium_map, keff, coarse_idx
+        # Step 1: Fine-mesh fission source
+        tools.fission_mat_prod(flux_old, xs_fission_u, source_u, medium_map, keff)
+
+        # Step 2: Solve uncollided fine-mesh transport equation
+        flux_u = mg.known_source_scalar(
+            xs_total_u,
+            source_u,
+            boundary_u,
+            medium_map,
+            delta_x,
+            angle_xu,
+            angle_wu,
+            bc_x,
+            geometry,
+            edges=0,
         )
 
-        # Solve for scalar flux
+        # Step 3: Map fine-mesh scatter into coarse-group source
+        tools._hybrid_source_collided(
+            flux_u, xs_scatter_u, source_c, medium_map, coarse_idx
+        )
+
+        # Step 4: Solve collided coarse-mesh source iteration
         flux_c = mg.source_iteration(
             flux_c,
             xs_total_c,
             xs_scatter_c,
             source_c,
-            boundary,
+            boundary_c,
             medium_map,
             delta_x,
             angle_xc,
@@ -613,25 +631,25 @@ def hybrid_power_iteration(
             geometry,
         )
 
-        tools._hybrid_combine_fluxes(flux_u, flux_c, coarse_idx, factor)
+        # Step 5: Add coarse-corrected collided flux to uncollided fine-mesh flux
+        flux_u += flux_c[:, coarse_idx] * factor
 
-        # Update keffective
-        keff = tools._update_keffective(
-            flux_u, flux_old, xs_fission_u, medium_map, keff
-        )
+        # Step 6: Update k-effective
+        keff = tools._update_keff_mat(flux_u, flux_old, xs_fission_u, medium_map, keff)
 
-        # Normalize flux
+        # Step 7: Normalize
         flux_u /= np.linalg.norm(flux_u)
 
-        # Check for convergence
-        change = np.linalg.norm((flux_u - flux_old) / flux_u / cells_x)
-        print(f"Count: {count:>2}\tKeff: {keff:.8f}")  # , end="\r")
-        converged = (change < change_kk) or (count >= count_kk)
+        # Step 8: Convergence check
         count += 1
+        change = np.linalg.norm((flux_u - flux_old) / flux_u / cells_x)
+        print(f"Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}", end="\r")
+        converged = (change < change_kk) or (count >= count_kk)
 
         flux_old = flux_u.copy()
 
-    print(f"\nConvergence: {change:2.6e}")
+    print("\033[2K", end="")
+    print(f"FINAL:: Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}")
     return flux_u, keff
 
 
