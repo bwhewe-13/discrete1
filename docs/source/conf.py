@@ -41,7 +41,14 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",  # add links to highlighted source
     "sphinx.ext.coverage",
+    "myst_parser",  # Markdown (MyST) support for narrative pages
 ]
+
+# Recognize both reStructuredText and Markdown sources.
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
 
 # Generate autosummary pages automatically.
 autosummary_generate = True
@@ -51,6 +58,9 @@ napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 napoleon_include_init_with_doc = True
 napoleon_preprocess_types = True
+# Render "Attributes" sections as :ivar: fields so they don't collide with
+# autodoc's dataclass-field documentation (avoids duplicate-object warnings).
+napoleon_use_ivar = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

@@ -4,6 +4,14 @@ discrete1.ml package
 Submodules
 ----------
 
+discrete1.ml.data module
+------------------------
+
+.. automodule:: discrete1.ml.data
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 discrete1.ml.predict module
 ---------------------------
 

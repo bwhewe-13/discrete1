@@ -1,9 +1,3 @@
----
-layout: default
-title: Getting started
-nav_order: 2
----
-
 # Getting started
 
 ## Installation
@@ -29,4 +23,4 @@ cd discrete1
 python examples/fixed_source_slab_reeds.py
 ```
 
-For more, see the [Examples](examples.html) and the [API (Sphinx)]({{ site.baseurl }}/sphinx/index.html).
+For more, see the [Examples](examples.md) and the [API reference](api.rst).

@@ -1,9 +1,3 @@
----
-layout: default
-title: Examples
-nav_order: 3
----
-
 # Examples
 
 Run these scripts from the repository root after installing dependencies.
