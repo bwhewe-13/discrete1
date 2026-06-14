@@ -67,15 +67,14 @@ class RegressionDeepONet:
         Target array for supervised regression.
     **kwargs
         Optional keyword arguments. Recognized keys include:
+
         - ``device`` (str): computation device ("cpu" or "cuda"). Default "cpu".
         - ``seed`` (int): random seed for train/val split. Default 3.
         - ``test_size`` (float): validation fraction. Default 0.2.
-                - ``memmap_file`` (str or None): path to memmap data file created by
-                    ``discrete1.ml.data.deeponet_memmap``.
-                - ``train_size`` (float): training fraction for memmap mode.
-                    Default 0.6.
-                - ``val_size`` (float): validation fraction for memmap mode.
-                    Default 0.2.
+        - ``memmap_file`` (str or None): path to memmap data file created by
+          ``discrete1.ml.data.deeponet_memmap``.
+        - ``train_size`` (float): training fraction for memmap mode. Default 0.6.
+        - ``val_size`` (float): validation fraction for memmap mode. Default 0.2.
         - Search-space overrides, see :meth:`_init_search_parameters`.
 
     Examples
@@ -137,13 +136,13 @@ class RegressionDeepONet:
               Default 3.
             - ``test_size`` (float): validation fraction in the split.
               Default 0.2.
-                - ``memmap_file`` (str or None): path to a memmap dataset
-                    produced by ``discrete1.ml.data.deeponet_memmap``. If set,
-                    ``flux``, ``labels``, and ``y`` may be ``None``.
-                - ``train_size`` (float): training fraction in memmap mode.
-                    Default 0.6.
-                - ``val_size`` (float): validation fraction in memmap mode.
-                    Default 0.2.
+            - ``memmap_file`` (str or None): path to a memmap dataset
+              produced by ``discrete1.ml.data.deeponet_memmap``. If set,
+              ``flux``, ``labels``, and ``y`` may be ``None``.
+            - ``train_size`` (float): training fraction in memmap mode.
+              Default 0.6.
+            - ``val_size`` (float): validation fraction in memmap mode.
+              Default 0.2.
             - Search space overrides used by :meth:`_init_search_parameters`:
               ``prebuilt``, ``max_b_layers``, ``max_t_layers``, ``nodes``,
               ``fc_activations``, ``dropout``, ``n_epochs``, ``batch_size``,
