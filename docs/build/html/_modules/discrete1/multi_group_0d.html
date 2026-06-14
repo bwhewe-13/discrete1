@@ -7,27 +7,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>discrete1.multi_group_0d &mdash; discrete1 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
-
+  
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../../_static/documentation_options.js?v=01f34227"></script>
-      <script src="../../_static/doctools.js?v=9a2dae69"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-
-
+          
+          
           <a href="../../index.html" class="icon icon-home">
             discrete1
           </a>
@@ -41,6 +41,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../discrete1.html">discrete1 package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
 </ul>
@@ -60,6 +62,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../discrete1.html">discrete1</a></li>
       <li class="breadcrumb-item active">discrete1.multi_group_0d</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -68,9 +71,22 @@
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-
+             
   <h1>Source code for discrete1.multi_group_0d</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span></span><span class="sd">&quot;&quot;&quot;Infinite medium multigroup solver.</span>
+
+<span class="sd">This module provides multigroup-level driver routines that orchestrate</span>
+<span class="sd">outer iterations over energy groups and angles (discrete ordinates).</span>
+
+<span class="sd">Public routines include:</span>
+<span class="sd">- source_iteration: standard multigroup source iteration</span>
+<span class="sd">- discrete_ordinates: discrete ordinates for one group</span>
+
+<span class="sd">The multigroup drivers expect arrays shaped as used by the rest of</span>
+<span class="sd">the package (angular and group axes as described in function docstrings).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">discrete1</span><span class="w"> </span><span class="kn">import</span> <span class="n">tools</span>
 
@@ -80,14 +96,102 @@
 <span class="n">count_gg</span> <span class="o">=</span> <span class="mi">100</span>
 <span class="n">change_gg</span> <span class="o">=</span> <span class="mf">1e-08</span>
 
-<span class="c1"># count_pp = 50</span>
-<span class="c1"># change_pp = 1e-08</span>
-
 
 <div class="viewcode-block" id="source_iteration">
 <a class="viewcode-back" href="../../discrete1.multi_group_0d.html#discrete1.multi_group_0d.source_iteration">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">source_iteration</span><span class="p">(</span><span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_total</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">external</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">angle_w</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">source_iteration</span><span class="p">(</span>
+    <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_total</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">external</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">angle_w</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">P_weights</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multigroup source iteration solver - dispatches to iso or aniso variant.</span>
 
+<span class="sd">    Performs outer iterations over energy groups using inner discrete</span>
+<span class="sd">    ordinates sweeps for each group. Off-diagonal scatter (up- and</span>
+<span class="sd">    down-scatter) contributions are handled via an &quot;off_scatter&quot;</span>
+<span class="sd">    accumulator that uses the previous and current flux iterates.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Initial scalar flux guess with shape (n_groups,).</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections (n_groups,).</span>
+<span class="sd">    xs_scatter : array_like</span>
+<span class="sd">        Scatter cross sections (n_groups, n_groups).</span>
+<span class="sd">    external : numpy.ndarray</span>
+<span class="sd">        External source array (n_angles, n_groups) or with</span>
+<span class="sd">        singleton dimensions where appropriate.</span>
+<span class="sd">    angle_x : array_like</span>
+<span class="sd">        Angular ordinates (n_angles,).</span>
+<span class="sd">    angle_w : array_like</span>
+<span class="sd">        Quadrature weights (n_angles,).</span>
+<span class="sd">    P : numpy.ndarray, shape (L+1, angles), optional</span>
+<span class="sd">        Precomputed Legendre polynomials. Required for anisotropic.</span>
+<span class="sd">    P_weights : numpy.ndarray, shape (L+1, angles), optional</span>
+<span class="sd">        Precomputed w_n * P_l(mu_n). Required for anisotropic.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray, shape (n_groups,)</span>
+<span class="sd">        Converged scalar flux.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">xs_scatter</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">source_iteration_iso</span><span class="p">(</span>
+            <span class="n">flux_old</span><span class="p">,</span>
+            <span class="n">xs_total</span><span class="p">,</span>
+            <span class="n">xs_scatter</span><span class="p">,</span>
+            <span class="n">external</span><span class="p">,</span>
+            <span class="n">angle_x</span><span class="p">,</span>
+            <span class="n">angle_w</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">P</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">n_moments</span> <span class="o">=</span> <span class="n">xs_scatter</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">P</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">legendre_polynomials</span><span class="p">(</span><span class="n">n_moments</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">)</span>
+            <span class="n">P_weights</span> <span class="o">=</span> <span class="n">angle_w</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">P</span>
+        <span class="k">return</span> <span class="n">source_iteration_aniso</span><span class="p">(</span>
+            <span class="n">flux_old</span><span class="p">,</span>
+            <span class="n">xs_total</span><span class="p">,</span>
+            <span class="n">xs_scatter</span><span class="p">,</span>
+            <span class="n">external</span><span class="p">,</span>
+            <span class="n">angle_x</span><span class="p">,</span>
+            <span class="n">angle_w</span><span class="p">,</span>
+            <span class="n">P</span><span class="p">,</span>
+            <span class="n">P_weights</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="source_iteration_iso">
+<a class="viewcode-back" href="../../discrete1.multi_group_0d.html#discrete1.multi_group_0d.source_iteration_iso">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">source_iteration_iso</span><span class="p">(</span><span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_total</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">external</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">angle_w</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multigroup source iteration solver for isotropic scattering.</span>
+
+<span class="sd">    Performs outer iterations over energy groups using inner discrete</span>
+<span class="sd">    ordinates sweeps for each group. Off-diagonal scatter (up- and</span>
+<span class="sd">    down-scatter) contributions are handled via an &quot;off_scatter&quot;</span>
+<span class="sd">    accumulator that uses the previous and current flux iterates.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Initial scalar flux guess with shape (n_groups,).</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections (n_groups,).</span>
+<span class="sd">    xs_scatter : array_like</span>
+<span class="sd">        Scatter cross sections (n_groups, n_groups).</span>
+<span class="sd">    external : numpy.ndarray</span>
+<span class="sd">        External source array (n_angles, n_groups) or with</span>
+<span class="sd">        singleton dimensions where appropriate.</span>
+<span class="sd">    angle_x : array_like</span>
+<span class="sd">        Angular ordinates (n_angles,).</span>
+<span class="sd">    angle_w : array_like</span>
+<span class="sd">        Quadrature weights (n_angles,).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Converged scalar flux array with shape (n_groups,).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">groups</span><span class="p">,))</span>
     <span class="n">off_scatter</span> <span class="o">=</span> <span class="mf">0.0</span>
@@ -107,7 +211,7 @@
             <span class="n">off_scatter</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">_off_scatter_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">gg</span><span class="p">)</span>
 
             <span class="c1"># Run discrete ordinates for one group</span>
-            <span class="n">flux</span><span class="p">[</span><span class="n">gg</span><span class="p">]</span> <span class="o">=</span> <span class="n">discrete_ordinates</span><span class="p">(</span>
+            <span class="n">flux</span><span class="p">[</span><span class="n">gg</span><span class="p">]</span> <span class="o">=</span> <span class="n">discrete_ordinates_iso</span><span class="p">(</span>
                 <span class="n">flux_old</span><span class="p">[</span><span class="n">gg</span><span class="p">],</span>
                 <span class="n">xs_total</span><span class="p">[</span><span class="n">gg</span><span class="p">],</span>
                 <span class="n">xs_scatter</span><span class="p">[</span><span class="n">gg</span><span class="p">,</span> <span class="n">gg</span><span class="p">],</span>
@@ -131,12 +235,38 @@
 
 
 
-<div class="viewcode-block" id="discrete_ordinates">
-<a class="viewcode-back" href="../../discrete1.multi_group_0d.html#discrete1.multi_group_0d.discrete_ordinates">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">discrete_ordinates</span><span class="p">(</span>
+<div class="viewcode-block" id="discrete_ordinates_iso">
+<a class="viewcode-back" href="../../discrete1.multi_group_0d.html#discrete1.multi_group_0d.discrete_ordinates_iso">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">discrete_ordinates_iso</span><span class="p">(</span>
     <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_total</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">off_scatter</span><span class="p">,</span> <span class="n">external</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">angle_w</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Angular sweep for isotropic scattering.</span>
 
+<span class="sd">    This function returns the updated scalar flux array evaluated</span>
+<span class="sd">    at a specific energy group.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old : float</span>
+<span class="sd">        Previous iterate of the scalar flux.</span>
+<span class="sd">    xs_total : float</span>
+<span class="sd">        Total macroscopic cross sections per material.</span>
+<span class="sd">    xs_scatter : float</span>
+<span class="sd">        Scatter cross section used in source evaluation.</span>
+<span class="sd">    off_scatter : float</span>
+<span class="sd">        Off-diagonal scatter correction/source term (shape: n_cells,).</span>
+<span class="sd">    external : numpy.ndarray</span>
+<span class="sd">        External source array (n_angles, n_groups).</span>
+<span class="sd">    angle_x : numpy.ndarray</span>
+<span class="sd">        Angular ordinates (n_angles,).</span>
+<span class="sd">    angle_w : numpy.ndarray</span>
+<span class="sd">        Quadrature weights (n_angles,).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Updated scalar flux for energy group.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">flux</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -146,7 +276,7 @@
 
     <span class="k">while</span> <span class="ow">not</span> <span class="p">(</span><span class="n">converged</span><span class="p">):</span>
 
-        <span class="n">flux</span> <span class="o">*=</span> <span class="mf">0.0</span>
+        <span class="n">flux</span> <span class="o">=</span> <span class="mf">0.0</span>
 
         <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
 
@@ -156,6 +286,187 @@
                 <span class="o">*</span> <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span>
                 <span class="o">/</span> <span class="n">xs_total</span>
             <span class="p">)</span>
+
+        <span class="c1"># Check for convergence</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">change</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">((</span><span class="n">flux</span> <span class="o">-</span> <span class="n">flux_old</span><span class="p">)</span> <span class="o">/</span> <span class="n">flux</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">RuntimeWarning</span><span class="p">:</span>
+            <span class="n">change</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">converged</span> <span class="o">=</span> <span class="p">(</span><span class="n">change</span> <span class="o">&lt;</span> <span class="n">change_nn</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">count</span> <span class="o">&gt;=</span> <span class="n">count_nn</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">flux_old</span> <span class="o">=</span> <span class="n">flux</span>
+
+    <span class="k">return</span> <span class="n">flux</span></div>
+
+
+
+<div class="viewcode-block" id="source_iteration_aniso">
+<a class="viewcode-back" href="../../discrete1.multi_group_0d.html#discrete1.multi_group_0d.source_iteration_aniso">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">source_iteration_aniso</span><span class="p">(</span>
+    <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_total</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">external</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">,</span> <span class="n">angle_w</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_weights</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multigroup source iteration for anisotropic scattering.</span>
+
+<span class="sd">    Identical workflow to :func:`source_iteration_iso` but each group</span>
+<span class="sd">    sweep uses the full Legendre expansion of the scatter kernel. The</span>
+<span class="sd">    within-group anisotropic correction is applied inside the angular</span>
+<span class="sd">    sweep; only the L=0 moment drives the off-diagonal scatter term.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Initial scalar flux guess with shape (n_groups,).</span>
+<span class="sd">    xs_total : array_like</span>
+<span class="sd">        Total cross sections (n_groups,).</span>
+<span class="sd">    xs_scatter : array_like</span>
+<span class="sd">        Scatter cross sections (n_groups, n_groups).</span>
+<span class="sd">    external : numpy.ndarray</span>
+<span class="sd">        External source array (n_angles, n_groups) or with</span>
+<span class="sd">        singleton dimensions where appropriate.</span>
+<span class="sd">    angle_x : array_like</span>
+<span class="sd">        Angular ordinates (n_angles,).</span>
+<span class="sd">    angle_w : array_like</span>
+<span class="sd">        Quadrature weights (n_angles,).</span>
+<span class="sd">    P : numpy.ndarray, shape (L+1, n_angles)</span>
+<span class="sd">        Precomputed Legendre polynomials ``P[l, n]`` = P_l(mu_n).</span>
+<span class="sd">    P_weights : numpy.ndarray, shape (L+1, n_angles)</span>
+<span class="sd">        Precomputed ``w_n * P_l(mu_n)`` used for flux moment accumulation.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Converged scalar flux array with shape (n_groups,).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">groups</span><span class="p">,))</span>
+    <span class="n">off_scatter</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">legendre_weights</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">xs_scatter</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="n">converged</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">change</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">while</span> <span class="ow">not</span> <span class="p">(</span><span class="n">converged</span><span class="p">):</span>
+        <span class="n">flux</span> <span class="o">*=</span> <span class="mf">0.0</span>
+
+        <span class="k">for</span> <span class="n">gg</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+            <span class="c1"># Check for sizes</span>
+            <span class="n">qq</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">external</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">gg</span>
+
+            <span class="c1"># Update off scatter source</span>
+            <span class="n">off_scatter</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">_off_scatter_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">gg</span><span class="p">)</span>
+
+            <span class="c1"># Within-group Legendre moments mapped to cells -&gt; (cells_x, L+1)</span>
+            <span class="n">xs_self_scatter</span> <span class="o">=</span> <span class="n">xs_scatter</span><span class="p">[</span><span class="n">gg</span><span class="p">,</span> <span class="n">gg</span><span class="p">,</span> <span class="p">:]</span>
+
+            <span class="c1"># Precompute (2l+1) * xs_l(x) — fixed for the inner sweep loop</span>
+            <span class="n">xs_scatter_w</span> <span class="o">=</span> <span class="n">xs_self_scatter</span> <span class="o">*</span> <span class="n">legendre_weights</span>
+
+            <span class="c1"># Run discrete ordinates for one group</span>
+            <span class="n">flux</span><span class="p">[</span><span class="n">gg</span><span class="p">]</span> <span class="o">=</span> <span class="n">discrete_ordinates_aniso</span><span class="p">(</span>
+                <span class="n">flux_old</span><span class="p">[</span><span class="n">gg</span><span class="p">],</span>
+                <span class="n">xs_total</span><span class="p">[</span><span class="n">gg</span><span class="p">],</span>
+                <span class="n">xs_self_scatter</span><span class="p">,</span>
+                <span class="n">xs_scatter_w</span><span class="p">,</span>
+                <span class="n">off_scatter</span><span class="p">,</span>
+                <span class="n">external</span><span class="p">[:,</span> <span class="n">qq</span><span class="p">],</span>
+                <span class="n">angle_x</span><span class="p">,</span>
+                <span class="n">angle_w</span><span class="p">,</span>
+                <span class="n">P</span><span class="p">,</span>
+                <span class="n">P_weights</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Check for convergence</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">change</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">((</span><span class="n">flux</span> <span class="o">-</span> <span class="n">flux_old</span><span class="p">)</span> <span class="o">/</span> <span class="n">flux</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">RuntimeWarning</span><span class="p">:</span>
+            <span class="n">change</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">converged</span> <span class="o">=</span> <span class="p">(</span><span class="n">change</span> <span class="o">&lt;</span> <span class="n">change_gg</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">count</span> <span class="o">&gt;=</span> <span class="n">count_gg</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">flux_old</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">flux</span></div>
+
+
+
+<div class="viewcode-block" id="discrete_ordinates_aniso">
+<a class="viewcode-back" href="../../discrete1.multi_group_0d.html#discrete1.multi_group_0d.discrete_ordinates_aniso">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">discrete_ordinates_aniso</span><span class="p">(</span>
+    <span class="n">flux_old</span><span class="p">,</span>
+    <span class="n">xs_total</span><span class="p">,</span>
+    <span class="n">xs_self_scatter</span><span class="p">,</span>
+    <span class="n">xs_scatter_w</span><span class="p">,</span>
+    <span class="n">off_scatter</span><span class="p">,</span>
+    <span class="n">external</span><span class="p">,</span>
+    <span class="n">angle_x</span><span class="p">,</span>
+    <span class="n">angle_w</span><span class="p">,</span>
+    <span class="n">P</span><span class="p">,</span>
+    <span class="n">P_weights</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Angular sweep for anisotropic scattering.</span>
+
+<span class="sd">    This function returns the updated scalar flux array evaluated</span>
+<span class="sd">    at a specific energy group.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_old : float</span>
+<span class="sd">        Previous iterate of the scalar flux.</span>
+<span class="sd">    xs_total : float</span>
+<span class="sd">        Total macroscopic cross sections per material.</span>
+<span class="sd">    xs_self_scatter : float</span>
+<span class="sd">        Within-group Legendre scatter moments</span>
+<span class="sd">    xs_scatter_w : numpy.ndarray, shape (L+1,)</span>
+<span class="sd">        Precomputed (2l+1) * xs_self_scatter.</span>
+<span class="sd">    off_scatter : float</span>
+<span class="sd">        Off-diagonal scatter correction/source term (shape: n_cells,).</span>
+<span class="sd">    external : numpy.ndarray</span>
+<span class="sd">        External source array (n_angles, n_groups).</span>
+<span class="sd">    angle_x : numpy.ndarray</span>
+<span class="sd">        Angular ordinates (n_angles,).</span>
+<span class="sd">    angle_w : numpy.ndarray</span>
+<span class="sd">        Quadrature weights (n_angles,).</span>
+<span class="sd">    P : numpy.ndarray, shape (L+1, angles)</span>
+<span class="sd">        Precomputed P[l, n] = P_l(mu_n).</span>
+<span class="sd">    P_weights : numpy.ndarray, shape (L+1, angles)</span>
+<span class="sd">        Precomputed w_n * P_l(mu_n).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Updated scalar flux for energy group.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">flux</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">n_moments</span> <span class="o">=</span> <span class="n">xs_self_scatter</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Seed L=0 flux moment from initial guess; higher moments start zero.</span>
+    <span class="n">flux_moments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_moments</span><span class="p">))</span>
+    <span class="n">flux_moments</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">flux_old</span>
+    <span class="n">anisotropic</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">angles</span><span class="p">))</span>
+
+    <span class="n">converged</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">change</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">while</span> <span class="ow">not</span> <span class="p">(</span><span class="n">converged</span><span class="p">):</span>
+        <span class="n">flux</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="c1"># Build anisotropic scatter source from moments of previous sweep.</span>
+        <span class="n">anisotropic</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;xl,xl,ln-&gt;xn&quot;</span><span class="p">,</span> <span class="n">xs_scatter_w</span><span class="p">,</span> <span class="n">flux_moments</span><span class="p">,</span> <span class="n">P</span><span class="p">)</span>
+
+        <span class="c1"># Reset moment accumulator for this sweep.</span>
+        <span class="n">flux_moments</span> <span class="o">*=</span> <span class="mf">0.0</span>
+
+        <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
+            <span class="n">qq</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">external</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+            <span class="n">angular</span> <span class="o">=</span> <span class="p">(</span><span class="n">anisotropic</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">nn</span><span class="p">]</span> <span class="o">+</span> <span class="n">external</span><span class="p">[</span><span class="n">qq</span><span class="p">]</span> <span class="o">+</span> <span class="n">off_scatter</span><span class="p">)</span> <span class="o">/</span> <span class="n">xs_total</span>
+            <span class="n">flux</span> <span class="o">+=</span> <span class="n">angular</span> <span class="o">*</span> <span class="n">angle_w</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span>
+
+            <span class="c1"># Accumulate flux moments: one rank-1 outer-product per ordinate.</span>
+            <span class="n">flux_moments</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">angular</span><span class="p">,</span> <span class="n">P_weights</span><span class="p">[:,</span> <span class="n">nn</span><span class="p">])</span>
 
         <span class="c1"># Check for convergence</span>
         <span class="k">try</span><span class="p">:</span>
@@ -184,7 +495,7 @@
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-
+   
 
 </footer>
         </div>
@@ -195,7 +506,7 @@
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
+  </script> 
 
 </body>
 </html>

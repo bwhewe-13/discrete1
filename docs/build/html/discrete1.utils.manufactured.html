@@ -8,29 +8,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>discrete1.utils.manufactured module &mdash; discrete1 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
-
+  
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=01f34227"></script>
-      <script src="_static/doctools.js?v=9a2dae69"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="discrete1.boundary1d module" href="discrete1.boundary1d.html" />
-    <link rel="prev" title="discrete1.utils.hybrid module" href="discrete1.utils.hybrid.html" />
+    <link rel="prev" title="discrete1.utils.hybrid module" href="discrete1.utils.hybrid.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-
-
+          
+          
           <a href="index.html" class="icon icon-home">
             discrete1
           </a>
@@ -44,9 +44,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="discrete1.html">discrete1 package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="discrete1.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html">discrete1.ml package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.utils.decorators.html">discrete1.utils.decorators module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.utils.hybrid.html">discrete1.utils.hybrid module</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">discrete1.utils.manufactured module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#discrete1.utils.manufactured.order_accuracy"><code class="docutils literal notranslate"><span class="pre">order_accuracy()</span></code></a></li>
@@ -94,14 +97,18 @@
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-
+             
   <section id="module-discrete1.utils.manufactured">
 <span id="discrete1-utils-manufactured-module"></span><h1>discrete1.utils.manufactured module<a class="headerlink" href="#module-discrete1.utils.manufactured" title="Link to this heading"></a></h1>
+<p>Functions for manufactured solutions.</p>
+<p>Provides solutions for given steady state and time-dependent problems.
+Includes functions to calculate the order of accuracy.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.manufactured.order_accuracy">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">order_accuracy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratio</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#order_accuracy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.order_accuracy" title="Link to this definition"></a></dt>
-<dd><p>Finding the order of accuracy between errors on different
-grids, where error2 is the refined grid</p>
+<dd><p>Calculate order of accuracy.</p>
+<p>Finding the order of accuracy between errors on different grids
+where error2 is the refined grid.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -125,48 +132,49 @@ grid (delta x1 / delta x2).</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_ss_01">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_ss_01</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_ss_01"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_ss_01" title="Link to this definition"></a></dt>
-<dd><p>One material, single direction</p>
+<dd><p>One material, single direction.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_ss_02">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_ss_02</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_ss_02"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_ss_02" title="Link to this definition"></a></dt>
-<dd><p>One material, angular dependent</p>
+<dd><p>One material, angular dependent.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_ss_03">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_ss_03</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_ss_03"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_ss_03" title="Link to this definition"></a></dt>
-<dd><p>One material, angular dependent, with source</p>
+<dd><p>One material, angular dependent, with source.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_ss_04">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_ss_04</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_ss_04"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_ss_04" title="Link to this definition"></a></dt>
-<dd><p>Two materials, angular independent</p>
+<dd><p>Two materials, angular independent.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_ss_05">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_ss_05</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_ss_05"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_ss_05" title="Link to this definition"></a></dt>
-<dd><p>Two materials, angular dependent</p>
+<dd><p>Two materials, angular dependent.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_td_01">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_td_01</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_td_01"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_td_01" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>One material, time dependent, angular independent.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.manufactured.solution_td_02">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">solution_td_02</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#solution_td_02"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.solution_td_02" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>One material, time dependent, angular dependent.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.manufactured.spatial_error">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">spatial_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">approx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#spatial_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.spatial_error" title="Link to this definition"></a></dt>
-<dd><p>Calculating the spatial error between an approximation and the
-reference solution</p>
+<dd><p>Calculate the spatial error between approximate and reference solutions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -187,7 +195,7 @@ reference solution</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.manufactured.wynn_epsilon">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.manufactured.</span></span><span class="sig-name descname"><span class="pre">wynn_epsilon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lst</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/manufactured.html#wynn_epsilon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.manufactured.wynn_epsilon" title="Link to this definition"></a></dt>
-<dd><p>Perform Wynn Epsilon Convergence Algorithm</p>
+<dd><p>Perform Wynn Epsilon Convergence Algorithm.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -225,7 +233,7 @@ Diagonal is convergence.</p>
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-
+   
 
 </footer>
         </div>
@@ -236,7 +244,7 @@ Diagonal is convergence.</p>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
+  </script> 
 
 </body>
 </html>

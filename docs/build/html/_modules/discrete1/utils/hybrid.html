@@ -7,27 +7,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>discrete1.utils.hybrid &mdash; discrete1 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
-
+  
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../../../_static/documentation_options.js?v=01f34227"></script>
-      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
-      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-
-
+          
+          
           <a href="../../../index.html" class="icon icon-home">
             discrete1
           </a>
@@ -41,6 +41,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../discrete1.html">discrete1 package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API reference</a></li>
 </ul>
@@ -60,6 +62,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../discrete1.html">discrete1</a></li>
       <li class="breadcrumb-item active">discrete1.utils.hybrid</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -68,9 +71,13 @@
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-
+             
   <h1>Source code for discrete1.utils.hybrid</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Functions to use with the hybrid method</span>
+<span></span><span class="sd">&quot;&quot;&quot;Functions to be used with the collision-based hybrid method.</span>
+
+<span class="sd">Allows for discretizing energy grids and material cross sections</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">discrete1</span>
@@ -82,7 +89,7 @@
 <div class="viewcode-block" id="energy_coarse_index">
 <a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.energy_coarse_index">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">energy_coarse_index</span><span class="p">(</span><span class="n">fine</span><span class="p">,</span> <span class="n">coarse</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the indices for resizing matrices</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the indices for resizing matrices.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -105,9 +112,7 @@
 <div class="viewcode-block" id="coarsen_materials">
 <a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.coarsen_materials">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">coarsen_materials</span><span class="p">(</span><span class="n">xs_total</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coarsen (materials, groups) arrays to (materials, groups\&#39;) where</span>
-<span class="sd">    groups &gt; groups\&#39;.</span>
-
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Coarsen (materials, groups) arrays to (materials, groups\&#39;).</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -149,7 +154,7 @@
 <div class="viewcode-block" id="coarsen_external">
 <a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.coarsen_external">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">coarsen_external</span><span class="p">(</span><span class="n">external</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coarsen (... x groups) arrays to (... x groups\&#39;)</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Coarsen (... x groups) arrays to (... x groups\&#39;).</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -190,8 +195,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_xs_vector_coarsen</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coarsen (materials, groups) arrays to (materials, groups\&#39;) where</span>
-<span class="sd">    groups &gt; groups\&#39;.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Coarsen (materials, groups) arrays to (materials, groups\&#39;).</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -231,8 +235,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_xs_matrix_coarsen</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coarsen (materials, groups, groups) arrays to</span>
-<span class="sd">    (materials, groups\&#39;, groups\&#39;) where groups &gt; groups\&#39;.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Coarsen (materials, groups, groups) arrays to (materials, groups\&#39;, groups\&#39;).</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -277,7 +280,7 @@
 <div class="viewcode-block" id="coarsen_velocity">
 <a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.coarsen_velocity">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">coarsen_velocity</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coarsen (groups,) vector to (groups\&#39;,) where groups &gt; groups\&#39;.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Coarsen (groups,) vector to (groups\&#39;,) where groups &gt; groups\&#39;.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -310,7 +313,7 @@
 <div class="viewcode-block" id="indexing">
 <a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.indexing">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">indexing</span><span class="p">(</span><span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx_fine</span><span class="p">,</span> <span class="n">edges_gidx_coarse</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the variables needed for refining and coarsening fluxes</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the variables needed for refining and coarsening fluxes.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -359,7 +362,9 @@
 <div class="viewcode-block" id="collided_index">
 <a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.collided_index">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">collided_index</span><span class="p">(</span><span class="n">groups_fine</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate which coarse group a fine energy group is a part of, i.e.:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate which coarse group a fine energy group is a part of.</span>
+
+<span class="sd">    This is done through:</span>
 
 <span class="sd">    .. code-block:: text</span>
 
@@ -392,8 +397,9 @@
 <div class="viewcode-block" id="uncollided_index">
 <a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.uncollided_index">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">uncollided_index</span><span class="p">(</span><span class="n">groups_coarse</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the location of edges between the coarse and fine energy grids,</span>
-<span class="sd">    i.e.:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the location of edges between the coarse and fine energy grids.</span>
+
+<span class="sd">    This is done through</span>
 
 <span class="sd">    .. code-block:: text</span>
 
@@ -428,8 +434,9 @@
 <div class="viewcode-block" id="hybrid_factor">
 <a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.hybrid_factor">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">hybrid_factor</span><span class="p">(</span><span class="n">delta_fine</span><span class="p">,</span> <span class="n">delta_coarse</span><span class="p">,</span> <span class="n">edges_gidx</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the fine energy bin width per coarse energy bin width for</span>
-<span class="sd">    specific location, i.e.:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the fine energy bin width per coarse energy bin width.</span>
+
+<span class="sd">    This is done through</span>
 
 <span class="sd">    .. code-block:: text</span>
 
@@ -473,6 +480,33 @@
 <div class="viewcode-block" id="energy_grid_change">
 <a class="viewcode-back" href="../../../discrete1.utils.hybrid.html#discrete1.utils.hybrid.energy_grid_change">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">energy_grid_change</span><span class="p">(</span><span class="n">starting_grid</span><span class="p">,</span> <span class="n">groups_u</span><span class="p">,</span> <span class="n">groups_c</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the variables needed for refining and coarsening fluxes in vhybrid.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    starting_grid : int</span>
+<span class="sd">        Value of starting energy grid, could be 87, 361, 618.</span>
+<span class="sd">    groups_u : int</span>
+<span class="sd">        Number of uncollided energy groups.</span>
+<span class="sd">    groups_c : int</span>
+<span class="sd">        Number of collided energy groups.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    coarse_idx : numpy.ndarray</span>
+<span class="sd">        1D array with int type of shape (groups_fine,).</span>
+<span class="sd">        Coarse group mapping.</span>
+<span class="sd">    factor : numpy.ndarray</span>
+<span class="sd">        1D array with float type of shape (groups_fine,).</span>
+<span class="sd">        Fine energy bin width / coarse energy bin width for specific location.</span>
+<span class="sd">    edges_gidx_c : numpy.ndarray</span>
+<span class="sd">        1D array with int type of shape (groups_c + 1,).</span>
+<span class="sd">        Coarse group index mapping.</span>
+<span class="sd">    edges_g : numpy.ndarray</span>
+<span class="sd">        1D array with float type of shape (groups_u + 1,).</span>
+<span class="sd">        Energy bound locations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">energy_grid</span> <span class="o">=</span> <span class="n">discrete1</span><span class="o">.</span><span class="n">energy_grid</span><span class="p">(</span><span class="n">starting_grid</span><span class="p">,</span> <span class="n">groups_u</span><span class="p">,</span> <span class="n">groups_c</span><span class="p">)</span>
     <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx_u</span><span class="p">,</span> <span class="n">edges_gidx_c</span> <span class="o">=</span> <span class="n">energy_grid</span>
 
@@ -504,7 +538,7 @@
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-
+   
 
 </footer>
         </div>
@@ -515,7 +549,7 @@
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
+  </script> 
 
 </body>
 </html>

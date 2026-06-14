@@ -8,29 +8,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>discrete1.timed1d module &mdash; discrete1 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
-
+  
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=01f34227"></script>
-      <script src="_static/doctools.js?v=9a2dae69"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="discrete1.tools module" href="discrete1.tools.html" />
-    <link rel="prev" title="discrete1.spatial_sweep module" href="discrete1.spatial_sweep.html" />
+    <link rel="prev" title="discrete1.spatial_sweep module" href="discrete1.spatial_sweep.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-
-
+          
+          
           <a href="index.html" class="icon icon-home">
             discrete1
           </a>
@@ -44,14 +44,18 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="discrete1.html">discrete1 package</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="discrete1.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="discrete1.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="discrete1.boundary1d.html">discrete1.boundary1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.burnup1d.html">discrete1.burnup1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.constants.html">discrete1.constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.cram.html">discrete1.cram module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.critical0d.html">discrete1.critical0d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.critical1d.html">discrete1.critical1d module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="discrete1.djinn1d.html">discrete1.djinn1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.depletion.html">discrete1.depletion module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.external1d.html">discrete1.external1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.fixed1d.html">discrete1.fixed1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.hybrid1d.html">discrete1.hybrid1d module</a></li>
@@ -59,6 +63,7 @@
 <li class="toctree-l3"><a class="reference internal" href="discrete1.materials.html">discrete1.materials module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.multi_group.html">discrete1.multi_group module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.multi_group_0d.html">discrete1.multi_group_0d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html">discrete1.nuclides module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.spatial_sweep.html">discrete1.spatial_sweep module</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">discrete1.timed1d module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#discrete1.timed1d.backward_euler"><code class="docutils literal notranslate"><span class="pre">backward_euler()</span></code></a></li>
@@ -99,18 +104,82 @@
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-
+             
   <section id="module-discrete1.timed1d">
 <span id="discrete1-timed1d-module"></span><h1>discrete1.timed1d module<a class="headerlink" href="#module-discrete1.timed1d" title="Link to this heading"></a></h1>
+<p>Time-dependent 1D transport problems.</p>
+<p>This module provides solvers for time-dependent (transient) 1D transport
+problems using discrete ordinates methods. It implements Backward Euler (BDF1)
+and second-order Backward Differentiation Formula (BDF2) time integration schemes.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.timed1d.backward_euler">
-<span class="sig-prename descclassname"><span class="pre">discrete1.timed1d.</span></span><span class="sig-name descname"><span class="pre">backward_euler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_last</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">velocity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/timed1d.html#backward_euler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.timed1d.backward_euler" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.timed1d.</span></span><span class="sig-name descname"><span class="pre">backward_euler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_last</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">velocity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/timed1d.html#backward_euler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.timed1d.backward_euler" title="Link to this definition"></a></dt>
+<dd><p>Solve time-dependent transport using first-order Backward Differentiation.</p>
+<p>Advances solution through multiple time steps using implicit BDF1 (Backward Euler)
+time integration with source iteration for the spatial problem.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux_last</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Angular flux at previous time step (cells, angles, groups).</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Total macroscopic cross section (cells, groups).</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Scattering cross section (cells, groups).</p></li>
+<li><p><strong>xs_fission</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Fission cross section (cells, groups).</p></li>
+<li><p><strong>velocity</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Particle velocity (groups,).</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – External source (steps/1, cells, angles, groups).</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Boundary conditions (steps/1, 2, angles, groups).</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Material region map (cells,).</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Cell widths (cells,).</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Discrete ordinates (angles,).</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Quadrature weights (angles,).</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Boundary condition type (0=vacuum, 1=reflective).</p></li>
+<li><p><strong>steps</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of time steps.</p></li>
+<li><p><strong>dt</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Time step size.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>optional</em>) – Geometry type (1=slab, 2=cylindrical, 3=spherical).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Scalar flux at all time steps (steps, cells, groups).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.timed1d.bdf2">
-<span class="sig-prename descclassname"><span class="pre">discrete1.timed1d.</span></span><span class="sig-name descname"><span class="pre">bdf2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_last_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">velocity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/timed1d.html#bdf2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.timed1d.bdf2" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">discrete1.timed1d.</span></span><span class="sig-name descname"><span class="pre">bdf2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_last_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">velocity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/timed1d.html#bdf2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.timed1d.bdf2" title="Link to this definition"></a></dt>
+<dd><p>Solve time-dependent transport using second-order Backward Differentiation.</p>
+<p>Advances solution through multiple time steps using implicit BDF2 time integration,
+starting with BDF1 on the first step and switching to BDF2 thereafter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux_last_1</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Angular flux at previous time step (cells, angles, groups).</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Total macroscopic cross section (cells, groups).</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Scattering cross section (cells, groups).</p></li>
+<li><p><strong>xs_fission</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Fission cross section (cells, groups).</p></li>
+<li><p><strong>velocity</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Particle velocity (groups,).</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – External source (steps/1, cells, angles, groups).</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Boundary conditions (steps/1, 2, angles, groups).</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Material region map (cells,).</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Cell widths (cells,).</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Discrete ordinates (angles,).</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Quadrature weights (angles,).</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Boundary condition type (0=vacuum, 1=reflective).</p></li>
+<li><p><strong>steps</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of time steps.</p></li>
+<li><p><strong>dt</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Time step size.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>optional</em>) – Geometry type (1=slab, 2=cylindrical, 3=spherical).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Scalar flux at all time steps (steps, cells, groups).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 </section>
 
@@ -131,7 +200,7 @@
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-
+   
 
 </footer>
         </div>
@@ -142,7 +211,7 @@
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
+  </script> 
 
 </body>
 </html>

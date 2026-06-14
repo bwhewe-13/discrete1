@@ -8,29 +8,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>discrete1.multi_group module &mdash; discrete1 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
-
+  
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=01f34227"></script>
-      <script src="_static/doctools.js?v=9a2dae69"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="discrete1.multi_group_0d module" href="discrete1.multi_group_0d.html" />
-    <link rel="prev" title="discrete1.materials module" href="discrete1.materials.html" />
+    <link rel="prev" title="discrete1.materials module" href="discrete1.materials.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-
-
+          
+          
           <a href="index.html" class="icon icon-home">
             discrete1
           </a>
@@ -44,14 +44,18 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="discrete1.html">discrete1 package</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="discrete1.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="discrete1.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="discrete1.boundary1d.html">discrete1.boundary1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.burnup1d.html">discrete1.burnup1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.constants.html">discrete1.constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.cram.html">discrete1.cram module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.critical0d.html">discrete1.critical0d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.critical1d.html">discrete1.critical1d module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="discrete1.djinn1d.html">discrete1.djinn1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.depletion.html">discrete1.depletion module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.external1d.html">discrete1.external1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.fixed1d.html">discrete1.fixed1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.hybrid1d.html">discrete1.hybrid1d module</a></li>
@@ -61,13 +65,16 @@
 <li class="toctree-l4"><a class="reference internal" href="#discrete1.multi_group.dynamic_mode_decomp"><code class="docutils literal notranslate"><span class="pre">dynamic_mode_decomp()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#discrete1.multi_group.known_source_angular"><code class="docutils literal notranslate"><span class="pre">known_source_angular()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#discrete1.multi_group.known_source_scalar"><code class="docutils literal notranslate"><span class="pre">known_source_scalar()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.multi_group.ml_source_iteration"><code class="docutils literal notranslate"><span class="pre">ml_source_iteration()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#discrete1.multi_group.source_iteration"><code class="docutils literal notranslate"><span class="pre">source_iteration()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.multi_group.source_iteration_aniso"><code class="docutils literal notranslate"><span class="pre">source_iteration_aniso()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#discrete1.multi_group.source_iteration_collect"><code class="docutils literal notranslate"><span class="pre">source_iteration_collect()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#discrete1.multi_group.source_iteration_djinn"><code class="docutils literal notranslate"><span class="pre">source_iteration_djinn()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.multi_group.source_iteration_iso"><code class="docutils literal notranslate"><span class="pre">source_iteration_iso()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#discrete1.multi_group.variable_source_iteration"><code class="docutils literal notranslate"><span class="pre">variable_source_iteration()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.multi_group_0d.html">discrete1.multi_group_0d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html">discrete1.nuclides module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.spatial_sweep.html">discrete1.spatial_sweep module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.timed1d.html">discrete1.timed1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.tools.html">discrete1.tools module</a></li>
@@ -104,7 +111,7 @@
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-
+             
   <section id="module-discrete1.multi_group">
 <span id="discrete1-multi-group-module"></span><h1>discrete1.multi_group module<a class="headerlink" href="#module-discrete1.multi_group" title="Link to this heading"></a></h1>
 <p>Multigroup solvers and DJINN integration utilities.</p>
@@ -120,39 +127,53 @@ sources.</p>
 - variable_source_iteration: coarse/fine-group-aware iteration
 - dynamic_mode_decomp: DMD-accelerated solver
 - known_source_angular / known_source_scalar: wrappers for known-source problems
-- source_iteration_djinn: use DJINN models to predict scatter sources</p>
+- ml_source_iteration: use DJINN models to predict scatter sources</p>
 <p>The multigroup drivers expect arrays shaped as used by the rest of
 the package (cell-major ordering, angular and group axes as described
 in function docstrings).</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.multi_group.dynamic_mode_decomp">
-<span class="sig-prename descclassname"><span class="pre">discrete1.multi_group.</span></span><span class="sig-name descname"><span class="pre">dynamic_mode_decomp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/multi_group.html#dynamic_mode_decomp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.multi_group.dynamic_mode_decomp" title="Link to this definition"></a></dt>
-<dd><p>Perform Dynamic Mode Decomposition (DMD) accelerated iteration.</p>
-<p>Runs R+K source-iteration steps collecting snapshot differences
-then performs a DMD extrapolation to estimate the converged flux.</p>
+<span class="sig-prename descclassname"><span class="pre">discrete1.multi_group.</span></span><span class="sig-name descname"><span class="pre">dynamic_mode_decomp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/multi_group.html#dynamic_mode_decomp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.multi_group.dynamic_mode_decomp" title="Link to this definition"></a></dt>
+<dd><p>DMD-accelerated multigroup source iteration.</p>
+<p>Runs <code class="docutils literal notranslate"><span class="pre">R</span></code> warm-up sweeps followed by <code class="docutils literal notranslate"><span class="pre">K</span></code> snapshot-collection
+sweeps, then performs a Dynamic Mode Decomposition (DMD)
+extrapolation to estimate the converged flux from the collected
+difference snapshots. Dispatches to isotropic or anisotropic inner
+sweeps based on <code class="docutils literal notranslate"><span class="pre">xs_scatter.ndim</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Initial scalar flux guess with shape (n_cells, n_groups).</p></li>
-<li><p><strong>xs_total</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>xs_scatter</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>external</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>boundary</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>medium_map</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>delta_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>angle_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>angle_w</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>bc_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>geometry</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>R</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of iterations before collecting DMD snapshots.</p></li>
-<li><p><strong>K</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of DMD snapshots to collect and use for extrapolation.</p></li>
+<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Initial scalar flux guess.</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_materials</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Total cross sections.</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – <p>Scatter cross sections.</p>
+<ul>
+<li><p>Isotropic: shape <code class="docutils literal notranslate"><span class="pre">(n_materials,</span> <span class="pre">n_groups,</span> <span class="pre">n_groups)</span></code>.</p></li>
+<li><p>Anisotropic: shape <code class="docutils literal notranslate"><span class="pre">(n_materials,</span> <span class="pre">n_groups,</span> <span class="pre">n_groups,</span> <span class="pre">L+1)</span></code>.</p></li>
+</ul>
+</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – External source array.</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(2</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – Boundary conditions.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Material index per cell.</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Cell widths.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature points.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature weights.</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Boundary condition flags <code class="docutils literal notranslate"><span class="pre">[left,</span> <span class="pre">right]</span></code>. 0 = vacuum,
+1 = reflect.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Geometry type. 1 for slab, 2 for sphere.</p></li>
+<li><p><strong>R</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of warm-up iterations performed before snapshot
+collection begins.</p></li>
+<li><p><strong>K</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of DMD snapshot iterations used for extrapolation.</p></li>
+<li><p><strong>P</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(L+1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles)</span></code>, <em>optional</em>) – Precomputed Legendre polynomials. Computed automatically for
+anisotropic problems when not provided.</p></li>
+<li><p><strong>P_weights</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(L+1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles)</span></code>, <em>optional</em>) – Precomputed <code class="docutils literal notranslate"><span class="pre">w_n</span> <span class="pre">*</span> <span class="pre">P_l(mu_n)</span></code>. Computed automatically when
+not provided.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Estimated flux after DMD extrapolation (n_cells, n_groups).</p>
+<dd class="field-even"><p>Estimated converged flux after DMD extrapolation.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code></p>
 </dd>
 </dl>
 </dd></dl>
@@ -163,28 +184,31 @@ then performs a DMD extrapolation to estimate the converged flux.</p>
 <dd><p>Compute angular flux for a prescribed multigroup source.</p>
 <p>Solves the transport equation for a supplied angular source term and
 returns the angular flux field (including any edge terms indicated
-by <cite>edges</cite>). This is a convenience wrapper around the
-spatial_sweep._known_source kernel invoked per group.</p>
+by <code class="docutils literal notranslate"><span class="pre">edges</span></code>). This is a convenience wrapper around the
+<a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.known_source_sn" title="discrete1.spatial_sweep.known_source_sn"><code class="xref py py-func docutils literal notranslate"><span class="pre">known_source_sn()</span></code></a> kernel invoked
+per group.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Total cross sections (per material or per cell) indexed by group.</p></li>
-<li><p><strong>source</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Prescribed source with shape (n_cells, n_angles, n_groups).</p></li>
-<li><p><strong>boundary</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>medium_map</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>delta_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>angle_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>angle_w</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>bc_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>geometry</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>edges</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of edge cells included in the angular flux array.</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_materials</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Total cross sections.</p></li>
+<li><p><strong>source</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Prescribed angular source.</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(2</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – Boundary conditions.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Material index per cell.</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Cell widths.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature points.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature weights.</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Boundary condition flags <code class="docutils literal notranslate"><span class="pre">[left,</span> <span class="pre">right]</span></code>. 0 = vacuum,
+1 = reflect.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Geometry type. 1 for slab, 2 for sphere.</p></li>
+<li><p><strong>edges</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – If 1, include an extra cell for the right-edge flux;
+0 otherwise.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Angular flux array with shape (n_cells + edges, n_angles, n_groups).</p>
+<dd class="field-even"><p>Angular flux.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span> <span class="pre">+</span> <span class="pre">edges</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code></p>
 </dd>
 </dl>
 </dd></dl>
@@ -193,37 +217,80 @@ spatial_sweep._known_source kernel invoked per group.</p>
 <dt class="sig sig-object py" id="discrete1.multi_group.known_source_scalar">
 <span class="sig-prename descclassname"><span class="pre">discrete1.multi_group.</span></span><span class="sig-name descname"><span class="pre">known_source_scalar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/multi_group.html#known_source_scalar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.multi_group.known_source_scalar" title="Link to this definition"></a></dt>
 <dd><p>Compute scalar (group-integrated) flux for a prescribed source.</p>
-<p>Wrapper that solves for scalar flux using a prescribed source and
-the internal _known_source kernel. Returns a (n_cells+edges, n_groups)
-scalar flux array suitable for post-processing.</p>
+<p>Solves for the scalar (angle-integrated) flux using a prescribed
+source and the
+<a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.known_source_sn" title="discrete1.spatial_sweep.known_source_sn"><code class="xref py py-func docutils literal notranslate"><span class="pre">known_source_sn()</span></code></a> kernel. Returns
+a scalar flux array suitable for post-processing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>xs_total</strong> – See <a class="reference internal" href="#discrete1.multi_group.known_source_angular" title="discrete1.multi_group.known_source_angular"><code class="xref py py-func docutils literal notranslate"><span class="pre">known_source_angular()</span></code></a> for descriptions.</p></li>
-<li><p><strong>source</strong> – See <a class="reference internal" href="#discrete1.multi_group.known_source_angular" title="discrete1.multi_group.known_source_angular"><code class="xref py py-func docutils literal notranslate"><span class="pre">known_source_angular()</span></code></a> for descriptions.</p></li>
-<li><p><strong>boundary</strong> – See <a class="reference internal" href="#discrete1.multi_group.known_source_angular" title="discrete1.multi_group.known_source_angular"><code class="xref py py-func docutils literal notranslate"><span class="pre">known_source_angular()</span></code></a> for descriptions.</p></li>
-<li><p><strong>medium_map</strong> – See <a class="reference internal" href="#discrete1.multi_group.known_source_angular" title="discrete1.multi_group.known_source_angular"><code class="xref py py-func docutils literal notranslate"><span class="pre">known_source_angular()</span></code></a> for descriptions.</p></li>
-<li><p><strong>delta_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.known_source_angular" title="discrete1.multi_group.known_source_angular"><code class="xref py py-func docutils literal notranslate"><span class="pre">known_source_angular()</span></code></a> for descriptions.</p></li>
-<li><p><strong>angle_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.known_source_angular" title="discrete1.multi_group.known_source_angular"><code class="xref py py-func docutils literal notranslate"><span class="pre">known_source_angular()</span></code></a> for descriptions.</p></li>
-<li><p><strong>angle_w</strong> – See <a class="reference internal" href="#discrete1.multi_group.known_source_angular" title="discrete1.multi_group.known_source_angular"><code class="xref py py-func docutils literal notranslate"><span class="pre">known_source_angular()</span></code></a> for descriptions.</p></li>
-<li><p><strong>bc_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.known_source_angular" title="discrete1.multi_group.known_source_angular"><code class="xref py py-func docutils literal notranslate"><span class="pre">known_source_angular()</span></code></a> for descriptions.</p></li>
-<li><p><strong>geometry</strong> – See <a class="reference internal" href="#discrete1.multi_group.known_source_angular" title="discrete1.multi_group.known_source_angular"><code class="xref py py-func docutils literal notranslate"><span class="pre">known_source_angular()</span></code></a> for descriptions.</p></li>
-<li><p><strong>edges</strong> – See <a class="reference internal" href="#discrete1.multi_group.known_source_angular" title="discrete1.multi_group.known_source_angular"><code class="xref py py-func docutils literal notranslate"><span class="pre">known_source_angular()</span></code></a> for descriptions.</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_materials</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Total cross sections.</p></li>
+<li><p><strong>source</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Prescribed angular source.</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(2</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – Boundary conditions.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Material index per cell.</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Cell widths.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature points.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature weights.</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Boundary condition flags <code class="docutils literal notranslate"><span class="pre">[left,</span> <span class="pre">right]</span></code>. 0 = vacuum,
+1 = reflect.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Geometry type. 1 for slab, 2 for sphere.</p></li>
+<li><p><strong>edges</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – If 1, include an extra cell for the right-edge flux;
+0 otherwise.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Scalar flux array with shape (n_cells + edges, n_groups).</p>
+<dd class="field-even"><p>Scalar flux.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span> <span class="pre">+</span> <span class="pre">edges</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.multi_group.ml_source_iteration">
+<span class="sig-prename descclassname"><span class="pre">discrete1.multi_group.</span></span><span class="sig-name descname"><span class="pre">ml_source_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_models</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/multi_group.html#ml_source_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.multi_group.ml_source_iteration" title="Link to this definition"></a></dt>
+<dd><p>Source iteration using DJINN-predicted scatter source.</p>
+<p>Uses pre-trained DJINN models to predict the scatter source each
+outer iteration and then solves each group with the
+<a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.scatter_source_sn" title="discrete1.spatial_sweep.scatter_source_sn"><code class="xref py py-func docutils literal notranslate"><span class="pre">scatter_source_sn()</span></code></a> kernel. Falls
+back to the standard physics-based scatter calculation for materials
+without a trained model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Initial scalar flux guess.</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_materials</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Total cross sections.</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_materials</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Isotropic scatter cross sections used as fallback for materials
+without a trained model.</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – External source array.</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(2</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – Boundary conditions.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Material index per cell.</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Cell widths.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature points.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature weights.</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Boundary condition flags <code class="docutils literal notranslate"><span class="pre">[left,</span> <span class="pre">right]</span></code>. 0 = vacuum,
+1 = reflect.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Geometry type. 1 for slab, 2 for sphere.</p></li>
+<li><p><strong>scatter_models</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>) – Trained DJINN models indexed by material id. An integer
+placeholder (typically <code class="docutils literal notranslate"><span class="pre">0</span></code>) triggers the physics fallback.</p></li>
+<li><p><strong>scatter_labels</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <em>optional</em>) – Label array passed to <code class="docutils literal notranslate"><span class="pre">model.predict()</span></code> for parametric models.
+Default is <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Converged scalar flux.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.multi_group.source_iteration">
-<span class="sig-prename descclassname"><span class="pre">discrete1.multi_group.</span></span><span class="sig-name descname"><span class="pre">source_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/multi_group.html#source_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.multi_group.source_iteration" title="Link to this definition"></a></dt>
-<dd><p>Multigroup source iteration solver.</p>
+<span class="sig-prename descclassname"><span class="pre">discrete1.multi_group.</span></span><span class="sig-name descname"><span class="pre">source_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/multi_group.html#source_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.multi_group.source_iteration" title="Link to this definition"></a></dt>
+<dd><p>Multigroup source iteration solver - dispatches to iso or aniso variant.</p>
 <p>Performs outer iterations over energy groups using inner discrete
 ordinates sweeps for each group. Off-diagonal scatter (up- and
 down-scatter) contributions are handled via an “off_scatter”
@@ -231,26 +298,65 @@ accumulator that uses the previous and current flux iterates.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Initial scalar flux guess with shape (n_cells, n_groups).</p></li>
-<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Total cross sections (n_materials or n_cells, n_groups).</p></li>
-<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Scatter cross sections (indexed by material, GxG).</p></li>
-<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – External source array (n_cells, n_angles, n_groups) or with
-singleton dimensions where appropriate.</p></li>
-<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Boundary conditions array (2, n_angles, n_groups) or with
-singleton dimensions where appropriate.</p></li>
-<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Material index per spatial cell (n_cells,).</p></li>
-<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Cell widths (n_cells,).</p></li>
-<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Angular ordinates (n_angles,).</p></li>
-<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Quadrature weights (n_angles,).</p></li>
+<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Initial scalar flux guess.</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_materials</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Total cross sections.</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Scatter cross sections.
+- Isotropic: shape (n_materials, n_groups, n_groups).
+- Anisotropic: shape (n_materials, n_groups, n_groups, L+1).</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – External source array.</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(2</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – Boundary conditions.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Material index per cell.</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Cell widths.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(angles,)</span></code>) – Angular quadrature points.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(angles,)</span></code>) – Angular quadrature weights.</p></li>
 <li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code>) – Boundary condition flags for left/right boundaries.</p></li>
-<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Geometry selector (1=slab, 2=sphere).</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – 1 = slab, 2 = sphere.</p></li>
+<li><p><strong>P</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(L+1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">angles)</span></code>, <em>optional</em>) – Precomputed Legendre polynomials. Required for anisotropic.</p></li>
+<li><p><strong>P_weights</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(L+1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">angles)</span></code>, <em>optional</em>) – Precomputed w_n * P_l(mu_n). Required for anisotropic.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Converged scalar flux array with shape (n_cells, n_groups).</p>
+<dd class="field-even"><p>Converged scalar flux.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.multi_group.source_iteration_aniso">
+<span class="sig-prename descclassname"><span class="pre">discrete1.multi_group.</span></span><span class="sig-name descname"><span class="pre">source_iteration_aniso</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_weights</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/multi_group.html#source_iteration_aniso"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.multi_group.source_iteration_aniso" title="Link to this definition"></a></dt>
+<dd><p>Multigroup source iteration for anisotropic scattering.</p>
+<p>Identical workflow to <a class="reference internal" href="#discrete1.multi_group.source_iteration_iso" title="discrete1.multi_group.source_iteration_iso"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration_iso()</span></code></a> but each group
+sweep uses the full Legendre expansion of the scatter kernel. The
+within-group anisotropic correction is applied inside the spatial
+sweep; only the L=0 moment drives the off-diagonal scatter term.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Initial scalar flux guess.</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_materials</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Total cross sections.</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_materials</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">L+1)</span></code>) – Legendre moments of scatter cross sections. The last axis indexes
+the moment order (0 to L).</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – External source array.</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(2</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – Boundary conditions.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Material index per cell.</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Cell widths.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature points.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature weights.</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Boundary condition flags <code class="docutils literal notranslate"><span class="pre">[left,</span> <span class="pre">right]</span></code>. 0 = vacuum,
+1 = reflect.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Geometry type. 1 for slab, 2 for sphere.</p></li>
+<li><p><strong>P</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(L+1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles)</span></code>) – Precomputed Legendre polynomials <code class="docutils literal notranslate"><span class="pre">P[l,</span> <span class="pre">n]</span></code> = P_l(mu_n).</p></li>
+<li><p><strong>P_weights</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(L+1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles)</span></code>) – Precomputed <code class="docutils literal notranslate"><span class="pre">w_n</span> <span class="pre">*</span> <span class="pre">P_l(mu_n)</span></code> used for flux moment accumulation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Converged scalar flux.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code></p>
 </dd>
 </dl>
 </dd></dl>
@@ -259,105 +365,117 @@ singleton dimensions where appropriate.</p></li>
 <dt class="sig sig-object py" id="discrete1.multi_group.source_iteration_collect">
 <span class="sig-prename descclassname"><span class="pre">discrete1.multi_group.</span></span><span class="sig-name descname"><span class="pre">source_iteration_collect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iteration</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/multi_group.html#source_iteration_collect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.multi_group.source_iteration_collect" title="Link to this definition"></a></dt>
 <dd><p>Source iteration that collects intermediate flux snapshots.</p>
-<p>Runs standard multigroup source iteration while recording per-outer-
-iteration flux snapshots into an array saved to disk. Useful for
-generating training data for DJINN scatter models.</p>
+<p>Runs standard isotropic multigroup source iteration while recording
+per-outer-iteration flux snapshots into an array which is saved to
+disk. Useful for generating training data for DJINN scatter models.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Initial scalar flux guess with shape (n_cells, n_groups).</p></li>
-<li><p><strong>xs_total</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>xs_scatter</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>external</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>boundary</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>medium_map</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>delta_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>angle_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>angle_w</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>bc_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>geometry</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>iteration</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Iteration index used to name the saved snapshot file.</p></li>
-<li><p><strong>filepath</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Directory/filepath prefix where snapshots are saved.</p></li>
+<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Initial scalar flux guess.</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_materials</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Total cross sections.</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_materials</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Isotropic scatter cross sections.</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – External source array.</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(2</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – Boundary conditions.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Material index per cell.</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Cell widths.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature points.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature weights.</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Boundary condition flags <code class="docutils literal notranslate"><span class="pre">[left,</span> <span class="pre">right]</span></code>. 0 = vacuum,
+1 = reflect.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Geometry type. 1 for slab, 2 for sphere.</p></li>
+<li><p><strong>iteration</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Iteration index appended to the saved snapshot filename.</p></li>
+<li><p><strong>filepath</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Directory or filepath prefix for the saved snapshot file.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Final converged flux (n_cells, n_groups).</p>
+<dd class="field-even"><p>Final converged flux.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="discrete1.multi_group.source_iteration_djinn">
-<span class="sig-prename descclassname"><span class="pre">discrete1.multi_group.</span></span><span class="sig-name descname"><span class="pre">source_iteration_djinn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_models</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/multi_group.html#source_iteration_djinn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.multi_group.source_iteration_djinn" title="Link to this definition"></a></dt>
-<dd><p>Source iteration using DJINN-predicted scatter source.</p>
-<p>Uses pre-trained DJINN models to predict the scatter source each
-outer iteration and then solves each group with the provided
-discrete-ordinates known-scatter kernel. This is intended to
-accelerate or replace explicit scattering computations.</p>
+<dt class="sig sig-object py" id="discrete1.multi_group.source_iteration_iso">
+<span class="sig-prename descclassname"><span class="pre">discrete1.multi_group.</span></span><span class="sig-name descname"><span class="pre">source_iteration_iso</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/multi_group.html#source_iteration_iso"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.multi_group.source_iteration_iso" title="Link to this definition"></a></dt>
+<dd><p>Multigroup source iteration for isotropic scattering.</p>
+<p>Performs outer iterations over energy groups using inner discrete
+ordinates sweeps for each group. Convergence is measured with the
+relative L2 norm of the flux change across all cells and groups.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Initial scalar flux guess with shape (n_cells, n_groups).</p></li>
-<li><p><strong>xs_total</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>xs_scatter</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>external</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>boundary</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>medium_map</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>delta_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>angle_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>angle_w</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>bc_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>geometry</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>scatter_models</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>, <em>optional</em>) – Sequence of loaded DJINN models (or placeholders) indexed by
-material id; models produce group-wise scatter predictions.</p></li>
-<li><p><strong>scatter_labels</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <em>optional</em>) – Optional label array used as additional model inputs (n_cells,).</p></li>
+<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Initial scalar flux guess.</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_materials</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Total cross sections.</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_materials</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code>) – Isotropic scatter cross sections. <code class="docutils literal notranslate"><span class="pre">xs_scatter[m,</span> <span class="pre">og,</span> <span class="pre">ig]</span></code> is
+the cross section for scattering from group <code class="docutils literal notranslate"><span class="pre">ig</span></code> to group
+<code class="docutils literal notranslate"><span class="pre">og</span></code> for material <code class="docutils literal notranslate"><span class="pre">m</span></code>.</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – External source array.</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(2</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – Boundary conditions.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Material index per cell.</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Cell widths.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature points.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature weights.</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Boundary condition flags <code class="docutils literal notranslate"><span class="pre">[left,</span> <span class="pre">right]</span></code>. 0 = vacuum,
+1 = reflect.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Geometry type. 1 for slab, 2 for sphere.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Converged scalar flux (n_cells, n_groups).</p>
+<dd class="field-even"><p>Converged scalar flux.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups)</span></code></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.multi_group.variable_source_iteration">
-<span class="sig-prename descclassname"><span class="pre">discrete1.multi_group.</span></span><span class="sig-name descname"><span class="pre">variable_source_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">star_coef_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_coarse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_fine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_gidx_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/multi_group.html#variable_source_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.multi_group.variable_source_iteration" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">discrete1.multi_group.</span></span><span class="sig-name descname"><span class="pre">variable_source_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">star_coef_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_coarse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_fine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_gidx_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/multi_group.html#variable_source_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.multi_group.variable_source_iteration" title="Link to this definition"></a></dt>
 <dd><p>Source iteration for problems with variable coarse/fine groups.</p>
-<p>This variant performs multigroup source iteration when a coarse
-energy grid is constructed from a fine grid. It computes coarse
-group cross-sections and off-scatter terms appropriately and then
-calls the discrete-ordinates solver per coarse group.</p>
+<p>Dispatches to the isotropic or anisotropic variant based on
+<code class="docutils literal notranslate"><span class="pre">xs_scatter.ndim</span></code>. Coarse-group cross sections and off-scatter
+terms are collapsed from the fine-group data before each group
+sweep, allowing efficient treatment of problems where a coarse
+energy grid is derived from a fine one.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Initial scalar flux guess on the fine grid (n_cells, n_groups_fine).</p></li>
-<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Total cross sections on the fine grid.</p></li>
-<li><p><strong>star_coef_c</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Additional coarse-group correction terms added to xs_total_c.</p></li>
-<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Scatter cross sections on the fine grid.</p></li>
-<li><p><strong>external</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>boundary</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>medium_map</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>delta_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>angle_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>angle_w</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>bc_x</strong> – See <a class="reference internal" href="#discrete1.multi_group.source_iteration" title="discrete1.multi_group.source_iteration"><code class="xref py py-func docutils literal notranslate"><span class="pre">source_iteration()</span></code></a> for descriptions.</p></li>
-<li><p><strong>delta_coarse</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Coarse-group widths (n_groups_coarse,).</p></li>
-<li><p><strong>delta_fine</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Fine-group widths (n_groups_fine,).</p></li>
-<li><p><strong>edges_gidx_c</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Indices mapping coarse groups to fine-group indices.</p></li>
-<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Geometry selector (1=slab, 2=sphere).</p></li>
+<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups_coarse)</span></code>) – Initial scalar flux guess on the coarse group structure.</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_materials</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups_fine)</span></code>) – Fine-group total cross sections.</p></li>
+<li><p><strong>star_coef_c</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_groups_coarse,)</span></code>) – Coarse-group streaming/removal coefficient added to the
+collapsed total cross section.</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – <p>Fine-group scatter cross sections.</p>
+<ul>
+<li><p>Isotropic: shape <code class="docutils literal notranslate"><span class="pre">(n_materials,</span> <span class="pre">n_groups_fine,</span> <span class="pre">n_groups_fine)</span></code>.</p></li>
+<li><p>Anisotropic: shape <code class="docutils literal notranslate"><span class="pre">(n_materials,</span> <span class="pre">n_groups_fine,</span> <span class="pre">n_groups_fine,</span> <span class="pre">L+1)</span></code>.</p></li>
+</ul>
+</p></li>
+<li><p><strong>external</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups_coarse</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – External source array.</p></li>
+<li><p><strong>boundary</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(2</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups_coarse</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">1)</span></code>) – Boundary conditions.</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Material index per cell.</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells,)</span></code>) – Cell widths.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature points.</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_angles,)</span></code>) – Angular quadrature weights.</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">sequence</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Boundary condition flags <code class="docutils literal notranslate"><span class="pre">[left,</span> <span class="pre">right]</span></code>. 0 = vacuum,
+1 = reflect.</p></li>
+<li><p><strong>delta_coarse</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_groups_coarse,)</span></code>) – Coarse-group energy widths.</p></li>
+<li><p><strong>delta_fine</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_groups_fine,)</span></code>) – Fine-group energy widths.</p></li>
+<li><p><strong>edges_gidx_c</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_groups_coarse</span> <span class="pre">+</span> <span class="pre">1,)</span></code>) – Fine-group index boundaries for each coarse group.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Geometry type. 1 for slab, 2 for sphere.</p></li>
+<li><p><strong>P</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(L+1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles)</span></code>, <em>optional</em>) – Precomputed Legendre polynomials. Computed automatically for
+anisotropic problems when not provided.</p></li>
+<li><p><strong>P_weights</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(L+1</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_angles)</span></code>, <em>optional</em>) – Precomputed <code class="docutils literal notranslate"><span class="pre">w_n</span> <span class="pre">*</span> <span class="pre">P_l(mu_n)</span></code>. Computed automatically when
+not provided.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Converged scalar flux on the fine grid (n_cells, n_groups_fine).</p>
+<dd class="field-even"><p>Converged scalar flux on the coarse group structure.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(n_cells</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_groups_coarse)</span></code></p>
 </dd>
 </dl>
 </dd></dl>
@@ -381,7 +499,7 @@ calls the discrete-ordinates solver per coarse group.</p>
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-
+   
 
 </footer>
         </div>
@@ -392,7 +510,7 @@ calls the discrete-ordinates solver per coarse group.</p>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
+  </script> 
 
 </body>
 </html>

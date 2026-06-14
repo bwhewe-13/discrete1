@@ -8,29 +8,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>discrete1 package &mdash; discrete1 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
-
+  
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=01f34227"></script>
-      <script src="_static/doctools.js?v=9a2dae69"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="discrete1.ml package" href="discrete1.ml.html" />
-    <link rel="prev" title="Welcome to discrete1’s documentation!" href="index.html" />
+    <link rel="prev" title="Examples" href="examples.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-
-
+          
+          
           <a href="index.html" class="icon icon-home">
             discrete1
           </a>
@@ -44,19 +44,24 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">discrete1 package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html">discrete1.ml package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.utils.decorators.html">discrete1.utils.decorators module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.utils.hybrid.html">discrete1.utils.hybrid module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.utils.manufactured.html">discrete1.utils.manufactured module</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.boundary1d.html">discrete1.boundary1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.burnup1d.html">discrete1.burnup1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.constants.html">discrete1.constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.cram.html">discrete1.cram module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.critical0d.html">discrete1.critical0d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.critical1d.html">discrete1.critical1d module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="discrete1.djinn1d.html">discrete1.djinn1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.depletion.html">discrete1.depletion module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.external1d.html">discrete1.external1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.fixed1d.html">discrete1.fixed1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.hybrid1d.html">discrete1.hybrid1d module</a></li>
@@ -64,13 +69,42 @@
 <li class="toctree-l3"><a class="reference internal" href="discrete1.materials.html">discrete1.materials module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.multi_group.html">discrete1.multi_group module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.multi_group_0d.html">discrete1.multi_group_0d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html">discrete1.nuclides module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.spatial_sweep.html">discrete1.spatial_sweep module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.timed1d.html">discrete1.timed1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.tools.html">discrete1.tools module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.vhybrid1d.html">discrete1.vhybrid1d module</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#module-discrete1">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-discrete1">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#discrete1.AngularData"><code class="docutils literal notranslate"><span class="pre">AngularData</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.AngularData.P"><code class="docutils literal notranslate"><span class="pre">AngularData.P</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.AngularData.P_weights"><code class="docutils literal notranslate"><span class="pre">AngularData.P_weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.AngularData.angle_w"><code class="docutils literal notranslate"><span class="pre">AngularData.angle_w</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.AngularData.angle_x"><code class="docutils literal notranslate"><span class="pre">AngularData.angle_x</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#discrete1.Geometry"><code class="docutils literal notranslate"><span class="pre">Geometry</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.Geometry.SLAB"><code class="docutils literal notranslate"><span class="pre">Geometry.SLAB</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.Geometry.SPHERE"><code class="docutils literal notranslate"><span class="pre">Geometry.SPHERE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#discrete1.GeometryData"><code class="docutils literal notranslate"><span class="pre">GeometryData</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.GeometryData.bc_x"><code class="docutils literal notranslate"><span class="pre">GeometryData.bc_x</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.GeometryData.delta_x"><code class="docutils literal notranslate"><span class="pre">GeometryData.delta_x</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.GeometryData.geometry"><code class="docutils literal notranslate"><span class="pre">GeometryData.geometry</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.GeometryData.medium_map"><code class="docutils literal notranslate"><span class="pre">GeometryData.medium_map</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#discrete1.MaterialData"><code class="docutils literal notranslate"><span class="pre">MaterialData</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.MaterialData.chi"><code class="docutils literal notranslate"><span class="pre">MaterialData.chi</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.MaterialData.xs_fission"><code class="docutils literal notranslate"><span class="pre">MaterialData.xs_fission</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.MaterialData.xs_scatter"><code class="docutils literal notranslate"><span class="pre">MaterialData.xs_scatter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.MaterialData.xs_total"><code class="docutils literal notranslate"><span class="pre">MaterialData.xs_total</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
@@ -99,7 +133,7 @@
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-
+             
   <section id="discrete1-package">
 <h1>discrete1 package<a class="headerlink" href="#discrete1-package" title="Link to this heading"></a></h1>
 <section id="subpackages">
@@ -108,10 +142,33 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="discrete1.ml.html">discrete1.ml package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.ml.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.ml.html#module-discrete1.ml.data">discrete1.ml.data module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.data.BatchShuffleSampler"><code class="docutils literal notranslate"><span class="pre">BatchShuffleSampler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.data.BatchShuffleSampler.__init__"><code class="docutils literal notranslate"><span class="pre">BatchShuffleSampler.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.data.DeepONetDataset"><code class="docutils literal notranslate"><span class="pre">DeepONetDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.data.DeepONetDataset.__init__"><code class="docutils literal notranslate"><span class="pre">DeepONetDataset.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.data.deeponet_memmap"><code class="docutils literal notranslate"><span class="pre">deeponet_memmap()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.data.load_deeponet_memmap_metadata"><code class="docutils literal notranslate"><span class="pre">load_deeponet_memmap_metadata()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.ml.html#module-discrete1.ml.predict">discrete1.ml.predict module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.predict.AutoDJINN"><code class="docutils literal notranslate"><span class="pre">AutoDJINN</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.predict.AutoDJINN.__init__"><code class="docutils literal notranslate"><span class="pre">AutoDJINN.__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.predict.AutoDJINN.predict"><code class="docutils literal notranslate"><span class="pre">AutoDJINN.predict()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.predict.DJINN"><code class="docutils literal notranslate"><span class="pre">DJINN</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.predict.DJINN.__init__"><code class="docutils literal notranslate"><span class="pre">DJINN.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.predict.DJINN.predict"><code class="docutils literal notranslate"><span class="pre">DJINN.predict()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.predict.DeepONet"><code class="docutils literal notranslate"><span class="pre">DeepONet</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.predict.DeepONet.__init__"><code class="docutils literal notranslate"><span class="pre">DeepONet.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.predict.DeepONet.predict"><code class="docutils literal notranslate"><span class="pre">DeepONet.predict()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.predict.load_djinn_models"><code class="docutils literal notranslate"><span class="pre">load_djinn_models()</span></code></a></li>
@@ -120,6 +177,7 @@
 <li class="toctree-l2"><a class="reference internal" href="discrete1.ml.html#module-discrete1.ml.tools">discrete1.ml.tools module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.tools.clean_data_fission"><code class="docutils literal notranslate"><span class="pre">clean_data_fission()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.tools.clean_data_scatter"><code class="docutils literal notranslate"><span class="pre">clean_data_scatter()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.tools.combine_flux_reaction"><code class="docutils literal notranslate"><span class="pre">combine_flux_reaction()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.tools.explained_variance_score"><code class="docutils literal notranslate"><span class="pre">explained_variance_score()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.tools.mean_absolute_error"><code class="docutils literal notranslate"><span class="pre">mean_absolute_error()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.tools.mean_squared_error"><code class="docutils literal notranslate"><span class="pre">mean_squared_error()</span></code></a></li>
@@ -128,16 +186,22 @@
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.tools.root_mean_squared_error"><code class="docutils literal notranslate"><span class="pre">root_mean_squared_error()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.tools.root_normalization"><code class="docutils literal notranslate"><span class="pre">root_normalization()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.tools.update_cross_sections"><code class="docutils literal notranslate"><span class="pre">update_cross_sections()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.tools.update_file_name"><code class="docutils literal notranslate"><span class="pre">update_file_name()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.ml.html#module-discrete1.ml.train">discrete1.ml.train module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.train.RegressionDeepONet"><code class="docutils literal notranslate"><span class="pre">RegressionDeepONet</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.train.RegressionDeepONet.__init__"><code class="docutils literal notranslate"><span class="pre">RegressionDeepONet.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.train.RegressionDeepONet.continue_training"><code class="docutils literal notranslate"><span class="pre">RegressionDeepONet.continue_training()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.train.RegressionDeepONet.load_checkpoint"><code class="docutils literal notranslate"><span class="pre">RegressionDeepONet.load_checkpoint()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.train.RegressionDeepONet.load_model"><code class="docutils literal notranslate"><span class="pre">RegressionDeepONet.load_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.train.RegressionDeepONet.predict"><code class="docutils literal notranslate"><span class="pre">RegressionDeepONet.predict()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.train.RegressionDeepONet.process_data"><code class="docutils literal notranslate"><span class="pre">RegressionDeepONet.process_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.train.RegressionDeepONet.process_data_memmap"><code class="docutils literal notranslate"><span class="pre">RegressionDeepONet.process_data_memmap()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.train.RegressionDeepONet.save_checkpoint"><code class="docutils literal notranslate"><span class="pre">RegressionDeepONet.save_checkpoint()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.train.RegressionDeepONet.save_model"><code class="docutils literal notranslate"><span class="pre">RegressionDeepONet.save_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.train.RegressionDeepONet.train"><code class="docutils literal notranslate"><span class="pre">RegressionDeepONet.train()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.train.RegressionDeepONet.train_one_epoch"><code class="docutils literal notranslate"><span class="pre">RegressionDeepONet.train_one_epoch()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.train.djinn_regression"><code class="docutils literal notranslate"><span class="pre">djinn_regression()</span></code></a></li>
@@ -155,9 +219,16 @@
 <li class="toctree-l4"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.tune.RegressionDeepONet.run"><code class="docutils literal notranslate"><span class="pre">RegressionDeepONet.run()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html#discrete1.ml.tune.finish_trial"><code class="docutils literal notranslate"><span class="pre">finish_trial()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.ml.html#module-discrete1.ml">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="discrete1.utils.decorators.html">discrete1.utils.decorators module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.utils.decorators.html#discrete1.utils.decorators.break_loop"><code class="docutils literal notranslate"><span class="pre">break_loop()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.utils.decorators.html#discrete1.utils.decorators.finish_iteration"><code class="docutils literal notranslate"><span class="pre">finish_iteration()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.utils.decorators.html#discrete1.utils.decorators.grange"><code class="docutils literal notranslate"><span class="pre">grange()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="discrete1.utils.hybrid.html">discrete1.utils.hybrid module</a><ul>
@@ -204,19 +275,32 @@
 <li class="toctree-l2"><a class="reference internal" href="discrete1.boundary1d.html#discrete1.boundary1d.time_dependence_decay_02"><code class="docutils literal notranslate"><span class="pre">time_dependence_decay_02()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="discrete1.burnup1d.html">discrete1.burnup1d module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.burnup1d.html#discrete1.burnup1d.burnup"><code class="docutils literal notranslate"><span class="pre">burnup()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.burnup1d.html#discrete1.burnup1d.macroscopic_xs"><code class="docutils literal notranslate"><span class="pre">macroscopic_xs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.burnup1d.html#discrete1.burnup1d.region_flux"><code class="docutils literal notranslate"><span class="pre">region_flux()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="discrete1.constants.html">discrete1.constants module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="discrete1.cram.html">discrete1.cram module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.cram.html#discrete1.cram.cram_expm"><code class="docutils literal notranslate"><span class="pre">cram_expm()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="discrete1.critical0d.html">discrete1.critical0d module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.critical0d.html#discrete1.critical0d.power_iteration"><code class="docutils literal notranslate"><span class="pre">power_iteration()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="discrete1.critical1d.html">discrete1.critical1d module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.critical1d.html#discrete1.critical1d.collect_power_iteration"><code class="docutils literal notranslate"><span class="pre">collect_power_iteration()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.critical1d.html#discrete1.critical1d.hybrid_power_iteration"><code class="docutils literal notranslate"><span class="pre">hybrid_power_iteration()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.critical1d.html#discrete1.critical1d.ml_power_iteration"><code class="docutils literal notranslate"><span class="pre">ml_power_iteration()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.critical1d.html#discrete1.critical1d.power_iteration"><code class="docutils literal notranslate"><span class="pre">power_iteration()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="discrete1.djinn1d.html">discrete1.djinn1d module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.djinn1d.html#discrete1.djinn1d.collection"><code class="docutils literal notranslate"><span class="pre">collection()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.djinn1d.html#discrete1.djinn1d.power_iteration"><code class="docutils literal notranslate"><span class="pre">power_iteration()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="discrete1.depletion.html">discrete1.depletion module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.depletion.html#discrete1.depletion.build_burnup_matrix"><code class="docutils literal notranslate"><span class="pre">build_burnup_matrix()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.depletion.html#discrete1.depletion.deplete"><code class="docutils literal notranslate"><span class="pre">deplete()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.depletion.html#discrete1.depletion.reaction_rate_1g"><code class="docutils literal notranslate"><span class="pre">reaction_rate_1g()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="discrete1.external1d.html">discrete1.external1d module</a><ul>
@@ -259,34 +343,77 @@
 <li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group.html#discrete1.multi_group.dynamic_mode_decomp"><code class="docutils literal notranslate"><span class="pre">dynamic_mode_decomp()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group.html#discrete1.multi_group.known_source_angular"><code class="docutils literal notranslate"><span class="pre">known_source_angular()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group.html#discrete1.multi_group.known_source_scalar"><code class="docutils literal notranslate"><span class="pre">known_source_scalar()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group.html#discrete1.multi_group.ml_source_iteration"><code class="docutils literal notranslate"><span class="pre">ml_source_iteration()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group.html#discrete1.multi_group.source_iteration"><code class="docutils literal notranslate"><span class="pre">source_iteration()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group.html#discrete1.multi_group.source_iteration_aniso"><code class="docutils literal notranslate"><span class="pre">source_iteration_aniso()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group.html#discrete1.multi_group.source_iteration_collect"><code class="docutils literal notranslate"><span class="pre">source_iteration_collect()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group.html#discrete1.multi_group.source_iteration_djinn"><code class="docutils literal notranslate"><span class="pre">source_iteration_djinn()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group.html#discrete1.multi_group.source_iteration_iso"><code class="docutils literal notranslate"><span class="pre">source_iteration_iso()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group.html#discrete1.multi_group.variable_source_iteration"><code class="docutils literal notranslate"><span class="pre">variable_source_iteration()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="discrete1.multi_group_0d.html">discrete1.multi_group_0d module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group_0d.html#discrete1.multi_group_0d.discrete_ordinates"><code class="docutils literal notranslate"><span class="pre">discrete_ordinates()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group_0d.html#discrete1.multi_group_0d.discrete_ordinates_aniso"><code class="docutils literal notranslate"><span class="pre">discrete_ordinates_aniso()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group_0d.html#discrete1.multi_group_0d.discrete_ordinates_iso"><code class="docutils literal notranslate"><span class="pre">discrete_ordinates_iso()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group_0d.html#discrete1.multi_group_0d.source_iteration"><code class="docutils literal notranslate"><span class="pre">source_iteration()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group_0d.html#discrete1.multi_group_0d.source_iteration_aniso"><code class="docutils literal notranslate"><span class="pre">source_iteration_aniso()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.multi_group_0d.html#discrete1.multi_group_0d.source_iteration_iso"><code class="docutils literal notranslate"><span class="pre">source_iteration_iso()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="discrete1.nuclides.html">discrete1.nuclides module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.chi"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.chi</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.decay_branch"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.decay_branch</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.decay_constant"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.decay_constant</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.decay_from"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.decay_from</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.decay_to"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.decay_to</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.fission_xs"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.fission_xs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.fy_parent"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.fy_parent</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.fy_product"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.fy_product</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.fy_yield"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.fy_yield</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.groups"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.groups</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.half_life"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.half_life</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.index"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.index</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.kappa"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.kappa</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.n_nuclides"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.n_nuclides</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.names"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.names</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.nu_fission"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.nu_fission</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.reaction_product"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.reaction_product</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.reaction_xs"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.reaction_xs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.validate"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.validate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.xs_scatter"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.xs_scatter</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.NuclideLibrary.xs_total"><code class="docutils literal notranslate"><span class="pre">NuclideLibrary.xs_total</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.load_library"><code class="docutils literal notranslate"><span class="pre">load_library()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.save_library"><code class="docutils literal notranslate"><span class="pre">save_library()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.nuclides.html#discrete1.nuclides.synthetic_library"><code class="docutils literal notranslate"><span class="pre">synthetic_library()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="discrete1.spatial_sweep.html">discrete1.spatial_sweep module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.angle_coef_corrector"><code class="docutils literal notranslate"><span class="pre">angle_coef_corrector()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.discrete_ordinates"><code class="docutils literal notranslate"><span class="pre">discrete_ordinates()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_backward"><code class="docutils literal notranslate"><span class="pre">slab_backward()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.known_source_sn"><code class="docutils literal notranslate"><span class="pre">known_source_sn()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.scatter_source_sn"><code class="docutils literal notranslate"><span class="pre">scatter_source_sn()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_anisotropic_sn"><code class="docutils literal notranslate"><span class="pre">slab_anisotropic_sn()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_backward_aniso"><code class="docutils literal notranslate"><span class="pre">slab_backward_aniso()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_backward_iso"><code class="docutils literal notranslate"><span class="pre">slab_backward_iso()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_backward_scatter"><code class="docutils literal notranslate"><span class="pre">slab_backward_scatter()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_forward"><code class="docutils literal notranslate"><span class="pre">slab_forward()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_forward_aniso"><code class="docutils literal notranslate"><span class="pre">slab_forward_aniso()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_forward_iso"><code class="docutils literal notranslate"><span class="pre">slab_forward_iso()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_forward_scatter"><code class="docutils literal notranslate"><span class="pre">slab_forward_scatter()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_ordinates"><code class="docutils literal notranslate"><span class="pre">slab_ordinates()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_ordinates_scatter"><code class="docutils literal notranslate"><span class="pre">slab_ordinates_scatter()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_ordinates_source"><code class="docutils literal notranslate"><span class="pre">slab_ordinates_source()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_backward"><code class="docutils literal notranslate"><span class="pre">sphere_backward()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_isotropic_sn"><code class="docutils literal notranslate"><span class="pre">slab_isotropic_sn()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_known_source_sn"><code class="docutils literal notranslate"><span class="pre">slab_known_source_sn()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.slab_scatter_source_sn"><code class="docutils literal notranslate"><span class="pre">slab_scatter_source_sn()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_anisotropic_sn"><code class="docutils literal notranslate"><span class="pre">sphere_anisotropic_sn()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_backward_aniso"><code class="docutils literal notranslate"><span class="pre">sphere_backward_aniso()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_backward_iso"><code class="docutils literal notranslate"><span class="pre">sphere_backward_iso()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_backward_scatter"><code class="docutils literal notranslate"><span class="pre">sphere_backward_scatter()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_forward"><code class="docutils literal notranslate"><span class="pre">sphere_forward()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_forward_aniso"><code class="docutils literal notranslate"><span class="pre">sphere_forward_aniso()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_forward_iso"><code class="docutils literal notranslate"><span class="pre">sphere_forward_iso()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_forward_scatter"><code class="docutils literal notranslate"><span class="pre">sphere_forward_scatter()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_ordinates"><code class="docutils literal notranslate"><span class="pre">sphere_ordinates()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_ordinates_scatter"><code class="docutils literal notranslate"><span class="pre">sphere_ordinates_scatter()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_ordinates_source"><code class="docutils literal notranslate"><span class="pre">sphere_ordinates_source()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_isotropic_sn"><code class="docutils literal notranslate"><span class="pre">sphere_isotropic_sn()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_known_source_sn"><code class="docutils literal notranslate"><span class="pre">sphere_known_source_sn()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.spatial_sweep.html#discrete1.spatial_sweep.sphere_scatter_source_sn"><code class="docutils literal notranslate"><span class="pre">sphere_scatter_source_sn()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="discrete1.timed1d.html">discrete1.timed1d module</a><ul>
@@ -296,8 +423,15 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="discrete1.tools.html">discrete1.tools module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.tools.html#discrete1.tools.dmd"><code class="docutils literal notranslate"><span class="pre">dmd()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.tools.html#discrete1.tools.fission_mat_prod"><code class="docutils literal notranslate"><span class="pre">fission_mat_prod()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.tools.html#discrete1.tools.fission_prod_predict"><code class="docutils literal notranslate"><span class="pre">fission_prod_predict()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.tools.html#discrete1.tools.fission_vec_prod"><code class="docutils literal notranslate"><span class="pre">fission_vec_prod()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.tools.html#discrete1.tools.legendre_polynomials"><code class="docutils literal notranslate"><span class="pre">legendre_polynomials()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.tools.html#discrete1.tools.reaction_rates"><code class="docutils literal notranslate"><span class="pre">reaction_rates()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.tools.html#discrete1.tools.reflector_corrector"><code class="docutils literal notranslate"><span class="pre">reflector_corrector()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.tools.html#discrete1.tools.scatter_prod"><code class="docutils literal notranslate"><span class="pre">scatter_prod()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.tools.html#discrete1.tools.scatter_prod_predict"><code class="docutils literal notranslate"><span class="pre">scatter_prod_predict()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="discrete1.tools.html#discrete1.tools.transfer_matrix"><code class="docutils literal notranslate"><span class="pre">transfer_matrix()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="discrete1.vhybrid1d.html">discrete1.vhybrid1d module</a><ul>
@@ -319,6 +453,104 @@ will expose commonly-used helpers so downstream code can do:</p>
 </pre></div>
 </div>
 <p>to have access to the main functionality.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="discrete1.AngularData">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">discrete1.</span></span><span class="sig-name descname"><span class="pre">AngularData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angle_x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1.html#AngularData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.AngularData" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Container for angular quadrature and optional Legendre data.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.AngularData.P">
+<span class="sig-name descname"><span class="pre">P</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#discrete1.AngularData.P" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.AngularData.P_weights">
+<span class="sig-name descname"><span class="pre">P_weights</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#discrete1.AngularData.P_weights" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.AngularData.angle_w">
+<span class="sig-name descname"><span class="pre">angle_w</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#discrete1.AngularData.angle_w" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.AngularData.angle_x">
+<span class="sig-name descname"><span class="pre">angle_x</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#discrete1.AngularData.angle_x" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="discrete1.Geometry">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">discrete1.</span></span><span class="sig-name descname"><span class="pre">Geometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1.html#Geometry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.Geometry" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
+<p>Supported one-dimensional transport geometries.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.Geometry.SLAB">
+<span class="sig-name descname"><span class="pre">SLAB</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></span><a class="headerlink" href="#discrete1.Geometry.SLAB" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.Geometry.SPHERE">
+<span class="sig-name descname"><span class="pre">SPHERE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></span><a class="headerlink" href="#discrete1.Geometry.SPHERE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="discrete1.GeometryData">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">discrete1.</span></span><span class="sig-name descname"><span class="pre">GeometryData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">medium_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#discrete1.Geometry" title="discrete1.Geometry"><span class="pre">Geometry</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Geometry.SLAB</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1.html#GeometryData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.GeometryData" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Container for spatial mesh and boundary-condition metadata.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.GeometryData.bc_x">
+<span class="sig-name descname"><span class="pre">bc_x</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span></span><a class="headerlink" href="#discrete1.GeometryData.bc_x" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.GeometryData.delta_x">
+<span class="sig-name descname"><span class="pre">delta_x</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#discrete1.GeometryData.delta_x" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.GeometryData.geometry">
+<span class="sig-name descname"><span class="pre">geometry</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#discrete1.Geometry" title="discrete1.Geometry"><span class="pre">Geometry</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></span><a class="headerlink" href="#discrete1.GeometryData.geometry" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.GeometryData.medium_map">
+<span class="sig-name descname"><span class="pre">medium_map</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#discrete1.GeometryData.medium_map" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="discrete1.MaterialData">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">discrete1.</span></span><span class="sig-name descname"><span class="pre">MaterialData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1.html#MaterialData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.MaterialData" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Container for material cross-section data.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.MaterialData.chi">
+<span class="sig-name descname"><span class="pre">chi</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#discrete1.MaterialData.chi" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.MaterialData.xs_fission">
+<span class="sig-name descname"><span class="pre">xs_fission</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#discrete1.MaterialData.xs_fission" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.MaterialData.xs_scatter">
+<span class="sig-name descname"><span class="pre">xs_scatter</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#discrete1.MaterialData.xs_scatter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="discrete1.MaterialData.xs_total">
+<span class="sig-name descname"><span class="pre">xs_total</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#discrete1.MaterialData.xs_total" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 
@@ -326,7 +558,7 @@ will expose commonly-used helpers so downstream code can do:</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to discrete1’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples.html" class="btn btn-neutral float-left" title="Examples" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="discrete1.ml.html" class="btn btn-neutral float-right" title="discrete1.ml package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
@@ -339,7 +571,7 @@ will expose commonly-used helpers so downstream code can do:</p>
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-
+   
 
 </footer>
         </div>
@@ -350,7 +582,7 @@ will expose commonly-used helpers so downstream code can do:</p>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
+  </script> 
 
 </body>
 </html>

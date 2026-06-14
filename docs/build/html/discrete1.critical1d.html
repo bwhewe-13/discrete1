@@ -8,29 +8,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>discrete1.critical1d module &mdash; discrete1 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
-
+  
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=01f34227"></script>
-      <script src="_static/doctools.js?v=9a2dae69"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="discrete1.djinn1d module" href="discrete1.djinn1d.html" />
-    <link rel="prev" title="discrete1.critical0d module" href="discrete1.critical0d.html" />
+    <link rel="next" title="discrete1.depletion module" href="discrete1.depletion.html" />
+    <link rel="prev" title="discrete1.critical0d module" href="discrete1.critical0d.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-
-
+          
+          
           <a href="index.html" class="icon icon-home">
             discrete1
           </a>
@@ -44,18 +44,24 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="discrete1.html">discrete1 package</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="discrete1.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="discrete1.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="discrete1.boundary1d.html">discrete1.boundary1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.burnup1d.html">discrete1.burnup1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.constants.html">discrete1.constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.cram.html">discrete1.cram module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.critical0d.html">discrete1.critical0d module</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">discrete1.critical1d module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.critical1d.collect_power_iteration"><code class="docutils literal notranslate"><span class="pre">collect_power_iteration()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#discrete1.critical1d.hybrid_power_iteration"><code class="docutils literal notranslate"><span class="pre">hybrid_power_iteration()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#discrete1.critical1d.ml_power_iteration"><code class="docutils literal notranslate"><span class="pre">ml_power_iteration()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#discrete1.critical1d.power_iteration"><code class="docutils literal notranslate"><span class="pre">power_iteration()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="discrete1.djinn1d.html">discrete1.djinn1d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.depletion.html">discrete1.depletion module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.external1d.html">discrete1.external1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.fixed1d.html">discrete1.fixed1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.hybrid1d.html">discrete1.hybrid1d module</a></li>
@@ -63,6 +69,7 @@
 <li class="toctree-l3"><a class="reference internal" href="discrete1.materials.html">discrete1.materials module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.multi_group.html">discrete1.multi_group module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.multi_group_0d.html">discrete1.multi_group_0d module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.nuclides.html">discrete1.nuclides module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.spatial_sweep.html">discrete1.spatial_sweep module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.timed1d.html">discrete1.timed1d module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="discrete1.tools.html">discrete1.tools module</a></li>
@@ -99,25 +106,166 @@
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-
+             
   <section id="module-discrete1.critical1d">
 <span id="discrete1-critical1d-module"></span><h1>discrete1.critical1d module<a class="headerlink" href="#module-discrete1.critical1d" title="Link to this heading"></a></h1>
 <p>One-dimensional criticality drivers.</p>
-<p>This module contains helpers for running k-eigenvalue power iterations in
-1D slab geometries. Both standard and hybrid (coarse/fine) drivers are
-provided.</p>
+<p>This module provides solvers for k-eigenvalue problems in one-dimensional
+slab and spherical geometries using power iteration methods. It includes:</p>
+<ul class="simple">
+<li><p>Standard power iteration for multigroup criticality calculations</p></li>
+<li><p>Data collection utilities for DJINN machine learning model training</p></li>
+<li><p>DJINN-accelerated power iteration with surrogate model predictions</p></li>
+<li><p>Hybrid coarse/fine mesh power iteration for improved efficiency</p></li>
+</ul>
+<p>All drivers solve the multigroup neutron transport equation with vacuum or
+reflective boundary conditions to determine the critical multiplication
+factor (k-effective) and corresponding neutron flux distribution.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.critical1d.collect_power_iteration">
+<span class="sig-prename descclassname"><span class="pre">discrete1.critical1d.</span></span><span class="sig-name descname"><span class="pre">collect_power_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/critical1d.html#collect_power_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.critical1d.collect_power_iteration" title="Link to this definition"></a></dt>
+<dd><p>Collect training data for DJINN models during power iteration.</p>
+<p>Runs a standard k-eigenvalue power iteration while collecting and saving
+flux snapshots at each iteration step. The saved data includes scalar flux
+distributions, cross-section arrays, and spatial medium mapping, which can
+be used to train DJINN (Deep Joint Informed Neural Network) surrogate models
+for accelerated neutron transport calculations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Total cross sections indexed by [material, group].</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Scattering cross sections indexed by [material, group, group].</p></li>
+<li><p><strong>xs_fission</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Fission cross sections indexed by [material, group].</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Spatial material index mapping of length I (number of cells).</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Cell widths for spatial discretization.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Discrete ordinates (angular quadrature points).</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Angular quadrature weights.</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list-like</span></code>) – Boundary condition indicators [left, right] (0=vacuum, 1=reflective).</p></li>
+<li><p><strong>filepath</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Directory path where training data files will be saved.</p></li>
+<li><p><strong>chi</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <em>optional</em>) – Fission Neutron Distribution. Must be included if xs_fission is nusigf.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>optional</em>) – Geometry type (1=slab, 2=sphere). Default is 1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>flux</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Converged scalar flux distribution indexed by [cell, group].</p></li>
+<li><p><strong>keff</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Converged effective multiplication factor.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The function saves the following NumPy arrays to disk:
+- <cite>flux_fission_model.npy</cite> : Flux snapshots from each iteration
+- <cite>fission_cross_sections.npy</cite> : Fission cross section data
+- <cite>scatter_cross_sections.npy</cite> : Scattering cross section data
+- <cite>medium_map.npy</cite> : Spatial material mapping</p>
+<p>Additionally, source iteration data is saved during the transport sweeps
+via <cite>mg.source_iteration_collect()</cite> for training DJINN scatter models.</p>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.critical1d.hybrid_power_iteration">
 <span class="sig-prename descclassname"><span class="pre">discrete1.critical1d.</span></span><span class="sig-name descname"><span class="pre">hybrid_power_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total_u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter_u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission_u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_xu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_wu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/critical1d.html#hybrid_power_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.critical1d.hybrid_power_iteration" title="Link to this definition"></a></dt>
-<dd><p>Run the hybrid coarse/fine power iteration driver.</p>
-<p>This wraps the workflow needed to compute collided (coarse) and
-uncollided (fine) contributions and combines them for a hybrid solve.
-Returns a converged uncollided flux and keff.</p>
+<dd><p>Run hybrid coarse-fine mesh power iteration for k-eigenvalue problems.</p>
+<p>Implements a two-level hybrid solver that separates the solution into
+uncollided (fine resolution) and collided (coarse resolution) components.
+The fine mesh captures detailed physics while the coarse mesh handles
+computationally expensive collided contributions, significantly improving
+efficiency for problems with many energy groups and angular directions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_total_u</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Fine (uncollided) total cross sections indexed by [material, group].</p></li>
+<li><p><strong>xs_scatter_u</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Fine (uncollided) scattering cross sections indexed by
+[material, group, group].</p></li>
+<li><p><strong>xs_fission_u</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Fine (uncollided) fission cross sections indexed by [material, group].</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Spatial material index mapping of length I (number of cells).</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Cell widths for spatial discretization.</p></li>
+<li><p><strong>angle_xu</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Fine mesh discrete ordinates (angular quadrature points).</p></li>
+<li><p><strong>angle_wu</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Fine mesh angular quadrature weights.</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list-like</span></code>) – Boundary condition indicators [left, right] (0=vacuum, 1=reflective).</p></li>
+<li><p><strong>angles_c</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of angular directions for coarse mesh discretization.</p></li>
+<li><p><strong>groups_c</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of energy groups for coarse mesh discretization.</p></li>
+<li><p><strong>energy_grid</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>) – Energy grid specification (edges_g, edges_gidx_u, edges_gidx_c)
+defining fine-to-coarse group mapping.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>optional</em>) – Geometry type (1=slab, 2=sphere). Default is 1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>flux_u</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Converged fine mesh scalar flux distribution indexed by [cell, group].</p></li>
+<li><p><strong>keff</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Converged effective multiplication factor.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The hybrid method works by:
+1. Computing coarse mesh collided flux with reduced angular/energy resolution
+2. Projecting fission source from fine to coarse mesh
+3. Combining coarse collided contribution with fine uncollided solution
+4. Iterating until convergence on the fine mesh</p>
+<p>This approach is particularly effective for deep penetration problems or
+systems with large spatial domains where full fine-mesh transport sweeps
+would be prohibitively expensive.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="discrete1.critical1d.ml_power_iteration">
+<span class="sig-prename descclassname"><span class="pre">discrete1.critical1d.</span></span><span class="sig-name descname"><span class="pre">ml_power_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">counter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fission_models</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_models</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fission_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/critical1d.html#ml_power_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.critical1d.ml_power_iteration" title="Link to this definition"></a></dt>
+<dd><p>Power iteration with optional DJINN surrogate model acceleration.</p>
+<p>Performs k-eigenvalue power iteration that can optionally use trained DJINN
+(Deep Joint Informed Neural Network) models to predict fission and/or
+scattering sources, significantly accelerating convergence. When no models
+are provided, falls back to standard power iteration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux_old</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Initial scalar flux guess indexed by [cell, group].</p></li>
+<li><p><strong>xs_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Total cross sections indexed by [material, group].</p></li>
+<li><p><strong>xs_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Scattering cross sections indexed by [material, group, group].</p></li>
+<li><p><strong>xs_fission</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Fission cross sections indexed by [material, group].</p></li>
+<li><p><strong>medium_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Spatial material index mapping of length I (number of cells).</p></li>
+<li><p><strong>delta_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Cell widths for spatial discretization.</p></li>
+<li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Discrete ordinates (angular quadrature points).</p></li>
+<li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Angular quadrature weights.</p></li>
+<li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list-like</span></code>) – Boundary condition indicators [left, right] (0=vacuum, 1=reflective).</p></li>
+<li><p><strong>chi</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <em>optional</em>) – Fission Neutron Distribution. Must be included if xs_fission is nusigf.
+Default is None.</p></li>
+<li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>optional</em>) – Geometry type (1=slab, 2=sphere). Default is 1.</p></li>
+<li><p><strong>counter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>optional</em>) – Default False. Returns number of power iterations if True.</p></li>
+<li><p><strong>fission_models</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>, <em>optional</em>) – Trained DJINN models for fission source prediction. Empty list uses
+traditional calculation. Default is [].</p></li>
+<li><p><strong>scatter_models</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>, <em>optional</em>) – Trained DJINN models for scattering source prediction. Empty list uses
+traditional calculation. Default is [].</p></li>
+<li><p><strong>fission_labels</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>, <em>optional</em>) – Material labels for fission model predictions. Default is None.</p></li>
+<li><p><strong>scatter_labels</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>, <em>optional</em>) – Material labels for scatter model predictions. Default is None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>flux</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Converged scalar flux distribution indexed by [cell, group].</p></li>
+<li><p><strong>keff</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Converged effective multiplication factor.</p></li>
+<li><p><strong>counter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>optional</em>) – Number of power iterations for convergence. Returned if counter=True.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Convergence criteria differ based on model usage: stricter for standard
+iteration (change_kk), more relaxed for DJINN-accelerated (change_pp).</p></li>
+<li><p>Early termination occurs if flux change increases after 20 iterations,
+preventing divergence.</p></li>
+<li><p>Normalization strategy changes when DJINN models are used to maintain
+numerical stability.</p></li>
+</ul>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.critical1d.power_iteration">
-<span class="sig-prename descclassname"><span class="pre">discrete1.critical1d.</span></span><span class="sig-name descname"><span class="pre">power_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/critical1d.html#power_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.critical1d.power_iteration" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">discrete1.critical1d.</span></span><span class="sig-name descname"><span class="pre">power_iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bc_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">counter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/critical1d.html#power_iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.critical1d.power_iteration" title="Link to this definition"></a></dt>
 <dd><p>Run power iteration for 1D multigroup problems.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -130,14 +278,18 @@ Returns a converged uncollided flux and keff.</p>
 <li><p><strong>angle_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Angular ordinates and weights.</p></li>
 <li><p><strong>angle_w</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array_like</span></code>) – Angular ordinates and weights.</p></li>
 <li><p><strong>bc_x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list-like</span></code>) – Boundary condition indicators.</p></li>
+<li><p><strong>chi</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <em>optional</em>) – Fission Neutron Distribution. Must be included if xs_fission is nusigf.</p></li>
 <li><p><strong>geometry</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>optional</em>) – Geometry selector (1=slab, 2=sphere).</p></li>
+<li><p><strong>counter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>optional</em>) – Default False. Returns number of power iterations if True.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>(flux, keff) converged scalar flux and multiplication factor.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>flux</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Converged scalar flux distribution indexed by [cell, group].</p></li>
+<li><p><strong>keff</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Converged effective multiplication factor.</p></li>
+<li><p><strong>counter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>optional</em>) – Number of power iterations for convergence. Returned if counter=True.</p></li>
+</ul>
+</p>
 </dd>
 </dl>
 </dd></dl>
@@ -149,7 +301,7 @@ Returns a converged uncollided flux and keff.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="discrete1.critical0d.html" class="btn btn-neutral float-left" title="discrete1.critical0d module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="discrete1.djinn1d.html" class="btn btn-neutral float-right" title="discrete1.djinn1d module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="discrete1.depletion.html" class="btn btn-neutral float-right" title="discrete1.depletion module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
@@ -161,7 +313,7 @@ Returns a converged uncollided flux and keff.</p>
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-
+   
 
 </footer>
         </div>
@@ -172,7 +324,7 @@ Returns a converged uncollided flux and keff.</p>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
+  </script> 
 
 </body>
 </html>

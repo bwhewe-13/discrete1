@@ -7,27 +7,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>discrete1.timed1d &mdash; discrete1 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
-
+  
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../../_static/documentation_options.js?v=01f34227"></script>
-      <script src="../../_static/doctools.js?v=9a2dae69"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-
-
+          
+          
           <a href="../../index.html" class="icon icon-home">
             discrete1
           </a>
@@ -41,6 +41,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../discrete1.html">discrete1 package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
 </ul>
@@ -60,6 +62,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../discrete1.html">discrete1</a></li>
       <li class="breadcrumb-item active">discrete1.timed1d</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -68,9 +71,14 @@
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-
+             
   <h1>Source code for discrete1.timed1d</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Called for time dependent source problems</span>
+<span></span><span class="sd">&quot;&quot;&quot;Time-dependent 1D transport problems.</span>
+
+<span class="sd">This module provides solvers for time-dependent (transient) 1D transport</span>
+<span class="sd">problems using discrete ordinates methods. It implements Backward Euler (BDF1)</span>
+<span class="sd">and second-order Backward Differentiation Formula (BDF2) time integration schemes.</span>
+<span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
@@ -96,8 +104,52 @@
     <span class="n">bc_x</span><span class="p">,</span>
     <span class="n">steps</span><span class="p">,</span>
     <span class="n">dt</span><span class="p">,</span>
+    <span class="n">chi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">geometry</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Solve time-dependent transport using first-order Backward Differentiation.</span>
+
+<span class="sd">    Advances solution through multiple time steps using implicit BDF1 (Backward Euler)</span>
+<span class="sd">    time integration with source iteration for the spatial problem.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_last : numpy.ndarray</span>
+<span class="sd">        Angular flux at previous time step (cells, angles, groups).</span>
+<span class="sd">    xs_total : numpy.ndarray</span>
+<span class="sd">        Total macroscopic cross section (cells, groups).</span>
+<span class="sd">    xs_scatter : numpy.ndarray</span>
+<span class="sd">        Scattering cross section (cells, groups).</span>
+<span class="sd">    xs_fission : numpy.ndarray</span>
+<span class="sd">        Fission cross section (cells, groups).</span>
+<span class="sd">    velocity : numpy.ndarray</span>
+<span class="sd">        Particle velocity (groups,).</span>
+<span class="sd">    external : numpy.ndarray</span>
+<span class="sd">        External source (steps/1, cells, angles, groups).</span>
+<span class="sd">    boundary : numpy.ndarray</span>
+<span class="sd">        Boundary conditions (steps/1, 2, angles, groups).</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material region map (cells,).</span>
+<span class="sd">    delta_x : numpy.ndarray</span>
+<span class="sd">        Cell widths (cells,).</span>
+<span class="sd">    angle_x : numpy.ndarray</span>
+<span class="sd">        Discrete ordinates (angles,).</span>
+<span class="sd">    angle_w : numpy.ndarray</span>
+<span class="sd">        Quadrature weights (angles,).</span>
+<span class="sd">    bc_x : int</span>
+<span class="sd">        Boundary condition type (0=vacuum, 1=reflective).</span>
+<span class="sd">    steps : int</span>
+<span class="sd">        Number of time steps.</span>
+<span class="sd">    dt : float</span>
+<span class="sd">        Time step size.</span>
+<span class="sd">    geometry : int, optional</span>
+<span class="sd">        Geometry type (1=slab, 2=cylindrical, 3=spherical).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Scalar flux at all time steps (steps, cells, groups).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># Scalar flux approximation</span>
     <span class="n">flux_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">flux_last</span> <span class="o">*</span> <span class="n">angle_w</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -106,7 +158,7 @@
     <span class="n">flux_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">steps</span><span class="p">,)</span> <span class="o">+</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
     <span class="c1"># Combine scattering and fission</span>
-    <span class="n">xs_matrix</span> <span class="o">=</span> <span class="n">xs_scatter</span> <span class="o">+</span> <span class="n">xs_fission</span>
+    <span class="n">xs_matrix</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">transfer_matrix</span><span class="p">(</span><span class="n">xs_scatter</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">chi</span><span class="p">)</span>
 
     <span class="c1"># Create xs_total_star</span>
     <span class="n">xs_total_v</span> <span class="o">=</span> <span class="n">xs_total</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">velocity</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span>
@@ -174,9 +226,52 @@
     <span class="n">bc_x</span><span class="p">,</span>
     <span class="n">steps</span><span class="p">,</span>
     <span class="n">dt</span><span class="p">,</span>
+    <span class="n">chi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">geometry</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Solve time-dependent transport using second-order Backward Differentiation.</span>
 
+<span class="sd">    Advances solution through multiple time steps using implicit BDF2 time integration,</span>
+<span class="sd">    starting with BDF1 on the first step and switching to BDF2 thereafter.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_last_1 : numpy.ndarray</span>
+<span class="sd">        Angular flux at previous time step (cells, angles, groups).</span>
+<span class="sd">    xs_total : numpy.ndarray</span>
+<span class="sd">        Total macroscopic cross section (cells, groups).</span>
+<span class="sd">    xs_scatter : numpy.ndarray</span>
+<span class="sd">        Scattering cross section (cells, groups).</span>
+<span class="sd">    xs_fission : numpy.ndarray</span>
+<span class="sd">        Fission cross section (cells, groups).</span>
+<span class="sd">    velocity : numpy.ndarray</span>
+<span class="sd">        Particle velocity (groups,).</span>
+<span class="sd">    external : numpy.ndarray</span>
+<span class="sd">        External source (steps/1, cells, angles, groups).</span>
+<span class="sd">    boundary : numpy.ndarray</span>
+<span class="sd">        Boundary conditions (steps/1, 2, angles, groups).</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material region map (cells,).</span>
+<span class="sd">    delta_x : numpy.ndarray</span>
+<span class="sd">        Cell widths (cells,).</span>
+<span class="sd">    angle_x : numpy.ndarray</span>
+<span class="sd">        Discrete ordinates (angles,).</span>
+<span class="sd">    angle_w : numpy.ndarray</span>
+<span class="sd">        Quadrature weights (angles,).</span>
+<span class="sd">    bc_x : int</span>
+<span class="sd">        Boundary condition type (0=vacuum, 1=reflective).</span>
+<span class="sd">    steps : int</span>
+<span class="sd">        Number of time steps.</span>
+<span class="sd">    dt : float</span>
+<span class="sd">        Time step size.</span>
+<span class="sd">    geometry : int, optional</span>
+<span class="sd">        Geometry type (1=slab, 2=cylindrical, 3=spherical).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Scalar flux at all time steps (steps, cells, groups).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Scalar flux approximation</span>
     <span class="n">flux_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">flux_last_1</span> <span class="o">*</span> <span class="n">angle_w</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
@@ -187,7 +282,7 @@
     <span class="n">flux_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">steps</span><span class="p">,)</span> <span class="o">+</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
     <span class="c1"># Combine scattering and fission</span>
-    <span class="n">xs_matrix</span> <span class="o">=</span> <span class="n">xs_scatter</span> <span class="o">+</span> <span class="n">xs_fission</span>
+    <span class="n">xs_matrix</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">transfer_matrix</span><span class="p">(</span><span class="n">xs_scatter</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">chi</span><span class="p">)</span>
 
     <span class="c1"># Create xs_total_star (for BDF1 step)</span>
     <span class="n">xs_total_v</span> <span class="o">=</span> <span class="n">xs_total</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">velocity</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span>
@@ -265,7 +360,7 @@
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-
+   
 
 </footer>
         </div>
@@ -276,7 +371,7 @@
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
+  </script> 
 
 </body>
 </html>

@@ -6,30 +6,30 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to discrete1’s documentation! &mdash; discrete1 0.1.0 documentation</title>
+  <title>discrete1 &mdash; discrete1 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
-
+  
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=01f34227"></script>
-      <script src="_static/doctools.js?v=9a2dae69"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="discrete1 package" href="discrete1.html" />
+    <link rel="next" title="Getting started" href="getting-started.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-
-
+          
+          
           <a href="#" class="icon icon-home">
             discrete1
           </a>
@@ -43,6 +43,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="discrete1.html">discrete1 package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
 </ul>
@@ -61,7 +63,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Welcome to discrete1’s documentation!</li>
+      <li class="breadcrumb-item active">discrete1</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -70,12 +72,45 @@
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-
-  <section id="welcome-to-discrete1-s-documentation">
-<h1>Welcome to discrete1’s documentation!<a class="headerlink" href="#welcome-to-discrete1-s-documentation" title="Link to this heading"></a></h1>
+             
+  <section id="discrete1">
+<h1>discrete1<a class="headerlink" href="#discrete1" title="Link to this heading"></a></h1>
+<p>1D Discrete Ordinates Multigroup Neutron Transport in Python.</p>
+<ul class="simple">
+<li><p>Spatial Discretization: Diamond Difference</p></li>
+<li><p>Temporal Discretization: Backward Euler, BDF2</p></li>
+<li><p>Multigroup Convergence: Source Iteration, DMD</p></li>
+<li><p>K-eigenvalue Convergence: Power Iteration</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Experimental features: DJINN, SVD-DJINN, and a collision-based HYBRID method
+for accelerated and data-efficient neutron transport.</p>
+</div>
+<section id="get-started">
+<h2>Get started<a class="headerlink" href="#get-started" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Install: <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">discrete1</span></code></p></li>
+<li><p>New here? See <a class="reference internal" href="getting-started.html"><span class="doc">Getting started</span></a>.</p></li>
+<li><p>Browse runnable scripts in <a class="reference internal" href="examples.html"><span class="doc">Examples</span></a>.</p></li>
+<li><p>Dive into the <a class="reference internal" href="api.html"><span class="doc">API reference</span></a> generated from the source docstrings.</p></li>
+</ul>
+</section>
+<section id="repository">
+<h2>Repository<a class="headerlink" href="#repository" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Repo: <a class="reference external" href="https://github.com/bwhewe-13/discrete1">https://github.com/bwhewe-13/discrete1</a></p></li>
+<li><p>Issues: <a class="reference external" href="https://github.com/bwhewe-13/discrete1/issues">https://github.com/bwhewe-13/discrete1/issues</a></p></li>
+</ul>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#quick-usage">Quick usage</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="discrete1.html">discrete1 package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2"><a class="reference internal" href="discrete1.html#submodules">Submodules</a></li>
@@ -86,12 +121,13 @@
 </ul>
 </div>
 </section>
+</section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="discrete1.html" class="btn btn-neutral float-right" title="discrete1 package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="getting-started.html" class="btn btn-neutral float-right" title="Getting started" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
@@ -103,7 +139,7 @@
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-
+   
 
 </footer>
         </div>
@@ -114,7 +150,7 @@
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
+  </script> 
 
 </body>
 </html>

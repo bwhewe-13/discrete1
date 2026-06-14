@@ -7,27 +7,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>discrete1.hybrid1d &mdash; discrete1 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
-
+  
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../../_static/documentation_options.js?v=01f34227"></script>
-      <script src="../../_static/doctools.js?v=9a2dae69"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-
-
+          
+          
           <a href="../../index.html" class="icon icon-home">
             discrete1
           </a>
@@ -41,6 +41,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../discrete1.html">discrete1 package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
 </ul>
@@ -60,6 +62,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../discrete1.html">discrete1</a></li>
       <li class="breadcrumb-item active">discrete1.hybrid1d</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -68,9 +71,14 @@
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-
+             
   <h1>Source code for discrete1.hybrid1d</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Called for time dependent source problems</span>
+<span></span><span class="sd">&quot;&quot;&quot;Hybrid multi-group transport solver for 1D time-dependent problems.</span>
+
+<span class="sd">This module provides hybrid multi-group methods that automatically coarsen energy</span>
+<span class="sd">groups and/or angular discretization for improved computational efficiency in</span>
+<span class="sd">time-dependent 1D transport problems.</span>
+<span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
@@ -101,8 +109,59 @@
     <span class="n">energy_grid</span><span class="p">,</span>
     <span class="n">steps</span><span class="p">,</span>
     <span class="n">dt</span><span class="p">,</span>
+    <span class="n">chi_u</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">chi_c</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">geometry</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hybrid solver with automatic coarsening using first-order time integration.</span>
+
+<span class="sd">    Automatically coarsens energy groups and/or angular discretization for improved</span>
+<span class="sd">    efficiency, then solves using backward Euler (BDF1) time stepping.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_last : numpy.ndarray</span>
+<span class="sd">        Angular flux at previous time (cells, angles, groups).</span>
+<span class="sd">    xs_total_u : numpy.ndarray</span>
+<span class="sd">        Fine-group total cross section (cells, groups_u).</span>
+<span class="sd">    xs_scatter_u : numpy.ndarray</span>
+<span class="sd">        Fine-group scattering cross section (cells, groups_u).</span>
+<span class="sd">    xs_fission_u : numpy.ndarray</span>
+<span class="sd">        Fine-group fission cross section (cells, groups_u).</span>
+<span class="sd">    velocity_u : numpy.ndarray</span>
+<span class="sd">        Fine-group velocity (groups_u,).</span>
+<span class="sd">    external_u : numpy.ndarray</span>
+<span class="sd">        Fine-group external source (steps/1, cells, angles, groups_u).</span>
+<span class="sd">    boundary_u : numpy.ndarray</span>
+<span class="sd">        Fine-group boundary conditions (steps/1, 2, angles, groups_u).</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material region map (cells,).</span>
+<span class="sd">    delta_x : numpy.ndarray</span>
+<span class="sd">        Cell widths (cells,).</span>
+<span class="sd">    angle_xu : numpy.ndarray</span>
+<span class="sd">        Fine angular discretization (angles_u,).</span>
+<span class="sd">    angle_wu : numpy.ndarray</span>
+<span class="sd">        Fine quadrature weights (angles_u,).</span>
+<span class="sd">    bc_x : int</span>
+<span class="sd">        Boundary condition type (0=vacuum, 1=reflective).</span>
+<span class="sd">    angles_c : int</span>
+<span class="sd">        Target coarse angular discretization.</span>
+<span class="sd">    groups_c : int</span>
+<span class="sd">        Target coarse energy groups.</span>
+<span class="sd">    energy_grid : tuple</span>
+<span class="sd">        Energy grid specification (edges, indices_u, indices_c).</span>
+<span class="sd">    steps : int</span>
+<span class="sd">        Number of time steps.</span>
+<span class="sd">    dt : float</span>
+<span class="sd">        Time step size.</span>
+<span class="sd">    geometry : int, optional</span>
+<span class="sd">        Geometry type (1=slab, 2=cylindrical, 3=spherical).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Scalar flux at all time steps (steps, cells, groups_u).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># Get hybrid parameters</span>
     <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx_u</span><span class="p">,</span> <span class="n">edges_gidx_c</span> <span class="o">=</span> <span class="n">energy_grid</span>
@@ -152,6 +211,8 @@
         <span class="n">factor</span><span class="p">,</span>
         <span class="n">steps</span><span class="p">,</span>
         <span class="n">dt</span><span class="p">,</span>
+        <span class="n">chi_u</span><span class="p">,</span>
+        <span class="n">chi_c</span><span class="p">,</span>
         <span class="n">geometry</span><span class="p">,</span>
     <span class="p">)</span></div>
 
@@ -183,9 +244,71 @@
     <span class="n">factor</span><span class="p">,</span>
     <span class="n">steps</span><span class="p">,</span>
     <span class="n">dt</span><span class="p">,</span>
+    <span class="n">chi_u</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">chi_c</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">geometry</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hybrid solver with explicit coarsening using first-order time integration.</span>
 
+<span class="sd">    Solves using two independent energy group systems (uncollided and collided)</span>
+<span class="sd">    and recombines with first-order backward Euler time stepping.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_last : numpy.ndarray</span>
+<span class="sd">        Angular flux at previous time (cells, angles_u, groups_u).</span>
+<span class="sd">    xs_total_u : numpy.ndarray</span>
+<span class="sd">        Fine-group total cross section (cells, groups_u).</span>
+<span class="sd">    xs_total_c : numpy.ndarray</span>
+<span class="sd">        Coarse-group total cross section (cells, groups_c).</span>
+<span class="sd">    xs_scatter_u : numpy.ndarray</span>
+<span class="sd">        Fine-group scattering (cells, groups_u).</span>
+<span class="sd">    xs_scatter_c : numpy.ndarray</span>
+<span class="sd">        Coarse-group scattering (cells, groups_c).</span>
+<span class="sd">    xs_fission_u : numpy.ndarray</span>
+<span class="sd">        Fine-group fission (cells, groups_u).</span>
+<span class="sd">    xs_fission_c : numpy.ndarray</span>
+<span class="sd">        Coarse-group fission (cells, groups_c).</span>
+<span class="sd">    velocity_u : numpy.ndarray</span>
+<span class="sd">        Fine-group velocity (groups_u,).</span>
+<span class="sd">    velocity_c : numpy.ndarray</span>
+<span class="sd">        Coarse-group velocity (groups_c,).</span>
+<span class="sd">    external_u : numpy.ndarray</span>
+<span class="sd">        Fine-group external source (steps/1, cells, angles_u, groups_u).</span>
+<span class="sd">    boundary_u : numpy.ndarray</span>
+<span class="sd">        Fine-group boundary (steps/1, 2, angles_u, groups_u).</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material region map (cells,).</span>
+<span class="sd">    delta_x : numpy.ndarray</span>
+<span class="sd">        Cell widths (cells,).</span>
+<span class="sd">    angle_xu : numpy.ndarray</span>
+<span class="sd">        Fine angular discretization (angles_u,).</span>
+<span class="sd">    angle_xc : numpy.ndarray</span>
+<span class="sd">        Coarse angular discretization (angles_c,).</span>
+<span class="sd">    angle_wu : numpy.ndarray</span>
+<span class="sd">        Fine quadrature weights (angles_u,).</span>
+<span class="sd">    angle_wc : numpy.ndarray</span>
+<span class="sd">        Coarse quadrature weights (angles_c,).</span>
+<span class="sd">    bc_x : int</span>
+<span class="sd">        Boundary condition type (0=vacuum, 1=reflective).</span>
+<span class="sd">    fine_idx : numpy.ndarray</span>
+<span class="sd">        Mapping from coarse to fine groups.</span>
+<span class="sd">    coarse_idx : numpy.ndarray</span>
+<span class="sd">        Mapping from fine to coarse groups.</span>
+<span class="sd">    factor : float</span>
+<span class="sd">        Energy group coarsening factor.</span>
+<span class="sd">    steps : int</span>
+<span class="sd">        Number of time steps.</span>
+<span class="sd">    dt : float</span>
+<span class="sd">        Time step size.</span>
+<span class="sd">    geometry : int, optional</span>
+<span class="sd">        Geometry type (1=slab, 2=cylindrical, 3=spherical).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Scalar flux at all time steps (steps, cells, groups_u).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Scalar flux approximation</span>
     <span class="n">flux_u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">flux_last</span> <span class="o">*</span> <span class="n">angle_wu</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">flux_c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">medium_map</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xs_total_c</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
@@ -194,8 +317,8 @@
     <span class="n">flux_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">steps</span><span class="p">,)</span> <span class="o">+</span> <span class="n">flux_u</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
     <span class="c1"># Combine scattering and fission</span>
-    <span class="n">xs_matrix_u</span> <span class="o">=</span> <span class="n">xs_scatter_u</span> <span class="o">+</span> <span class="n">xs_fission_u</span>
-    <span class="n">xs_matrix_c</span> <span class="o">=</span> <span class="n">xs_scatter_c</span> <span class="o">+</span> <span class="n">xs_fission_c</span>
+    <span class="n">xs_matrix_u</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">transfer_matrix</span><span class="p">(</span><span class="n">xs_scatter_u</span><span class="p">,</span> <span class="n">xs_fission_u</span><span class="p">,</span> <span class="n">chi_u</span><span class="p">)</span>
+    <span class="n">xs_matrix_c</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">transfer_matrix</span><span class="p">(</span><span class="n">xs_scatter_c</span><span class="p">,</span> <span class="n">xs_fission_c</span><span class="p">,</span> <span class="n">chi_c</span><span class="p">)</span>
 
     <span class="c1"># Create xs_total_star</span>
     <span class="n">xs_total_vu</span> <span class="o">=</span> <span class="n">xs_total_u</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">velocity_u</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span>
@@ -280,9 +403,60 @@
     <span class="n">energy_grid</span><span class="p">,</span>
     <span class="n">steps</span><span class="p">,</span>
     <span class="n">dt</span><span class="p">,</span>
+    <span class="n">chi_u</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">chi_c</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">geometry</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hybrid solver with automatic coarsening using second-order time integration.</span>
 
+<span class="sd">    Automatically coarsens energy groups and/or angular discretization for improved</span>
+<span class="sd">    efficiency, then solves using second-order backward differentiation formula (BDF2)</span>
+<span class="sd">    time stepping.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_last_1 : numpy.ndarray</span>
+<span class="sd">        Angular flux at previous time (cells, angles, groups).</span>
+<span class="sd">    xs_total_u : numpy.ndarray</span>
+<span class="sd">        Fine-group total cross section (cells, groups_u).</span>
+<span class="sd">    xs_scatter_u : numpy.ndarray</span>
+<span class="sd">        Fine-group scattering cross section (cells, groups_u).</span>
+<span class="sd">    xs_fission_u : numpy.ndarray</span>
+<span class="sd">        Fine-group fission cross section (cells, groups_u).</span>
+<span class="sd">    velocity_u : numpy.ndarray</span>
+<span class="sd">        Fine-group velocity (groups_u,).</span>
+<span class="sd">    external_u : numpy.ndarray</span>
+<span class="sd">        Fine-group external source (steps/1, cells, angles, groups_u).</span>
+<span class="sd">    boundary_u : numpy.ndarray</span>
+<span class="sd">        Fine-group boundary conditions (steps/1, 2, angles, groups_u).</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material region map (cells,).</span>
+<span class="sd">    delta_x : numpy.ndarray</span>
+<span class="sd">        Cell widths (cells,).</span>
+<span class="sd">    angle_xu : numpy.ndarray</span>
+<span class="sd">        Fine angular discretization (angles_u,).</span>
+<span class="sd">    angle_wu : numpy.ndarray</span>
+<span class="sd">        Fine quadrature weights (angles_u,).</span>
+<span class="sd">    bc_x : int</span>
+<span class="sd">        Boundary condition type (0=vacuum, 1=reflective).</span>
+<span class="sd">    angles_c : int</span>
+<span class="sd">        Target coarse angular discretization.</span>
+<span class="sd">    groups_c : int</span>
+<span class="sd">        Target coarse energy groups.</span>
+<span class="sd">    energy_grid : tuple</span>
+<span class="sd">        Energy grid specification (edges, indices_u, indices_c).</span>
+<span class="sd">    steps : int</span>
+<span class="sd">        Number of time steps.</span>
+<span class="sd">    dt : float</span>
+<span class="sd">        Time step size.</span>
+<span class="sd">    geometry : int, optional</span>
+<span class="sd">        Geometry type (1=slab, 2=cylindrical, 3=spherical).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Scalar flux at all time steps (steps, cells, groups_u).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get hybrid parameters</span>
     <span class="n">edges_g</span><span class="p">,</span> <span class="n">edges_gidx_u</span><span class="p">,</span> <span class="n">edges_gidx_c</span> <span class="o">=</span> <span class="n">energy_grid</span>
     <span class="n">fine_idx</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">,</span> <span class="n">factor</span> <span class="o">=</span> <span class="n">hytools</span><span class="o">.</span><span class="n">indexing</span><span class="p">(</span><span class="o">*</span><span class="n">energy_grid</span><span class="p">)</span>
@@ -331,6 +505,8 @@
         <span class="n">factor</span><span class="p">,</span>
         <span class="n">steps</span><span class="p">,</span>
         <span class="n">dt</span><span class="p">,</span>
+        <span class="n">chi_u</span><span class="p">,</span>
+        <span class="n">chi_c</span><span class="p">,</span>
         <span class="n">geometry</span><span class="p">,</span>
     <span class="p">)</span></div>
 
@@ -362,9 +538,72 @@
     <span class="n">factor</span><span class="p">,</span>
     <span class="n">steps</span><span class="p">,</span>
     <span class="n">dt</span><span class="p">,</span>
+    <span class="n">chi_u</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">chi_c</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">geometry</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hybrid solver with explicit coarsening using second-order time integration.</span>
 
+<span class="sd">    Solves using two independent energy group systems (uncollided and collided)</span>
+<span class="sd">    and recombines with second-order backward differentiation formula (BDF2)</span>
+<span class="sd">    time stepping.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_last_1 : numpy.ndarray</span>
+<span class="sd">        Angular flux at previous time (cells, angles_u, groups_u).</span>
+<span class="sd">    xs_total_u : numpy.ndarray</span>
+<span class="sd">        Fine-group total cross section (cells, groups_u).</span>
+<span class="sd">    xs_total_c : numpy.ndarray</span>
+<span class="sd">        Coarse-group total cross section (cells, groups_c).</span>
+<span class="sd">    xs_scatter_u : numpy.ndarray</span>
+<span class="sd">        Fine-group scattering (cells, groups_u).</span>
+<span class="sd">    xs_scatter_c : numpy.ndarray</span>
+<span class="sd">        Coarse-group scattering (cells, groups_c).</span>
+<span class="sd">    xs_fission_u : numpy.ndarray</span>
+<span class="sd">        Fine-group fission (cells, groups_u).</span>
+<span class="sd">    xs_fission_c : numpy.ndarray</span>
+<span class="sd">        Coarse-group fission (cells, groups_c).</span>
+<span class="sd">    velocity_u : numpy.ndarray</span>
+<span class="sd">        Fine-group velocity (groups_u,).</span>
+<span class="sd">    velocity_c : numpy.ndarray</span>
+<span class="sd">        Coarse-group velocity (groups_c,).</span>
+<span class="sd">    external_u : numpy.ndarray</span>
+<span class="sd">        Fine-group external source (steps/1, cells, angles_u, groups_u).</span>
+<span class="sd">    boundary_u : numpy.ndarray</span>
+<span class="sd">        Fine-group boundary (steps/1, 2, angles_u, groups_u).</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material region map (cells,).</span>
+<span class="sd">    delta_x : numpy.ndarray</span>
+<span class="sd">        Cell widths (cells,).</span>
+<span class="sd">    angle_xu : numpy.ndarray</span>
+<span class="sd">        Fine angular discretization (angles_u,).</span>
+<span class="sd">    angle_xc : numpy.ndarray</span>
+<span class="sd">        Coarse angular discretization (angles_c,).</span>
+<span class="sd">    angle_wu : numpy.ndarray</span>
+<span class="sd">        Fine quadrature weights (angles_u,).</span>
+<span class="sd">    angle_wc : numpy.ndarray</span>
+<span class="sd">        Coarse quadrature weights (angles_c,).</span>
+<span class="sd">    bc_x : int</span>
+<span class="sd">        Boundary condition type (0=vacuum, 1=reflective).</span>
+<span class="sd">    fine_idx : numpy.ndarray</span>
+<span class="sd">        Mapping from coarse to fine groups.</span>
+<span class="sd">    coarse_idx : numpy.ndarray</span>
+<span class="sd">        Mapping from fine to coarse groups.</span>
+<span class="sd">    factor : float</span>
+<span class="sd">        Energy group coarsening factor.</span>
+<span class="sd">    steps : int</span>
+<span class="sd">        Number of time steps.</span>
+<span class="sd">    dt : float</span>
+<span class="sd">        Time step size.</span>
+<span class="sd">    geometry : int, optional</span>
+<span class="sd">        Geometry type (1=slab, 2=cylindrical, 3=spherical).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Scalar flux at all time steps (steps, cells, groups_u).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Scalar flux approximation</span>
     <span class="n">flux_u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">flux_last_1</span> <span class="o">*</span> <span class="n">angle_wu</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">flux_c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">medium_map</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xs_total_c</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
@@ -376,8 +615,8 @@
     <span class="n">flux_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">steps</span><span class="p">,)</span> <span class="o">+</span> <span class="n">flux_u</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
     <span class="c1"># Combine scattering and fission</span>
-    <span class="n">xs_matrix_u</span> <span class="o">=</span> <span class="n">xs_scatter_u</span> <span class="o">+</span> <span class="n">xs_fission_u</span>
-    <span class="n">xs_matrix_c</span> <span class="o">=</span> <span class="n">xs_scatter_c</span> <span class="o">+</span> <span class="n">xs_fission_c</span>
+    <span class="n">xs_matrix_u</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">transfer_matrix</span><span class="p">(</span><span class="n">xs_scatter_u</span><span class="p">,</span> <span class="n">xs_fission_u</span><span class="p">,</span> <span class="n">chi_u</span><span class="p">)</span>
+    <span class="n">xs_matrix_c</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">transfer_matrix</span><span class="p">(</span><span class="n">xs_scatter_c</span><span class="p">,</span> <span class="n">xs_fission_c</span><span class="p">,</span> <span class="n">chi_c</span><span class="p">)</span>
 
     <span class="c1"># Create xs_total_star</span>
     <span class="n">xs_total_vu</span> <span class="o">=</span> <span class="n">xs_total_u</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">velocity_u</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span>
@@ -534,7 +773,7 @@
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-
+   
 
 </footer>
         </div>
@@ -545,7 +784,7 @@
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
+  </script> 
 
 </body>
 </html>

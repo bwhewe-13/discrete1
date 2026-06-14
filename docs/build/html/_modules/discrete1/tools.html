@@ -7,27 +7,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>discrete1.tools &mdash; discrete1 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
-
+  
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../../_static/documentation_options.js?v=01f34227"></script>
-      <script src="../../_static/doctools.js?v=9a2dae69"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-
-
+          
+          
           <a href="../../index.html" class="icon icon-home">
             discrete1
           </a>
@@ -41,6 +41,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../discrete1.html">discrete1 package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
 </ul>
@@ -60,6 +62,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../discrete1.html">discrete1</a></li>
       <li class="breadcrumb-item active">discrete1.tools</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -68,39 +71,178 @@
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-
+             
   <h1>Source code for discrete1.tools</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Utility routines used across the solver package.</span>
+<span></span><span class="sd">&quot;&quot;&quot;Utility routines and performance-critical kernels for neutron transport.</span>
 
-<span class="sd">This module contains small helpers and performance-critical kernels</span>
-<span class="sd">used by the transport drivers. It includes multigroup helpers for</span>
-<span class="sd">assembling off-diagonal scatter sources, hybrid coarsening utilities,</span>
-<span class="sd">0D (spatially independent) variants of source and keff updates, and</span>
-<span class="sd">display/diagnostic helpers such as reaction rate computation. Where</span>
-<span class="sd">appropriate, functions are implemented as Numba-jitted kernels for</span>
-<span class="sd">performance.</span>
+<span class="sd">This module provides computational tools for multigroup neutron transport</span>
+<span class="sd">calculations, including source term calculations, scattering operations,</span>
+<span class="sd">fission source handling, and hybrid machine learning / physics methods.</span>
+<span class="sd">Functions are optimized using Numba JIT compilation where appropriate</span>
+<span class="sd">for performance-critical operations.</span>
 
-<span class="sd">Public helpers:</span>
-<span class="sd">- reflector_corrector: manage reflective boundary bookkeeping</span>
-<span class="sd">- dmd: Dynamic Mode Decomposition extrapolation</span>
-<span class="sd">- reaction_rates: compute per-cell reaction rates</span>
+<span class="sd">The module is organized into several functional categories:</span>
 
-<span class="sd">Numba-decorated internal kernels (prefixed with `_`) implement the</span>
-<span class="sd">heavy numerical work and are not part of the high-level public API.</span>
+<span class="sd">**Multigroup Transport Functions**</span>
+<span class="sd">    - ``scatter_prod``: Compute scattering source terms</span>
+<span class="sd">    - ``fission_mat_prod``: Compute fission source terms for eigenvalue problems</span>
+<span class="sd">    - ``fission_vec_prod``: Compute fission source terms for eigenvalue problems</span>
+<span class="sd">    - ``reaction_rates``: Calculate per-cell reaction rates</span>
+
+<span class="sd">**Hybrid ML/Physics Functions**</span>
+<span class="sd">    - ``scatter_prod_predict``: Scatter source with ML model predictions</span>
+<span class="sd">    - ``fission_prod_predict``: Fission source with ML model predictions</span>
+
+<span class="sd">**Geometry and Boundary Utilities**</span>
+<span class="sd">    - ``reflector_corrector``: Manage reflective boundary conditions</span>
+
+<span class="sd">**Dynamic Mode Decomposition**</span>
+<span class="sd">    - ``dmd``: Accelerate convergence using DMD extrapolation</span>
+
+<span class="sd">**Spatially Independent (0D) Variants**</span>
+<span class="sd">    Functions prefixed with ``_0d`` provide zero-dimensional versions</span>
+<span class="sd">    of transport operations for homogeneous problems.</span>
+
+<span class="sd">**Internal Kernels**</span>
+<span class="sd">    Functions prefixed with ``_`` are Numba-decorated internal kernels that</span>
+<span class="sd">    implement heavy numerical work. These are used by higher-level solvers</span>
+<span class="sd">    and are generally not part of the public API.</span>
+
+<span class="sd">Notes</span>
+<span class="sd">-----</span>
+<span class="sd">Many functions use Numba&#39;s JIT compilation with ``nopython=True`` and</span>
+<span class="sd">``cache=True`` for optimal performance. Type signatures are explicitly</span>
+<span class="sd">specified for compiled functions to ensure type stability.</span>
+
+<span class="sd">The hybrid ML/physics functions allow material-specific predictions using</span>
+<span class="sd">trained machine learning models while falling back to traditional physics</span>
+<span class="sd">calculations when models are unavailable.</span>
+
+<span class="sd">Examples</span>
+<span class="sd">--------</span>
+<span class="sd">Compute scattering source for a multigroup problem:</span>
+
+<span class="sd">&gt;&gt;&gt; source = np.zeros((n_cells, n_groups))</span>
+<span class="sd">&gt;&gt;&gt; scatter_prod(flux, xs_scatter, source, medium_map)</span>
+
+<span class="sd">Use hybrid ML approach for fission source:</span>
+
+<span class="sd">&gt;&gt;&gt; fission_prod_predict(flux, xs_fission, source, medium_map, keff, models)</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numba</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="c1">########################################################################</span>
+<span class="c1"># from scipy.linalg import svd</span>
+
+
+<span class="c1">################################################################################</span>
 <span class="c1"># Multigroup functions</span>
-<span class="c1">########################################################################</span>
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="transfer_matrix">
+<a class="viewcode-back" href="../../discrete1.tools.html#discrete1.tools.transfer_matrix">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">transfer_matrix</span><span class="p">(</span><span class="n">xs_scatter</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">chi</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Combine scatter and fission matrices.</span>
+
+<span class="sd">    Allows for combining the scattering and fission matrices for fixed source</span>
+<span class="sd">    and time dependent problems. If ``chi`` is not None, ``xs_fission``</span>
+<span class="sd">    represents the nusigf vector.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xs_scatter : numpy.ndarray</span>
+<span class="sd">        Scattering cross sections indexed by [material, group, group].</span>
+<span class="sd">    xs_fission : numpy.ndarray</span>
+<span class="sd">        Fission cross sections indexed by [material, group, group] or</span>
+<span class="sd">        [material, group] if chi is not None.</span>
+<span class="sd">    chi : numpy.ndarray, optional</span>
+<span class="sd">        Fission Neutron Distribution indexed by [material, group]. Must be</span>
+<span class="sd">        included if xs_fission is nusigf. Default is None.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Combined transfer matrix indexed by [material, group, group, moment].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xs_matrix</span> <span class="o">=</span> <span class="n">xs_scatter</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># Anisotropic scattering with fission matrix</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">chi</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">xs_scatter</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">):</span>
+        <span class="n">xs_matrix</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">xs_fission</span>
+    <span class="c1"># Anisotropic scattering with nusigf vector and chi</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">chi</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">xs_scatter</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">):</span>
+        <span class="n">_transfer_matrix</span><span class="p">(</span><span class="n">xs_matrix</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">xs_scatter</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">chi</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">)</span>
+    <span class="c1"># Isotropic scattering with fission matrix</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">chi</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">xs_scatter</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">):</span>
+        <span class="n">xs_matrix</span> <span class="o">+=</span> <span class="n">xs_fission</span>
+    <span class="c1"># Isotropic scattering with nusigf vector and chi</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_transfer_matrix</span><span class="p">(</span><span class="n">xs_matrix</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">chi</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">xs_matrix</span></div>
+
+
+
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;void(f8[:,:,:], f8[:,:,:], f8[:,:], f8[:,:])&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_transfer_matrix</span><span class="p">(</span><span class="n">xs_matrix</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">chi</span><span class="p">,</span> <span class="n">nusigf</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Assemble the isotropic transfer matrix from scatter and fission data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xs_matrix : numpy.ndarray</span>
+<span class="sd">        Output transfer matrix of shape ``(materials, groups, groups)``.</span>
+<span class="sd">    xs_scatter : numpy.ndarray</span>
+<span class="sd">        Scattering matrix of shape ``(materials, groups, groups)``.</span>
+<span class="sd">    chi : numpy.ndarray</span>
+<span class="sd">        Fission spectrum of shape ``(materials, groups)``.</span>
+<span class="sd">    nusigf : numpy.ndarray</span>
+<span class="sd">        Fission production vector of shape ``(materials, groups)``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        The combined matrix is written into ``xs_matrix`` in-place.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get parameters</span>
+    <span class="n">materials</span><span class="p">,</span> <span class="n">groups</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">xs_matrix</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">og</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ig</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="c1"># Iterate over cells and groups</span>
+    <span class="k">for</span> <span class="n">mat</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">materials</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">og</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ig</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+                <span class="n">xs_matrix</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">og</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">xs_scatter</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">og</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span> <span class="o">+</span> <span class="n">chi</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">*</span> <span class="n">nusigf</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span>
+                <span class="p">)</span>
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
     <span class="s2">&quot;void(f8[:,:], f8[:,:], i4[:], f8[:,:,:], f8[:], i4)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_off_scatter</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">off_scatter</span><span class="p">,</span> <span class="n">gg</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Accumulate off-diagonal scatter contributions for one group sweep.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Current scalar flux iterate with shape ``(cells_x, groups)``.</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Previous scalar flux iterate with shape ``(cells_x, groups)``.</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material index per cell with shape ``(cells_x,)``.</span>
+<span class="sd">    xs_scatter : numpy.ndarray</span>
+<span class="sd">        Scattering matrix of shape ``(materials, groups, groups)``.</span>
+<span class="sd">    off_scatter : numpy.ndarray</span>
+<span class="sd">        Output array of shape ``(cells_x,)`` filled in-place.</span>
+<span class="sd">    gg : int</span>
+<span class="sd">        Energy group currently being solved.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        The off-scatter source is written into ``off_scatter``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -123,15 +265,37 @@
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_variable_off_scatter</span><span class="p">(</span>
-    <span class="n">flux</span><span class="p">,</span>
-    <span class="n">flux_old</span><span class="p">,</span>
-    <span class="n">medium_map</span><span class="p">,</span>
-    <span class="n">xs_scatter</span><span class="p">,</span>
-    <span class="n">off_scatter</span><span class="p">,</span>
-    <span class="n">gg</span><span class="p">,</span>
-    <span class="n">edges_gidx_c</span><span class="p">,</span>
+    <span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">off_scatter</span><span class="p">,</span> <span class="n">gg</span><span class="p">,</span> <span class="n">edges_gidx_c</span>
 <span class="p">):</span>
-    <span class="c1"># Get parameters</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute off-diagonal scatter source for variable coarse/fine groups.</span>
+
+<span class="sd">    Uses only the L=0 Legendre moment for group-to-group transfer,</span>
+<span class="sd">    consistent with the treatment in _off_scatter. The anisotropic</span>
+<span class="sd">    correction for within-group scattering is handled separately inside</span>
+<span class="sd">    the sweep via flux_moments accumulation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray, shape (cells_x, groups_c)</span>
+<span class="sd">        Current scalar flux iterate.</span>
+<span class="sd">    flux_old : numpy.ndarray, shape (cells_x, groups_c)</span>
+<span class="sd">        Previous scalar flux iterate.</span>
+<span class="sd">    medium_map : numpy.ndarray, shape (cells_x,)</span>
+<span class="sd">        Material index per cell.</span>
+<span class="sd">    xs_scatter : numpy.ndarray, shape (n_materials, groups, groups, L+1)</span>
+<span class="sd">        Legendre moments of scatter cross sections.</span>
+<span class="sd">    off_scatter : numpy.ndarray, shape (cells_x,)</span>
+<span class="sd">        Off-diagonal scatter accumulator, zeroed and filled in-place.</span>
+<span class="sd">    gg : int</span>
+<span class="sd">        Current group index being solved.</span>
+<span class="sd">    edges_gidx_c : numpy.ndarray, shape (groups_c + 1,)</span>
+<span class="sd">        Coarse-to-fine group boundary indices.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        The off-diagonal scatter source is written into ``off_scatter``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups_c</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
     <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -140,30 +304,44 @@
     <span class="c1"># Zero out previous off scatter term</span>
     <span class="n">off_scatter</span> <span class="o">*=</span> <span class="mf">0.0</span>
 
-    <span class="c1"># Iterate over cells and groups</span>
     <span class="k">for</span> <span class="n">og</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups_c</span><span class="p">):</span>
-
         <span class="n">idx1</span> <span class="o">=</span> <span class="n">edges_gidx_c</span><span class="p">[</span><span class="n">og</span><span class="p">]</span>
         <span class="n">idx2</span> <span class="o">=</span> <span class="n">edges_gidx_c</span><span class="p">[</span><span class="n">og</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">og</span> <span class="o">&lt;</span> <span class="n">gg</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span><span class="p">):</span>
                 <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="c1"># L=0 moment only for group-to-group transfer</span>
                 <span class="n">off_scatter</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">xs_scatter</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="p">:,</span> <span class="n">idx1</span><span class="p">:</span><span class="n">idx2</span><span class="p">])</span> <span class="o">*</span> <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span>
-
         <span class="k">elif</span> <span class="n">og</span> <span class="o">&gt;</span> <span class="n">gg</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span><span class="p">):</span>
                 <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
                 <span class="n">off_scatter</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span>
                     <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">xs_scatter</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="p">:,</span> <span class="n">idx1</span><span class="p">:</span><span class="n">idx2</span><span class="p">])</span> <span class="o">*</span> <span class="n">flux_old</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span>
                 <span class="p">)</span>
-
         <span class="k">elif</span> <span class="n">og</span> <span class="o">==</span> <span class="n">gg</span><span class="p">:</span>
             <span class="k">continue</span>
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;void(f8[:,:], f8[:,:], i4[:])&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_coarsen_flux</span><span class="p">(</span><span class="n">fine_flux</span><span class="p">,</span> <span class="n">coarse_flux</span><span class="p">,</span> <span class="n">edges_gidx_c</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Collapse fine-group flux into a coarse-group representation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fine_flux : numpy.ndarray</span>
+<span class="sd">        Fine-group flux of shape ``(cells_x, groups)``.</span>
+<span class="sd">    coarse_flux : numpy.ndarray</span>
+<span class="sd">        Output coarse-group flux of shape ``(cells_x, groups_c)``.</span>
+<span class="sd">    edges_gidx_c : numpy.ndarray</span>
+<span class="sd">        Fine-group edge indices for each coarse group with shape</span>
+<span class="sd">        ``(groups_c + 1,)``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        The coarsened flux is written into ``coarse_flux`` in-place.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get parameters</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">groups_c</span> <span class="o">=</span> <span class="n">coarse_flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">gg</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -198,6 +376,11 @@
 <span class="sd">        Current angle index.</span>
 <span class="sd">    bc_x : sequence</span>
 <span class="sd">        Boundary condition flags for left/right reflections.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        The reflected edge value is written into ``reflector`` when needed.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># Get opposite angle</span>
@@ -211,6 +394,26 @@
     <span class="s2">&quot;void(f8[:,:,:], f8[:,:], f8[:,:,:], i4[:], f8[:,:,:])&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_source_total</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">external</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the total isotropic source from scatter and external terms.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    source : numpy.ndarray</span>
+<span class="sd">        Output source array of shape ``(cells_x, angles, groups)``.</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar flux array of shape ``(cells_x, groups)``.</span>
+<span class="sd">    xs_scatter : numpy.ndarray</span>
+<span class="sd">        Scattering matrix of shape ``(materials, groups, groups)``.</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material index per cell with shape ``(cells_x,)``.</span>
+<span class="sd">    external : numpy.ndarray</span>
+<span class="sd">        External source of shape ``(cells_x, angles or 1, groups or 1)``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        The total source is written into ``source`` in-place.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -240,8 +443,109 @@
                 <span class="n">source</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">=</span> <span class="n">one_group</span> <span class="o">+</span> <span class="n">external</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">nn_q</span><span class="p">,</span> <span class="n">og_q</span><span class="p">]</span>
 
 
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;void(f8[:,:,:], f8[:,:], f8[:,:,:,:], i4[:], f8[:,:,:], f8[:,:])&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_source_total_aniso</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">external</span><span class="p">,</span> <span class="n">P</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build total source array including anisotropic scatter and external.</span>
+
+<span class="sd">    For each cell, group, and angle the source is:</span>
+
+<span class="sd">        S(x, mu_n, g) = sum_l (2l+1) * [sum_ig xs_l(x,g,ig) * phi_l(x,ig)]</span>
+<span class="sd">                        * P_l(mu_n) + external(x, mu_n, g)</span>
+
+<span class="sd">    Since only the scalar flux is available here, phi_0(x, g) = flux(x, g)</span>
+<span class="sd">    and all higher moments are zero. The full anisotropic correction for</span>
+<span class="sd">    within-group scattering is handled inside the sweep via flux_moments.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    source : numpy.ndarray, shape (cells_x, angles, groups)</span>
+<span class="sd">        Output source array, zeroed and filled in-place.</span>
+<span class="sd">    flux : numpy.ndarray, shape (cells_x, groups)</span>
+<span class="sd">        Scalar flux (L=0 moment).</span>
+<span class="sd">    xs_scatter : numpy.ndarray, shape (n_materials, groups, groups, L+1)</span>
+<span class="sd">        Legendre moments of scatter cross sections.</span>
+<span class="sd">    medium_map : numpy.ndarray, shape (cells_x,)</span>
+<span class="sd">        Material index per cell.</span>
+<span class="sd">    external : numpy.ndarray, shape (cells_x, angles or 1, groups or 1)</span>
+<span class="sd">        External source.</span>
+<span class="sd">    P : numpy.ndarray, shape (L+1, angles)</span>
+<span class="sd">        Precomputed Legendre polynomials P[l, n] = P_l(mu_n).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        The total source is written into ``source`` in-place.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get parameters</span>
+    <span class="n">cells_x</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">n_moments</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">xs_scatter</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">nn</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">nn_q</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">og</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">og_q</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ig</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ll</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">group_sum</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">scatter</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+
+    <span class="c1"># Zero out previous source term</span>
+    <span class="n">source</span> <span class="o">*=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># Iterate over cells</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span><span class="p">):</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+
+        <span class="c1"># Iterate over outgoing groups</span>
+        <span class="k">for</span> <span class="n">og</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+            <span class="n">og_q</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">external</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">og</span>
+
+            <span class="c1"># Iterate over angles</span>
+            <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
+                <span class="n">nn_q</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">external</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">nn</span>
+                <span class="n">scatter</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+                <span class="c1"># Sum over Legendre moments</span>
+                <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_moments</span><span class="p">):</span>
+                    <span class="c1"># Only L=0 contributes since higher flux moments are</span>
+                    <span class="c1"># unavailable here (no angular flux). Loop is kept</span>
+                    <span class="c1"># general so it works correctly if higher moments are</span>
+                    <span class="c1"># ever passed in via an extended flux array.</span>
+                    <span class="n">group_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
+                    <span class="k">for</span> <span class="n">ig</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+                        <span class="c1"># phi_l(x, ig) = flux[ii, ig] for l=0, 0 otherwise</span>
+                        <span class="k">if</span> <span class="n">ll</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">group_sum</span> <span class="o">+=</span> <span class="n">xs_scatter</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">og</span><span class="p">,</span> <span class="n">ig</span><span class="p">,</span> <span class="n">ll</span><span class="p">]</span> <span class="o">*</span> <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span>
+                    <span class="n">scatter</span> <span class="o">+=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ll</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">group_sum</span> <span class="o">*</span> <span class="n">P</span><span class="p">[</span><span class="n">ll</span><span class="p">,</span> <span class="n">nn</span><span class="p">]</span>
+
+                <span class="n">source</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">=</span> <span class="n">scatter</span> <span class="o">+</span> <span class="n">external</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">nn_q</span><span class="p">,</span> <span class="n">og_q</span><span class="p">]</span>
+
+
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;void(f8[:,:,:], f8[:,:], f8[:,:,:], i4[:])&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_time_right_side</span><span class="p">(</span><span class="n">q_star</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Add isotropic scattering contributions to a transient right-hand side.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    q_star : numpy.ndarray</span>
+<span class="sd">        Right-hand side accumulator of shape ``(cells_x, angles, groups)``.</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar flux array of shape ``(cells_x, groups)``.</span>
+<span class="sd">    xs_scatter : numpy.ndarray</span>
+<span class="sd">        Scattering matrix of shape ``(materials, groups, groups)``.</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material index per cell with shape ``(cells_x,)``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        ``q_star`` is updated in-place.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Create (sigma_s + sigma_f) * phi + external + 1/(v*dt) * psi function</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">q_star</span><span class="o">.</span><span class="n">shape</span>
@@ -261,64 +565,155 @@
             <span class="n">q_star</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="p">:,</span> <span class="n">og</span><span class="p">]</span> <span class="o">+=</span> <span class="n">one_group</span>
 
 
-<span class="c1">########################################################################</span>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;void(f8[:,:,:], f8[:,:], f8[:,:,:,:], i4[:], f8[:,:])&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_time_right_side_aniso</span><span class="p">(</span><span class="n">q_star</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">P</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Update q_star with anisotropic scatter contribution.</span>
+
+<span class="sd">    Adds (sigma_s * phi) to q_star for each cell, angle, and group,</span>
+<span class="sd">    using the Legendre expansion of the scatter cross section. Since</span>
+<span class="sd">    only the scalar flux is available here, only the L=0 moment</span>
+<span class="sd">    contributes; higher moments are zero and their terms vanish.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    q_star : numpy.ndarray, shape (cells_x, angles, groups)</span>
+<span class="sd">        Right-hand side accumulator, updated in-place.</span>
+<span class="sd">    flux : numpy.ndarray, shape (cells_x, groups)</span>
+<span class="sd">        Scalar flux (L=0 moment).</span>
+<span class="sd">    xs_scatter : numpy.ndarray, shape (n_materials, groups, groups, L+1)</span>
+<span class="sd">        Legendre moments of scatter cross sections.</span>
+<span class="sd">    medium_map : numpy.ndarray, shape (cells_x,)</span>
+<span class="sd">        Material index per cell.</span>
+<span class="sd">    P : numpy.ndarray, shape (L+1, angles)</span>
+<span class="sd">        Precomputed Legendre polynomials P[l, n] = P_l(mu_n).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        ``q_star`` is updated in-place.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get parameters</span>
+    <span class="n">cells_x</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">q_star</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">n_moments</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">xs_scatter</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">nn</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">og</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ig</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ll</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">group_sum</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">scatter</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+
+    <span class="c1"># Iterate over cells</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span><span class="p">):</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+
+        <span class="c1"># Iterate over outgoing groups</span>
+        <span class="k">for</span> <span class="n">og</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+
+            <span class="c1"># Iterate over angles — scatter source is now direction-dependent</span>
+            <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
+                <span class="n">scatter</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+                <span class="c1"># Sum over Legendre moments</span>
+                <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_moments</span><span class="p">):</span>
+                    <span class="c1"># Only L=0 contributes since higher flux moments</span>
+                    <span class="c1"># are unavailable here (scalar flux only)</span>
+                    <span class="k">if</span> <span class="n">ll</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">group_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
+                        <span class="k">for</span> <span class="n">ig</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+                            <span class="n">group_sum</span> <span class="o">+=</span> <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span> <span class="o">*</span> <span class="n">xs_scatter</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">og</span><span class="p">,</span> <span class="n">ig</span><span class="p">,</span> <span class="n">ll</span><span class="p">]</span>
+                        <span class="n">scatter</span> <span class="o">+=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ll</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">group_sum</span> <span class="o">*</span> <span class="n">P</span><span class="p">[</span><span class="n">ll</span><span class="p">,</span> <span class="n">nn</span><span class="p">]</span>
+
+                <span class="n">q_star</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">+=</span> <span class="n">scatter</span>
+
+
+<span class="c1">################################################################################</span>
 <span class="c1"># Anisotropic Scattering</span>
-<span class="c1">########################################################################</span>
-
-<span class="c1"># def legendre_polynomial(moment, x):</span>
-<span class="c1">#     # Legendre polynomial using polynomial degree (moment) and</span>
-<span class="c1">#     # evaluation point (mu)</span>
-<span class="c1">#     if moment == 0:</span>
-<span class="c1">#         return 1</span>
-<span class="c1">#     elif moment == 1:</span>
-<span class="c1">#         return mu</span>
-<span class="c1">#     else:</span>
-<span class="c1">#         return ((2 * moment - 1) * mu * legendre_polynomial(moment - 1, mu) \</span>
-<span class="c1">#                 - (moment - 1) * legendre_polynomial(moment - 2, mu)) / moment</span>
+<span class="c1">################################################################################</span>
 
 
-<span class="c1"># @numba.jit(&quot;f8(f8, f8[:], f8, f8)&quot;, nopython=True, cache=True)</span>
-<span class="c1"># def anisotropic_scattering(angular_flux, xs_scatter, angle_x, angle_w):</span>
-<span class="c1">#     moment = numba.int32</span>
-<span class="c1">#     source = numba.float64(0.0)</span>
-<span class="c1">#     for moment in range(xs_scatter.shape[0]):</span>
-<span class="c1">#         source += (2 * moment + 1) * xs_scatter[moment] * angle_w \</span>
-<span class="c1">#                     * legendre_polynomial(moment, angle_x) * angular_flux</span>
-<span class="c1">#     return source</span>
+<div class="viewcode-block" id="legendre_polynomials">
+<a class="viewcode-back" href="../../discrete1.tools.html#discrete1.tools.legendre_polynomials">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">legendre_polynomials</span><span class="p">(</span><span class="n">n_moments</span><span class="p">,</span> <span class="n">angle_x</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Evaluate all Legendre polynomials P_0..P_{L} at every quadrature point.</span>
+
+<span class="sd">    Uses the three-term recurrence relation, avoiding the overhead of the</span>
+<span class="sd">    recursive ``legendre_polynomial`` function.  Called once per solve.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n_moments : int</span>
+<span class="sd">        Number of Legendre moments (L+1).</span>
+<span class="sd">    angle_x : numpy.ndarray, shape (angles,)</span>
+<span class="sd">        Angular quadrature points on [-1, 1].</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    P : numpy.ndarray, shape (n_moments, angles)</span>
+<span class="sd">        P[l, n] = P_l(mu_n).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">angle_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_moments</span><span class="p">,</span> <span class="n">angles</span><span class="p">))</span>
+    <span class="n">P</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">if</span> <span class="n">n_moments</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">P</span>
+    <span class="n">P</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">angle_x</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_moments</span><span class="p">):</span>
+        <span class="n">P</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ii</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">angle_x</span> <span class="o">*</span> <span class="n">P</span><span class="p">[</span><span class="n">ii</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">ii</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">P</span><span class="p">[</span><span class="n">ii</span> <span class="o">-</span> <span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="n">ii</span>
+    <span class="k">return</span> <span class="n">P</span></div>
 
 
-<span class="c1">########################################################################</span>
+
+<span class="c1">################################################################################</span>
 <span class="c1"># Multigroup functions - DMD</span>
-<span class="c1">########################################################################</span>
+<span class="c1">################################################################################</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_svd_dmd</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">K</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the truncated SVD factors used by the DMD extrapolation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    A : numpy.ndarray</span>
+<span class="sd">        Snapshot matrix with shape ``(n_state, n_snapshots)``.</span>
+<span class="sd">    K : int</span>
+<span class="sd">        Maximum rank retained for the decomposition.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
+<span class="sd">        Left singular vectors, inverse singular-value diagonal matrix, and</span>
+<span class="sd">        right singular vectors truncated to the retained rank.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">residual</span> <span class="o">=</span> <span class="mf">1e-09</span>
 
     <span class="c1"># Compute SVD</span>
-    <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">Vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="c1"># U, S, Vt = svd(A, full_matrices=False, check_finite=False)</span>
 
     <span class="c1"># Find the non-zero singular values</span>
-    <span class="k">if</span> <span class="n">S</span><span class="p">[(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">S</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">S</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">residual</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">spos</span> <span class="o">=</span> <span class="n">S</span><span class="p">[(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">S</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">S</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">residual</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">spos</span> <span class="o">=</span> <span class="n">S</span><span class="p">[</span><span class="n">S</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">S</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">S</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">energy</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">residual</span>
+    <span class="n">spos</span> <span class="o">=</span> <span class="n">S</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="k">else</span> <span class="n">S</span><span class="p">[</span><span class="n">S</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
 
     <span class="c1"># Create diagonal matrix</span>
-    <span class="n">mat_size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">([</span><span class="n">K</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">spos</span><span class="p">)])</span>
-    <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">mat_size</span><span class="p">,</span> <span class="n">mat_size</span><span class="p">))</span>
+    <span class="n">mat_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">spos</span><span class="p">))</span>
 
     <span class="c1"># Select the u and v that correspond with the nonzero singular values</span>
-    <span class="n">U</span> <span class="o">=</span> <span class="n">U</span><span class="p">[:,</span> <span class="p">:</span><span class="n">mat_size</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="n">V</span> <span class="o">=</span> <span class="n">V</span><span class="p">[:</span><span class="n">mat_size</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">U</span> <span class="o">=</span> <span class="n">U</span><span class="p">[:,</span> <span class="p">:</span><span class="n">mat_size</span><span class="p">]</span>
+    <span class="n">Vt</span> <span class="o">=</span> <span class="n">Vt</span><span class="p">[:</span><span class="n">mat_size</span><span class="p">,</span> <span class="p">:]</span>
 
     <span class="c1"># S will be the inverse of the singular value diagonal matrix</span>
-    <span class="n">S</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">diag_indices</span><span class="p">(</span><span class="n">mat_size</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">spos</span>
+    <span class="n">S_inv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">spos</span><span class="p">[:</span><span class="n">mat_size</span><span class="p">])</span>
 
-    <span class="k">return</span> <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span>
+    <span class="k">return</span> <span class="n">U</span><span class="p">,</span> <span class="n">S_inv</span><span class="p">,</span> <span class="n">Vt</span>
 
 
-<span class="c1"># @numba.jit(&quot;f8[:,:](f8[:,:], f8[:,:,:], f8[:,:,:], i4)&quot;, nopython=True, cache=True)</span>
 <div class="viewcode-block" id="dmd">
 <a class="viewcode-back" href="../../discrete1.tools.html#discrete1.tools.dmd">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">dmd</span><span class="p">(</span><span class="n">flux_old</span><span class="p">,</span> <span class="n">y_minus</span><span class="p">,</span> <span class="n">y_plus</span><span class="p">,</span> <span class="n">K</span><span class="p">):</span>
@@ -333,10 +728,10 @@
 <span class="sd">    flux_old : numpy.ndarray</span>
 <span class="sd">        Last known flux (n_cells, n_groups).</span>
 <span class="sd">    y_minus : numpy.ndarray</span>
-<span class="sd">        Snapshot difference array with shape (n_cells, n_groups, K-1)</span>
+<span class="sd">        Snapshot difference array with shape (n_cells * n_groups, K-1)</span>
 <span class="sd">        containing previous (backward) differences.</span>
 <span class="sd">    y_plus : numpy.ndarray</span>
-<span class="sd">        Snapshot difference array with shape (n_cells, n_groups, K-1)</span>
+<span class="sd">        Snapshot difference array with shape (n_cells * n_groups, K-1)</span>
 <span class="sd">        containing forward differences.</span>
 <span class="sd">    K : int</span>
 <span class="sd">        Number of snapshots (including the base) used for DMD.</span>
@@ -346,41 +741,74 @@
 <span class="sd">    numpy.ndarray</span>
 <span class="sd">        Extrapolated flux array with shape (n_cells, n_groups).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="c1"># Collect dimensions</span>
-    <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span>
-
-    <span class="c1"># Flatten y_minus, y_plus</span>
-    <span class="n">y_minus</span> <span class="o">=</span> <span class="n">y_minus</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">cells_x</span> <span class="o">*</span> <span class="n">groups</span><span class="p">,</span> <span class="n">K</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">y_plus</span> <span class="o">=</span> <span class="n">y_plus</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">cells_x</span> <span class="o">*</span> <span class="n">groups</span><span class="p">,</span> <span class="n">K</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-
     <span class="c1"># Call SVD</span>
-    <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">_svd_dmd</span><span class="p">(</span><span class="n">y_minus</span><span class="p">,</span> <span class="n">K</span><span class="p">)</span>
+    <span class="n">U</span><span class="p">,</span> <span class="n">S_inv</span><span class="p">,</span> <span class="n">Vt</span> <span class="o">=</span> <span class="n">_svd_dmd</span><span class="p">(</span><span class="n">y_minus</span><span class="p">,</span> <span class="n">K</span><span class="p">)</span>
 
     <span class="c1"># Calculate Atilde</span>
-    <span class="n">Atilde</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">y_plus</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">S</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">Atilde</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">y_plus</span> <span class="o">@</span> <span class="n">Vt</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">S_inv</span>
 
     <span class="c1"># Calculate delta_y</span>
-    <span class="n">eye</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">Atilde</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="n">delta_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">eye</span> <span class="o">-</span> <span class="n">Atilde</span><span class="p">,</span> <span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">y_plus</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">rhs</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">y_plus</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">delta_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">Atilde</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="n">Atilde</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
 
     <span class="c1"># Estimate new flux</span>
-    <span class="n">flux</span> <span class="o">=</span> <span class="p">(</span><span class="n">flux_old</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="o">-</span> <span class="n">y_plus</span><span class="p">[:,</span> <span class="n">K</span> <span class="o">-</span> <span class="mi">2</span><span class="p">])</span> <span class="o">+</span> <span class="p">(</span><span class="n">U</span> <span class="o">@</span> <span class="n">delta_y</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
-    <span class="n">flux</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span><span class="p">)</span>
+    <span class="n">flux</span> <span class="o">=</span> <span class="p">(</span><span class="n">flux_old</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="o">-</span> <span class="n">y_plus</span><span class="p">[:,</span> <span class="n">K</span> <span class="o">-</span> <span class="mi">2</span><span class="p">])</span> <span class="o">+</span> <span class="p">(</span><span class="n">U</span> <span class="o">@</span> <span class="n">delta_y</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">flux</span></div>
-
+    <span class="k">return</span> <span class="n">flux</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">flux_old</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div>
 
 
-<span class="c1">########################################################################</span>
+
+<span class="c1">################################################################################</span>
 <span class="c1"># K-eigenvalue functions</span>
-<span class="c1">########################################################################</span>
+<span class="c1">################################################################################</span>
 
 
+<div class="viewcode-block" id="fission_mat_prod">
+<a class="viewcode-back" href="../../discrete1.tools.html#discrete1.tools.fission_mat_prod">[docs]</a>
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
     <span class="s2">&quot;f8[:,:,:](f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], f8)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_fission_source</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">fission_mat_prod</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate fission source term for criticality problems.</span>
+
+<span class="sd">    Computes the fission source for each spatial cell and energy group by</span>
+<span class="sd">    integrating the product of flux and fission cross sections, scaled by</span>
+<span class="sd">    the effective multiplication factor (keff). This is used in eigenvalue</span>
+<span class="sd">    (criticality) calculations.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar flux array of shape (cells_x, groups). Contains the neutron</span>
+<span class="sd">        flux at each spatial cell and energy group.</span>
+<span class="sd">    xs_fission : numpy.ndarray</span>
+<span class="sd">        Fission production cross section array of shape (materials, groups, groups).</span>
+<span class="sd">        xs_fission[m, og, ig] is the cross section for neutrons in group ig</span>
+<span class="sd">        causing fission that produces neutrons in group og for material m.</span>
+<span class="sd">    source : numpy.ndarray</span>
+<span class="sd">        Fission source array of shape (cells_x, 1, groups) to be updated.</span>
+<span class="sd">        Zeroed out and overwritten with computed fission source.</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material index map of shape (cells_x,). Maps each spatial cell to</span>
+<span class="sd">        its material index.</span>
+<span class="sd">    keff : float</span>
+<span class="sd">        Effective multiplication factor. Used to normalize the fission source.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Updated fission source array of shape (cells_x, 1, groups).</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This function is JIT-compiled with Numba for performance. The fission</span>
+<span class="sd">    source for cell ii and output group og is:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        S_{f,ii,og} = \\frac{1}{k_{eff}} \\sum_{ig} \\phi_{ii,ig} \\sigma_{f,mat,og,ig}</span>
+
+<span class="sd">    where mat = medium_map[ii].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -402,11 +830,32 @@
                 <span class="n">one_group</span> <span class="o">+=</span> <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span> <span class="o">*</span> <span class="n">xs_fission</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">og</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span>
             <span class="n">source</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">=</span> <span class="n">one_group</span> <span class="o">/</span> <span class="n">keff</span>
     <span class="c1"># Return matrix vector product</span>
-    <span class="k">return</span> <span class="n">source</span>
+    <span class="k">return</span> <span class="n">source</span></div>
+
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8(f8[:,:], f8[:,:], f8[:,:,:], i4[:], f8)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_update_keffective</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_update_keff_mat</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Update $k_{eff}$ using matrix-form fission production data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Current flux iterate with shape ``(cells_x, groups)``.</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Previous flux iterate with shape ``(cells_x, groups)``.</span>
+<span class="sd">    xs_fission : numpy.ndarray</span>
+<span class="sd">        Fission production matrix of shape ``(materials, groups, groups)``.</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material index per cell with shape ``(cells_x,)``.</span>
+<span class="sd">    keff : float</span>
+<span class="sd">        Previous estimate of the effective multiplication factor.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Updated effective multiplication factor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get iterables</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -428,12 +877,157 @@
     <span class="k">return</span> <span class="p">(</span><span class="n">rate_new</span> <span class="o">*</span> <span class="n">keff</span><span class="p">)</span> <span class="o">/</span> <span class="n">rate_old</span>
 
 
+<div class="viewcode-block" id="fission_vec_prod">
+<a class="viewcode-back" href="../../discrete1.tools.html#discrete1.tools.fission_vec_prod">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;f8[:,:,:](f8[:,:], f8[:,:], f8[:,:], f8[:,:,:], i4[:], f8)&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">fission_vec_prod</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">chi</span><span class="p">,</span> <span class="n">nusigf</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate fission source term for criticality problems.</span>
+
+<span class="sd">    Computes the fission source for each spatial cell and energy group by</span>
+<span class="sd">    integrating the product of flux and fission cross sections, scaled by</span>
+<span class="sd">    the effective multiplication factor (keff). This is used in eigenvalue</span>
+<span class="sd">    (criticality) calculations.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar flux array of shape (cells_x, groups). Contains the neutron</span>
+<span class="sd">        flux at each spatial cell and energy group.</span>
+<span class="sd">    chi : numpy.ndarray</span>
+<span class="sd">        Fission neutron distribution of shape (materials, groups). chi[m, og] is</span>
+<span class="sd">        the fission probability output of group og for material m.</span>
+<span class="sd">    nusigf : numpy.ndarray</span>
+<span class="sd">        Fission production cross section array of shape (materials, groups).</span>
+<span class="sd">        nusigf[m, ig] is the cross section for neutrons in group ig</span>
+<span class="sd">        causing fission that produces neutrons for material m.</span>
+<span class="sd">    source : numpy.ndarray</span>
+<span class="sd">        Fission source array of shape (cells_x, 1, groups) to be updated.</span>
+<span class="sd">        Zeroed out and overwritten with computed fission source.</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material index map of shape (cells_x,). Maps each spatial cell to</span>
+<span class="sd">        its material index.</span>
+<span class="sd">    keff : float</span>
+<span class="sd">        Effective multiplication factor. Used to normalize the fission source.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Updated fission source array of shape (cells_x, 1, groups).</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This function is JIT-compiled with Numba for performance. The fission</span>
+<span class="sd">    source for cell ii and output group og is:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        S_{f,ii,og} = \\frac{1}{k_{eff}} \\sum_{ig} \\phi_{ii,ig} \\sigma_{f,mat,og,ig}</span>
+
+<span class="sd">    where mat = medium_map[ii].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get parameters</span>
+    <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">og</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ig</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">one_group</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="c1"># Zero out previous source</span>
+    <span class="n">source</span> <span class="o">*=</span> <span class="mf">0.0</span>
+    <span class="c1"># Iterate over cells and groups</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span><span class="p">):</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">chi</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">for</span> <span class="n">og</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+            <span class="c1"># source[ii,0,og] = np.sum(flux[ii] @ xs_fission[mat,og]) / keff</span>
+            <span class="n">one_group</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">ig</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+                <span class="n">one_group</span> <span class="o">+=</span> <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span> <span class="o">*</span> <span class="n">chi</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">*</span> <span class="n">nusigf</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span>
+            <span class="n">source</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">=</span> <span class="n">one_group</span> <span class="o">/</span> <span class="n">keff</span>
+    <span class="c1"># Return matrix vector product</span>
+    <span class="k">return</span> <span class="n">source</span></div>
+
+
+
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;f8(f8[:,:], f8[:,:], f8[:,:], f8[:,:], i4[:], f8)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_update_keff_vec</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">chi</span><span class="p">,</span> <span class="n">nusigf</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Update $k_{eff}$ using vector-form fission data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Current flux iterate with shape ``(cells_x, groups)``.</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Previous flux iterate with shape ``(cells_x, groups)``.</span>
+<span class="sd">    chi : numpy.ndarray</span>
+<span class="sd">        Fission spectrum of shape ``(materials, groups)``.</span>
+<span class="sd">    nusigf : numpy.ndarray</span>
+<span class="sd">        Production vector of shape ``(materials, groups)``.</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material index per cell with shape ``(cells_x,)``.</span>
+<span class="sd">    keff : float</span>
+<span class="sd">        Previous estimate of the effective multiplication factor.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Updated effective multiplication factor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get iterables</span>
+    <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">og</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ig</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="c1"># Initialize fission rates</span>
+    <span class="n">rate_new</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">rate_old</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="c1"># Iterate over cells and groups</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span><span class="p">):</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">chi</span><span class="p">[</span><span class="n">mat</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">for</span> <span class="n">og</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ig</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+                <span class="n">rate_new</span> <span class="o">+=</span> <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span> <span class="o">*</span> <span class="n">chi</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">*</span> <span class="n">nusigf</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span>
+                <span class="n">rate_old</span> <span class="o">+=</span> <span class="n">flux_old</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span> <span class="o">*</span> <span class="n">chi</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">*</span> <span class="n">nusigf</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">rate_new</span> <span class="o">*</span> <span class="n">keff</span><span class="p">)</span> <span class="o">/</span> <span class="n">rate_old</span>
+
+
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
     <span class="s2">&quot;f8[:,:,:](f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], f8, i4[:])&quot;</span><span class="p">,</span>
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_fission_source</span><span class="p">(</span><span class="n">flux_u</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source_c</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Project fine-group fission production into coarse-group source bins.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_u : numpy.ndarray</span>
+<span class="sd">        Fine-group uncollided flux of shape ``(cells_x, groups)``.</span>
+<span class="sd">    xs_fission : numpy.ndarray</span>
+<span class="sd">        Fine-group fission matrix of shape ``(materials, groups, groups)``.</span>
+<span class="sd">    source_c : numpy.ndarray</span>
+<span class="sd">        Coarse-group source accumulator of shape ``(cells_x, 1, coarse_groups)``.</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material index per cell with shape ``(cells_x,)``.</span>
+<span class="sd">    keff : float</span>
+<span class="sd">        Effective multiplication factor.</span>
+<span class="sd">    coarse_idx : numpy.ndarray</span>
+<span class="sd">        Mapping from fine group to coarse group with shape ``(groups,)``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Updated coarse-group fission source array.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_u</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -462,6 +1056,24 @@
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;void(f8[:,:], f8[:,:], i4[:], f8[:])&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_combine_fluxes</span><span class="p">(</span><span class="n">flux_u</span><span class="p">,</span> <span class="n">flux_c</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reconstruct fine-group flux from coarse-group corrections.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_u : numpy.ndarray</span>
+<span class="sd">        Fine-group flux updated in-place with shape ``(cells_x, groups)``.</span>
+<span class="sd">    flux_c : numpy.ndarray</span>
+<span class="sd">        Coarse-group flux of shape ``(cells_x, coarse_groups)``.</span>
+<span class="sd">    coarse_idx : numpy.ndarray</span>
+<span class="sd">        Mapping from fine group to coarse group with shape ``(groups,)``.</span>
+<span class="sd">    factor : numpy.ndarray</span>
+<span class="sd">        Per-group scaling factors with shape ``(groups,)``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        ``flux_u`` is overwritten with the combined fine-group flux.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_u</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -472,93 +1084,227 @@
             <span class="n">flux_u</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">gg</span><span class="p">]</span> <span class="o">=</span> <span class="n">flux_c</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">[</span><span class="n">gg</span><span class="p">]]</span> <span class="o">*</span> <span class="n">factor</span><span class="p">[</span><span class="n">gg</span><span class="p">]</span>
 
 
-<span class="c1">########################################################################</span>
+<span class="c1">################################################################################</span>
 <span class="c1"># DJINN functions</span>
-<span class="c1">########################################################################</span>
+<span class="c1">################################################################################</span>
 <span class="c1"># Fission source is of size (I x 1 x G) - for source iteration dimensions</span>
 <span class="c1"># Scatter source is of size (I x G) - for discrete ordinates dimensions</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_djinn_fission_predict</span><span class="p">(</span>
-    <span class="n">flux</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">model_labels</span><span class="o">=</span><span class="kc">None</span>
+<div class="viewcode-block" id="fission_prod_predict">
+<a class="viewcode-back" href="../../discrete1.tools.html#discrete1.tools.fission_prod_predict">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fission_prod_predict</span><span class="p">(</span>
+    <span class="n">flux</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">keff</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate fission source using hybrid ML/physics approach.</span>
+
+<span class="sd">    Computes the fission source using a combination of machine learning models</span>
+<span class="sd">    and traditional physics calculations. For each material, if a trained ML</span>
+<span class="sd">    model is available, it predicts the fission source; otherwise, the standard</span>
+<span class="sd">    physics-based calculation is used.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar flux array of shape (cells_x, groups). Contains the neutron</span>
+<span class="sd">        flux at each spatial cell and energy group.</span>
+<span class="sd">    xs_fission : numpy.ndarray</span>
+<span class="sd">        Fission production cross section array of shape (materials, groups, groups).</span>
+<span class="sd">        Used for scaling predictions and fallback calculations.</span>
+<span class="sd">    source : numpy.ndarray</span>
+<span class="sd">        Fission source array of shape (cells_x, 1, groups) to be updated.</span>
+<span class="sd">        Zeroed out and overwritten with computed fission source.</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material index map of shape (cells_x,). Maps each spatial cell to</span>
+<span class="sd">        its material index. Also used to index into the models list.</span>
+<span class="sd">    keff : float</span>
+<span class="sd">        Effective multiplication factor. Used to normalize the fission source.</span>
+<span class="sd">    models : list</span>
+<span class="sd">        List of trained ML models (or integers as placeholders). models[nn]</span>
+<span class="sd">        is used for material nn. If models[nn] is an integer (typically 0),</span>
+<span class="sd">        falls back to physics-based calculation.</span>
+<span class="sd">    label : numpy.ndarray, optional</span>
+<span class="sd">        Parameter/label array for parametric ML predictions. Passed to</span>
+<span class="sd">        model.predict() when making predictions. Default is None.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        The source array is modified in-place.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The ML models predict the energy distribution of fission neutrons, which</span>
+<span class="sd">    is then scaled to conserve the total fission rate. The scaling factor is</span>
+<span class="sd">    computed as:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        scale_i = \\sum_g \\phi_{i,g} \\sigma_{f,mat,g,0}</span>
+
+<span class="sd">    The predicted source is then normalized by keff and rescaled to match</span>
+<span class="sd">    the physics-based total fission rate.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Zero out previous source</span>
     <span class="n">source</span> <span class="o">*=</span> <span class="mf">0.0</span>
 
     <span class="c1"># Iterate over models</span>
     <span class="k">for</span> <span class="n">nn</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">models</span><span class="p">):</span>
         <span class="c1"># Find which cells model is predicting</span>
-        <span class="n">model_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">medium_map</span> <span class="o">==</span> <span class="n">nn</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">medium_map</span> <span class="o">==</span> <span class="n">nn</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
 
         <span class="c1"># Check if model available</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
             <span class="c1"># Calculate standard source</span>
-            <span class="n">source</span><span class="p">[</span><span class="n">model_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_fission_source</span><span class="p">(</span>
-                <span class="n">flux</span><span class="p">[</span><span class="n">model_idx</span><span class="p">],</span>
-                <span class="n">xs_fission</span><span class="p">,</span>
-                <span class="n">source</span><span class="p">[</span><span class="n">model_idx</span><span class="p">],</span>
-                <span class="n">medium_map</span><span class="p">[</span><span class="n">model_idx</span><span class="p">],</span>
-                <span class="n">keff</span><span class="p">,</span>
+            <span class="n">source</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">fission_mat_prod</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">keff</span>
             <span class="p">)</span>
             <span class="k">continue</span>
 
         <span class="c1"># Separate predicting flux</span>
-        <span class="n">predictor</span> <span class="o">=</span> <span class="n">flux</span><span class="p">[</span><span class="n">model_idx</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">mat_flux</span> <span class="o">=</span> <span class="n">flux</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="c1"># Check for zero values</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">predictor</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mat_flux</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="c1"># Get scaling factor</span>
-        <span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">predictor</span> <span class="o">*</span> <span class="n">xs_fission</span><span class="p">[</span><span class="n">nn</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mat_flux</span> <span class="o">*</span> <span class="n">xs_fission</span><span class="p">[</span><span class="n">nn</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="c1"># Check for labels and predict</span>
-        <span class="k">if</span> <span class="n">model_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">predictor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">model_labels</span><span class="p">[</span><span class="n">model_idx</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">predictor</span><span class="p">))</span>
-            <span class="n">predictor</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">predictor</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">predictor</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">predictor</span><span class="p">)</span>
+        <span class="n">mat_flux</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">mat_flux</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
         <span class="c1"># Scale back and add to source</span>
-        <span class="n">source</span><span class="p">[</span><span class="n">model_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">predictor</span> <span class="o">/</span> <span class="n">keff</span> <span class="o">*</span> <span class="p">(</span><span class="n">scale</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">predictor</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))[:,</span> <span class="kc">None</span><span class="p">]</span>
-        <span class="p">)</span>
+        <span class="n">source</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">mat_flux</span> <span class="o">/</span> <span class="n">keff</span> <span class="o">*</span> <span class="p">(</span><span class="n">scale</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mat_flux</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))[:,</span> <span class="kc">None</span><span class="p">]</span></div>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_djinn_scatter_predict</span><span class="p">(</span>
-    <span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">model_labels</span><span class="o">=</span><span class="kc">None</span>
-<span class="p">):</span>
+
+<div class="viewcode-block" id="scatter_prod_predict">
+<a class="viewcode-back" href="../../discrete1.tools.html#discrete1.tools.scatter_prod_predict">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">scatter_prod_predict</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate scatter source using hybrid ML/physics approach.</span>
+
+<span class="sd">    Computes the scatter source using a combination of machine learning models</span>
+<span class="sd">    and traditional physics calculations. For each material, if a trained ML</span>
+<span class="sd">    model is available, it predicts the scatter source; otherwise, the standard</span>
+<span class="sd">    physics-based calculation is used.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar flux array of shape (cells_x, groups). Contains the neutron</span>
+<span class="sd">        flux at each spatial cell and energy group.</span>
+<span class="sd">    xs_scatter : numpy.ndarray</span>
+<span class="sd">        Scattering cross section array of shape (materials, groups, groups).</span>
+<span class="sd">        xs_scatter[m, og, ig] is the cross section for scattering from</span>
+<span class="sd">        group ig to group og for material m.</span>
+<span class="sd">    source : numpy.ndarray</span>
+<span class="sd">        Scatter source array of shape (cells_x, groups) to be updated.</span>
+<span class="sd">        Zeroed out and overwritten with computed scatter source.</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material index map of shape (cells_x,). Maps each spatial cell to</span>
+<span class="sd">        its material index. Also used to index into the models list.</span>
+<span class="sd">    models : list</span>
+<span class="sd">        List of trained ML models (or integers as placeholders). models[nn]</span>
+<span class="sd">        is used for material nn. If models[nn] is an integer (typically 0),</span>
+<span class="sd">        falls back to physics-based calculation.</span>
+<span class="sd">    label : list, optional</span>
+<span class="sd">        Parameter/label array for parametric ML predictions. Passed to</span>
+<span class="sd">        model.predict() when making predictions. Can be a list (for one model</span>
+<span class="sd">        or all models having the same label) or a list of lists (label for</span>
+<span class="sd">        each model). Default is None.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        The source array is modified in-place.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The ML models predict the energy distribution of scattered neutrons, which</span>
+<span class="sd">    is then scaled to conserve the total scatter rate. The scaling factor is</span>
+<span class="sd">    computed as:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        scale_i = \\sum_g \\phi_{i,g} \\sigma_{s,mat,g,0}</span>
+
+<span class="sd">    The predicted source is rescaled to match the physics-based total scatter rate:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        S_{s,predicted} = S_{ML} \\cdot \\frac{scale}{\\sum_g S_{ML,g}}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Zero out previous source</span>
     <span class="n">source</span> <span class="o">*=</span> <span class="mf">0.0</span>
+
+    <span class="n">one_label</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">label</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">float</span><span class="p">)</span> <span class="k">else</span> <span class="kc">False</span>
 
     <span class="c1"># Iterate over models</span>
     <span class="k">for</span> <span class="n">nn</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">models</span><span class="p">):</span>
         <span class="c1"># Find which cells model is predicting</span>
-        <span class="n">model_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">medium_map</span> <span class="o">==</span> <span class="n">nn</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">medium_map</span> <span class="o">==</span> <span class="n">nn</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
 
         <span class="c1"># Check if model available</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
             <span class="c1"># Calculate standard source</span>
-            <span class="n">source</span><span class="p">[</span><span class="n">model_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_scatter_source</span><span class="p">(</span>
-                <span class="n">flux</span><span class="p">[</span><span class="n">model_idx</span><span class="p">],</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source</span><span class="p">[</span><span class="n">model_idx</span><span class="p">],</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">model_idx</span><span class="p">]</span>
+            <span class="n">source</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">scatter_prod</span><span class="p">(</span>
+                <span class="n">flux</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
             <span class="p">)</span>
             <span class="k">continue</span>
 
         <span class="c1"># Separate predicting flux</span>
-        <span class="n">predictor</span> <span class="o">=</span> <span class="n">flux</span><span class="p">[</span><span class="n">model_idx</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">mat_flux</span> <span class="o">=</span> <span class="n">flux</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="c1"># Check for zero values</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">predictor</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mat_flux</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="c1"># Get scaling factor</span>
-        <span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">predictor</span> <span class="o">*</span> <span class="n">xs_scatter</span><span class="p">[</span><span class="n">nn</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mat_flux</span> <span class="o">*</span> <span class="n">xs_scatter</span><span class="p">[</span><span class="n">nn</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="c1"># Check for labels and predict</span>
-        <span class="k">if</span> <span class="n">model_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">predictor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">model_labels</span><span class="p">[</span><span class="n">model_idx</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">predictor</span><span class="p">))</span>
-            <span class="n">predictor</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">predictor</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">one_label</span><span class="p">:</span>
+            <span class="n">mat_flux</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">mat_flux</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">predictor</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">predictor</span><span class="p">)</span>
+            <span class="n">mat_flux</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">mat_flux</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">[</span><span class="n">nn</span><span class="p">])</span>
         <span class="c1"># Scale back and add to source</span>
-        <span class="n">source</span><span class="p">[</span><span class="n">model_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">predictor</span> <span class="o">*</span> <span class="p">(</span><span class="n">scale</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">predictor</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))[:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">source</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">mat_flux</span> <span class="o">*</span> <span class="p">(</span><span class="n">scale</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mat_flux</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))[:,</span> <span class="kc">None</span><span class="p">]</span></div>
 
 
+
+<div class="viewcode-block" id="scatter_prod">
+<a class="viewcode-back" href="../../discrete1.tools.html#discrete1.tools.scatter_prod">[docs]</a>
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8[:,:](f8[:,:], f8[:,:,:], f8[:,:], i4[:])&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_scatter_source</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scatter_prod</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate scatter source term for multigroup transport.</span>
+
+<span class="sd">    Computes the scattering source for each spatial cell and energy group by</span>
+<span class="sd">    integrating the product of flux and scattering cross sections. This</span>
+<span class="sd">    represents neutrons scattering from all energy groups into each output</span>
+<span class="sd">    energy group.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar flux array of shape (cells_x, groups). Contains the neutron</span>
+<span class="sd">        flux at each spatial cell and energy group.</span>
+<span class="sd">    xs_scatter : numpy.ndarray</span>
+<span class="sd">        Scattering cross section array of shape (materials, groups, groups).</span>
+<span class="sd">        xs_scatter[m, og, ig] is the cross section for scattering from</span>
+<span class="sd">        group ig to group og for material m.</span>
+<span class="sd">    source : numpy.ndarray</span>
+<span class="sd">        Scatter source array of shape (cells_x, groups) to be updated.</span>
+<span class="sd">        Overwritten with computed scatter source.</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material index map of shape (cells_x,). Maps each spatial cell to</span>
+<span class="sd">        its material index.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Updated scatter source array of shape (cells_x, groups).</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This function is JIT-compiled with Numba for performance. The scatter</span>
+<span class="sd">    source for cell ii and output group og is:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        S_{s,ii,og} = \\sum_{ig} \\phi_{ii,ig} \\sigma_{s,mat,og,ig}</span>
+
+<span class="sd">    where mat = medium_map[ii].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -579,18 +1325,39 @@
                 <span class="n">one_group</span> <span class="o">+=</span> <span class="n">flux</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span> <span class="o">*</span> <span class="n">xs_scatter</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">og</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span>
             <span class="n">source</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">=</span> <span class="n">one_group</span>
     <span class="c1"># Return matrix vector product</span>
-    <span class="k">return</span> <span class="n">source</span>
+    <span class="k">return</span> <span class="n">source</span></div>
 
 
-<span class="c1">########################################################################</span>
+
+<span class="c1">################################################################################</span>
 <span class="c1"># Hybrid functions</span>
-<span class="c1">########################################################################</span>
+<span class="c1">################################################################################</span>
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
     <span class="s2">&quot;void(f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], i4[:])&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_source_collided</span><span class="p">(</span><span class="n">flux_u</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source_c</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the collided coarse-group source from isotropic scatter.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_u : numpy.ndarray</span>
+<span class="sd">        Uncollided fine-group flux of shape ``(cells_x, groups)``.</span>
+<span class="sd">    xs_scatter : numpy.ndarray</span>
+<span class="sd">        Fine-group scattering matrix of shape ``(materials, groups, groups)``.</span>
+<span class="sd">    source_c : numpy.ndarray</span>
+<span class="sd">        Coarse-group source accumulator of shape ``(cells_x, 1, coarse_groups)``.</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material index per cell with shape ``(cells_x,)``.</span>
+<span class="sd">    coarse_idx : numpy.ndarray</span>
+<span class="sd">        Mapping from fine group to coarse group with shape ``(groups,)``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        The collided coarse-group source is written into ``source_c``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_u</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -610,6 +1377,58 @@
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;void(f8[:,:], f8[:,:,:,:], f8[:,:,:], i4[:], i4[:])&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_source_collided_aniso</span><span class="p">(</span><span class="n">flux_u</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">source_c</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build collided source with anisotropic scatter.</span>
+
+<span class="sd">    Accumulates the scatter source from the uncollided flux into the</span>
+<span class="sd">    coarse-group collided source. Since source_c has a singleton angle</span>
+<span class="sd">    dimension (shape cells_x, 1, coarse_groups), the scatter source is</span>
+<span class="sd">    direction-integrated (L=0 only), consistent with the original.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_u : numpy.ndarray, shape (cells_x, groups)</span>
+<span class="sd">        Uncollided scalar flux.</span>
+<span class="sd">    xs_scatter : numpy.ndarray, shape (n_materials, groups, groups, L+1)</span>
+<span class="sd">        Legendre moments of scatter cross sections.</span>
+<span class="sd">    source_c : numpy.ndarray, shape (cells_x, 1, coarse_groups)</span>
+<span class="sd">        Collided source accumulator, zeroed and filled in-place.</span>
+<span class="sd">    medium_map : numpy.ndarray, shape (cells_x,)</span>
+<span class="sd">        Material index per cell.</span>
+<span class="sd">    coarse_idx : numpy.ndarray, shape (groups,)</span>
+<span class="sd">        Maps fine group og to coarse group index.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        The collided coarse-group source is written into ``source_c``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cells_x</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">flux_u</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">og</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ig</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+
+    <span class="c1"># Zero out previous source</span>
+    <span class="n">source_c</span> <span class="o">*=</span> <span class="mf">0.0</span>
+
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span><span class="p">):</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">og</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ig</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+                <span class="c1"># L=0 moment only - source_c has singleton angle dimension</span>
+                <span class="c1"># so the scatter source is direction-integrated here.</span>
+                <span class="c1"># The (2*0+1)=1 prefactor is implicit.</span>
+                <span class="n">source_c</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">[</span><span class="n">og</span><span class="p">]]</span> <span class="o">+=</span> <span class="p">(</span>
+                    <span class="n">flux_u</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span> <span class="o">*</span> <span class="n">xs_scatter</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">og</span><span class="p">,</span> <span class="n">ig</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="p">)</span>
+
+
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
     <span class="s2">&quot;void(f8[:,:], f8[:,:], f8[:,:,:], f8[:,:,:], i4[:], i4[:], f8[:])&quot;</span><span class="p">,</span>
     <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -617,6 +1436,30 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_source_total</span><span class="p">(</span>
     <span class="n">flux_u</span><span class="p">,</span> <span class="n">flux_c</span><span class="p">,</span> <span class="n">xs_scatter_u</span><span class="p">,</span> <span class="n">q_star</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">,</span> <span class="n">factor</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Add hybrid scatter source contributions to the transport right-hand side.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_u : numpy.ndarray</span>
+<span class="sd">        Fine-group uncollided flux of shape ``(cells_x, groups)``.</span>
+<span class="sd">    flux_c : numpy.ndarray</span>
+<span class="sd">        Coarse-group collided flux of shape ``(cells_x, coarse_groups)``.</span>
+<span class="sd">    xs_scatter_u : numpy.ndarray</span>
+<span class="sd">        Fine-group scattering matrix of shape ``(materials, groups, groups)``.</span>
+<span class="sd">    q_star : numpy.ndarray</span>
+<span class="sd">        Right-hand side accumulator of shape ``(cells_x, angles, groups)``.</span>
+<span class="sd">    medium_map : numpy.ndarray</span>
+<span class="sd">        Material index per cell with shape ``(cells_x,)``.</span>
+<span class="sd">    coarse_idx : numpy.ndarray</span>
+<span class="sd">        Mapping from fine group to coarse group with shape ``(groups,)``.</span>
+<span class="sd">    factor : numpy.ndarray</span>
+<span class="sd">        Per-group scaling factors with shape ``(groups,)``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        ``flux_u`` and ``q_star`` are updated in-place.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get parameters</span>
     <span class="n">cells_x</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">q_star</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -638,9 +1481,81 @@
                 <span class="n">q_star</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">+=</span> <span class="n">one_group</span>
 
 
-<span class="c1">########################################################################</span>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+    <span class="s2">&quot;void(f8[:,:], f8[:,:], f8[:,:,:,:], f8[:,:,:], i4[:], i4[:], f8[:], f8[:,:])&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_source_total_aniso</span><span class="p">(</span>
+    <span class="n">flux_u</span><span class="p">,</span> <span class="n">flux_c</span><span class="p">,</span> <span class="n">xs_scatter_u</span><span class="p">,</span> <span class="n">q_star</span><span class="p">,</span> <span class="n">medium_map</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">P</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build total hybrid source with anisotropic scatter.</span>
+
+<span class="sd">    Updates flux_u by adding the coarse-group correction, then accumulates</span>
+<span class="sd">    the anisotropic scatter source into q_star for each cell, angle, and</span>
+<span class="sd">    group. Since only the scalar flux is available here, only the L=0</span>
+<span class="sd">    moment contributes; the angle dependence enters via P[ll, nn].</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux_u : numpy.ndarray, shape (cells_x, groups)</span>
+<span class="sd">        Uncollided scalar flux, updated in-place with coarse correction.</span>
+<span class="sd">    flux_c : numpy.ndarray, shape (cells_x, coarse_groups)</span>
+<span class="sd">        Collided scalar flux on coarse group structure.</span>
+<span class="sd">    xs_scatter_u : numpy.ndarray, shape (n_materials, groups, groups, L+1)</span>
+<span class="sd">        Legendre moments of fine-group scatter cross sections.</span>
+<span class="sd">    q_star : numpy.ndarray, shape (cells_x, angles, groups)</span>
+<span class="sd">        Right-hand side accumulator, updated in-place.</span>
+<span class="sd">    medium_map : numpy.ndarray, shape (cells_x,)</span>
+<span class="sd">        Material index per cell.</span>
+<span class="sd">    coarse_idx : numpy.ndarray, shape (groups,)</span>
+<span class="sd">        Maps fine group og to coarse group index.</span>
+<span class="sd">    factor : numpy.ndarray, shape (groups,)</span>
+<span class="sd">        Scaling factor per fine group for coarse-to-fine mapping.</span>
+<span class="sd">    P : numpy.ndarray, shape (L+1, angles)</span>
+<span class="sd">        Precomputed Legendre polynomials P[l, n] = P_l(mu_n).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">        ``flux_u`` and ``q_star`` are updated in-place.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cells_x</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">q_star</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">n_moments</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">xs_scatter_u</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="n">ii</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">nn</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">og</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ig</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ll</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">group_sum</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="n">scatter</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cells_x</span><span class="p">):</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">medium_map</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+
+        <span class="c1"># Update uncollided flux with coarse-group correction</span>
+        <span class="k">for</span> <span class="n">og</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+            <span class="n">flux_u</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">=</span> <span class="n">flux_u</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">+</span> <span class="n">flux_c</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">coarse_idx</span><span class="p">[</span><span class="n">og</span><span class="p">]]</span> <span class="o">*</span> <span class="n">factor</span><span class="p">[</span><span class="n">og</span><span class="p">]</span>
+
+        <span class="c1"># Build anisotropic scatter source and accumulate into q_star</span>
+        <span class="k">for</span> <span class="n">og</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
+                <span class="n">scatter</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_moments</span><span class="p">):</span>
+                    <span class="c1"># Only L=0 contributes since only scalar flux is</span>
+                    <span class="c1"># available here; higher moment terms are zero</span>
+                    <span class="k">if</span> <span class="n">ll</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">group_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
+                        <span class="k">for</span> <span class="n">ig</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+                            <span class="n">group_sum</span> <span class="o">+=</span> <span class="n">flux_u</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span> <span class="o">*</span> <span class="n">xs_scatter_u</span><span class="p">[</span><span class="n">mat</span><span class="p">,</span> <span class="n">og</span><span class="p">,</span> <span class="n">ig</span><span class="p">,</span> <span class="n">ll</span><span class="p">]</span>
+                        <span class="n">scatter</span> <span class="o">+=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ll</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">group_sum</span> <span class="o">*</span> <span class="n">P</span><span class="p">[</span><span class="n">ll</span><span class="p">,</span> <span class="n">nn</span><span class="p">]</span>
+                <span class="n">q_star</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">+=</span> <span class="n">scatter</span>
+
+
+<span class="c1">################################################################################</span>
 <span class="c1"># Display Options</span>
-<span class="c1">########################################################################</span>
+<span class="c1">################################################################################</span>
 
 
 <div class="viewcode-block" id="reaction_rates">
@@ -676,13 +1591,31 @@
 
 
 
-<span class="c1">########################################################################</span>
+<span class="c1">################################################################################</span>
 <span class="c1"># Spatially Independent Functions</span>
-<span class="c1">########################################################################</span>
+<span class="c1">################################################################################</span>
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8(f8[:], f8[:], f8[:,:], i4)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_off_scatter_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_scatter</span><span class="p">,</span> <span class="n">gg</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute off-diagonal scatter for a zero-dimensional group solve.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Current scalar flux iterate with shape ``(groups,)``.</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Previous scalar flux iterate with shape ``(groups,)``.</span>
+<span class="sd">    xs_scatter : numpy.ndarray</span>
+<span class="sd">        Scattering matrix of shape ``(groups, groups)``.</span>
+<span class="sd">    gg : int</span>
+<span class="sd">        Energy group currently being solved.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Off-diagonal scatter source for group ``gg``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get parameters</span>
     <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">off_scatter</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
@@ -697,7 +1630,25 @@
 
 
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8[:,:](f8[:], f8[:,:], f8[:,:], f8)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_fission_source_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_fission_mat_source_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the zero-dimensional fission source from a full fission matrix.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar flux vector with shape ``(groups,)``.</span>
+<span class="sd">    xs_fission : numpy.ndarray</span>
+<span class="sd">        Fission matrix of shape ``(groups, groups)``.</span>
+<span class="sd">    source : numpy.ndarray</span>
+<span class="sd">        Output source array of shape ``(1, groups)``.</span>
+<span class="sd">    keff : float</span>
+<span class="sd">        Effective multiplication factor.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Updated zero-dimensional fission source.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get parameters</span>
     <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">og</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -715,8 +1666,65 @@
     <span class="k">return</span> <span class="n">source</span>
 
 
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8[:,:](f8[:], f8[:], f8[:], f8[:,:], f8)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_fission_vec_source_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">chi</span><span class="p">,</span> <span class="n">nusigf</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the zero-dimensional fission source from vector-form data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Scalar flux vector with shape ``(groups,)``.</span>
+<span class="sd">    chi : numpy.ndarray</span>
+<span class="sd">        Fission spectrum with shape ``(groups,)``.</span>
+<span class="sd">    nusigf : numpy.ndarray</span>
+<span class="sd">        Fission production vector with shape ``(groups,)``.</span>
+<span class="sd">    source : numpy.ndarray</span>
+<span class="sd">        Output source array of shape ``(1, groups)``.</span>
+<span class="sd">    keff : float</span>
+<span class="sd">        Effective multiplication factor.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        Updated zero-dimensional fission source.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get parameters</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">og</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ig</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">one_group</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span>
+    <span class="c1"># Zero out previous source</span>
+    <span class="n">source</span> <span class="o">*=</span> <span class="mf">0.0</span>
+    <span class="c1"># Iterate over groups</span>
+    <span class="k">for</span> <span class="n">og</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+        <span class="n">one_group</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">ig</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+            <span class="n">one_group</span> <span class="o">+=</span> <span class="n">flux</span><span class="p">[</span><span class="n">ig</span><span class="p">]</span> <span class="o">*</span> <span class="n">chi</span><span class="p">[</span><span class="n">og</span><span class="p">]</span> <span class="o">*</span> <span class="n">nusigf</span><span class="p">[</span><span class="n">ig</span><span class="p">]</span>
+        <span class="n">source</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">og</span><span class="p">]</span> <span class="o">=</span> <span class="n">one_group</span> <span class="o">/</span> <span class="n">keff</span>
+    <span class="c1"># Return matrix vector product</span>
+    <span class="k">return</span> <span class="n">source</span>
+
+
 <span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8(f8[:], f8[:], f8[:,:], f8)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_update_keffective_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_update_keff_mat_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">xs_fission</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Update $k_{eff}$ for a zero-dimensional matrix fission model.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Current flux iterate with shape ``(groups,)``.</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Previous flux iterate with shape ``(groups,)``.</span>
+<span class="sd">    xs_fission : numpy.ndarray</span>
+<span class="sd">        Fission matrix of shape ``(groups, groups)``.</span>
+<span class="sd">    keff : float</span>
+<span class="sd">        Previous estimate of the effective multiplication factor.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Updated effective multiplication factor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get iterables</span>
     <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">og</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
@@ -729,6 +1737,45 @@
         <span class="k">for</span> <span class="n">ig</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
             <span class="n">rate_new</span> <span class="o">+=</span> <span class="n">flux</span><span class="p">[</span><span class="n">ig</span><span class="p">]</span> <span class="o">*</span> <span class="n">xs_fission</span><span class="p">[</span><span class="n">og</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span>
             <span class="n">rate_old</span> <span class="o">+=</span> <span class="n">flux_old</span><span class="p">[</span><span class="n">ig</span><span class="p">]</span> <span class="o">*</span> <span class="n">xs_fission</span><span class="p">[</span><span class="n">og</span><span class="p">,</span> <span class="n">ig</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">rate_new</span> <span class="o">*</span> <span class="n">keff</span><span class="p">)</span> <span class="o">/</span> <span class="n">rate_old</span>
+
+
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="s2">&quot;f8(f8[:], f8[:], f8[:], f8[:], f8)&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_update_keff_vec_0d</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">flux_old</span><span class="p">,</span> <span class="n">chi</span><span class="p">,</span> <span class="n">nusigf</span><span class="p">,</span> <span class="n">keff</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Update $k_{eff}$ for a zero-dimensional vector fission model.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flux : numpy.ndarray</span>
+<span class="sd">        Current flux iterate with shape ``(groups,)``.</span>
+<span class="sd">    flux_old : numpy.ndarray</span>
+<span class="sd">        Previous flux iterate with shape ``(groups,)``.</span>
+<span class="sd">    chi : numpy.ndarray</span>
+<span class="sd">        Fission spectrum with shape ``(groups,)``.</span>
+<span class="sd">    nusigf : numpy.ndarray</span>
+<span class="sd">        Fission production vector with shape ``(groups,)``.</span>
+<span class="sd">    keff : float</span>
+<span class="sd">        Previous estimate of the effective multiplication factor.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Updated effective multiplication factor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get iterables</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">og</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">ig</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">int32</span>
+    <span class="c1"># Initialize fission rates</span>
+    <span class="n">rate_new</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">rate_old</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="c1"># Iterate over groups</span>
+    <span class="k">for</span> <span class="n">og</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ig</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
+            <span class="n">rate_new</span> <span class="o">+=</span> <span class="n">flux</span><span class="p">[</span><span class="n">ig</span><span class="p">]</span> <span class="o">*</span> <span class="n">chi</span><span class="p">[</span><span class="n">og</span><span class="p">]</span> <span class="o">*</span> <span class="n">nusigf</span><span class="p">[</span><span class="n">ig</span><span class="p">]</span>
+            <span class="n">rate_old</span> <span class="o">+=</span> <span class="n">flux_old</span><span class="p">[</span><span class="n">ig</span><span class="p">]</span> <span class="o">*</span> <span class="n">chi</span><span class="p">[</span><span class="n">og</span><span class="p">]</span> <span class="o">*</span> <span class="n">nusigf</span><span class="p">[</span><span class="n">ig</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">rate_new</span> <span class="o">*</span> <span class="n">keff</span><span class="p">)</span> <span class="o">/</span> <span class="n">rate_old</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">rate_new</span> <span class="o">*</span> <span class="n">keff</span><span class="p">)</span> <span class="o">/</span> <span class="n">rate_old</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">rate_new</span> <span class="o">*</span> <span class="n">keff</span><span class="p">)</span> <span class="o">/</span> <span class="n">rate_old</span>
 </pre></div>
 
@@ -745,7 +1792,7 @@
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-
+   
 
 </footer>
         </div>
@@ -756,7 +1803,7 @@
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
+  </script> 
 
 </body>
 </html>

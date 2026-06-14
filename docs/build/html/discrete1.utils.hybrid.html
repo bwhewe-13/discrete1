@@ -8,29 +8,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>discrete1.utils.hybrid module &mdash; discrete1 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
-
+  
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=01f34227"></script>
-      <script src="_static/doctools.js?v=9a2dae69"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="discrete1.utils.manufactured module" href="discrete1.utils.manufactured.html" />
-    <link rel="prev" title="discrete1.ml package" href="discrete1.ml.html" />
+    <link rel="prev" title="discrete1.utils.decorators module" href="discrete1.utils.decorators.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-
-
+          
+          
           <a href="index.html" class="icon icon-home">
             discrete1
           </a>
@@ -44,9 +44,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="discrete1.html">discrete1 package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="discrete1.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="discrete1.ml.html">discrete1.ml package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="discrete1.utils.decorators.html">discrete1.utils.decorators module</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">discrete1.utils.hybrid module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#discrete1.utils.hybrid.coarsen_external"><code class="docutils literal notranslate"><span class="pre">coarsen_external()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#discrete1.utils.hybrid.coarsen_materials"><code class="docutils literal notranslate"><span class="pre">coarsen_materials()</span></code></a></li>
@@ -93,13 +96,15 @@
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-
+             
   <section id="module-discrete1.utils.hybrid">
 <span id="discrete1-utils-hybrid-module"></span><h1>discrete1.utils.hybrid module<a class="headerlink" href="#module-discrete1.utils.hybrid" title="Link to this heading"></a></h1>
+<p>Functions to be used with the collision-based hybrid method.</p>
+<p>Allows for discretizing energy grids and material cross sections</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.hybrid.coarsen_external">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.hybrid.</span></span><span class="sig-name descname"><span class="pre">coarsen_external</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">external</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_g</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_gidx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/hybrid.html#coarsen_external"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.hybrid.coarsen_external" title="Link to this definition"></a></dt>
-<dd><p>Coarsen (… x groups) arrays to (… x groups’)</p>
+<dd><p>Coarsen (… x groups) arrays to (… x groups').</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -107,13 +112,13 @@
 Array to coarsen.</p></li>
 <li><p><strong>edges_g</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 1D array with float type of shape (groups + 1,).
 Energy group bounds.</p></li>
-<li><p><strong>edges_gidx</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 1D array with int type of shape (groups’ + 1,).
+<li><p><strong>edges_gidx</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 1D array with int type of shape (groups' + 1,).
 Index of energy group bounds for new energy grid.</p></li>
 <li><p><strong>weight</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>optional</em>) – Weighting the collapsing groups. Default is False.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Array with float type of shape (…, groups’).</p>
+<dd class="field-even"><p>Array with float type of shape (…, groups').</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
@@ -124,8 +129,7 @@ Index of energy group bounds for new energy grid.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.hybrid.coarsen_materials">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.hybrid.</span></span><span class="sig-name descname"><span class="pre">coarsen_materials</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_scatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs_fission</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_g</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_gidx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/hybrid.html#coarsen_materials"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.hybrid.coarsen_materials" title="Link to this definition"></a></dt>
-<dd><p>Coarsen (materials, groups) arrays to (materials, groups’) where
-groups &gt; groups’.</p>
+<dd><p>Coarsen (materials, groups) arrays to (materials, groups').</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -137,17 +141,17 @@ Scatter cross section.</p></li>
 Fission cross section.</p></li>
 <li><p><strong>edges_g</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 1D array with float type of shape (groups + 1,).
 Energy group bounds.</p></li>
-<li><p><strong>edges_gidx</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 1D array with int type of shape (groups’ + 1,).
+<li><p><strong>edges_gidx</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 1D array with int type of shape (groups' + 1,).
 Index of energy group bounds for new energy grid.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p><strong>coarse_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 2D array with float type of shape (materials, groups’).
+<li><p><strong>coarse_total</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 2D array with float type of shape (materials, groups').
 Coarsened total cross section.</p></li>
-<li><p><strong>coarse_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 3D array with float type of shape (materials, groups’, groups’).
+<li><p><strong>coarse_scatter</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 3D array with float type of shape (materials, groups', groups').
 Coarsened scatter cross section.</p></li>
-<li><p><strong>coarse_fission</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 3D array with float type of shape (materials, groups’, groups’).
+<li><p><strong>coarse_fission</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 3D array with float type of shape (materials, groups', groups').
 Coarsened fission cross section.</p></li>
 </ul>
 </p>
@@ -158,18 +162,18 @@ Coarsened fission cross section.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.hybrid.coarsen_velocity">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.hybrid.</span></span><span class="sig-name descname"><span class="pre">coarsen_velocity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vector</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_gidx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/hybrid.html#coarsen_velocity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.hybrid.coarsen_velocity" title="Link to this definition"></a></dt>
-<dd><p>Coarsen (groups,) vector to (groups’,) where groups &gt; groups’.</p>
+<dd><p>Coarsen (groups,) vector to (groups',) where groups &gt; groups'.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>vector</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 1D array with float type of shape (groups,).
 Array to coarsen.</p></li>
-<li><p><strong>edges_gidx</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 1D array with int type of shape (groups’ + 1,).
+<li><p><strong>edges_gidx</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 1D array with int type of shape (groups' + 1,).
 Index of energy group bounds for new energy grid</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>1D array with float type of shape (groups’,).</p>
+<dd class="field-even"><p>1D array with float type of shape (groups',).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.npdarray</span></code></p>
@@ -180,7 +184,8 @@ Index of energy group bounds for new energy grid</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.hybrid.collided_index">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.hybrid.</span></span><span class="sig-name descname"><span class="pre">collided_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groups_fine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_gidx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/hybrid.html#collided_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.hybrid.collided_index" title="Link to this definition"></a></dt>
-<dd><p>Calculate which coarse group a fine energy group is a part of, i.e.:</p>
+<dd><p>Calculate which coarse group a fine energy group is a part of.</p>
+<p>This is done through:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>fine grid  :    |---g1---|--g2--|---g3---|--g4--|
 coarse grid:    |-------g1------|-------g2------|
 </pre></div>
@@ -206,7 +211,7 @@ Index of energy group bounds for coarse energy grid.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.hybrid.energy_coarse_index">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.hybrid.</span></span><span class="sig-name descname"><span class="pre">energy_coarse_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coarse</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/hybrid.html#energy_coarse_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.hybrid.energy_coarse_index" title="Link to this definition"></a></dt>
-<dd><p>Get the indices for resizing matrices</p>
+<dd><p>Get the indices for resizing matrices.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -223,13 +228,36 @@ Index of energy group bounds for coarse energy grid.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.hybrid.energy_grid_change">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.hybrid.</span></span><span class="sig-name descname"><span class="pre">energy_grid_change</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">starting_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups_u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups_c</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/hybrid.html#energy_grid_change"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.hybrid.energy_grid_change" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Calculate the variables needed for refining and coarsening fluxes in vhybrid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>starting_grid</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Value of starting energy grid, could be 87, 361, 618.</p></li>
+<li><p><strong>groups_u</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of uncollided energy groups.</p></li>
+<li><p><strong>groups_c</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of collided energy groups.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>coarse_idx</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 1D array with int type of shape (groups_fine,).
+Coarse group mapping.</p></li>
+<li><p><strong>factor</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 1D array with float type of shape (groups_fine,).
+Fine energy bin width / coarse energy bin width for specific location.</p></li>
+<li><p><strong>edges_gidx_c</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 1D array with int type of shape (groups_c + 1,).
+Coarse group index mapping.</p></li>
+<li><p><strong>edges_g</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – 1D array with float type of shape (groups_u + 1,).
+Energy bound locations.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.hybrid.hybrid_factor">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.hybrid.</span></span><span class="sig-name descname"><span class="pre">hybrid_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta_fine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_coarse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_gidx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/hybrid.html#hybrid_factor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.hybrid.hybrid_factor" title="Link to this definition"></a></dt>
-<dd><p>Calculate the fine energy bin width per coarse energy bin width for
-specific location, i.e.:</p>
+<dd><p>Calculate the fine energy bin width per coarse energy bin width.</p>
+<p>This is done through</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>location (eV):    0        3      5        8      10
 fine grid    :    |---g1---|--g2--|---g3---|--g4--|
 coarse grid  :    |-------g1------|-------g2------|
@@ -261,7 +289,7 @@ Fine energy bin width / coarse energy bin width for specific location.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.hybrid.indexing">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.hybrid.</span></span><span class="sig-name descname"><span class="pre">indexing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">edges_g</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_gidx_fine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_gidx_coarse</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/hybrid.html#indexing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.hybrid.indexing" title="Link to this definition"></a></dt>
-<dd><p>Calculate the variables needed for refining and coarsening fluxes</p>
+<dd><p>Calculate the variables needed for refining and coarsening fluxes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -290,8 +318,8 @@ Fine energy bin width / coarse energy bin width for specific location.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="discrete1.utils.hybrid.uncollided_index">
 <span class="sig-prename descclassname"><span class="pre">discrete1.utils.hybrid.</span></span><span class="sig-name descname"><span class="pre">uncollided_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groups_coarse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges_gidx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/discrete1/utils/hybrid.html#uncollided_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#discrete1.utils.hybrid.uncollided_index" title="Link to this definition"></a></dt>
-<dd><p>Calculate the location of edges between the coarse and fine energy grids,
-i.e.:</p>
+<dd><p>Calculate the location of edges between the coarse and fine energy grids.</p>
+<p>This is done through</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>edge       :    0        1      2        3      4
 fine grid  :    |---g1---|--g2--|---g3---|--g4--|
 coarse grid:    |-------g1------|-------g2------|
@@ -322,7 +350,7 @@ Location of edges between the coarse and fine energy grids.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="discrete1.ml.html" class="btn btn-neutral float-left" title="discrete1.ml package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="discrete1.utils.decorators.html" class="btn btn-neutral float-left" title="discrete1.utils.decorators module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="discrete1.utils.manufactured.html" class="btn btn-neutral float-right" title="discrete1.utils.manufactured module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
@@ -335,7 +363,7 @@ Location of edges between the coarse and fine energy grids.</p>
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-
+   
 
 </footer>
         </div>
@@ -346,7 +374,7 @@ Location of edges between the coarse and fine energy grids.</p>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
+  </script> 
 
 </body>
 </html>
