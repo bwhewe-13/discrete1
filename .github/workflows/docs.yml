@@ -5,17 +5,21 @@ on:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
+  release:
+    types: [ published ]
   workflow_dispatch:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: "docs-ci"
-  cancel-in-progress: true
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  docs:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +38,25 @@ jobs:
 
       - name: Build Sphinx HTML
         run: |
-          cd docs
-          make html
-          ls -lah build/html | head -n 50
+          make -C docs html
+          # Prevent GitHub Pages from stripping Sphinx's _static/_sources folders.
+          touch docs/build/html/.nojekyll
+          ls -lah docs/build/html | head -n 50
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/build/html
+
+  deploy:
+    # Publish only on a published Release (or a manual run); pushes/PRs just build.
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

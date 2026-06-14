@@ -1,9 +1,11 @@
 # discrete1
 
-[![Documentation Status](https://github.com/bwhewe-13/discrete1/actions/workflows/docs.yml/badge.svg)](https://bwhewe-13.github.io/discrete1/)
-[![Tests](https://github.com/bwhewe-13/discrete1/actions/workflows/tests.yml/badge.svg)](https://github.com/bwhewe-13/discrete1/actions/workflows/tests.yml)
-[![codecov](https://codecov.io/gh/bwhewe-13/discrete1/branch/master/graph/badge.svg)](https://codecov.io/gh/bwhewe-13/discrete1)
-![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)
+[![Python Versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/bwhewe-13/discrete1)
+[![Style](https://img.shields.io/github/actions/workflow/status/bwhewe-13/discrete1/style.yml?label=Style)](https://github.com/bwhewe-13/discrete1/actions/workflows/style.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/bwhewe-13/discrete1/tests.yml?label=Tests)](https://github.com/bwhewe-13/discrete1/actions/workflows/tests.yml)
+[![Coverage](https://codecov.io/gh/bwhewe-13/discrete1/graph/badge.svg)](https://codecov.io/gh/bwhewe-13/discrete1)
+[![Docs](https://img.shields.io/github/actions/workflow/status/bwhewe-13/discrete1/docs.yml?label=Docs)](https://bwhewe-13.github.io/discrete1/)
+[![License: BSD 3-Clause](https://img.shields.io/badge/license-BSD%203--Clause-green.svg)](LICENSE)
 
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⡋⢅⣂⣐⡨⠙⡻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⣩⣥⣬⢕⢰⣾⣿⣿⣿⣿⣷⣄⠊⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
