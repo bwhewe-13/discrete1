@@ -31,6 +31,9 @@ from discrete1.main import (  # noqa: F401
 # Creating materials
 from discrete1.materials import materials  # noqa: F401
 
+# Burnup / depletion convenience API
+from discrete1.nuclides import NuclideLibrary, load_library, save_library  # noqa: F401
+
 try:
     __version__ = version("discrete1")
 except PackageNotFoundError:
