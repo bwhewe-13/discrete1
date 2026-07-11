@@ -13,6 +13,13 @@ import discrete1
 from discrete1 import external1d, fixed1d, timed1d, tools
 from discrete1.critical1d import power_iteration
 
+# The packaged cross-section data (discrete1/sources) is gitignored and not
+# shipped to CI, so tests that load it only run where the data exists.
+requires_packaged_data = pytest.mark.skipif(
+    not (external1d.DATA_PATH / "materials" / "hydrogen.npz").is_file(),
+    reason="packaged cross-section data (discrete1/sources) not available",
+)
+
 # One-group plutonium data from the sphere criticality benchmark (Sood 2003).
 PU_XS_TOTAL = np.array([[0.32640]])
 PU_XS_SCATTER = np.array([[[0.225216]]])
@@ -28,6 +35,7 @@ def _sphere_setup(delta_x, angles=8):
     return medium_map, bc_x, angle_x, angle_w
 
 
+@requires_packaged_data
 def test_materials_factory_loads_packaged_data():
     # DATA_PATH is an importlib.resources Traversable; joining it with "+"
     # raised TypeError and broke every example script.
@@ -40,6 +48,7 @@ def test_materials_factory_loads_packaged_data():
     assert np.all(xs_total > 0.0)
 
 
+@requires_packaged_data
 def test_external_ambe_loads_packaged_data():
     x = np.linspace(0.0, 10.0, 21)
     edges_g = np.linspace(0.1, 15.0, 88)
