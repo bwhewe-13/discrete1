@@ -281,9 +281,15 @@ def known_source_calculation(
     cells_x, groups = flux.shape
     angles = angle_x.shape[0]
 
-    # Create (sigma_s + sigma_f) * phi + external source
+    # Create (sigma_s + sigma_f) * phi + external source. Anisotropic
+    # transfer matrices (L+1 Legendre moments on the last axis) rebuild the
+    # source from the scalar flux (phi_0) with P_l(mu) weighting.
     source = np.zeros((cells_x, angles, groups))
-    tools._source_total(source, flux, xs_scatter, medium_map, external)
+    if xs_scatter.ndim == 4:
+        P = tools.legendre_polynomials(xs_scatter.shape[3], angle_x)
+        tools._source_total_aniso(source, flux, xs_scatter, medium_map, external, P)
+    else:
+        tools._source_total(source, flux, xs_scatter, medium_map, external)
 
     # Scalar Edges
     if (angular is False) and (edges == 1):
