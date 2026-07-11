@@ -56,7 +56,8 @@ class NuclideLibrary:
         Half-lives in seconds. Use ``numpy.inf`` for stable nuclides.
     decay_from, decay_to : numpy.ndarray of int
         Parallel COO index arrays: parent ``decay_from[k]`` decays to
-        daughter ``decay_to[k]``.
+        daughter ``decay_to[k]`` (``-1`` if the daughter is not tracked;
+        the parent still loses atoms).
     decay_branch : numpy.ndarray, shape (n_decay,)
         Branching ratio for each decay coupling (per parent decay).
     reaction_xs : dict[str, numpy.ndarray]
@@ -68,7 +69,8 @@ class NuclideLibrary:
         product is not tracked).
     fy_parent, fy_product : numpy.ndarray of int
         Parallel COO index arrays for fission yields: fissioning nuclide
-        ``fy_parent[k]`` produces ``fy_product[k]``.
+        ``fy_parent[k]`` produces ``fy_product[k]`` (``-1`` if the product
+        is not tracked).
     fy_yield : numpy.ndarray, shape (n_fy,)
         Number of ``fy_product`` atoms produced per fission of ``fy_parent``.
     fission_xs : numpy.ndarray, shape (M, G)
@@ -118,38 +120,72 @@ class NuclideLibrary:
 
     @property
     def decay_constant(self) -> np.ndarray:
-        """Decay constants ``lambda = ln(2) / half_life`` (1/s), 0 if stable."""
-        with np.errstate(divide="ignore"):
-            lam = LN2 / self.half_life
-        lam[~np.isfinite(lam)] = 0.0
-        return lam
+        """Decay constants ``lambda = ln(2) / half_life`` (1/s), 0 if stable.
+
+        :meth:`validate` guarantees positive half-lives, so stable nuclides
+        (``half_life = inf``) map exactly to zero.
+        """
+        return LN2 / self.half_life
 
     def validate(self):
-        """Check internal shape and index consistency; raise on error."""
+        """Check internal shape, index, and value consistency; raise on error.
+
+        Raises
+        ------
+        ValueError
+            If any array shape, nuclide index, or physical value (half-life,
+            branching ratio, fission yield) is inconsistent or invalid.
+        """
         m, g = self.n_nuclides, self.groups
-        assert self.half_life.shape == (m,), "half_life must have shape (M,)"
+        if len(set(self.names)) != m:
+            raise ValueError("names must be unique")
+        if self.half_life.shape != (m,):
+            raise ValueError("half_life must have shape (M,)")
+        if not np.all(self.half_life > 0.0):
+            raise ValueError("half_life must be positive (numpy.inf if stable)")
         for arr, name in (
             (self.fission_xs, "fission_xs"),
             (self.nu_fission, "nu_fission"),
             (self.xs_total, "xs_total"),
         ):
-            assert arr.shape == (m, g), f"{name} must have shape (M, G)"
-        assert self.xs_scatter.shape == (m, g, g), "xs_scatter must be (M, G, G)"
-        assert self.chi.shape == (g,), "chi must have shape (G,)"
-        assert self.kappa.shape == (m,), "kappa must have shape (M,)"
+            if arr.shape != (m, g):
+                raise ValueError(f"{name} must have shape (M, G)")
+        if self.xs_scatter.shape != (m, g, g):
+            raise ValueError("xs_scatter must be (M, G, G)")
+        if self.chi.shape != (g,):
+            raise ValueError("chi must have shape (G,)")
+        if self.kappa.shape != (m,):
+            raise ValueError("kappa must have shape (M,)")
         for channel in REACTIONS:
             if channel in self.reaction_xs:
-                assert self.reaction_xs[channel].shape == (
-                    m,
-                    g,
-                ), f"reaction_xs[{channel}] must have shape (M, G)"
-                assert self.reaction_product[channel].shape == (
-                    m,
-                ), f"reaction_product[{channel}] must have shape (M,)"
-        for arr in (self.decay_from, self.decay_to, self.decay_branch):
-            assert arr.shape == self.decay_from.shape, "decay COO arrays misaligned"
-        for arr in (self.fy_parent, self.fy_product, self.fy_yield):
-            assert arr.shape == self.fy_parent.shape, "fission-yield COO misaligned"
+                if self.reaction_xs[channel].shape != (m, g):
+                    raise ValueError(f"reaction_xs[{channel}] must have shape (M, G)")
+                if channel not in self.reaction_product:
+                    raise ValueError(f"reaction_product[{channel}] missing")
+                product = self.reaction_product[channel]
+                if product.shape != (m,):
+                    raise ValueError(f"reaction_product[{channel}] must be (M,)")
+                # -1 flags an untracked product; anything else must index names
+                self._check_indices(product, f"reaction_product[{channel}]", lower=-1)
+        for arr in (self.decay_to, self.decay_branch):
+            if arr.shape != self.decay_from.shape:
+                raise ValueError("decay COO arrays misaligned")
+        for arr in (self.fy_product, self.fy_yield):
+            if arr.shape != self.fy_parent.shape:
+                raise ValueError("fission-yield COO arrays misaligned")
+        self._check_indices(self.decay_from, "decay_from")
+        self._check_indices(self.decay_to, "decay_to", lower=-1)
+        self._check_indices(self.fy_parent, "fy_parent")
+        self._check_indices(self.fy_product, "fy_product", lower=-1)
+        if np.any(self.decay_branch < 0.0):
+            raise ValueError("decay_branch must be non-negative")
+        if np.any(self.fy_yield < 0.0):
+            raise ValueError("fy_yield must be non-negative")
+
+    def _check_indices(self, indices, name, lower=0):
+        """Verify an index array stays within ``[lower, M)``."""
+        if indices.size and (indices.min() < lower or indices.max() >= self.n_nuclides):
+            raise ValueError(f"{name} indices must be in [{lower}, M)")
 
 
 def load_library(path):
@@ -166,8 +202,8 @@ def load_library(path):
     NuclideLibrary
         Reconstructed library.
     """
-    data = np.load(path, allow_pickle=True)
-    names = list(data["names"])
+    data = np.load(path)
+    names = [str(name) for name in data["names"]]
     reaction_xs = {}
     reaction_product = {}
     for channel in REACTIONS:
