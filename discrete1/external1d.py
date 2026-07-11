@@ -278,7 +278,7 @@ def ambe(x, loc_x, edges_g):
     # AmBe source in middle of material
     external = np.zeros((x.shape[0], 1, edges_g.shape[0] - 1))
 
-    data = np.load(DATA_PATH + "external/AmBe_source_050G.npz")
+    data = np.load(DATA_PATH / "external" / "AmBe_source_050G.npz")
     # Convert to MeV
     if np.max(edges_g) > 20.0:
         edges_g *= 1e-6
