@@ -122,7 +122,7 @@ def power_iteration(
 
         # Check for convergence
         count += 1
-        change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        change = tools.flux_change(flux, flux_old)
         print(f"Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}", end="\r")
         converged = (change < change_kk) or (count >= count_kk)
 
@@ -255,7 +255,7 @@ def collect_power_iteration(
         flux /= np.linalg.norm(flux)
 
         # Check for convergence
-        change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        change = tools.flux_change(flux, flux_old)
         print(f"Count: {count:>2}\tKeff: {keff:.8f}", end="\r")
         converged = (change < change_kk) or (count >= count_kk)
         count += 1
@@ -463,7 +463,7 @@ def ml_power_iteration(
 
         # Check for convergence
         count += 1
-        change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        change = tools.flux_change(flux, flux_old)
         # Early exit
         if (change > change_old) and (count >= 20):
             print("\033[2K", end="")
@@ -642,7 +642,7 @@ def hybrid_power_iteration(
 
         # Step 8: Convergence check
         count += 1
-        change = np.linalg.norm((flux_u - flux_old) / flux_u / cells_x)
+        change = tools.flux_change(flux_u, flux_old)
         print(f"Count: {count:>2}\tKeff: {keff:.8f}\tChange: {change:.2e}", end="\r")
         converged = (change < change_kk) or (count >= count_kk)
 

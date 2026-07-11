@@ -64,6 +64,29 @@ import numpy as np
 ################################################################################
 # Multigroup functions
 ################################################################################
+def flux_change(flux, flux_old):
+    """Relative L2 change between two flux iterates, safe for zero flux.
+
+    Computes ``||flux - flux_old|| / ||flux||``. Unlike the elementwise
+    ``(flux - flux_old) / flux`` form this never divides by a zero flux
+    value (which yields NaN and stalls convergence tests at the iteration
+    cap). A zero-norm iterate returns the absolute change.
+
+    Parameters
+    ----------
+    flux, flux_old : numpy.ndarray
+        Current and previous flux iterates (any matching shape).
+
+    Returns
+    -------
+    float
+        Relative change of the current iterate.
+    """
+    denominator = np.linalg.norm(flux)
+    change = np.linalg.norm(flux - flux_old)
+    return change / denominator if denominator > 0.0 else change
+
+
 def transfer_matrix(xs_scatter, xs_fission, chi=None):
     """Combine scatter and fission matrices.
 

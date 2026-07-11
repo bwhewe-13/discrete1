@@ -69,7 +69,7 @@ def power_iteration(angles, xs_total, xs_scatter, xs_fission, chi=None):
         flux /= np.linalg.norm(flux)
 
         # Check for convergence
-        change = np.linalg.norm((flux - flux_old) / flux)
+        change = tools.flux_change(flux, flux_old)
         print(f"Count: {count:>2}\tKeff: {keff:.8f}", end="\r")
         converged = (change < change_kk) or (count >= count_kk)
         count += 1

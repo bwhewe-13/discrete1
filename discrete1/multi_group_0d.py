@@ -142,10 +142,7 @@ def source_iteration_iso(flux_old, xs_total, xs_scatter, external, angle_x, angl
             )
 
         # Check for convergence
-        try:
-            change = np.linalg.norm((flux - flux_old) / flux)
-        except RuntimeWarning:
-            change = 0.0
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_gg) or (count >= count_gg)
         count += 1
 
@@ -205,10 +202,7 @@ def discrete_ordinates_iso(
             )
 
         # Check for convergence
-        try:
-            change = np.linalg.norm((flux - flux_old) / flux)
-        except RuntimeWarning:
-            change = 0.0
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_nn) or (count >= count_nn)
         count += 1
 
@@ -292,10 +286,7 @@ def source_iteration_aniso(
             )
 
         # Check for convergence
-        try:
-            change = np.linalg.norm((flux - flux_old) / flux)
-        except RuntimeWarning:
-            change = 0.0
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_gg) or (count >= count_gg)
         count += 1
 
@@ -380,10 +371,7 @@ def discrete_ordinates_aniso(
             flux_moments += np.outer(angular, P_weights[:, nn])
 
         # Check for convergence
-        try:
-            change = np.linalg.norm((flux - flux_old) / flux)
-        except RuntimeWarning:
-            change = 0.0
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_nn) or (count >= count_nn)
         count += 1
 

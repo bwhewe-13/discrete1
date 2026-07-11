@@ -115,6 +115,7 @@ def source_iteration(
         if P is None:
             n_moments = xs_scatter.shape[3]
             P = tools.legendre_polynomials(n_moments, angle_x)
+        if P_weights is None:
             P_weights = angle_w[np.newaxis, :] * P
         return source_iteration_aniso(
             flux_old,
@@ -342,10 +343,7 @@ def source_iteration_iso(
             bc_x,
             geometry,
         )
-        try:
-            change = np.linalg.norm((flux - flux_old) / flux / cells_x)
-        except RuntimeWarning:
-            change = 0.0
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_gg) or (count >= count_gg)
         count += 1
         flux_old = flux.copy()
@@ -440,10 +438,7 @@ def source_iteration_aniso(
             P_weights,
         )
 
-        try:
-            change = np.linalg.norm((flux - flux_old) / flux / cells_x)
-        except RuntimeWarning:
-            change = 0.0
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_gg) or (count >= count_gg)
         count += 1
         flux_old = flux.copy()
@@ -664,10 +659,7 @@ def _variable_source_iteration_iso(
                     edges=0,
                 )
 
-        try:
-            change = np.linalg.norm((flux - flux_old) / flux / cells_x)
-        except RuntimeWarning:
-            change = 0.0
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_gg) or (count >= count_gg)
         count += 1
         flux_old = flux.copy()
@@ -784,10 +776,7 @@ def _variable_source_iteration_aniso(
                     P_weights,
                 )
 
-        try:
-            change = np.linalg.norm((flux - flux_old) / flux / cells_x)
-        except RuntimeWarning:
-            change = 0.0
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_gg) or (count >= count_gg)
         count += 1
         flux_old = flux.copy()
@@ -860,7 +849,7 @@ def _dmd_warmup(
                 geometry,
             )
 
-        change = np.linalg.norm((flux - flux_old) / flux / flux_old.shape[0])
+        change = tools.flux_change(flux, flux_old)
         if change < change_gg:
             return flux, None  # None signals early convergence
 
@@ -935,7 +924,7 @@ def _dmd_collect(
                 geometry,
             )
 
-        change = np.linalg.norm((flux - flux_old) / flux / flux_old.shape[0])
+        change = tools.flux_change(flux, flux_old)
         if change < change_gg:
             return flux, None, None  # None signals early convergence
 
@@ -1343,7 +1332,7 @@ def source_iteration_collect(
             geometry,
         )
 
-        change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_gg) or (count >= count_gg)
         count += 1
         flux_old = flux.copy()
@@ -1453,7 +1442,7 @@ def ml_source_iteration(
                 geometry,
             )
 
-        change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_pp) or (count >= count_pp)
         count += 1
         flux_old = flux.copy()
