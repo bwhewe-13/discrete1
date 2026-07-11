@@ -375,10 +375,7 @@ def slab_isotropic_sn(
             tools.reflector_corrector(reflector, angle_x, edge1, nn, bc_x)
 
         # Check for convergence
-        try:
-            change = np.linalg.norm((flux - flux_old) / flux / cells_x)
-        except RuntimeWarning:
-            change = 0.0
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_nn) or (count >= count_nn)
         count += 1
 
@@ -626,10 +623,7 @@ def slab_anisotropic_sn(
             flux_moments += np.outer(psi_nn, P_weights[:, nn])
             tools.reflector_corrector(reflector, angle_x, edge1, nn, bc_x)
 
-        try:
-            change = np.linalg.norm((flux - flux_old) / flux / cells_x)
-        except RuntimeWarning:
-            change = 0.0
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_nn) or (count >= count_nn)
         count += 1
         flux_old = flux.copy()
@@ -879,7 +873,7 @@ def sphere_isotropic_sn(
             alpha_minus = alpha_plus
             angle_minus = angle_plus
 
-        change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_nn) or (count >= count_nn)
         count += 1
         flux_old = flux.copy()
@@ -905,7 +899,7 @@ def _half_angle_iso(
     angle_plus,
 ):
     """Seed the half-angle array for the isotropic sphere sweep."""
-    cells_x = numba.int32(flux.shape[0])
+    cells_x = numba.int32(medium_map.shape[0])
     mat = numba.int32
     ii = numba.int32
     half_angle *= 0.0
@@ -978,9 +972,11 @@ def sphere_forward_iso(
 
     Updates ``flux`` in-place by marching from center toward the outer
     radius using the provided half-angle and differencing coefficients.
+    Cell radii are accumulated from ``delta_x``, so nonuniform meshes get
+    the correct shell areas and volumes.
     This kernel is performance-critical and compiled with numba.
     """
-    cells_x = numba.int32(flux.shape[0])
+    cells_x = numba.int32(medium_map.shape[0])
     mat = numba.int32
     ii = numba.int32
     edge1 = numba.float64(half_angle[0])
@@ -993,16 +989,17 @@ def sphere_forward_iso(
     area2 = numba.float64
     center = numba.float64
     volume = numba.float64
+    r_in = numba.float64(0.0)
+    r_out = numba.float64(0.0)
 
     for ii in range(cells_x):
         mat = medium_map[ii]
 
         # Calculate surface area and volume of cell
-        area1 = 4 * np.pi * (ii * delta_x[ii]) ** 2
-        area2 = 4 * np.pi * ((ii + 1) * delta_x[ii]) ** 2
-        volume = (
-            4 / 3.0 * np.pi * (((ii + 1) * delta_x[ii]) ** 3 - (ii * delta_x[ii]) ** 3)
-        )
+        r_out = r_in + delta_x[ii]
+        area1 = 4 * np.pi * r_in**2
+        area2 = 4 * np.pi * r_out**2
+        volume = 4 / 3.0 * np.pi * (r_out**3 - r_in**3)
 
         center = (
             angle_x * (area2 + area1) * edge1
@@ -1023,6 +1020,7 @@ def sphere_forward_iso(
         else:
             flux[ii] += weight * center
         edge1 = 2 * center - edge1
+        r_in = r_out
         if ii != 0:
             half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
 
@@ -1055,10 +1053,12 @@ def sphere_backward_iso(
     """Backward sweep kernel for spherical geometry for a single ordinate.
 
     Marches from the outer radius toward the center, updating ``flux``
-    in-place. The kernel uses geometry-specific surface area and
-    volume factors to compute center contributions.
+    in-place. Cell radii are accumulated from ``delta_x``, so nonuniform
+    meshes get the correct shell areas and volumes. The kernel uses
+    geometry-specific surface area and volume factors to compute center
+    contributions.
     """
-    cells_x = numba.int32(flux.shape[0])
+    cells_x = numba.int32(medium_map.shape[0])
     mat = numba.int32
     ii = numba.int32
     edge1 = numba.float64(boundary)
@@ -1071,14 +1071,19 @@ def sphere_backward_iso(
     center = numba.float64
     volume = numba.float64
 
+    # Outer radius of the sphere; marched inward cell by cell.
+    r_out = numba.float64(0.0)
+    for ii in range(cells_x):
+        r_out += delta_x[ii]
+    r_in = numba.float64(0.0)
+
     for ii in range(cells_x - 1, -1, -1):
         mat = medium_map[ii]
         # Calculate surface area and volume of cell
-        area1 = 4 * np.pi * (ii * delta_x[ii]) ** 2
-        area2 = 4 * np.pi * ((ii + 1) * delta_x[ii]) ** 2
-        volume = (
-            4 / 3.0 * np.pi * (((ii + 1) * delta_x[ii]) ** 3 - (ii * delta_x[ii]) ** 3)
-        )
+        r_in = r_out - delta_x[ii]
+        area1 = 4 * np.pi * r_in**2
+        area2 = 4 * np.pi * r_out**2
+        volume = 4 / 3.0 * np.pi * (r_out**3 - r_in**3)
 
         center = (
             -angle_x * (area2 + area1) * edge1
@@ -1093,12 +1098,14 @@ def sphere_backward_iso(
             + xs_total[mat] * volume
         )
 
-        # Update flux with cell edges or cell centers
+        # Update flux with cell edges or cell centers. The outgoing value
+        # (2*center - edge1) exits through the *inner* face of cell ii.
         if edges == 1:
-            flux[ii + 1] += weight * (2 * center - edge1)
+            flux[ii] += weight * (2 * center - edge1)
         else:
             flux[ii] += weight * center
         edge1 = 2 * center - edge1
+        r_out = r_in
         if ii != 0:
             half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
 
@@ -1224,7 +1231,7 @@ def sphere_anisotropic_sn(
             alpha_minus = alpha_plus
             angle_minus = angle_plus
 
-        change = np.linalg.norm((flux - flux_old) / flux / cells_x)
+        change = tools.flux_change(flux, flux_old)
         converged = (change < change_nn) or (count >= count_nn)
         count += 1
         flux_old = flux.copy()
@@ -1254,7 +1261,7 @@ def _half_angle_aniso(
     the initial half-angle before any ordinate-specific information is
     available.
     """
-    cells_x = numba.int32(flux.shape[0])
+    cells_x = numba.int32(medium_map.shape[0])
     mat = numba.int32
     ii = numba.int32
     half_angle *= 0.0
@@ -1293,12 +1300,15 @@ def sphere_forward_aniso(
 ):
     """Forward (center to edge) anisotropic sphere sweep for one ordinate.
 
+    Cell radii are accumulated from ``delta_x``, so nonuniform meshes get
+    the correct shell areas and volumes.
+
     Returns
     -------
     psi : numpy.ndarray, shape (n_cells,)
         Cell-centre angular flux for moment accumulation.
     """
-    cells_x = numba.int32(flux.shape[0])
+    cells_x = numba.int32(medium_map.shape[0])
     mat = numba.int32
     ii = numba.int32
     edge1 = numba.float64(half_angle[0])
@@ -1311,16 +1321,17 @@ def sphere_forward_aniso(
     area2 = numba.float64
     center = numba.float64
     volume = numba.float64
+    r_in = numba.float64(0.0)
+    r_out = numba.float64(0.0)
 
     for ii in range(cells_x):
         mat = medium_map[ii]
 
         # Calculate surface areas and volume of cell
-        area1 = 4 * np.pi * (ii * delta_x[ii]) ** 2
-        area2 = 4 * np.pi * ((ii + 1) * delta_x[ii]) ** 2
-        volume = (
-            4 / 3.0 * np.pi * (((ii + 1) * delta_x[ii]) ** 3 - (ii * delta_x[ii]) ** 3)
-        )
+        r_out = r_in + delta_x[ii]
+        area1 = 4 * np.pi * r_in**2
+        area2 = 4 * np.pi * r_out**2
+        volume = 4 / 3.0 * np.pi * (r_out**3 - r_in**3)
 
         center = (
             angle_x * (area2 + area1) * edge1
@@ -1340,6 +1351,7 @@ def sphere_forward_aniso(
         else:
             flux[ii] += weight * center
         edge1 = 2 * center - edge1
+        r_in = r_out
         if ii != 0:
             half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
 
@@ -1372,12 +1384,15 @@ def sphere_backward_aniso(
 ):
     """Backward (edge to center) anisotropic sphere sweep for one ordinate.
 
+    Cell radii are accumulated from ``delta_x``, so nonuniform meshes get
+    the correct shell areas and volumes.
+
     Returns
     -------
     psi : numpy.ndarray, shape (n_cells,)
         Cell-centre angular flux for moment accumulation.
     """
-    cells_x = numba.int32(flux.shape[0])
+    cells_x = numba.int32(medium_map.shape[0])
     mat = numba.int32
     ii = numba.int32
     edge1 = numba.float64(boundary)
@@ -1391,15 +1406,20 @@ def sphere_backward_aniso(
     center = numba.float64
     volume = numba.float64
 
+    # Outer radius of the sphere; marched inward cell by cell.
+    r_out = numba.float64(0.0)
+    for ii in range(cells_x):
+        r_out += delta_x[ii]
+    r_in = numba.float64(0.0)
+
     for ii in range(cells_x - 1, -1, -1):
         mat = medium_map[ii]
 
         # Calculate surface areas and volume of cell
-        area1 = 4 * np.pi * (ii * delta_x[ii]) ** 2
-        area2 = 4 * np.pi * ((ii + 1) * delta_x[ii]) ** 2
-        volume = (
-            4 / 3.0 * np.pi * (((ii + 1) * delta_x[ii]) ** 3 - (ii * delta_x[ii]) ** 3)
-        )
+        r_in = r_out - delta_x[ii]
+        area1 = 4 * np.pi * r_in**2
+        area2 = 4 * np.pi * r_out**2
+        volume = 4 / 3.0 * np.pi * (r_out**3 - r_in**3)
 
         center = (
             -angle_x * (area2 + area1) * edge1
@@ -1414,11 +1434,14 @@ def sphere_backward_aniso(
             + xs_total[mat] * volume
         )
         psi[ii] = center
+        # The outgoing value (2*center - edge1) exits through the *inner*
+        # face of cell ii.
         if edges == 1:
-            flux[ii + 1] += weight * (2 * center - edge1)
+            flux[ii] += weight * (2 * center - edge1)
         else:
             flux[ii] += weight * center
         edge1 = 2 * center - edge1
+        r_out = r_in
         if ii != 0:
             half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
 
@@ -1604,10 +1627,9 @@ def sphere_known_source_sn(
         Flux array (same as input) updated in-place.
     """
 
-    cells_x, xdim = flux.shape
+    _, xdim = flux.shape
     angles = angle_x.shape[0]
-    flux = np.zeros((cells_x,))
-    half_angle = np.zeros((cells_x,))
+    half_angle = np.zeros((medium_map.shape[0],))
 
     angle_minus = -1.0
     alpha_minus = 0.0
@@ -2155,7 +2177,7 @@ def sphere_forward_scatter(
     alpha_minus : float
         Backward angular coefficient.
     """
-    cells_x = numba.int32(flux.shape[0])
+    cells_x = numba.int32(medium_map.shape[0])
     mat = numba.int32
     ii = numba.int32
     edge1 = numba.float64(half_angle[0])
@@ -2164,16 +2186,17 @@ def sphere_forward_scatter(
     area2 = numba.float64
     center = numba.float64
     volume = numba.float64
+    r_in = numba.float64(0.0)
+    r_out = numba.float64(0.0)
 
     for ii in range(cells_x):
         mat = medium_map[ii]
 
         # Calculate surface areas and volume of cell
-        area1 = 4 * np.pi * (ii * delta_x[ii]) ** 2
-        area2 = 4 * np.pi * ((ii + 1) * delta_x[ii]) ** 2
-        volume = (
-            4 / 3.0 * np.pi * (((ii + 1) * delta_x[ii]) ** 3 - (ii * delta_x[ii]) ** 3)
-        )
+        r_out = r_in + delta_x[ii]
+        area1 = 4 * np.pi * r_in**2
+        area2 = 4 * np.pi * r_out**2
+        volume = 4 / 3.0 * np.pi * (r_out**3 - r_in**3)
 
         center = (
             angle_x * (area2 + area1) * edge1
@@ -2190,6 +2213,7 @@ def sphere_forward_scatter(
 
         flux[ii] += weight * center
         edge1 = 2 * center - edge1
+        r_in = r_out
         if ii != 0:
             half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
 
@@ -2251,7 +2275,7 @@ def sphere_backward_scatter(
     alpha_minus : float
         Backward angular coefficient.
     """
-    cells_x = numba.int32(flux.shape[0])
+    cells_x = numba.int32(medium_map.shape[0])
     mat = numba.int32
     ii = numba.int32
     # edge1 = numba.float64(boundary)
@@ -2262,15 +2286,20 @@ def sphere_backward_scatter(
     center = numba.float64
     volume = numba.float64
 
+    # Outer radius of the sphere; marched inward cell by cell.
+    r_out = numba.float64(0.0)
+    for ii in range(cells_x):
+        r_out += delta_x[ii]
+    r_in = numba.float64(0.0)
+
     for ii in range(cells_x - 1, -1, -1):
         mat = medium_map[ii]
 
         # Calculate surface areas and volume of cell
-        area1 = 4 * np.pi * (ii * delta_x[ii]) ** 2
-        area2 = 4 * np.pi * ((ii + 1) * delta_x[ii]) ** 2
-        volume = (
-            4 / 3.0 * np.pi * (((ii + 1) * delta_x[ii]) ** 3 - (ii * delta_x[ii]) ** 3)
-        )
+        r_in = r_out - delta_x[ii]
+        area1 = 4 * np.pi * r_in**2
+        area2 = 4 * np.pi * r_out**2
+        volume = 4 / 3.0 * np.pi * (r_out**3 - r_in**3)
 
         center = (
             -angle_x * (area2 + area1) * edge1
@@ -2287,5 +2316,6 @@ def sphere_backward_scatter(
 
         flux[ii] += weight * center
         edge1 = 2 * center - edge1
+        r_out = r_in
         if ii != 0:
             half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
