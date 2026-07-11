@@ -40,6 +40,27 @@ def test_region_flux_volume_average():
     assert rflux[1, 0] == pytest.approx(5.0)
 
 
+def test_cell_volumes_geometry():
+    delta_x = np.array([1.0, 1.0, 2.0])
+    # Slab: cell widths are the volume weights
+    assert np.allclose(burnup1d._cell_volumes(delta_x, geometry=1), delta_x)
+    # Sphere: shell volumes from the accumulated radii
+    edges = np.array([0.0, 1.0, 2.0, 4.0])
+    expected = 4.0 / 3.0 * np.pi * np.diff(edges**3)
+    assert np.allclose(burnup1d._cell_volumes(delta_x, geometry=2), expected)
+
+
+def test_region_flux_sphere_weighting():
+    # In a sphere the outer shell dominates the region average.
+    flux = np.array([[1.0], [3.0]])
+    medium_map = np.array([0, 0])
+    volumes = burnup1d._cell_volumes(np.array([1.0, 1.0]), geometry=2)
+    rflux = burnup1d.region_flux(flux, medium_map, volumes, n_regions=1)
+    expected = (volumes[0] * 1.0 + volumes[1] * 3.0) / volumes.sum()
+    assert rflux[0, 0] == pytest.approx(expected)
+    assert rflux[0, 0] > 2.0  # the unweighted slab average
+
+
 def test_burnup_depletes_fuel_and_lowers_keff():
     lib = synthetic_library(groups=1)
     medium_map, delta_x, angle_x, angle_w = _slab_setup()
@@ -60,16 +81,18 @@ def test_burnup_depletes_fuel_and_lowers_keff():
     )
 
     assert history.shape == (4, 1, 4)
-    assert keff.shape == (3,)
+    # keff_history[s] corresponds to density_history[s], including end of life
+    assert keff.shape == (4,)
     # Fuel monotonically depletes
     fuel = history[:, 0, lib.index["fuel"]]
     assert np.all(np.diff(fuel) < 0.0)
     # Fission products accumulate
     assert history[-1, 0, lib.index["fp_stable"]] > 0.0
-    # k-effective drops as fuel burns
+    # k-effective drops as fuel burns (final entry is end of life)
     assert keff[-1] < keff[0]
-    # Densities stay non-negative
-    assert np.all(history >= -1e-12)
+    assert np.all(np.diff(keff) < 0.0)
+    # Depleted densities are clamped non-negative
+    assert np.all(history >= 0.0)
 
 
 def test_predictor_only_runs():
@@ -90,4 +113,32 @@ def test_predictor_only_runs():
         predictor_corrector=False,
     )
     assert history.shape == (2, 1, 4)
+    assert keff.shape == (2,)
     assert history[1, 0, lib.index["fuel"]] < densities0[0, 0]
+
+
+def test_burnup_sphere_geometry():
+    # Sphere driver smoke test: reflective center, vacuum surface.
+    lib = synthetic_library(groups=1)
+    cells = 20
+    delta_x = np.full(cells, 0.5)
+    medium_map = np.zeros(cells, dtype=np.int32)
+    bc_x = [1, 0]
+    angle_x, angle_w = discrete1.angular_x(8, bc_x=bc_x)
+    history, keff = burnup1d.burnup(
+        lib,
+        np.array([[0.04, 0.0, 0.0, 0.0]]),
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x=bc_x,
+        dt_steps=[2.6e6],
+        power=1.0e6,
+        geometry=2,
+        order=16,
+    )
+    assert history.shape == (2, 1, 4)
+    assert keff.shape == (2,)
+    assert history[1, 0, lib.index["fuel"]] < 0.04
+    assert keff[1] < keff[0]
