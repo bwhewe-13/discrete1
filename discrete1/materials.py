@@ -136,7 +136,7 @@ def _generate_uranium_hydride(enrichment):
     n235 = (enrichment * rho * molar) / (molar + 3 * const.HYDROGEN_MM)
     n238 = ((1 - enrichment) * rho * molar) / (molar + 3 * const.HYDROGEN_MM)
     n1 = const.URANIUM_HYDRIDE_RHO * const.AVAGADRO / (molar + 3 * const.HYDROGEN_MM)
-    n1 *= const.CM_TO_BARNS * 3
+    n1 *= const.BARNS_TO_CM2 * 3
 
     u235 = np.load(DATA_PATH / "materials" / "uranium-235.npz")
     u238 = np.load(DATA_PATH / "materials" / "uranium-238.npz")

@@ -200,11 +200,11 @@ def test_xe135_reaches_analytic_equilibrium():
 
     # Reference uses the (barely changed) final U-235 density: the fast chain
     # tracks the slowly evolving fission source quasi-statically.
-    fission_rate = SIG_F_U235 * phi * const.CM_TO_BARNS  # 1/s per U-235 atom
+    fission_rate = SIG_F_U235 * phi * const.BARNS_TO_CM2  # 1/s per U-235 atom
     fission_source = fission_rate * n1[i["u235"]]
     lam_i = LN2 / T_I135
     lam_xe = LN2 / T_XE135
-    abs_xe = SIG_A_XE135 * phi * const.CM_TO_BARNS
+    abs_xe = SIG_A_XE135 * phi * const.BARNS_TO_CM2
 
     n_i_eq = GAMMA_I * fission_source / lam_i
     n_xe_eq = (GAMMA_I + GAMMA_XE) * fission_source / (lam_xe + abs_xe)
@@ -228,7 +228,7 @@ def test_u235_burndown_matches_exponential():
     dt = 2.0e7  # ~230 days
     n1 = depletion.deplete(lib, n0, flux, dt=dt, order=48)
 
-    removal = (SIG_C_U235 + SIG_F_U235) * phi * const.CM_TO_BARNS
+    removal = (SIG_C_U235 + SIG_F_U235) * phi * const.BARNS_TO_CM2
     reference = n0[i["u235"]] * math.exp(-removal * dt)
     assert n1[i["u235"]] == pytest.approx(reference, rel=1e-8)
 
@@ -264,7 +264,7 @@ def test_u235_burndown_through_burnup_driver():
         order=48,
     )
 
-    removal = (SIG_C_U235 + SIG_F_U235) * phi * const.CM_TO_BARNS
+    removal = (SIG_C_U235 + SIG_F_U235) * phi * const.BARNS_TO_CM2
     for step in range(n_steps + 1):
         t = step * dt
         reference = densities0[0, i["u235"]] * math.exp(-removal * t)

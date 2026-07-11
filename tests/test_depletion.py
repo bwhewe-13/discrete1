@@ -15,7 +15,7 @@ def test_reaction_rate_1g():
     xs = np.array([[2.0, 3.0], [0.0, 1.0]])  # barns, (M=2, G=2)
     flux = np.array([1e14, 2e14])
     rate = depletion.reaction_rate_1g(xs, flux)
-    expected = np.array([2.0 * 1e14 + 3.0 * 2e14, 1.0 * 2e14]) * const.CM_TO_BARNS
+    expected = np.array([2.0 * 1e14 + 3.0 * 2e14, 1.0 * 2e14]) * const.BARNS_TO_CM2
     assert np.allclose(rate, expected)
 
 
@@ -39,8 +39,8 @@ def test_burnup_matrix_with_flux():
     A = depletion.build_burnup_matrix(lib, flux).toarray()
     i = lib.index
 
-    cap = lib.reaction_xs["(n,gamma)"][i["fuel"], 0] * flux[0] * const.CM_TO_BARNS
-    fis = lib.fission_xs[i["fuel"], 0] * flux[0] * const.CM_TO_BARNS
+    cap = lib.reaction_xs["(n,gamma)"][i["fuel"], 0] * flux[0] * const.BARNS_TO_CM2
+    fis = lib.fission_xs[i["fuel"], 0] * flux[0] * const.BARNS_TO_CM2
     lam = np.log(2.0) / lib.half_life[i["fp"]]
 
     # Capture moves fuel -> fuel2
@@ -53,6 +53,32 @@ def test_burnup_matrix_with_flux():
     assert A[:, i["fuel"]].sum() == pytest.approx(fis)
     # fp column: produced from fuel, lost to decay
     assert A[i["fp"], i["fp"]] == pytest.approx(-lam)
+
+
+def test_burnup_matrix_skips_untracked_products():
+    # decay_to / fy_product of -1 means the product is not tracked: the parent
+    # still loses atoms, but nothing may be credited elsewhere (a negative
+    # index would silently feed the *last* nuclide).
+    lib = synthetic_library(groups=1)
+    i = lib.index
+    lib.decay_to = np.array([-1], dtype=np.int64)  # fp daughter untracked
+    lib.fy_product = np.array([-1], dtype=np.int64)  # fission product untracked
+    lib.validate()
+
+    flux = np.array([1e14])
+    A = depletion.build_burnup_matrix(lib, flux).toarray()
+    lam = np.log(2.0) / lib.half_life[i["fp"]]
+    fis = lib.fission_xs[i["fuel"], 0] * flux[0] * const.BARNS_TO_CM2
+
+    # Losses unchanged
+    assert A[i["fp"], i["fp"]] == pytest.approx(-lam)
+    assert A[i["fuel"], i["fuel"]] < 0.0
+    # Nothing lands on the last nuclide (index -1 target of both couplings)
+    last = lib.n_nuclides - 1
+    assert A[last, i["fp"]] == 0.0
+    assert A[last, i["fuel"]] == 0.0
+    # Fission still removes fuel even though its product is untracked
+    assert -A[i["fuel"], i["fuel"]] >= fis
 
 
 def test_deplete_decay_conserves_atoms():

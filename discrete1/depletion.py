@@ -19,7 +19,7 @@ group flux: ``rate = sum_g sigma_g * phi_g``. Unit convention (consistent set):
 
 - ``phi_g`` in n/cm^2/s,
 - microscopic ``sigma_g`` stored in barns and converted with
-  :data:`discrete1.constants.CM_TO_BARNS` (1 barn = 1e-24 cm^2),
+  :data:`discrete1.constants.BARNS_TO_CM2` (1 barn = 1e-24 cm^2),
 - number densities in atoms/(barn*cm) (equivalently 1e24 atoms/cm^3),
 
 which yields reaction rates and ``A`` entries in 1/s.
@@ -53,7 +53,7 @@ def reaction_rate_1g(xs_mg, flux_g):
     numpy.ndarray, shape (M,)
         One-group reaction rate per nuclide in 1/s.
     """
-    return (xs_mg @ flux_g) * const.CM_TO_BARNS
+    return (xs_mg @ flux_g) * const.BARNS_TO_CM2
 
 
 def build_burnup_matrix(library, flux_g, densities=None):
@@ -91,14 +91,15 @@ def build_burnup_matrix(library, flux_g, densities=None):
     loss = np.zeros(m)
 
     # --- Radioactive decay ---
+    # An untracked daughter (index -1) still removes atoms from the parent
+    # (via the lambda in `loss`) but produces nothing.
     lam = library.decay_constant  # (M,)
     loss += lam
-    for parent, daughter, branch in zip(
-        library.decay_from, library.decay_to, library.decay_branch
-    ):
-        rows.append(daughter)
-        cols.append(parent)
-        vals.append(lam[parent] * branch)
+    tracked = library.decay_to >= 0
+    parents = library.decay_from[tracked]
+    rows.append(library.decay_to[tracked])
+    cols.append(parents)
+    vals.append(lam[parents] * library.decay_branch[tracked])
 
     # --- Neutron reactions (transmutation channels) ---
     for channel in REACTIONS:
@@ -107,31 +108,29 @@ def build_burnup_matrix(library, flux_g, densities=None):
         rate = reaction_rate_1g(library.reaction_xs[channel], flux_g)  # (M,)
         loss += rate
         product = library.reaction_product[channel]
-        for parent in range(m):
-            target = product[parent]
-            if target >= 0 and rate[parent] != 0.0:
-                rows.append(target)
-                cols.append(parent)
-                vals.append(rate[parent])
+        parents = np.where((product >= 0) & (rate != 0.0))[0]
+        rows.append(product[parents])
+        cols.append(parents)
+        vals.append(rate[parents])
 
     # --- Fission (loss of fissile nuclide, production of fission products) ---
     fission_rate = reaction_rate_1g(library.fission_xs, flux_g)  # (M,)
     loss += fission_rate
-    for parent, product, yld in zip(
-        library.fy_parent, library.fy_product, library.fy_yield
-    ):
-        if fission_rate[parent] != 0.0:
-            rows.append(product)
-            cols.append(parent)
-            vals.append(fission_rate[parent] * yld)
+    parent_rate = fission_rate[library.fy_parent]
+    active = (library.fy_product >= 0) & (parent_rate != 0.0)
+    rows.append(library.fy_product[active])
+    cols.append(library.fy_parent[active])
+    vals.append(parent_rate[active] * library.fy_yield[active])
 
     # --- Diagonal loss terms ---
-    for i in range(m):
-        if loss[i] != 0.0:
-            rows.append(i)
-            cols.append(i)
-            vals.append(-loss[i])
+    diagonal = np.where(loss != 0.0)[0]
+    rows.append(diagonal)
+    cols.append(diagonal)
+    vals.append(-loss[diagonal])
 
+    rows = np.concatenate(rows)
+    cols = np.concatenate(cols)
+    vals = np.concatenate(vals)
     matrix = sp.coo_matrix((vals, (rows, cols)), shape=(m, m), dtype=np.float64).tocsc()
     matrix.sum_duplicates()
     return matrix
