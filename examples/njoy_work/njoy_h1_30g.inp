@@ -1,0 +1,30 @@
+-- NJOY input: h1  mat=125
+-- ign3  temperatures: 293.6 K
+-- weight function: lwr (iwt=4)
+--
+reconr
+  20 21 /
+  'h1 reconr' /
+  125 0 /
+  0.001 0. /
+  0 /
+broadr
+  20 21 22 /
+  125 1 /
+  0.001 /
+  293.6 /
+  0 /
+groupr
+  20 22 0 23 /
+  125 3 0 4 1 1 1 /
+  'h1 ign3' /
+  293.6 /
+  1.0e10 /
+  0.10 0.025 820.3e+3 1.4e+6 /
+  3 1 'total' /
+  3 2 'elastic' /
+  3 102 'capture' /
+  6 2 'elastic matrix' /
+  0 /
+  0 /
+stop

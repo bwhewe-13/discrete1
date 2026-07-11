@@ -34,3 +34,7 @@ coverage.xml
 
 # Tests
 .pytest_cache/
+
+# Regenerable example artifacts (see examples/depletion_pycnic_slab.py)
+examples/depletion_pycnic_30g.h5
+examples/depletion_pycnic_slab.png

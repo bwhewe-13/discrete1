@@ -1,0 +1,79 @@
+-- NJOY input: np239  mat=9352
+-- ign3  temperatures: 293.6 K
+-- weight function: lwr (iwt=4)
+--
+reconr
+  20 21 /
+  'np239 reconr' /
+  9352 0 /
+  0.001 0. /
+  0 /
+broadr
+  20 21 22 /
+  9352 1 /
+  0.001 /
+  293.6 /
+  0 /
+groupr
+  20 22 0 23 /
+  9352 3 0 4 1 1 1 /
+  'np239 ign3' /
+  293.6 /
+  1.0e10 /
+  0.10 0.025 820.3e+3 1.4e+6 /
+  3 1 'total' /
+  3 2 'elastic' /
+  3 4 'inelastic' /
+  3 16 '(n,2n)' /
+  3 17 '(n,3n)' /
+  3 18 'fission' /
+  3 102 'capture' /
+  3 51 'mt51' /
+  3 52 'mt52' /
+  3 53 'mt53' /
+  3 54 'mt54' /
+  3 55 'mt55' /
+  3 56 'mt56' /
+  3 57 'mt57' /
+  3 58 'mt58' /
+  3 59 'mt59' /
+  3 60 'mt60' /
+  3 61 'mt61' /
+  3 62 'mt62' /
+  3 63 'mt63' /
+  3 64 'mt64' /
+  3 65 'mt65' /
+  3 66 'mt66' /
+  3 67 'mt67' /
+  3 68 'mt68' /
+  3 69 'mt69' /
+  3 70 'mt70' /
+  3 91 'mt91' /
+  3 452 'nubar' /
+  6 2 'elastic matrix' /
+  8 51 'mt51 matrix' /
+  8 52 'mt52 matrix' /
+  8 53 'mt53 matrix' /
+  8 54 'mt54 matrix' /
+  8 55 'mt55 matrix' /
+  8 56 'mt56 matrix' /
+  8 57 'mt57 matrix' /
+  8 58 'mt58 matrix' /
+  8 59 'mt59 matrix' /
+  8 60 'mt60 matrix' /
+  8 61 'mt61 matrix' /
+  8 62 'mt62 matrix' /
+  8 63 'mt63 matrix' /
+  8 64 'mt64 matrix' /
+  8 65 'mt65 matrix' /
+  8 66 'mt66 matrix' /
+  8 67 'mt67 matrix' /
+  8 68 'mt68 matrix' /
+  8 69 'mt69 matrix' /
+  8 70 'mt70 matrix' /
+  8 91 'mt91 matrix' /
+  8 16 '(n,2n) matrix' /
+  6 18 'fission matrix' /
+  0 /
+  0 /
+stop

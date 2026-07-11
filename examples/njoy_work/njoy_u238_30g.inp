@@ -1,0 +1,117 @@
+-- NJOY input: u238  mat=9237
+-- ign3  temperatures: 293.6 K
+-- weight function: lwr (iwt=4)
+--
+reconr
+  20 21 /
+  'u238 reconr' /
+  9237 0 /
+  0.001 0. /
+  0 /
+broadr
+  20 21 22 /
+  9237 1 /
+  0.001 /
+  293.6 /
+  0 /
+groupr
+  20 22 0 23 /
+  9237 3 0 4 1 1 1 /
+  'u238 ign3' /
+  293.6 /
+  1.0e10 /
+  0.10 0.025 820.3e+3 1.4e+6 /
+  3 1 'total' /
+  3 2 'elastic' /
+  3 4 'inelastic' /
+  3 16 '(n,2n)' /
+  3 17 '(n,3n)' /
+  3 18 'fission' /
+  3 102 'capture' /
+  3 51 'mt51' /
+  3 52 'mt52' /
+  3 53 'mt53' /
+  3 54 'mt54' /
+  3 55 'mt55' /
+  3 56 'mt56' /
+  3 57 'mt57' /
+  3 58 'mt58' /
+  3 59 'mt59' /
+  3 60 'mt60' /
+  3 61 'mt61' /
+  3 62 'mt62' /
+  3 63 'mt63' /
+  3 64 'mt64' /
+  3 65 'mt65' /
+  3 66 'mt66' /
+  3 67 'mt67' /
+  3 68 'mt68' /
+  3 69 'mt69' /
+  3 70 'mt70' /
+  3 71 'mt71' /
+  3 72 'mt72' /
+  3 73 'mt73' /
+  3 74 'mt74' /
+  3 75 'mt75' /
+  3 76 'mt76' /
+  3 77 'mt77' /
+  3 78 'mt78' /
+  3 79 'mt79' /
+  3 80 'mt80' /
+  3 81 'mt81' /
+  3 82 'mt82' /
+  3 83 'mt83' /
+  3 84 'mt84' /
+  3 85 'mt85' /
+  3 86 'mt86' /
+  3 87 'mt87' /
+  3 88 'mt88' /
+  3 89 'mt89' /
+  3 91 'mt91' /
+  3 452 'nubar' /
+  6 2 'elastic matrix' /
+  6 51 'mt51 matrix' /
+  6 52 'mt52 matrix' /
+  6 53 'mt53 matrix' /
+  6 54 'mt54 matrix' /
+  6 55 'mt55 matrix' /
+  6 56 'mt56 matrix' /
+  6 57 'mt57 matrix' /
+  6 58 'mt58 matrix' /
+  6 59 'mt59 matrix' /
+  6 60 'mt60 matrix' /
+  6 61 'mt61 matrix' /
+  6 62 'mt62 matrix' /
+  6 63 'mt63 matrix' /
+  6 64 'mt64 matrix' /
+  6 65 'mt65 matrix' /
+  6 66 'mt66 matrix' /
+  6 67 'mt67 matrix' /
+  6 68 'mt68 matrix' /
+  6 69 'mt69 matrix' /
+  6 70 'mt70 matrix' /
+  6 71 'mt71 matrix' /
+  6 72 'mt72 matrix' /
+  6 73 'mt73 matrix' /
+  6 74 'mt74 matrix' /
+  6 75 'mt75 matrix' /
+  6 76 'mt76 matrix' /
+  6 77 'mt77 matrix' /
+  6 78 'mt78 matrix' /
+  6 79 'mt79 matrix' /
+  6 80 'mt80 matrix' /
+  6 81 'mt81 matrix' /
+  6 82 'mt82 matrix' /
+  6 83 'mt83 matrix' /
+  6 84 'mt84 matrix' /
+  6 85 'mt85 matrix' /
+  6 86 'mt86 matrix' /
+  6 87 'mt87 matrix' /
+  6 88 'mt88 matrix' /
+  6 89 'mt89 matrix' /
+  8 91 'mt91 matrix' /
+  8 16 '(n,2n) matrix' /
+  6 18 'fission matrix' /
+  0 /
+  0 /
+stop
