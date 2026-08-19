@@ -18,7 +18,9 @@ hyperparameter optimization.
 
 import signal
 import warnings
+from collections import deque
 
+import numpy as np
 import optuna
 import torch
 import torch.nn as nn
@@ -94,28 +96,29 @@ class RegressionDeepONet:
     """
 
     __valid_kwargs = {
+        "batch_size",
         "device",
-        "seed",
-        "test_size",
-        "prebuilt",
+        "dropout",
+        "fc_activations",
+        "learning_rate",
+        "loss_functions",
         "max_b_layers",
         "max_t_layers",
-        "nodes",
-        "fc_activations",
-        "dropout",
-        "n_epochs",
-        "batch_size",
-        "optimizer",
-        "learning_rate",
-        "weight_decay",
-        "sched_mode",
-        "sched_factor",
-        "sched_patience",
-        "sched_cooldown",
-        "loss_functions",
         "memmap_file",
+        "n_epochs",
+        "nodes",
+        "optimizer",
+        "prebuilt",
+        "sched_cooldown",
+        "sched_factor",
+        "sched_mode",
+        "sched_patience",
+        "seed",
+        "smoothing",
+        "test_size",
         "train_size",
         "val_size",
+        "weight_decay",
     }
 
     def __init__(self, flux, labels, y, **kwargs):
@@ -132,23 +135,24 @@ class RegressionDeepONet:
         **kwargs : dict
             - ``device`` (str): computation device ("cpu" or "cuda").
               Default "cpu".
-            - ``seed`` (int): random seed used for train/val splitting.
-              Default 3.
-            - ``test_size`` (float): validation fraction in the split.
-              Default 0.2.
             - ``memmap_file`` (str or None): path to a memmap dataset
               produced by ``discrete1.ml.data.deeponet_memmap``. If set,
               ``flux``, ``labels``, and ``y`` may be ``None``.
+            - ``seed`` (int): random seed used for train/val splitting and weight
+              initialization. Default 3.
+            - ``smoothing`` (int): Number of epochs to average the final metric
+              over. Deals with noisy outputs. If 1, no averaging. Default 1.
+            - ``test_size`` (float): validation fraction in the split.
+              Default 0.2.
             - ``train_size`` (float): training fraction in memmap mode.
               Default 0.6.
             - ``val_size`` (float): validation fraction in memmap mode.
               Default 0.2.
             - Search space overrides used by :meth:`_init_search_parameters`:
-              ``prebuilt``, ``max_b_layers``, ``max_t_layers``, ``nodes``,
-              ``fc_activations``, ``dropout``, ``n_epochs``, ``batch_size``,
-              ``optimizer``, ``learning_rate``, ``weight_decay``, ``sched_mode``,
-              ``sched_factor``, ``sched_patience``, ``sched_cooldown``,
-              ``loss_functions``.
+              ``batch_size``, ``dropout``, ``fc_activations``, ``learning_rate``,
+              ``loss_functions``, ``max_b_layers``, ``max_t_layers``, ``n_epochs``,
+              ``nodes``, ``optimizer``, ``prebuilt``, ``sched_cooldown``,
+              ``sched_factor``, ``sched_mode``, ``sched_patience``, ``weight_decay``.
 
         Notes
         -----
@@ -161,6 +165,8 @@ class RegressionDeepONet:
         self.labels = labels
         self.y = y
         self.memmap_file = kwargs.get("memmap_file", None)
+        self.seed = kwargs.get("seed", 3)
+        self.smoothing = kwargs.get("smoothing", 5)
         self.train_size = kwargs.get("train_size", 0.8)
         self.val_size = kwargs.get("val_size", 0.2)
 
@@ -240,7 +246,6 @@ class RegressionDeepONet:
             ``TensorDataset`` instances on CPU tensors. This path is used only
             when ``memmap_file`` is not provided.
         """
-        seed = kwargs.get("seed", 3)
         test_size = kwargs.get("test_size", 0.2)
         flux_train, flux_val, labels_train, labels_val, y_train, y_val = (
             model_selection.train_test_split(
@@ -248,7 +253,7 @@ class RegressionDeepONet:
                 self.labels,
                 self.y,
                 test_size=test_size,
-                random_state=seed,
+                random_state=self.seed,
             )
         )
 
@@ -643,6 +648,14 @@ class RegressionDeepONet:
             scheduler.step(val_loss)
         return val_loss
 
+    def _set_seed(self):
+        torch.manual_seed(self.seed)
+        np.random.seed(self.seed)
+        if torch.backends.mps.is_available():
+            torch.mps.manual_seed(self.seed)
+        if torch.backends.cuda.is_available():
+            torch.cuda.manual_seed(self.seed)
+
     def objective(self, trial):
         """Optuna objective function minimizing validation loss.
 
@@ -656,6 +669,10 @@ class RegressionDeepONet:
         float
             Final validation metric for the last epoch.
         """
+
+        self._set_seed()
+        last_metrics = deque(maxlen=self.smoothing)
+
         # Generate the model
         if self.prebuilt:
             model = self._init_prebuilt_onet_model(trial)
@@ -694,12 +711,13 @@ class RegressionDeepONet:
             model.eval()
             metric = self._validate(model, scheduler, loss_criterion, val_loader)
             print(epoch, metric, end="\r")
+            last_metrics.append(metric)
             trial.report(metric, epoch)
 
             if trial.should_prune():
                 raise optuna.exceptions.TrialPruned()
 
-        return metric
+        return sum(last_metrics) / len(last_metrics)
 
     def run(self, **kwargs):
         """Run a tuning study and return the best parameters.
