@@ -32,7 +32,7 @@ import discrete1.constants as const
 from discrete1 import cram
 from discrete1.nuclides import REACTIONS
 
-__all__ = ["reaction_rate_1g", "build_burnup_matrix", "deplete"]
+__all__ = ["build_burnup_matrix", "deplete", "reaction_rate_1g"]
 
 
 def reaction_rate_1g(xs_mg, flux_g):
