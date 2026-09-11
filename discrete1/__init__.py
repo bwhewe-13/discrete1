@@ -20,6 +20,9 @@ import numpy as np
 
 from discrete1 import boundary1d, external1d  # noqa: F401
 
+# Preset depletion chains
+from discrete1.chains import available_chains, load_chain, save_chain  # noqa: F401
+
 # Creating medium maps, energy grids, and angular grids
 from discrete1.main import (  # noqa: F401
     angular_x,
@@ -32,7 +35,13 @@ from discrete1.main import (  # noqa: F401
 from discrete1.materials import materials  # noqa: F401
 
 # Burnup / depletion convenience API
-from discrete1.nuclides import NuclideLibrary, load_library, save_library  # noqa: F401
+from discrete1.nuclides import (  # noqa: F401
+    DepletionChain,
+    NuclideLibrary,
+    library_from_chain,
+    load_library,
+    save_library,
+)
 
 try:
     __version__ = version("discrete1")
