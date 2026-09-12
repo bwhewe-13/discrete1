@@ -15,15 +15,21 @@ The script runs in two cached phases:
 1. **Generate** (needs NJOY; PyCNiC auto-detects the binary). Runs
    RECONR/BROADR/GROUPR per isotope on the NJOY IGN 3 (30-group) structure,
    merges everything into one ``MultiGroupLibrary`` (saved to
-   ``depletion_pycnic_30g.h5``), attaches a hand-built depletion topology
-   (decay constants, capture products, thermal fission yields), and exports
-   ``depletion_pycnic_30g.npz`` in the discrete1 ``NuclideLibrary`` layout via
+   ``depletion_pycnic_30g.h5``), attaches the depletion topology selected from
+   the packaged ``lwr-actinides`` chain (decay constants, capture products,
+   thermal fission yields), and exports ``depletion_pycnic_30g.npz`` in the
+   discrete1 ``NuclideLibrary`` layout via
    :func:`pycnic.depletion.to_nuclide_library_npz`. For example, inside the
    PyCNiC Docker image (NJOY + ENDF/B-VIII.0 tapes included)::
 
        docker run --rm -v $PWD:/work -w /work \
-           -v /path/to/PyCNiC/src:/pycnic-src -e PYTHONPATH=/pycnic-src \
+           -v /path/to/PyCNiC/src:/pycnic-src \
+           -v /path/to/discrete1:/discrete1-src \
+           -e PYTHONPATH=/pycnic-src:/discrete1-src \
            pycnic:full python depletion_pycnic_slab.py --generate
+
+   discrete1 only has to be *importable* for this phase; the chain lookup
+   touches numpy alone, not numba or scipy.
 
 2. **Burnup** (needs discrete1; no NJOY). Loads the ``.npz`` with
    :func:`discrete1.nuclides.load_library` and runs
@@ -52,7 +58,6 @@ PNG_FILE = HERE / "depletion_pycnic_slab.png"
 TEMPERATURE = 293.6  # K
 N_LEGENDRE = 2  # P0-P1 moments from GROUPR (export keeps P0)
 DAY = 86400.0  # s
-YEAR = 3.1557e7  # s
 
 # The tracked inventory: 10 depletion isotopes + 2 moderator backgrounds.
 # GND-form names (index order is the canonical nuclide ordering everywhere).
@@ -174,98 +179,39 @@ def build_multigroup_library():
 
 
 def build_depletion_chain():
-    """Hand-build the PyCNiC ``DepletionChain`` for the tracked inventory.
+    """Select the tracked inventory out of the packaged ``lwr-actinides`` chain.
 
-    Half-lives, branching, and thermal fission yields are standard published
-    values (ENDF/B decay sublibrary; England & Rider yields). Couplings whose
-    product falls outside the tracked set are encoded as ``-1`` (the parent
-    still loses atoms). Two standard chain simplifications: U-238 capture goes
-    directly to Np-239 (the 23.5-min U-239 step is skipped), and Sm-149 gets a
-    lumped cumulative yield (the Nd-149/Pm-149 precursors are skipped).
+    The preset carries the full U/Np/Pu line plus poison and moderator data
+    (see :mod:`discrete1.chains` for the values and their provenance);
+    :meth:`~discrete1.nuclides.DepletionChain.subset` restricts it to
+    :data:`ISOTOPES` and renumbers every coupling. Couplings whose product
+    falls outside the selection are kept with a ``-1`` product, so the parent
+    still loses atoms down that channel but creates nothing tracked; here
+    that is Pu-241 -> Am-241, Xe-135 -> Cs-135, and the U-237/Pu-242/Xe-136
+    capture products.
+
+    Returned as a PyCNiC ``DepletionChain`` because the export in
+    :func:`generate` consumes PyCNiC's type; the two dataclasses carry
+    identical fields.
     """
-    from pycnic.depletion import REACTIONS, DepletionChain
+    from pycnic.depletion import DepletionChain
+
+    from discrete1.chains import load_chain
 
     names = [iso.replace("-", "") for iso in ISOTOPES]  # GND form: U235, ...
-    idx = {name: i for i, name in enumerate(names)}
-    m = len(names)
-
-    half_life = np.array(
-        [
-            7.04e8 * YEAR,  # U-235
-            2.342e7 * YEAR,  # U-236
-            4.468e9 * YEAR,  # U-238
-            2.356 * DAY,  # Np-239 -> Pu-239
-            2.411e4 * YEAR,  # Pu-239
-            6.561e3 * YEAR,  # Pu-240
-            14.329 * YEAR,  # Pu-241 -> Am-241 (untracked)
-            6.57 * 3600.0,  # I-135  -> Xe-135
-            9.14 * 3600.0,  # Xe-135 -> Cs-135 (untracked)
-            np.inf,  # Sm-149
-            np.inf,  # H-1
-            np.inf,  # O-16
-        ]
-    )
-
-    # Decay couplings into the tracked set. Xe-135 and Pu-241 decay to
-    # untracked daughters: no coupling entry, but their half-life above still
-    # removes atoms. The alpha decays of the long-lived actinides are
-    # negligible on burnup timescales and likewise carry no coupling.
-    decay_from = np.array([idx["Np239"], idx["I135"]], dtype=np.int64)
-    decay_to = np.array([idx["Pu239"], idx["Xe135"]], dtype=np.int64)
-    decay_branch = np.array([1.0, 1.0])
-
-    # (n,gamma) products; -1 = product not tracked (U-237, Np-240, Pu-242,
-    # I-136, Xe-136, Sm-150, H-2, O-17).
-    reaction_product = {ch: np.full(m, -1, dtype=np.int64) for ch in REACTIONS}
-    capture = reaction_product["(n,gamma)"]
-    capture[idx["U235"]] = idx["U236"]
-    capture[idx["U238"]] = idx["Np239"]  # via 23.5-min U-239, skipped
-    capture[idx["Pu239"]] = idx["Pu240"]
-    capture[idx["Pu240"]] = idx["Pu241"]
-
-    # (n,2n) channels that stay inside the tracked set.
-    n2n = reaction_product["(n,2n)"]
-    n2n[idx["U236"]] = idx["U235"]
-    n2n[idx["Pu240"]] = idx["Pu239"]
-    n2n[idx["Pu241"]] = idx["Pu240"]
-
-    # Thermal fission yields (U-238: fast). I-135 and Sm-149 use cumulative
-    # chain yields; Xe-135 the independent yield (the rest arrives via I-135).
-    yields = {
-        "U235": {"I135": 0.0639, "Xe135": 0.00237, "Sm149": 0.0113},
-        "U238": {"I135": 0.0610, "Xe135": 0.0010, "Sm149": 0.0090},
-        "Pu239": {"I135": 0.0654, "Xe135": 0.0110, "Sm149": 0.0125},
-        "Pu241": {"I135": 0.0693, "Xe135": 0.0070, "Sm149": 0.0140},
-    }
-    fy_parent, fy_product, fy_yield = [], [], []
-    for parent, products in yields.items():
-        for product, value in products.items():
-            fy_parent.append(idx[parent])
-            fy_product.append(idx[product])
-            fy_yield.append(value)
-
-    # Energy per fission (J). All actinides get a value so the power
-    # normalization also counts threshold fission in U-236/Np-239/Pu-240.
-    kappa = np.zeros(m)
-    kappa[idx["U235"]] = 3.24e-11  # ~202 MeV
-    kappa[idx["U236"]] = 3.2e-11
-    kappa[idx["U238"]] = 3.35e-11
-    kappa[idx["Np239"]] = 3.2e-11
-    kappa[idx["Pu239"]] = 3.33e-11  # ~208 MeV
-    kappa[idx["Pu240"]] = 3.2e-11
-    kappa[idx["Pu241"]] = 3.44e-11
+    chain = load_chain("lwr-actinides").subset(names)
 
     return DepletionChain(
-        names=names,
-        half_life=half_life,
-        decay_from=decay_from,
-        decay_to=decay_to,
-        decay_branch=decay_branch,
-        reaction_product=reaction_product,
-        fy_parent=np.array(fy_parent, dtype=np.int64),
-        fy_product=np.array(fy_product, dtype=np.int64),
-        fy_yield=np.array(fy_yield, dtype=np.float64),
-        kappa=kappa,
+        names=list(chain.names),
+        half_life=chain.half_life,
+        decay_from=chain.decay_from,
+        decay_to=chain.decay_to,
+        decay_branch=chain.decay_branch,
+        reaction_product=chain.reaction_product,
+        fy_parent=chain.fy_parent,
+        fy_product=chain.fy_product,
+        fy_yield=chain.fy_yield,
+        kappa=chain.kappa,
     )
 
 
