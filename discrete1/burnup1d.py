@@ -35,7 +35,7 @@ from tqdm import tqdm
 from discrete1 import cram, critical1d
 from discrete1.depletion import build_burnup_matrix
 
-__all__ = ["burnup", "macroscopic_xs", "region_flux"]
+__all__ = ["burnup", "macroscopic_xs", "ml_burnup", "region_flux"]
 
 
 def macroscopic_xs(library, densities):
@@ -324,6 +324,316 @@ def burnup(
         geometry,
         power,
         flux_level,
+    )
+
+    return density_history, keff_history
+
+
+def _solve_ml_transport(
+    library,
+    densities,
+    medium_map,
+    delta_x,
+    volumes,
+    angle_x,
+    angle_w,
+    bc_x,
+    geometry,
+    power,
+    flux_level,
+    fission_models=None,
+    scatter_models=None,
+    fission_labels=None,
+    scatter_labels=None,
+    full_fission_matrix=False,
+    flux_old=None,
+):
+    """Rebuild macroscopic xs, run power iteration, and normalize the flux."""
+    xs_total, xs_scatter, nu_fission = macroscopic_xs(library, densities)
+    # power_iteration expects chi shaped (materials, groups) or (materials,
+    # g_in, g_out); the emission spectrum is shared across regions, so tile
+    # it per region (writable copy required by the numba kernel signature).
+    if library.chi.ndim == 1:
+        chi = np.tile(library.chi, (densities.shape[0], 1))
+    else:
+        chi = np.tile(library.chi, (densities.shape[0], 1, 1))
+
+    if full_fission_matrix:
+        # chi[r, og] * nu_fission[r, ig] (rank-1) or chi[r, ig, og] *
+        # nu_fission[r, ig] (energy-dependent) -> xs_fission[r, og, ig].
+        if chi.ndim == 2:
+            xs_fission = np.einsum("ro,ri->roi", chi, nu_fission)
+        else:
+            xs_fission = np.einsum("rio,ri->roi", chi, nu_fission)
+        chi_kwarg = None
+    else:
+        xs_fission = nu_fission
+        chi_kwarg = chi
+
+    # Unlike power_iteration, ml_power_iteration takes its initial flux
+    # guess as an explicit argument rather than generating one internally.
+    if flux_old is None:
+        flux_old = np.random.rand(medium_map.shape[0], xs_total.shape[1])
+    else:
+        flux_old = np.array(flux_old, dtype=np.float64, copy=True)
+    flux, keff = critical1d.ml_power_iteration(
+        flux_old,
+        xs_total,
+        xs_scatter,
+        xs_fission,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi_kwarg,
+        geometry=geometry,
+        fission_models=fission_models,
+        scatter_models=scatter_models,
+        fission_labels=fission_labels,
+        scatter_labels=scatter_labels,
+    )
+    flux = _normalize(flux, densities, library, medium_map, volumes, power, flux_level)
+    return flux, keff
+
+
+def ml_burnup(
+    library,
+    densities,
+    medium_map,
+    delta_x,
+    angle_x,
+    angle_w,
+    bc_x,
+    dt_steps,
+    power=None,
+    flux_level=None,
+    geometry=1,
+    order=48,
+    substeps=1,
+    predictor_corrector=True,
+    fission_models=None,
+    scatter_models=None,
+    fission_labels=None,
+    scatter_labels=None,
+    full_fission_matrix=False,
+    flux_old=None,
+    fission_relabel_fn=None,
+    scatter_relabel_fn=None,
+):
+    """Run a transport-coupled burnup calculation over a sequence of steps.
+
+    Parameters
+    ----------
+    library : NuclideLibrary
+        Depletion and transport data.
+    densities : numpy.ndarray, shape (R, M)
+        Initial number densities for ``R`` regions, ``M`` nuclides, in
+        atoms/(barn*cm). Region index aligns with ``medium_map`` values.
+    medium_map : numpy.ndarray, shape (cells_x,)
+        Region index per spatial cell.
+    delta_x : numpy.ndarray, shape (cells_x,)
+        Cell widths.
+    angle_x, angle_w : numpy.ndarray
+        Angular ordinates and weights.
+    bc_x : list-like
+        Boundary condition indicators [left, right].
+    dt_steps : array_like, shape (n_steps,)
+        Burnup step durations in seconds.
+    power : float, optional
+        Target total fission power (power normalization). In spherical
+        geometry this is true watts; in slab geometry the transverse extent
+        is implicit, so it is power per unit cross-sectional area (W/cm^2).
+        Provide exactly one of ``power`` or ``flux_level``.
+    flux_level : float, optional
+        Target volume-averaged scalar flux in n/cm^2/s (flux normalization).
+    geometry : int, optional
+        Geometry selector (1=slab, 2=sphere). Default 1.
+    order : int, optional
+        CRAM order (16 or 48; default 48).
+    substeps : int, optional
+        CRAM substeps within each predictor/corrector depletion (default 1).
+    predictor_corrector : bool, optional
+        If True (default) use CE/LI; if False use predictor-only CE.
+    fission_models : list, optional
+        Trained DJINN models for fission source prediction. Empty list uses
+        traditional calculation. Default is None.
+    scatter_models : list, optional
+        Trained DJINN models for scattering source prediction. Empty list uses
+        traditional calculation. Default is None.
+    fission_labels : array_like, optional
+        Material labels for fission model predictions. Default is None.
+    scatter_labels : array_like, optional
+        Material labels for scatter model predictions. Default is None.
+    full_fission_matrix : bool, optional
+        ``fission_models`` needs the full ``(materials, groups, groups)``
+        fission matrix, not the separate chi/nu_fission form used elsewhere
+        in this module. Set True to build that matrix before each solve;
+        leave False (default) if only ``scatter_models`` is used.
+    flux_old : numpy.ndarray, optional
+        Initial scalar flux guess, shape (cells_x, groups), for the first
+        transport solve; every solve after that warm-starts from the one
+        before it. Default is None (random guess for the first solve, as
+        before).
+    fission_relabel_fn : callable, optional
+        ``fission_relabel_fn(densities) -> label``, called in place of
+        ``fission_labels`` before each solve that uses ``fission_models``,
+        with that solve's own densities array (shape ``(R, M)``). Only
+        called when ``fission_models`` is active. Use this when the label
+        tracks the evolving composition instead of staying fixed for the
+        whole run, e.g. a DeepONet trunk input built from the current fuel
+        vector. Default is None, which keeps ``fission_labels`` fixed for
+        every step, as before.
+    scatter_relabel_fn : callable, optional
+        Same as ``fission_relabel_fn``, but for ``scatter_models`` and
+        ``scatter_labels``, and independent of it: the two models can end
+        up with different labels, or only one relabeled at all.
+
+    Returns
+    -------
+    density_history : numpy.ndarray, shape (n_steps + 1, R, M)
+        Number densities at the start of each step and after the last step.
+    keff_history : numpy.ndarray, shape (n_steps + 1,)
+        k-effective of the composition in ``density_history[s]``; the final
+        entry is the end-of-life eigenvalue after the last burnup step.
+
+    Notes
+    -----
+    Tiny negative number densities from the CRAM solves are clamped to zero
+    before they feed back into the macroscopic cross sections.
+
+    Reverts to plain power iteration whenever both ``fission_models`` and
+    ``scatter_models`` are None. ``fission_labels``/``scatter_labels`` are
+    tied to material identity, not the evolving burnup state, so build them
+    once and reuse them for every step, unless the matching relabel
+    function is given (see ``fission_relabel_fn``/``scatter_relabel_fn``
+    above).
+    """
+    dt_steps = np.atleast_1d(np.asarray(dt_steps, dtype=np.float64))
+    densities = np.array(densities, dtype=np.float64)
+    n_regions = densities.shape[0]
+    volumes = _cell_volumes(delta_x, geometry)
+
+    density_history = np.zeros((dt_steps.shape[0] + 1, *densities.shape))
+    density_history[0] = densities
+    keff_history = np.zeros(dt_steps.shape[0] + 1)
+
+    def current_labels(step_densities):
+        """(fission_labels, scatter_labels) for a solve at step_densities.
+
+        Each slot is refreshed from its own relabel function only when that
+        slot's models are active; otherwise it's left as passed to
+        ml_burnup. The two relabel functions run independently, so fission
+        and scatter can end up with different labels.
+        """
+        fl = fission_labels
+        if fission_models is not None and fission_relabel_fn is not None:
+            fl = fission_relabel_fn(step_densities)
+        sl = scatter_labels
+        if scatter_models is not None and scatter_relabel_fn is not None:
+            sl = scatter_relabel_fn(step_densities)
+        return fl, sl
+
+    for step, dt in enumerate(tqdm(dt_steps, desc="Burnup", ascii=True)):
+        # --- Beginning-of-step transport solve (predictor flux) ---
+        step_fission_labels, step_scatter_labels = current_labels(densities)
+        flux0, keff0 = _solve_ml_transport(
+            library,
+            densities,
+            medium_map,
+            delta_x,
+            volumes,
+            angle_x,
+            angle_w,
+            bc_x,
+            geometry,
+            power,
+            flux_level,
+            fission_models=fission_models,
+            scatter_models=scatter_models,
+            fission_labels=step_fission_labels,
+            scatter_labels=step_scatter_labels,
+            full_fission_matrix=full_fission_matrix,
+            flux_old=flux_old,
+        )
+        flux_old = flux0
+        keff_history[step] = keff0
+        rflux0 = region_flux(flux0, medium_map, volumes, n_regions)
+
+        # --- Predictor (CE): per-region burnup matrices held constant ---
+        matrices0 = [build_burnup_matrix(library, rflux0[r]) for r in range(n_regions)]
+        predicted = np.array(
+            [
+                cram.cram_expm(
+                    matrices0[r], densities[r], dt, order=order, substeps=substeps
+                )
+                for r in range(n_regions)
+            ]
+        )
+        predicted = np.maximum(predicted, 0.0)
+
+        if not predictor_corrector:
+            densities = predicted
+            density_history[step + 1] = densities
+            continue
+
+        # --- Corrector (LI): end-of-step flux, step-averaged matrices ---
+        # predicted, not densities: the corrector solve is AT the predictor
+        # composition, so a composition-dependent label must follow it there,
+        # same as macroscopic_xs does two lines above this call.
+        step_fission_labels, step_scatter_labels = current_labels(predicted)
+        flux1, _ = _solve_ml_transport(
+            library,
+            predicted,
+            medium_map,
+            delta_x,
+            volumes,
+            angle_x,
+            angle_w,
+            bc_x,
+            geometry,
+            power,
+            flux_level,
+            fission_models=fission_models,
+            scatter_models=scatter_models,
+            fission_labels=step_fission_labels,
+            scatter_labels=step_scatter_labels,
+            full_fission_matrix=full_fission_matrix,
+            flux_old=flux_old,
+        )
+        flux_old = flux1
+        rflux1 = region_flux(flux1, medium_map, volumes, n_regions)
+        corrected = np.zeros_like(densities)
+        for r in range(n_regions):
+            matrix1 = build_burnup_matrix(library, rflux1[r])
+            avg = 0.5 * (matrices0[r] + matrix1)
+            corrected[r] = cram.cram_expm(
+                avg, densities[r], dt, order=order, substeps=substeps
+            )
+
+        densities = np.maximum(corrected, 0.0)
+        density_history[step + 1] = densities
+
+    # --- End-of-life eigenvalue for the final composition ---
+    step_fission_labels, step_scatter_labels = current_labels(densities)
+    _, keff_history[-1] = _solve_ml_transport(
+        library,
+        densities,
+        medium_map,
+        delta_x,
+        volumes,
+        angle_x,
+        angle_w,
+        bc_x,
+        geometry,
+        power,
+        flux_level,
+        fission_models=fission_models,
+        scatter_models=scatter_models,
+        fission_labels=step_fission_labels,
+        scatter_labels=step_scatter_labels,
+        full_fission_matrix=full_fission_matrix,
+        flux_old=flux_old,
     )
 
     return density_history, keff_history
