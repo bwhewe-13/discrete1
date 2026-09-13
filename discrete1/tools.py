@@ -106,7 +106,8 @@ def transfer_matrix(xs_scatter, xs_fission, chi=None):
         spectrum per material, shared across incident groups), or indexed
         [material, g_in, g_out] for an energy-dependent spectrum (the
         outgoing-group spectrum as a function of the incident group g_in
-        that induced fission.Must be included if xs_fission is nusigf. Default is None.
+        that induced fission). Must be included if xs_fission is nusigf.
+        Default is None.
 
     Returns
     -------
@@ -943,7 +944,6 @@ def fission_vec_prod_echi(flux, chi, nusigf, source, medium_map, keff):
         Fission spectrum of shape (materials, groups, groups), indexed
         chi[m, g_in, g_out] -- the probability that a fission induced by a
         group-g_in neutron in material m emits a neutron into group g_out.
-        Matches PyCNiC's ``Material.chi_matrix`` convention.
     nusigf : numpy.ndarray
         Fission production cross section array of shape (materials, groups).
     source : numpy.ndarray
@@ -1807,8 +1807,7 @@ def _fission_vec_source_0d_echi(flux, chi, nusigf, source, keff):
     chi : numpy.ndarray
         Fission spectrum with shape ``(groups, groups)``, indexed
         ``chi[g_in, g_out]`` -- the outgoing-group spectrum as a function of
-        the incident group ``g_in`` (each row sums to 1). Matches PyCNiC's
-        ``Material.chi_matrix`` convention.
+        the incident group ``g_in`` (each row sums to 1).
     nusigf : numpy.ndarray
         Fission production vector with shape ``(groups,)``.
     source : numpy.ndarray
