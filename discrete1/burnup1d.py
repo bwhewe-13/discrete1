@@ -34,6 +34,7 @@ from tqdm import tqdm
 
 from discrete1 import cram, critical1d
 from discrete1.depletion import build_burnup_matrix
+from discrete1.ml.tools import update_cross_sections
 
 __all__ = ["burnup", "macroscopic_xs", "ml_burnup", "region_flux"]
 
@@ -350,6 +351,20 @@ def _solve_ml_transport(
 ):
     """Rebuild macroscopic xs, run power iteration, and normalize the flux."""
     xs_total, xs_scatter, nu_fission = macroscopic_xs(library, densities)
+
+    # Trained models expect the row-sum of the physics xs collapsed into
+    # column 0 -- that's what scatter_prod_predict / fission_prod_predict
+    # read as the total to rescale the prediction against (see
+    # update_cross_sections). Materials without a model are left untouched
+    # since the same array also drives their ordinary physics source.
+    def _real_models(models):
+        return [i for i, m in enumerate(models) if not isinstance(m, int)]
+
+    if scatter_models is not None:
+        real_scatter = _real_models(scatter_models)
+        if real_scatter:
+            xs_scatter = update_cross_sections(xs_scatter, real_scatter)
+
     # power_iteration expects chi shaped (materials, groups) or (materials,
     # g_in, g_out); the emission spectrum is shared across regions, so tile
     # it per region (writable copy required by the numba kernel signature).
@@ -366,6 +381,13 @@ def _solve_ml_transport(
         else:
             xs_fission = np.einsum("rio,ri->roi", chi, nu_fission)
         chi_kwarg = None
+        # Same collapse as xs_scatter, only reachable in this branch -- the
+        # vector-chi path below hands fission_prod_predict a 2D nu_fission
+        # via chi_kwarg, which doesn't fit update_cross_sections' 3D shape.
+        if fission_models is not None:
+            real_fission = _real_models(fission_models)
+            if real_fission:
+                xs_fission = update_cross_sections(xs_fission, real_fission)
     else:
         xs_fission = nu_fission
         chi_kwarg = chi
