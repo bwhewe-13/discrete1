@@ -95,6 +95,36 @@ def test_burnup_depletes_fuel_and_lowers_keff():
     assert np.all(history >= 0.0)
 
 
+def test_burnup_with_energy_dependent_chi():
+    # (G, G) chi[g_in, g_out]: exercises the _solve_transport tiling branch
+    # for a 2D library.chi (tiled to (regions, G, G)) all the way through
+    # critical1d.power_iteration's chi.ndim == 3 dispatch.
+    lib = synthetic_library(groups=2)
+    lib.chi = np.array([[0.9, 0.1], [0.2, 0.8]])
+    medium_map, delta_x, angle_x, angle_w = _slab_setup()
+    densities0 = np.array([[0.04, 0.0, 0.0, 0.0]])
+
+    dt = 2.6e6  # ~30 days in seconds
+    history, keff = burnup1d.burnup(
+        lib,
+        densities0,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x=[0, 0],
+        dt_steps=[dt],
+        power=1.0e6,
+        order=16,
+    )
+
+    assert history.shape == (2, 1, 4)
+    assert keff.shape == (2,)
+    fuel = history[:, 0, lib.index["fuel"]]
+    assert fuel[1] < fuel[0]
+    assert keff[1] < keff[0]
+
+
 def test_predictor_only_runs():
     lib = synthetic_library(groups=1)
     medium_map, delta_x, angle_x, angle_w = _slab_setup(cells=20)

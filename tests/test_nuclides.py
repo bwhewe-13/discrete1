@@ -85,3 +85,34 @@ def test_save_load_round_trip(tmp_path):
         )
     assert np.array_equal(loaded.xs_scatter, lib.xs_scatter)
     assert loaded.index == lib.index
+
+
+def test_chi_matrix_shape_is_accepted():
+    # (G, G) chi[g_in, g_out]: energy-dependent spectrum, PyCNiC convention.
+    lib = synthetic_library(groups=2)
+    lib.chi = np.array([[0.9, 0.1], [0.2, 0.8]])
+    lib.validate()
+
+
+def test_chi_wrong_shape_rejected():
+    lib = synthetic_library(groups=2)
+    lib.chi = np.array([[0.9, 0.1, 0.0], [0.2, 0.8, 0.0]])
+    with pytest.raises(ValueError, match="chi"):
+        lib.validate()
+
+
+def test_chi_matrix_subset_preserved():
+    lib = synthetic_library(groups=2)
+    lib.chi = np.array([[0.9, 0.1], [0.2, 0.8]])
+    sub = lib.subset(["fuel", "fp"])
+    assert np.array_equal(sub.chi, lib.chi)
+
+
+def test_chi_matrix_save_load_round_trip(tmp_path):
+    lib = synthetic_library(groups=2)
+    lib.chi = np.array([[0.9, 0.1], [0.2, 0.8]])
+    path = tmp_path / "library.npz"
+    save_library(lib, path)
+    loaded = load_library(path)
+    assert loaded.chi.shape == (2, 2)
+    assert np.array_equal(loaded.chi, lib.chi)

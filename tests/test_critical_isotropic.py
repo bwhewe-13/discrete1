@@ -738,6 +738,43 @@ def test_two_group_slab_plutonium_01_chi(bc_x: list[int]):
 
 
 @pytest.mark.smoke
+@pytest.mark.slab
+@pytest.mark.power_iteration
+@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
+def test_two_group_slab_plutonium_01_chi_matrix(bc_x: list[int]):
+    # Same benchmark as test_two_group_slab_plutonium_01_chi, but chi is
+    # shaped (materials, g_in, g_out) with both incident-group rows equal to
+    # the rank-1 spectrum -- degenerate, so it must reproduce the same keff.
+    cells_x = 200
+    angles = 20
+    angle_x, angle_w = discrete1.angular_x(angles, bc_x)
+    xs_total = np.array([[0.3360, 0.2208]])
+    xs_scatter = np.array([np.array([[0.23616, 0.0], [0.0432, 0.0792]]).T])
+    chi_vec = np.array([0.425, 0.575])
+    chi = np.array([[chi_vec, chi_vec]])
+    nu = np.array([[2.93, 3.10]])
+    sigmaf = np.array([[0.08544, 0.0936]])
+    nusigf = nu * sigmaf
+    cells_x = 200 if np.sum(bc_x) == 0 else 100
+    length = 1.795602 * 2 if np.sum(bc_x) == 0 else 1.795602
+    delta_x = np.repeat(length / cells_x, cells_x)
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+    flux, keff = power_iteration(
+        xs_total,
+        xs_scatter,
+        nusigf,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x,
+        chi=chi,
+        geometry=1,
+    )
+    assert abs(keff - 1.0) < 2e-3, str(keff) + " not critical"
+
+
+@pytest.mark.smoke
 @pytest.mark.sphere
 @pytest.mark.power_iteration
 def test_two_group_sphere_plutonium_01():
