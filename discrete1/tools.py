@@ -1213,9 +1213,11 @@ def fission_prod_predict(
         List of trained ML models (or integers as placeholders). models[nn]
         is used for material nn. If models[nn] is an integer (typically 0),
         falls back to physics-based calculation.
-    label : numpy.ndarray, optional
+    label : list, optional
         Parameter/label array for parametric ML predictions. Passed to
-        model.predict() when making predictions. Default is None.
+        model.predict() when making predictions. Can be a list (for one model
+        or all models having the same label) or a list of lists (label for
+        each model). Default is None.
 
     Returns
     -------
@@ -1236,6 +1238,10 @@ def fission_prod_predict(
     """
     # Zero out previous source
     source *= 0.0
+
+    one_label = False
+    if label is not None:
+        one_label = isinstance(label[0], float)
 
     # Iterate over models
     for nn, model in enumerate(models):
@@ -1258,7 +1264,12 @@ def fission_prod_predict(
         # Get scaling factor
         scale = np.sum(mat_flux * xs_fission[nn, :, 0], axis=1)
         # Check for labels and predict
-        mat_flux = model.predict(mat_flux, label)
+        if label is None:
+            mat_flux = model.predict(mat_flux, label=None)
+        elif one_label:
+            mat_flux = model.predict(mat_flux, label=label)
+        else:
+            mat_flux = model.predict(mat_flux, label=label[nn])
 
         # Guard against a zero predicted row
         denom = np.clip(np.sum(mat_flux, axis=1), 1e-30, None)
