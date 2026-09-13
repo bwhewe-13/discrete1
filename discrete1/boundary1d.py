@@ -223,7 +223,7 @@ def time_dependence_decay_02(boundary_x, edges_t):
     -------
     numpy.ndarray
         Time-dependent boundary array with shape (n_steps, ...).
-    """  # noqa: D202
+    """
 
     # Complementary Error Function
     def erfc(x):

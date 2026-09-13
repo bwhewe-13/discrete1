@@ -240,7 +240,7 @@ def _off_scatter(flux, flux_old, medium_map, xs_scatter, off_scatter, gg):
     # Iterate over cells and groups
     for ii in range(cells_x):
         mat = medium_map[ii]
-        for og in range(0, gg):
+        for og in range(gg):
             off_scatter[ii] += xs_scatter[mat, gg, og] * flux[ii, og]
         for og in range(gg + 1, groups):
             off_scatter[ii] += xs_scatter[mat, gg, og] * flux_old[ii, og]
@@ -532,7 +532,7 @@ def _time_right_side(q_star, flux, xs_scatter, medium_map):
     """
     # Create (sigma_s + sigma_f) * phi + external + 1/(v*dt) * psi function
     # Get parameters
-    cells_x, angles, groups = q_star.shape
+    cells_x, _, groups = q_star.shape
     ii = numba.int32
     mat = numba.int32
     og = numba.int32

@@ -26,7 +26,7 @@ if not os.path.exists(DATA_PATH):
     DATA_PATH = str(files("discrete1").joinpath("../tests"))
 
 
-def angular_x(angles, bc_x=[0, 0]):
+def angular_x(angles, bc_x=None):
     """Generate angular ordinates and normalized weights.
 
     Uses Gauss-Legendre quadrature to compute angular ordinates (mu)
@@ -40,7 +40,7 @@ def angular_x(angles, bc_x=[0, 0]):
     angles : int
         Number of angular ordinates (n).
     bc_x : sequence of two ints, optional
-        Boundary condition indicators for left/right (default [0, 0]).
+        Boundary condition indicators for left/right (default None: [vacuum]).
 
     Returns
     -------
@@ -53,7 +53,7 @@ def angular_x(angles, bc_x=[0, 0]):
     angle_w /= np.sum(angle_w)
 
     # Ordering for reflective boundaries
-    if np.sum(bc_x) > 0.0:
+    if bc_x is not None and np.sum(bc_x) > 0.0:
         if bc_x == [1, 0]:
             idx = angle_x.argsort()
         elif bc_x == [0, 1]:
@@ -219,7 +219,7 @@ def spatial1d(layers, edges_x, labels=False, check=True):
     """
     if labels:
         # Initialize label map
-        medium_map = -1 * np.ones((len(edges_x) - 1))
+        medium_map = -1 * np.ones((len(edges_x) - 1,))
     else:
         # Initialize medium_map
         medium_map = -1 * np.ones((len(edges_x) - 1), dtype=np.int32)

@@ -1138,7 +1138,7 @@ def known_source_angular(
     angular_flux = np.zeros((cells_x + edges, angles, groups))
 
     # Initialize dummy variable
-    zero = np.zeros((cells_x + edges))
+    zero = np.zeros((cells_x + edges,))
 
     for gg in range(groups):
 
@@ -1213,14 +1213,14 @@ def known_source_scalar(
         Scalar flux.
     """
 
-    cells_x, angles, groups = source.shape
+    cells_x, _, groups = source.shape
 
     # Initialize scalar flux
     scalar_flux = np.zeros((cells_x + edges, groups, 1))
 
     # Initialize dummy variable
     # zero = 1e-15 * np.ones((cells_x + edges))
-    zero = np.zeros((cells_x + edges))
+    zero = np.zeros((cells_x + edges,))
 
     for gg in range(groups):
 
@@ -1356,7 +1356,7 @@ def ml_source_iteration(
     angle_w,
     bc_x,
     geometry,
-    scatter_models=[],
+    scatter_models=None,
     scatter_labels=None,
 ):
     """Source iteration using DJINN-predicted scatter source.
@@ -1393,9 +1393,10 @@ def ml_source_iteration(
         1 = reflect.
     geometry : int
         Geometry type. 1 for slab, 2 for sphere.
-    scatter_models : list
+    scatter_models : list, optional
         Trained DJINN models indexed by material id. An integer
         placeholder (typically ``0``) triggers the physics fallback.
+        Default is ``None``.
     scatter_labels : numpy.ndarray, optional
         Label array passed to ``model.predict()`` for parametric models.
         Default is ``None``.

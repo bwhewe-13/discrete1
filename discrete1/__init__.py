@@ -14,7 +14,6 @@ to have access to the main functionality.
 from dataclasses import dataclass
 from enum import IntEnum
 from importlib.metadata import PackageNotFoundError, version
-from typing import Optional
 
 import numpy as np
 
@@ -65,7 +64,7 @@ class MaterialData:
     xs_scatter: np.ndarray  # (n_materials, n_groups, n_groups) or (..., L+1)
     xs_fission: np.ndarray  # (n_materials, n_groups)
     # chi: (n_materials, n_groups) or (n_materials, n_groups, n_groups)
-    chi: Optional[np.ndarray] = None
+    chi: np.ndarray | None = None
 
 
 @dataclass
@@ -84,5 +83,5 @@ class AngularData:
 
     angle_x: np.ndarray  # (angles,)
     angle_w: np.ndarray  # (angles,)
-    P: Optional[np.ndarray] = None  # (L+1, angles), computed on first use
-    P_weights: Optional[np.ndarray] = None  # (L+1, angles)
+    P: np.ndarray | None = None  # (L+1, angles), computed on first use
+    P_weights: np.ndarray | None = None  # (L+1, angles)

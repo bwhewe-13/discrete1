@@ -35,7 +35,7 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 
-__all__ = ["cram_expm", "VALID_ORDERS"]
+__all__ = ["VALID_ORDERS", "cram_expm"]
 
 VALID_ORDERS = (16, 48)
 

@@ -94,7 +94,7 @@ def manufactured_ss_04(x, angle_x):
     def _scatter(x, mu):
         c = 0.9
         const = -0.125 * length_x + 0.5 * length_x**2
-        return 0.25 * (mu + x) + const - c * ((0.25 * x + const))
+        return 0.25 * (mu + x) + const - c * (0.25 * x + const)
 
     for nn, mu in enumerate(angle_x):
         idx = x < (0.5 * length_x)

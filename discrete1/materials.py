@@ -84,7 +84,7 @@ def materials(groups, materials, key=False):
         # Verify it is possible
         assert (
             material.split("-%")[0] in __materials
-        ), "Material not recognized, use:\n{}".format(__materials)
+        ), f"Material not recognized, use:\n{__materials}"
         # Calculate cross section
         total, scatter, fission = _generate_cross_section(groups, material)
         xs_total.append(total)
@@ -107,7 +107,7 @@ def _generate_cross_section(groups, material):
 
     if material == "vacuum":
         return (
-            np.zeros((groups)),
+            np.zeros((groups,)),
             np.zeros((groups, groups)),
             np.zeros((groups, groups)),
         )
