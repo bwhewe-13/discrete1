@@ -39,6 +39,7 @@ def power_iteration(
     chi=None,
     geometry=1,
     counter=False,
+    flux_old=None,
 ):
     """Run power iteration for 1D multigroup problems.
 
@@ -63,6 +64,10 @@ def power_iteration(
         Geometry selector (1=slab, 2=sphere).
     counter : bool, optional
         Default False. Returns number of power iterations if True.
+    flux_old : numpy.ndarray, optional
+        Initial scalar flux guess indexed by [cell, group], e.g. to
+        warm-start from a converged solution. Not modified. Default is
+        None, which draws one at random as before.
 
     Returns
     -------
@@ -79,7 +84,10 @@ def power_iteration(
 
     # Initialize and normalize flux
     cells_x = medium_map.shape[0]
-    flux_old = np.random.rand(cells_x, xs_total.shape[1])
+    if flux_old is None:
+        flux_old = np.random.rand(cells_x, xs_total.shape[1])
+    else:
+        flux_old = np.array(flux_old, dtype=np.float64, copy=True)
     keff = np.linalg.norm(flux_old)
     flux_old /= np.linalg.norm(keff)
 
@@ -237,8 +245,12 @@ def collect_power_iteration(
         # Update power source term
         if chi is None:
             tools.fission_mat_prod(flux_old, xs_fission, source, medium_map, keff)
-        else:
+        elif chi.ndim == 2:
             tools.fission_vec_prod(flux_old, chi, xs_fission, source, medium_map, keff)
+        else:
+            tools.fission_vec_prod_echi(
+                flux_old, chi, xs_fission, source, medium_map, keff
+            )
 
         # Solve for scalar flux
         flux = mg.source_iteration_collect(
@@ -306,8 +318,8 @@ def ml_power_iteration(
     chi=None,
     geometry=1,
     counter=False,
-    fission_models=[],
-    scatter_models=[],
+    fission_models=None,
+    scatter_models=None,
     fission_labels=None,
     scatter_labels=None,
 ):
@@ -321,7 +333,8 @@ def ml_power_iteration(
     Parameters
     ----------
     flux_old : numpy.ndarray
-        Initial scalar flux guess indexed by [cell, group].
+        Initial scalar flux guess indexed by [cell, group]. Forwarded to
+        ``power_iteration`` when both model lists are None.
     xs_total : numpy.ndarray
         Total cross sections indexed by [material, group].
     xs_scatter : numpy.ndarray
@@ -349,10 +362,10 @@ def ml_power_iteration(
         Default False. Returns number of power iterations if True.
     fission_models : list, optional
         Trained DJINN models for fission source prediction. Empty list uses
-        traditional calculation. Default is [].
+        traditional calculation. Default is None.
     scatter_models : list, optional
         Trained DJINN models for scattering source prediction. Empty list uses
-        traditional calculation. Default is [].
+        traditional calculation. Default is None.
     fission_labels : array_like, optional
         Material labels for fission model predictions. Default is None.
     scatter_labels : array_like, optional
@@ -377,7 +390,7 @@ def ml_power_iteration(
       numerical stability.
     """
 
-    if (len(fission_models) == 0) and (len(scatter_models) == 0):
+    if (fission_models is None) and (scatter_models is None):
         print("WARNING: No ML models loaded, reverting to power_iteration")
         return power_iteration(
             xs_total,
@@ -391,6 +404,7 @@ def ml_power_iteration(
             chi=chi,
             geometry=geometry,
             counter=counter,
+            flux_old=flux_old,
         )
 
     # Set boundary source
@@ -410,12 +424,16 @@ def ml_power_iteration(
     while not (converged):
         # Update power source term
         # No Fission DJINN predictions
-        if len(fission_models) == 0 and chi is None:
+        if (fission_models is None) and (chi is None):
             tools.fission_mat_prod(
                 flux_old, xs_fission, fission_source, medium_map, keff_old
             )
-        elif len(fission_models) == 0:
+        elif (fission_models is None) and (chi.ndim == 2):
             tools.fission_vec_prod(
+                flux_old, chi, xs_fission, fission_source, medium_map, keff_old
+            )
+        elif fission_models is None:
+            tools.fission_vec_prod_echi(
                 flux_old, chi, xs_fission, fission_source, medium_map, keff_old
             )
         # Fission DJINN predictions
@@ -432,7 +450,7 @@ def ml_power_iteration(
 
         # Solve for scalar flux
         # No Scatter DJINN predictions
-        if len(scatter_models) == 0:
+        if scatter_models is None:
             flux = mg.source_iteration(
                 flux_old,
                 xs_total,
@@ -465,14 +483,20 @@ def ml_power_iteration(
             )
 
         # Update keffective and normalize flux
-        if len(fission_models) == 0 and chi is None:
+        if (fission_models is None) and (chi is None):
             keff = tools._update_keff_mat(
                 flux, flux_old, xs_fission, medium_map, keff_old
             )
             flux /= np.linalg.norm(flux)
 
-        elif len(fission_models) == 0:
+        elif (fission_models is None) and (chi.ndim == 2):
             keff = tools._update_keff_vec(
+                flux, flux_old, chi, xs_fission, medium_map, keff_old
+            )
+            flux /= np.linalg.norm(flux)
+
+        elif fission_models is None:
+            keff = tools._update_keff_vec_echi(
                 flux, flux_old, chi, xs_fission, medium_map, keff_old
             )
             flux /= np.linalg.norm(flux)
