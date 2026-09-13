@@ -354,9 +354,7 @@ def _solve_ml_transport(
 
     # Trained models expect the row-sum of the physics xs collapsed into
     # column 0 -- that's what scatter_prod_predict / fission_prod_predict
-    # read as the total to rescale the prediction against (see
-    # update_cross_sections). Materials without a model are left untouched
-    # since the same array also drives their ordinary physics source.
+    # read as the total to rescale the prediction against.
     def _real_models(models):
         return [i for i, m in enumerate(models) if not isinstance(m, int)]
 
