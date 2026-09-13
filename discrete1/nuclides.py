@@ -310,8 +310,11 @@ class NuclideLibrary:
         Microscopic scattering matrix in barns (transport coupling).
     nu_fission : numpy.ndarray, shape (M, G)
         Microscopic ``nu * sigma_f`` in barns (transport coupling).
-    chi : numpy.ndarray, shape (G,)
-        Fission neutron emission spectrum (sums to 1).
+    chi : numpy.ndarray, shape (G,) or (G, G)
+        Fission neutron emission spectrum. If 1D, one spectrum shared across
+        all incident (fissioning) groups (sums to 1). If 2D, indexed
+        ``[g_in, g_out]`` -- the outgoing-group spectrum as a function of the
+        incident group ``g_in`` that induced fission (each row sums to 1).
     """
 
     names: list[str]
@@ -373,8 +376,8 @@ class NuclideLibrary:
                 raise ValueError(f"{name} must have shape (M, G)")
         if self.xs_scatter.shape != (m, g, g):
             raise ValueError("xs_scatter must be (M, G, G)")
-        if self.chi.shape != (g,):
-            raise ValueError("chi must have shape (G,)")
+        if self.chi.shape not in ((g,), (g, g)):
+            raise ValueError("chi must have shape (G,) or (G, G)")
         for channel in REACTIONS:
             if channel in self.reaction_xs:
                 if self.reaction_xs[channel].shape != (m, g):
@@ -476,8 +479,9 @@ def library_from_chain(
         Microscopic fission, total, and ``nu * sigma_f`` cross sections (barns).
     xs_scatter : numpy.ndarray, shape (M, G, G)
         Microscopic scattering matrix (barns).
-    chi : numpy.ndarray, shape (G,)
-        Fission emission spectrum.
+    chi : numpy.ndarray, shape (G,) or (G, G)
+        Fission emission spectrum. See :class:`NuclideLibrary` for the (G, G)
+        ``[g_in, g_out]`` convention.
     reaction_xs : dict[str, numpy.ndarray], optional
         Channel -> microscopic multigroup cross section, shape ``(M, G)``.
         Each channel present must also appear in ``chain.reaction_product``.

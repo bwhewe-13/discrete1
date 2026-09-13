@@ -55,7 +55,10 @@ def power_iteration(
     bc_x : list-like
         Boundary condition indicators.
     chi : numpy.ndarray, optional
-        Fission Neutron Distribution. Must be included if xs_fission is nusigf.
+        Fission Neutron Distribution. Must be included if xs_fission is
+        nusigf. Either indexed [material, group] (one spectrum per material,
+        shared across incident groups), or indexed [material, g_in, g_out]
+        for an energy-dependent spectrum.
     geometry : int, optional
         Geometry selector (1=slab, 2=sphere).
     counter : bool, optional
@@ -91,8 +94,12 @@ def power_iteration(
         # Update power source term
         if chi is None:
             tools.fission_mat_prod(flux_old, xs_fission, source, medium_map, keff)
-        else:
+        elif chi.ndim == 2:
             tools.fission_vec_prod(flux_old, chi, xs_fission, source, medium_map, keff)
+        else:
+            tools.fission_vec_prod_echi(
+                flux_old, chi, xs_fission, source, medium_map, keff
+            )
 
         # Solve for scalar flux
         flux = mg.source_iteration(
@@ -112,8 +119,12 @@ def power_iteration(
         # Update keffective
         if chi is None:
             keff = tools._update_keff_mat(flux, flux_old, xs_fission, medium_map, keff)
-        else:
+        elif chi.ndim == 2:
             keff = tools._update_keff_vec(
+                flux, flux_old, chi, xs_fission, medium_map, keff
+            )
+        else:
+            keff = tools._update_keff_vec_echi(
                 flux, flux_old, chi, xs_fission, medium_map, keff
             )
 
@@ -177,7 +188,10 @@ def collect_power_iteration(
     filepath : str
         Directory path where training data files will be saved.
     chi : numpy.ndarray, optional
-        Fission Neutron Distribution. Must be included if xs_fission is nusigf.
+        Fission Neutron Distribution. Must be included if xs_fission is
+        nusigf. Either indexed [material, group] (one spectrum per material,
+        shared across incident groups), or indexed [material, g_in, g_out]
+        for an energy-dependent spectrum.
     geometry : int, optional
         Geometry type (1=slab, 2=sphere). Default is 1.
 
@@ -246,8 +260,12 @@ def collect_power_iteration(
         # Update keffective
         if chi is None:
             keff = tools._update_keff_mat(flux, flux_old, xs_fission, medium_map, keff)
-        else:
+        elif chi.ndim == 2:
             keff = tools._update_keff_vec(
+                flux, flux_old, chi, xs_fission, medium_map, keff
+            )
+        else:
+            keff = tools._update_keff_vec_echi(
                 flux, flux_old, chi, xs_fission, medium_map, keff
             )
 
@@ -321,8 +339,10 @@ def ml_power_iteration(
     bc_x : list-like
         Boundary condition indicators [left, right] (0=vacuum, 1=reflective).
     chi : numpy.ndarray, optional
-        Fission Neutron Distribution. Must be included if xs_fission is nusigf.
-        Default is None.
+        Fission Neutron Distribution. Must be included if xs_fission is
+        nusigf. Either indexed [material, group] (one spectrum per material,
+        shared across incident groups), or indexed [material, g_in, g_out]
+        for an energy-dependent spectrum. Default is None.
     geometry : int, optional
         Geometry type (1=slab, 2=sphere). Default is 1.
     counter : bool, optional

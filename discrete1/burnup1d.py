@@ -35,7 +35,7 @@ from tqdm import tqdm
 from discrete1 import cram, critical1d
 from discrete1.depletion import build_burnup_matrix
 
-__all__ = ["macroscopic_xs", "region_flux", "burnup"]
+__all__ = ["burnup", "macroscopic_xs", "region_flux"]
 
 
 def macroscopic_xs(library, densities):
@@ -154,10 +154,13 @@ def _solve_transport(
 ):
     """Rebuild macroscopic xs, run power iteration, and normalize the flux."""
     xs_total, xs_scatter, nu_fission = macroscopic_xs(library, densities)
-    # power_iteration expects chi shaped (materials, groups); the emission
-    # spectrum is shared across regions, so tile it per region (writable copy
-    # required by the numba kernel signature).
-    chi = np.tile(library.chi, (densities.shape[0], 1))
+    # power_iteration expects chi shaped (materials, groups) or (materials,
+    # g_in, g_out); the emission spectrum is shared across regions, so tile
+    # it per region (writable copy required by the numba kernel signature).
+    if library.chi.ndim == 1:
+        chi = np.tile(library.chi, (densities.shape[0], 1))
+    else:
+        chi = np.tile(library.chi, (densities.shape[0], 1, 1))
     flux, keff = critical1d.power_iteration(
         xs_total,
         xs_scatter,

@@ -24,7 +24,10 @@ def power_iteration(angles, xs_total, xs_scatter, xs_fission, chi=None):
     xs_total, xs_scatter, xs_fission : numpy.ndarray
         Cross section arrays used by the multigroup solver.
     chi : numpy.ndarray, optional
-        Fission Neutron Distribution. Must be included if xs_fission is nusigf.
+        Fission Neutron Distribution. Must be included if xs_fission is
+        nusigf. Either shape (groups,) (one spectrum shared across incident
+        groups), or shape (groups, groups), indexed [g_in, g_out], for an
+        energy-dependent spectrum.
 
     Returns
     -------
@@ -51,8 +54,10 @@ def power_iteration(angles, xs_total, xs_scatter, xs_fission, chi=None):
         # Update power source term
         if chi is None:
             tools._fission_mat_source_0d(flux_old, xs_fission, source, keff)
-        else:
+        elif chi.ndim == 1:
             tools._fission_vec_source_0d(flux_old, chi, xs_fission, source, keff)
+        else:
+            tools._fission_vec_source_0d_echi(flux_old, chi, xs_fission, source, keff)
 
         # Solve for scalar flux
         flux = mg.source_iteration(
@@ -62,8 +67,10 @@ def power_iteration(angles, xs_total, xs_scatter, xs_fission, chi=None):
         # Update keffective
         if chi is None:
             keff = tools._update_keff_mat_0d(flux, flux_old, xs_fission, keff)
-        else:
+        elif chi.ndim == 1:
             keff = tools._update_keff_vec_0d(flux, flux_old, chi, xs_fission, keff)
+        else:
+            keff = tools._update_keff_vec_0d_echi(flux, flux_old, chi, xs_fission, keff)
 
         # Normalize flux
         flux /= np.linalg.norm(flux)

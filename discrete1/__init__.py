@@ -64,6 +64,7 @@ class MaterialData:
     xs_total: np.ndarray  # (n_materials, n_groups)
     xs_scatter: np.ndarray  # (n_materials, n_groups, n_groups) or (..., L+1)
     xs_fission: np.ndarray  # (n_materials, n_groups)
+    # chi: (n_materials, n_groups) or (n_materials, n_groups, n_groups)
     chi: Optional[np.ndarray] = None
 
 

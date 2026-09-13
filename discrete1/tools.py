@@ -102,8 +102,11 @@ def transfer_matrix(xs_scatter, xs_fission, chi=None):
         Fission cross sections indexed by [material, group, group] or
         [material, group] if chi is not None.
     chi : numpy.ndarray, optional
-        Fission Neutron Distribution indexed by [material, group]. Must be
-        included if xs_fission is nusigf. Default is None.
+        Fission Neutron Distribution. Either indexed [material, group] (one
+        spectrum per material, shared across incident groups), or indexed
+        [material, g_in, g_out] for an energy-dependent spectrum (the
+        outgoing-group spectrum as a function of the incident group g_in
+        that induced fission.Must be included if xs_fission is nusigf. Default is None.
 
     Returns
     -------
@@ -111,19 +114,16 @@ def transfer_matrix(xs_scatter, xs_fission, chi=None):
         Combined transfer matrix indexed by [material, group, group, moment].
     """
     xs_matrix = xs_scatter.copy()
+    anisotropic = xs_scatter.ndim == 4
+    matrix_view = xs_matrix[:, :, :, 0] if anisotropic else xs_matrix
+    scatter_view = xs_scatter[:, :, :, 0] if anisotropic else xs_scatter
 
-    # Anisotropic scattering with fission matrix
-    if (chi is None) and (xs_scatter.ndim == 4):
-        xs_matrix[:, :, :, 0] += xs_fission
-    # Anisotropic scattering with nusigf vector and chi
-    elif (chi is not None) and (xs_scatter.ndim == 4):
-        _transfer_matrix(xs_matrix[:, :, :, 0], xs_scatter[:, :, :, 0], chi, xs_fission)
-    # Isotropic scattering with fission matrix
-    elif (chi is None) and (xs_scatter.ndim == 3):
-        xs_matrix += xs_fission
-    # Isotropic scattering with nusigf vector and chi
+    if chi is None:
+        matrix_view += xs_fission
+    elif chi.ndim == 2:
+        _transfer_matrix(matrix_view, scatter_view, chi, xs_fission)
     else:
-        _transfer_matrix(xs_matrix, xs_scatter, chi, xs_fission)
+        _transfer_matrix_echi(matrix_view, scatter_view, chi, xs_fission)
 
     return xs_matrix
 
@@ -159,6 +159,47 @@ def _transfer_matrix(xs_matrix, xs_scatter, chi, nusigf):
             for ig in range(groups):
                 xs_matrix[mat, og, ig] = (
                     xs_scatter[mat, og, ig] + chi[mat, og] * nusigf[mat, ig]
+                )
+
+
+@numba.jit("void(f8[:,:,:], f8[:,:,:], f8[:,:,:], f8[:,:])", nopython=True, cache=True)
+def _transfer_matrix_echi(xs_matrix, xs_scatter, chi, nusigf):
+    """Assemble the transfer matrix from an energy-dependent fission spectrum.
+
+    Same as :func:`_transfer_matrix`, but ``chi`` varies with the incident
+    (fissioning) group instead of being shared across all incident groups.
+
+    Parameters
+    ----------
+    xs_matrix : numpy.ndarray
+        Output transfer matrix of shape ``(materials, groups, groups)``.
+    xs_scatter : numpy.ndarray
+        Scattering matrix of shape ``(materials, groups, groups)``.
+    chi : numpy.ndarray
+        Fission spectrum of shape ``(materials, groups, groups)``, indexed
+        ``chi[mat, g_in, g_out]`` -- the outgoing-group spectrum as a
+        function of the incident group ``g_in`` inducing fission (each row
+        ``chi[mat, g_in, :]`` sums to 1). Matches PyCNiC's
+        ``Material.chi_matrix`` convention.
+    nusigf : numpy.ndarray
+        Fission production vector of shape ``(materials, groups)``.
+
+    Returns
+    -------
+    None
+        The combined matrix is written into ``xs_matrix`` in-place.
+    """
+    # Get parameters
+    materials, groups, _ = xs_matrix.shape
+    mat = numba.int32
+    og = numba.int32
+    ig = numba.int32
+    # Iterate over cells and groups
+    for mat in range(materials):
+        for og in range(groups):
+            for ig in range(groups):
+                xs_matrix[mat, og, ig] = (
+                    xs_scatter[mat, og, ig] + chi[mat, ig, og] * nusigf[mat, ig]
                 )
 
 
@@ -884,6 +925,76 @@ def fission_vec_prod(flux, chi, nusigf, source, medium_map, keff):
 
 
 @numba.jit(
+    "f8[:,:,:](f8[:,:], f8[:,:,:], f8[:,:], f8[:,:,:], i4[:], f8)",
+    nopython=True,
+    cache=True,
+)
+def fission_vec_prod_echi(flux, chi, nusigf, source, medium_map, keff):
+    r"""Fission source term with an energy-dependent fission spectrum.
+
+    Same as :func:`fission_vec_prod`, but ``chi`` varies with the incident
+    group instead of being shared across all incident groups.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Scalar flux array of shape (cells_x, groups).
+    chi : numpy.ndarray
+        Fission spectrum of shape (materials, groups, groups), indexed
+        chi[m, g_in, g_out] -- the probability that a fission induced by a
+        group-g_in neutron in material m emits a neutron into group g_out.
+        Matches PyCNiC's ``Material.chi_matrix`` convention.
+    nusigf : numpy.ndarray
+        Fission production cross section array of shape (materials, groups).
+    source : numpy.ndarray
+        Fission source array of shape (cells_x, 1, groups) to be updated.
+        Zeroed out and overwritten with computed fission source.
+    medium_map : numpy.ndarray
+        Material index map of shape (cells_x,). Maps each spatial cell to
+        its material index.
+    keff : float
+        Effective multiplication factor. Used to normalize the fission source.
+
+    Returns
+    -------
+    numpy.ndarray
+        Updated fission source array of shape (cells_x, 1, groups).
+
+    Notes
+    -----
+    This function is JIT-compiled with Numba for performance. The fission
+    source for cell ii and output group og is:
+
+    .. math::
+        S_{f,ii,og} = \\frac{1}{k_{eff}} \\sum_{ig} \\phi_{ii,ig}
+        \\chi_{mat,ig,og} \\sigma_{f,mat,ig}
+
+    where mat = medium_map[ii].
+    """
+    # Get parameters
+    cells_x, groups = flux.shape
+    ii = numba.int32
+    mat = numba.int32
+    og = numba.int32
+    ig = numba.int32
+    one_group = numba.float64
+    # Zero out previous source
+    source *= 0.0
+    # Iterate over cells and groups
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+        if chi[mat].sum() == 0.0:
+            continue
+        for og in range(groups):
+            one_group = 0.0
+            for ig in range(groups):
+                one_group += flux[ii, ig] * chi[mat, ig, og] * nusigf[mat, ig]
+            source[ii, 0, og] = one_group / keff
+    # Return matrix vector product
+    return source
+
+
+@numba.jit(
     "f8(f8[:,:], f8[:,:], f8[:,:], f8[:,:], i4[:], f8)", nopython=True, cache=True
 )
 def _update_keff_vec(flux, flux_old, chi, nusigf, medium_map, keff):
@@ -927,6 +1038,57 @@ def _update_keff_vec(flux, flux_old, chi, nusigf, medium_map, keff):
             for ig in range(groups):
                 rate_new += flux[ii, ig] * chi[mat, og] * nusigf[mat, ig]
                 rate_old += flux_old[ii, ig] * chi[mat, og] * nusigf[mat, ig]
+    return (rate_new * keff) / rate_old
+
+
+@numba.jit(
+    "f8(f8[:,:], f8[:,:], f8[:,:,:], f8[:,:], i4[:], f8)", nopython=True, cache=True
+)
+def _update_keff_vec_echi(flux, flux_old, chi, nusigf, medium_map, keff):
+    """Update $k_{eff}$ with an energy-dependent fission spectrum.
+
+    Same as :func:`_update_keff_vec`, but ``chi`` varies with the incident
+    group instead of being shared across all incident groups.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Current flux iterate with shape ``(cells_x, groups)``.
+    flux_old : numpy.ndarray
+        Previous flux iterate with shape ``(cells_x, groups)``.
+    chi : numpy.ndarray
+        Fission spectrum of shape ``(materials, groups, groups)``, indexed
+        ``chi[mat, g_in, g_out]``.
+    nusigf : numpy.ndarray
+        Production vector of shape ``(materials, groups)``.
+    medium_map : numpy.ndarray
+        Material index per cell with shape ``(cells_x,)``.
+    keff : float
+        Previous estimate of the effective multiplication factor.
+
+    Returns
+    -------
+    float
+        Updated effective multiplication factor.
+    """
+    # Get iterables
+    cells_x, groups = flux.shape
+    ii = numba.int32
+    mat = numba.int32
+    og = numba.int32
+    ig = numba.int32
+    # Initialize fission rates
+    rate_new = 0.0
+    rate_old = 0.0
+    # Iterate over cells and groups
+    for ii in range(cells_x):
+        mat = medium_map[ii]
+        if chi[mat].sum() == 0.0:
+            continue
+        for og in range(groups):
+            for ig in range(groups):
+                rate_new += flux[ii, ig] * chi[mat, ig, og] * nusigf[mat, ig]
+                rate_old += flux_old[ii, ig] * chi[mat, ig, og] * nusigf[mat, ig]
     return (rate_new * keff) / rate_old
 
 
@@ -1548,7 +1710,7 @@ def _off_scatter_0d(flux, flux_old, xs_scatter, gg):
     off_scatter = 0.0
     og = numba.int32
     # Iterate over groups
-    for og in range(0, gg):
+    for og in range(gg):
         off_scatter += xs_scatter[gg, og] * flux[og]
     for og in range(gg + 1, groups):
         off_scatter += xs_scatter[gg, og] * flux_old[og]
@@ -1631,6 +1793,51 @@ def _fission_vec_source_0d(flux, chi, nusigf, source, keff):
     return source
 
 
+@numba.jit("f8[:,:](f8[:], f8[:,:], f8[:], f8[:,:], f8)", nopython=True, cache=True)
+def _fission_vec_source_0d_echi(flux, chi, nusigf, source, keff):
+    """Build the 0D fission source from an energy-dependent spectrum.
+
+    Same as :func:`_fission_vec_source_0d`, but ``chi`` varies with the
+    incident group instead of being shared across all incident groups.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Scalar flux vector with shape ``(groups,)``.
+    chi : numpy.ndarray
+        Fission spectrum with shape ``(groups, groups)``, indexed
+        ``chi[g_in, g_out]`` -- the outgoing-group spectrum as a function of
+        the incident group ``g_in`` (each row sums to 1). Matches PyCNiC's
+        ``Material.chi_matrix`` convention.
+    nusigf : numpy.ndarray
+        Fission production vector with shape ``(groups,)``.
+    source : numpy.ndarray
+        Output source array of shape ``(1, groups)``.
+    keff : float
+        Effective multiplication factor.
+
+    Returns
+    -------
+    numpy.ndarray
+        Updated zero-dimensional fission source.
+    """
+    # Get parameters
+    groups = flux.shape[0]
+    og = numba.int32
+    ig = numba.int32
+    one_group = numba.float64
+    # Zero out previous source
+    source *= 0.0
+    # Iterate over groups
+    for og in range(groups):
+        one_group = 0.0
+        for ig in range(groups):
+            one_group += flux[ig] * chi[ig, og] * nusigf[ig]
+        source[0, og] = one_group / keff
+    # Return matrix vector product
+    return source
+
+
 @numba.jit("f8(f8[:], f8[:], f8[:,:], f8)", nopython=True, cache=True)
 def _update_keff_mat_0d(flux, flux_old, xs_fission, keff):
     """Update $k_{eff}$ for a zero-dimensional matrix fission model.
@@ -1701,5 +1908,44 @@ def _update_keff_vec_0d(flux, flux_old, chi, nusigf, keff):
             rate_new += flux[ig] * chi[og] * nusigf[ig]
             rate_old += flux_old[ig] * chi[og] * nusigf[ig]
     return (rate_new * keff) / rate_old
-    return (rate_new * keff) / rate_old
+
+
+@numba.jit("f8(f8[:], f8[:], f8[:,:], f8[:], f8)", nopython=True, cache=True)
+def _update_keff_vec_0d_echi(flux, flux_old, chi, nusigf, keff):
+    """Update $k_{eff}$ for a 0D model with an energy-dependent spectrum.
+
+    Same as :func:`_update_keff_vec_0d`, but ``chi`` varies with the
+    incident group instead of being shared across all incident groups.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Current flux iterate with shape ``(groups,)``.
+    flux_old : numpy.ndarray
+        Previous flux iterate with shape ``(groups,)``.
+    chi : numpy.ndarray
+        Fission spectrum with shape ``(groups, groups)``, indexed
+        ``chi[g_in, g_out]``.
+    nusigf : numpy.ndarray
+        Fission production vector with shape ``(groups,)``.
+    keff : float
+        Previous estimate of the effective multiplication factor.
+
+    Returns
+    -------
+    float
+        Updated effective multiplication factor.
+    """
+    # Get iterables
+    groups = flux.shape[0]
+    og = numba.int32
+    ig = numba.int32
+    # Initialize fission rates
+    rate_new = 0.0
+    rate_old = 0.0
+    # Iterate over groups
+    for og in range(groups):
+        for ig in range(groups):
+            rate_new += flux[ig] * chi[ig, og] * nusigf[ig]
+            rate_old += flux_old[ig] * chi[ig, og] * nusigf[ig]
     return (rate_new * keff) / rate_old
