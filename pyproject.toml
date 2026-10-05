@@ -30,14 +30,7 @@ ml = [
     "optuna",
     "scikit-learn>=1.4.0",
     "tensorboard",
-    "djinnml @ git+https://git@github.com/bwhewe-13/DJINN.git",
-]
-tf-ml = [
-    "optuna",
-    "scikit-learn>=1.4.0",
-    "tensorboard",
-    "tensorflow>=2.4.0",
-    "djinnml @ git+https://github.com/llnl/DJINN.git@master#subdirectory=djinn",
+    "djinnml",
 ]
 dev = [
     "pytest>=6.0",
@@ -51,7 +44,7 @@ all = [
     "optuna",
     "scikit-learn>=1.4.0",
     "tensorboard",
-    "djinnml @ git+https://git@github.com/bwhewe-13/DJINN.git",
+    "djinnml",
     "pytest>=6.0",
     "pytest-cov",
     "black",
