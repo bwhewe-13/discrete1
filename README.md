@@ -94,47 +94,28 @@ make html
 # Output will be in docs/build/html
 ```
 
-## ML Installation Options
+## ML Installation
 
-Choose one optional ML extra depending on which DJINN backend you want:
-
-- `discrete1[ml]`: PyTorch-oriented DJINN fork (`bwhewe-13/DJINN`)
-- `discrete1[tf-ml]`: TensorFlow-oriented DJINN fork (`llnl/DJINN`, `djinn` subdirectory)
-
-Install examples:
+The machine learning tools use PyTorch and DJINN. DJINN can be installed
+with `pip install djinnml` or with the `ml` extra:
 
 ```bash
 python -m pip install -e ".[ml]"
-python -m pip install -e ".[tf-ml]"
 ```
 
-AutoDJINN backend selection examples:
+Loading an AutoDJINN model:
 
 ```python
 from discrete1.ml.predict import AutoDJINN
 
-# PyTorch backend
-model_torch = AutoDJINN(
+model = AutoDJINN(
     "encoder.pt",
     "djinn_model",
     "decoder.pt",
     transformer=lambda x: x,
     detransformer=lambda x: x,
-    backend="torch",
-)
-
-# TensorFlow backend
-model_tf = AutoDJINN(
-    "encoder.h5",
-    "djinn_model",
-    "decoder.h5",
-    transformer=lambda x: x,
-    detransformer=lambda x: x,
-    backend="tensorflow",
 )
 ```
-
-**Note:** The PyTorch ML path (`discrete1[ml]`) is expected to be the preferred option going forward, since it is currently receiving active updates and development.
 
 ## Development
 
