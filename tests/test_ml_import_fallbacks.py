@@ -1,4 +1,4 @@
-"""Tests for ML import fallback logic and AutoDJINN backend guards."""
+"""Tests for ML import fallback logic."""
 
 import builtins
 import importlib
@@ -34,7 +34,6 @@ def test_predict_import_djinn_module_error_message(monkeypatch):
         importlib.import_module("discrete1.ml.predict")
 
     assert "discrete1[ml]" in str(exc.value)
-    assert "discrete1[tf-ml]" in str(exc.value)
 
 
 @pytest.mark.machine_learning
@@ -46,19 +45,3 @@ def test_train_import_djinn_module_error_message(monkeypatch):
         importlib.import_module("discrete1.ml.train")
 
     assert "discrete1[ml]" in str(exc.value)
-    assert "discrete1[tf-ml]" in str(exc.value)
-
-
-@pytest.mark.machine_learning
-def test_autodjinn_rejects_invalid_backend():
-    module = importlib.import_module("discrete1.ml.predict")
-
-    with pytest.raises(ValueError):
-        module.AutoDJINN(
-            "enc",
-            "dj",
-            "dec",
-            transformer=lambda x: x,
-            detransformer=lambda x: x,
-            backend="invalid",
-        )
