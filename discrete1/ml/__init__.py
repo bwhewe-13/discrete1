@@ -11,7 +11,7 @@ This subpackage relies on optional dependencies. Install them with::
 
     pip install discrete1[ml]
 
-Dependencies include scikit-learn for data utilities, TensorFlow/Keras for
+Dependencies include scikit-learn for data utilities, PyTorch for
 autoencoders used in reduced-order models, and ``djinn`` for DJINN models.
 Only import these when needed to keep the base installation light.
 """

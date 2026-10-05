@@ -18,9 +18,8 @@ Notes
 Optional ML dependencies are required. Install with::
 
     pip install discrete1[ml]
-    pip install discrete1[tf-ml]
 
-TensorFlow/Keras or PyTorch can be used for the autoencoder components,
+PyTorch is used for the autoencoder components,
 ``djinn``/``djinnml`` is used for the DJINN regressors, and custom
 DeepONet implementations are
 provided through ``discrete1.ml.train``.
@@ -38,7 +37,7 @@ Use an AutoDJINN composite model:
 
 >>> from discrete1.ml.predict import AutoDJINN
 >>> auto_model = AutoDJINN(
-...     'encoder.h5', 'djinn_model', 'decoder.h5',
+...     'encoder.pt', 'djinn_model', 'decoder.pt',
 ...     transformer=lambda x: x/np.max(x),
 ...     detransformer=lambda x: x*scale_factor
 ... )
@@ -48,31 +47,13 @@ Use an AutoDJINN composite model:
 import numpy as np
 
 try:
+    import torch
     from djinn import djinn  # pyright: ignore[reportMissingImports]
 except ImportError as e:
     raise ImportError(
-        "DJINN dependencies are not installed. Install with one of:\n"
-        "   pip install discrete1[ml]\n"
-        "   pip install discrete1[tf-ml]"
+        "DJINN dependencies are not installed. Install with:\n"
+        "   pip install discrete1[ml]"
     ) from e
-
-try:
-    import torch  # noqa: E402
-
-    tf = None
-except ImportError:
-    torch = None
-    try:
-        import os
-
-        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-        import tensorflow as tf  # noqa: E402
-    except ImportError:
-        raise ImportError(
-            "DJINN dependencies are not installed. Install with one of:\n"
-            "   pip install discrete1[ml]\n"
-            "   pip install discrete1[tf-ml]"
-        )
 
 
 def load_djinn_models(model_path):
@@ -235,35 +216,24 @@ class AutoDJINN:
     Parameters
     ----------
     file_encoder : str
-        Path to saved Keras encoder model (.h5 file).
+        Path to saved PyTorch encoder model (.pt file).
     file_djinn : str
         Path to saved DJINN model checkpoint.
     file_decoder : str
-        Path to saved Keras decoder model (.h5 file).
+        Path to saved PyTorch decoder model (.pt file).
     transformer : callable
         Function to transform/normalize input data before encoding.
     detransformer : callable
         Function to inverse transform/denormalize output after decoding.
-    optimizer : str, optional
-        Optimizer name for compiling Keras encoder/decoder models.
-        Default is 'adam'.
-    loss : str, optional
-        Loss function name for compiling Keras encoder/decoder models.
-        Default is 'mse' (mean squared error).
-    backend : str, optional
-        Autoencoder backend: ``"torch"`` or ``"tensorflow"``.
-        Default is ``"torch"``.
 
     Attributes
     ----------
-    encoder : tensorflow.keras.Model
-        Loaded and compiled encoder network.
+    encoder : torch.nn.Module
+        Loaded encoder network.
     model_djinn : djinn.DJINN_Regressor
         Loaded DJINN regression model.
-    decoder : tensorflow.keras.Model
-        Loaded and compiled decoder network.
-    backend : str
-        Active backend used for encoder/decoder inference.
+    decoder : torch.nn.Module
+        Loaded decoder network.
     transformer : callable
         Input transformation function.
     detransformer : callable
@@ -271,7 +241,7 @@ class AutoDJINN:
 
     Notes
     -----
-    The encoder and decoder are TensorFlow/Keras models that must be
+    The encoder and decoder are PyTorch models that must be
     pre-trained and compatible with each other (encoder output dimension
     must match DJINN input dimension, DJINN output must match decoder input).
 
@@ -280,10 +250,9 @@ class AutoDJINN:
     Create an AutoDJINN model:
 
     >>> model = AutoDJINN(
-    ...     'encoder.h5', 'djinn_latent', 'decoder.h5',
+    ...     'encoder.pt', 'djinn_latent', 'decoder.pt',
     ...     transformer=lambda x: x / x.max(),
     ...     detransformer=lambda x: x * scale,
-    ...     optimizer='adam', loss='mse'
     ... )
     >>> predictions = model.predict(flux_data)
     """
@@ -295,79 +264,41 @@ class AutoDJINN:
         file_decoder,
         transformer,
         detransformer,
-        optimizer="adam",
-        loss="mse",
-        backend="torch",
     ):
         """Initialize AutoDJINN instance.
 
-        Loads encoder, DJINN, and decoder models from files and compiles
-        the Keras encoder/decoder models with the specified optimizer and
-        loss function.
+        Loads encoder, DJINN, and decoder models from files.
 
         Parameters
         ----------
         file_encoder : str
-            Path to saved Keras encoder model (.h5 file).
+            Path to saved PyTorch encoder model (.pt file).
         file_djinn : str
             Path to saved DJINN model checkpoint.
         file_decoder : str
-            Path to saved Keras decoder model (.h5 file).
+            Path to saved PyTorch decoder model (.pt file).
         transformer : callable
             Function to transform/normalize input data.
         detransformer : callable
             Function to inverse transform/denormalize output data.
-        optimizer : str, optional
-            Optimizer name for Keras models (default: 'adam').
-        loss : str, optional
-            Loss function name for Keras models (default: 'mse').
-        backend : str, optional
-            Autoencoder backend: ``"tensorflow"`` or ``"torch"``.
         """
-        backend = backend.lower()
-        if backend not in ("tensorflow", "torch"):
-            raise ValueError("backend must be one of: 'tensorflow', 'torch'")
-
-        selected_backend = backend
-
-        if selected_backend == "tensorflow":
-            if tf is None:
-                raise ImportError(
-                    "TensorFlow is required for backend='tensorflow'. Install with:\n"
-                    "   pip install discrete1[tf-ml]"
-                )
-            self.encoder = tf.keras.models.load_model(file_encoder)
-            self.encoder.compile(optimizer=optimizer, loss=loss)
-            self.decoder = tf.keras.models.load_model(file_decoder)
-            self.decoder.compile(optimizer=optimizer, loss=loss)
-        else:
-            if torch is None:
-                raise ImportError(
-                    "PyTorch is required for backend='torch'. Install with:\n"
-                    "   pip install discrete1[ml]"
-                )
-            self.encoder = torch.load(file_encoder, map_location="cpu")
-            self.decoder = torch.load(file_decoder, map_location="cpu")
-            self.encoder.eval()
-            self.decoder.eval()
+        self.encoder = torch.load(file_encoder, map_location="cpu")
+        self.decoder = torch.load(file_decoder, map_location="cpu")
+        self.encoder.eval()
+        self.decoder.eval()
 
         self.model_djinn = djinn.load(model_name=file_djinn)
-        self.backend = selected_backend
 
         self.transformer = transformer
         self.detransformer = detransformer
 
     def _encode(self, features):
-        if self.backend == "tensorflow":
-            return self.encoder.predict(features, verbose=0)
         with torch.no_grad():
             tensor = torch.tensor(features, dtype=torch.float32)
             encoded = self.encoder(tensor)
         return encoded.detach().cpu().numpy()
 
     def _decode(self, latent):
-        if self.backend == "tensorflow":
-            return self.decoder.predict(latent, verbose=0)
         with torch.no_grad():
             tensor = torch.tensor(latent, dtype=torch.float32)
             decoded = self.decoder(tensor)

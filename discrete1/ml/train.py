@@ -34,9 +34,8 @@ try:
     from djinn import djinn  # pyright: ignore[reportMissingImports]
 except ImportError as e:
     raise ImportError(
-        "DJINN dependencies are not installed. Install with one of:\n"
-        "   pip install discrete1[ml]\n"
-        "   pip install discrete1[tf-ml]"
+        "DJINN dependencies are not installed. Install with:\n"
+        "   pip install discrete1[ml]"
     ) from e
 
 from discrete1.ml.data import (
