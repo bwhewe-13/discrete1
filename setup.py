@@ -24,6 +24,7 @@ setup(
         - DJINN-based ML acceleration
         - Numba-optimized implementations""",
     version="0.1.0",
+    python_requires=">=3.10",
     author="Ben Whewell",
     author_email="ben.whewell@pm.me",
     url="https://github.com",

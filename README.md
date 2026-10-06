@@ -1,6 +1,6 @@
 # discrete1
 
-[![Python Versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/bwhewe-13/discrete1)
+[![Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/bwhewe-13/discrete1)
 [![Style](https://img.shields.io/github/actions/workflow/status/bwhewe-13/discrete1/style.yml?label=Style)](https://github.com/bwhewe-13/discrete1/actions/workflows/style.yml)
 [![Tests](https://img.shields.io/github/actions/workflow/status/bwhewe-13/discrete1/tests.yml?label=Tests)](https://github.com/bwhewe-13/discrete1/actions/workflows/tests.yml)
 [![Coverage](https://codecov.io/gh/bwhewe-13/discrete1/graph/badge.svg)](https://codecov.io/gh/bwhewe-13/discrete1)
