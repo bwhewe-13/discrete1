@@ -1,4 +1,7 @@
-# discrete1
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/bwhewe-13/discrete1/master/docs/source/_static/logo-dark.svg">
+  <img alt="discrete1" src="https://raw.githubusercontent.com/bwhewe-13/discrete1/master/docs/source/_static/logo.svg" width="297">
+</picture>
 
 [![Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/bwhewe-13/discrete1)
 [![Style](https://img.shields.io/github/actions/workflow/status/bwhewe-13/discrete1/style.yml?label=Style)](https://github.com/bwhewe-13/discrete1/actions/workflows/style.yml)
@@ -6,37 +9,6 @@
 [![Coverage](https://codecov.io/gh/bwhewe-13/discrete1/graph/badge.svg)](https://codecov.io/gh/bwhewe-13/discrete1)
 [![Docs](https://img.shields.io/github/actions/workflow/status/bwhewe-13/discrete1/docs.yml?label=Docs)](https://bwhewe-13.github.io/discrete1/)
 [![License: BSD 3-Clause](https://img.shields.io/badge/license-BSD%203--Clause-green.svg)](LICENSE)
-
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⡋⢅⣂⣐⡨⠙⡻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟⣩⣥⣬⢕⢰⣾⣿⣿⣿⣿⣷⣄⠊⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⢸⣳⣳⣻⣿⡆⣿⣿⣿⣿⣿⣿⣿⣮⠠⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡘⢜⢞⢮⢗⢡⣿⣿⣿⣿⣿⣿⣿⣿⣧⠂⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠐⣰⣴⣶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣆⠊⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-⣿⣿⡿⠟⡛⠫⠉⠍⠛⡛⢛⠻⠿⢿⣿⣿⡇⢂⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡐⢸⣿⣿⠿⠿⠛⡛⢋⠩⠉⠍⠩⢙⠛⢿⣿⣿
-⡿⠃⣬⣴⣾⣿⣿⣿⣿⣷⣶⣾⣤⣥⣠⠩⠠⠹⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⢃⠡⢁⣂⣬⣴⣷⣾⣿⣿⣿⣿⣿⣷⣾⣄⠌⢿
-⠅⢱⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⢌⣶⣴⣠⢉⠛⠿⣿⣿⣿⡿⠟⠫⢑⣠⣬⣶⡐⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡆⢊
-⠄⣹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢁⢺⣿⣿⣿⣿⣾⣴⠀⠍⠩⢠⣵⣿⣿⣿⣿⣿⡇⠊⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⢂
-⣇⠌⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢀⣾⣿⣿⣿⠿⠋⣡⣨⣾⣶⣄⡌⡙⠿⣿⣿⣿⣷⠁⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠠⣹
-⣿⡄⠜⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠄⣿⠿⢋⢡⣤⣿⣿⣿⣿⣿⣿⣿⣶⣴⡈⡙⠿⣿⠐⣸⣿⣿⣿⣿⣿⣿⣿⡿⢋⢅⢆⡬⡐⣿
-⣿⡿⢢⢴⣲⣶⣌⢻⣿⣿⣿⣿⣿⣿⡇⠌⢡⣨⣶⣿⣿⠟⡛⡩⡩⡍⡍⡛⡻⣿⣿⣶⣅⡌⢂⢸⣿⣿⣿⣿⣿⣿⣿⠡⡱⡱⡍⣿⣖⢸
-⣿⡇⢯⡻⡮⣟⣿⠀⣿⣿⣿⣿⠟⡋⡐⢸⣿⣿⣿⠟⡡⡪⡪⡪⡪⡪⡪⣪⣖⢌⠻⣿⣿⣿⡆⢂⠙⠻⣿⣿⣿⣿⣿⡆⠪⢪⢪⠪⢂⣾
-⣿⣷⡘⠎⢟⠵⠃⠼⣿⣿⠟⡁⣢⣾⢁⢺⣿⣿⠏⢔⢱⢱⢱⢱⢱⢱⢱⢙⣿⣷⡕⠹⣿⣿⡇⠌⣷⣅⠌⠻⣿⣿⠟⠡⣵⣶⣶⣶⣿⣿
-⣿⣿⣿⣷⣶⣾⣷⣔⠈⠅⣢⣾⣿⣿⠠⢸⣿⣿⠨⡢⠣⡣⡣⡣⡣⡣⡣⡣⡪⡻⡫⠅⣿⣿⡇⠂⣿⣿⣿⣮⠈⠅⢬⣾⣿⣿⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⠟⠡⣨⣆⠌⠻⣿⣿⠐⢸⣿⣿⡈⡪⡸⢸⢸⢸⢸⢸⢸⢸⢸⢸⢸⠁⣿⣿⡇⡁⣿⣿⠟⠡⣨⣦⡉⠻⣿⣿⣿⣿⣿⣿
-⣿⣿⣿⣿⡿⠡⣨⣾⣿⣿⣷⣅⡌⢛⠎⢸⣿⣿⣧⠨⡸⡐⢕⢱⢱⢱⢱⢱⢱⢱⠁⣾⣿⣿⡇⠰⢋⢑⣬⣾⣿⣿⣿⣔⢈⠻⣿⣿⣿⣿
-⣿⣿⣿⠏⢄⣵⣿⣿⣿⣿⣿⣿⣿⣦⡂⢙⠻⣿⣿⣷⣔⠘⢌⠆⡕⠜⡌⡪⢘⣠⣾⣿⣿⠟⡃⢅⣶⣿⣿⣿⣿⣿⣿⣿⣷⡈⡙⣿⣿⣿
-⣿⣿⠃⢬⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠂⣆⡌⡙⢿⣿⣿⣶⣶⣤⣥⣶⣶⣿⣿⠿⠋⢅⣢⠐⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣆⠨⢿⣿
-⣿⠃⢬⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⠁⣿⣿⣶⣄⡌⠛⠿⣿⣿⣿⣿⠿⠋⢅⣬⣾⣿⣿⠈⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣆⠊⢿
-⡇⢌⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠐⢹⣿⣿⣿⣿⣾⣤⡊⢙⠋⢅⣬⣾⣿⣿⣿⣿⡏⠌⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡎⢘
-⡐⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡎⢸⣿⣿⣿⠿⢛⢉⣐⣴⣮⣄⡊⡙⠿⢿⣿⣿⠇⢢⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠂
-⡆⠙⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠇⡂⠋⢍⣠⣬⣶⣿⣿⣿⣿⣿⣿⣶⣦⣆⡨⠙⠨⠸⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⢃⢱
-⣿⣦⡂⡙⢛⠿⠿⠿⠿⡛⢛⠛⡉⢅⣂⣥⡠⢹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⣁⣮⣄⣂⡩⢉⠛⡛⢛⠻⢛⠛⡛⠍⣐⣴⣿
-⣿⣿⣿⣷⣶⣶⣵⣬⣶⣶⣶⣿⣿⣿⣿⣿⣧⠂⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠠⣼⣿⣿⣿⣿⣿⣷⣶⣶⣶⣶⣶⣶⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡆⡙⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⢲⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄⠜⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⢥⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡔⠘⢿⣿⣿⣿⣿⣿⣿⡿⠃⢬⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣮⡀⠛⠿⣿⣿⠿⠋⣂⣵⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-⠿⠻⠿⠻⠿⠻⠿⠻⠿⠻⠿⠻⠟⠿⠻⠟⠿⠻⠟⠿⠻⠿⠺⠔⠄⠂⠦⠳⠟⠿⠻⠟⠿⠻⠟⠿⠻⠟⠿⠻⠟⠿⠻⠟⠿⠻⠿⠻⠿⠻
 
 This solves the neutron transport equation for one-dimensional problems
 in both slab and sphere geometry. The discrete ordinates method is used
