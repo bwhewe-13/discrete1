@@ -24,6 +24,13 @@ the Serpent ``set pcc`` default:
 
 Set ``predictor_corrector=False`` for the cheaper predictor-only (CE) scheme.
 
+Cross sections that depend on composition (e.g. resonance self-shielding as
+the fuel burns) enter through ``xs_update=fn`` on :func:`burnup` and
+:func:`ml_burnup`. ``fn(library, densities, region)`` returns the
+:class:`~discrete1.nuclides.NuclideLibrary` for one region at one composition
+and is called before every transport solve and burnup matrix.
+:mod:`discrete1.shielding` provides one for Bondarenko tables.
+
 Unit convention (see :mod:`discrete1.depletion`): number densities in
 atoms/(barn*cm), microscopic cross sections in barns, flux in n/cm^2/s, so
 macroscopic cross sections come out in 1/cm and reaction rates in 1/s.
@@ -49,8 +56,9 @@ def macroscopic_xs(library, densities):
 
     Parameters
     ----------
-    library : NuclideLibrary
-        Source of microscopic transport cross sections.
+    library : NuclideLibrary or sequence of NuclideLibrary
+        Source of microscopic transport cross sections: one shared by every
+        region, or one per region (length ``R``), as ``xs_update`` produces.
     densities : numpy.ndarray, shape (R, M)
         Number densities for each of ``R`` regions and ``M`` nuclides.
 
@@ -63,10 +71,52 @@ def macroscopic_xs(library, densities):
     nu_fission : numpy.ndarray, shape (R, G)
         Macroscopic ``nu * Sigma_f`` (pair with ``library.chi``).
     """
+    if isinstance(library, (list, tuple)):
+        if len(library) != densities.shape[0]:
+            raise ValueError("Need one library per region")
+        rows = [
+            macroscopic_xs(lib, densities[r : r + 1]) for r, lib in enumerate(library)
+        ]
+        return tuple(np.concatenate(parts) for parts in zip(*rows))
     xs_total = densities @ library.xs_total
     nu_fission = densities @ library.nu_fission
     xs_scatter = np.einsum("rm,mgh->rgh", densities, library.xs_scatter)
     return xs_total, xs_scatter, nu_fission
+
+
+def _region_library(library, region):
+    """Return the library for ``region``: shared, or the region's own."""
+    return library[region] if isinstance(library, (list, tuple)) else library
+
+
+def _region_libraries(library, densities, xs_update):
+    """Per-region libraries from ``xs_update``, or the shared ``library``."""
+    if xs_update is None:
+        return library
+    libraries = []
+    for region in range(densities.shape[0]):
+        updated = xs_update(library, densities[region], region)
+        if list(updated.names) != list(library.names) or (
+            updated.groups != library.groups
+        ):
+            raise ValueError(
+                "xs_update must return a library over the same nuclides and "
+                "groups as the one it was given"
+            )
+        libraries.append(updated)
+    return libraries
+
+
+def _region_chi(library, n_regions):
+    """Stack the emission spectrum of each region.
+
+    ``power_iteration`` expects chi shaped (materials, groups) or (materials,
+    g_in, g_out), as a writable array for the numba kernels.
+    """
+    return np.array(
+        [_region_library(library, r).chi for r in range(n_regions)],
+        dtype=np.float64,
+    )
 
 
 def _cell_volumes(delta_x, geometry):
@@ -119,7 +169,10 @@ def _power_density(flux, densities, library, medium_map, volumes):
     so no explicit conversion constant is needed.
     """
     # kappa-fission macroscopic cross section per region (R, G)
-    kappa_fission = (densities * library.kappa[None, :]) @ library.fission_xs
+    kappa_fission = np.zeros((densities.shape[0], flux.shape[1]))
+    for r in range(densities.shape[0]):
+        lib = _region_library(library, r)
+        kappa_fission[r] = (densities[r] * lib.kappa) @ lib.fission_xs
     return np.sum(volumes[:, None] * kappa_fission[medium_map] * flux)
 
 
@@ -155,13 +208,7 @@ def _solve_transport(
 ):
     """Rebuild macroscopic xs, run power iteration, and normalize the flux."""
     xs_total, xs_scatter, nu_fission = macroscopic_xs(library, densities)
-    # power_iteration expects chi shaped (materials, groups) or (materials,
-    # g_in, g_out); the emission spectrum is shared across regions, so tile
-    # it per region (writable copy required by the numba kernel signature).
-    if library.chi.ndim == 1:
-        chi = np.tile(library.chi, (densities.shape[0], 1))
-    else:
-        chi = np.tile(library.chi, (densities.shape[0], 1, 1))
+    chi = _region_chi(library, densities.shape[0])
     flux, keff = critical1d.power_iteration(
         xs_total,
         xs_scatter,
@@ -193,6 +240,7 @@ def burnup(
     order=48,
     substeps=1,
     predictor_corrector=True,
+    xs_update=None,
 ):
     """Run a transport-coupled burnup calculation over a sequence of steps.
 
@@ -228,6 +276,13 @@ def burnup(
         CRAM substeps within each predictor/corrector depletion (default 1).
     predictor_corrector : bool, optional
         If True (default) use CE/LI; if False use predictor-only CE.
+    xs_update : callable, optional
+        Called as ``xs_update(library, densities_r, region)`` for each region
+        before every transport solve and burnup matrix, with that region's
+        densities (shape ``(M,)``). Returns a NuclideLibrary over the same
+        nuclides and groups, e.g. resonance-shielded at the current
+        composition (:func:`discrete1.shielding.bondarenko_update`). Default
+        None uses ``library`` everywhere.
 
     Returns
     -------
@@ -253,8 +308,9 @@ def burnup(
 
     for step, dt in enumerate(tqdm(dt_steps, desc="Burnup", ascii=True)):
         # --- Beginning-of-step transport solve (predictor flux) ---
+        libraries0 = _region_libraries(library, densities, xs_update)
         flux0, keff0 = _solve_transport(
-            library,
+            libraries0,
             densities,
             medium_map,
             delta_x,
@@ -270,7 +326,10 @@ def burnup(
         rflux0 = region_flux(flux0, medium_map, volumes, n_regions)
 
         # --- Predictor (CE): per-region burnup matrices held constant ---
-        matrices0 = [build_burnup_matrix(library, rflux0[r]) for r in range(n_regions)]
+        matrices0 = [
+            build_burnup_matrix(_region_library(libraries0, r), rflux0[r])
+            for r in range(n_regions)
+        ]
         predicted = np.array(
             [
                 cram.cram_expm(
@@ -287,8 +346,9 @@ def burnup(
             continue
 
         # --- Corrector (LI): end-of-step flux, step-averaged matrices ---
+        libraries1 = _region_libraries(library, predicted, xs_update)
         flux1, _ = _solve_transport(
-            library,
+            libraries1,
             predicted,
             medium_map,
             delta_x,
@@ -303,7 +363,7 @@ def burnup(
         rflux1 = region_flux(flux1, medium_map, volumes, n_regions)
         corrected = np.zeros_like(densities)
         for r in range(n_regions):
-            matrix1 = build_burnup_matrix(library, rflux1[r])
+            matrix1 = build_burnup_matrix(_region_library(libraries1, r), rflux1[r])
             avg = 0.5 * (matrices0[r] + matrix1)
             corrected[r] = cram.cram_expm(
                 avg, densities[r], dt, order=order, substeps=substeps
@@ -314,7 +374,7 @@ def burnup(
 
     # --- End-of-life eigenvalue for the final composition ---
     _, keff_history[-1] = _solve_transport(
-        library,
+        _region_libraries(library, densities, xs_update),
         densities,
         medium_map,
         delta_x,
@@ -364,13 +424,7 @@ def _solve_ml_transport(
         if real_scatter:
             xs_scatter = update_cross_sections(xs_scatter, real_scatter)
 
-    # power_iteration expects chi shaped (materials, groups) or (materials,
-    # g_in, g_out); the emission spectrum is shared across regions, so tile
-    # it per region (writable copy required by the numba kernel signature).
-    if library.chi.ndim == 1:
-        chi = np.tile(library.chi, (densities.shape[0], 1))
-    else:
-        chi = np.tile(library.chi, (densities.shape[0], 1, 1))
+    chi = _region_chi(library, densities.shape[0])
 
     if full_fission_matrix:
         # chi[r, og] * nu_fission[r, ig] (rank-1) or chi[r, ig, og] *
@@ -442,6 +496,7 @@ def ml_burnup(
     flux_old=None,
     fission_relabel_fn=None,
     scatter_relabel_fn=None,
+    xs_update=None,
     joint_keff="rate",
 ):
     """Run a transport-coupled burnup calculation over a sequence of steps.
@@ -511,6 +566,9 @@ def ml_burnup(
         Same as ``fission_relabel_fn``, but for ``scatter_models`` and
         ``scatter_labels``, and independent of it: the two models can end
         up with different labels, or only one relabeled at all.
+    xs_update : callable, optional
+        Composition-dependent cross sections, as in :func:`burnup`. Default
+        None uses ``library`` everywhere.
     joint_keff : {"rate", "growth"}, optional
         Eigenvalue estimate when ``fission_models`` is given; see
         :func:`discrete1.critical1d.ml_power_iteration`. Default ``"rate"``.
@@ -563,8 +621,9 @@ def ml_burnup(
     for step, dt in enumerate(tqdm(dt_steps, desc="Burnup", ascii=True)):
         # --- Beginning-of-step transport solve (predictor flux) ---
         step_fission_labels, step_scatter_labels = current_labels(densities)
+        libraries0 = _region_libraries(library, densities, xs_update)
         flux0, keff0 = _solve_ml_transport(
-            library,
+            libraries0,
             densities,
             medium_map,
             delta_x,
@@ -588,7 +647,10 @@ def ml_burnup(
         rflux0 = region_flux(flux0, medium_map, volumes, n_regions)
 
         # --- Predictor (CE): per-region burnup matrices held constant ---
-        matrices0 = [build_burnup_matrix(library, rflux0[r]) for r in range(n_regions)]
+        matrices0 = [
+            build_burnup_matrix(_region_library(libraries0, r), rflux0[r])
+            for r in range(n_regions)
+        ]
         predicted = np.array(
             [
                 cram.cram_expm(
@@ -609,8 +671,9 @@ def ml_burnup(
         # composition, so a composition-dependent label must follow it there,
         # same as macroscopic_xs does two lines above this call.
         step_fission_labels, step_scatter_labels = current_labels(predicted)
+        libraries1 = _region_libraries(library, predicted, xs_update)
         flux1, _ = _solve_ml_transport(
-            library,
+            libraries1,
             predicted,
             medium_map,
             delta_x,
@@ -633,7 +696,7 @@ def ml_burnup(
         rflux1 = region_flux(flux1, medium_map, volumes, n_regions)
         corrected = np.zeros_like(densities)
         for r in range(n_regions):
-            matrix1 = build_burnup_matrix(library, rflux1[r])
+            matrix1 = build_burnup_matrix(_region_library(libraries1, r), rflux1[r])
             avg = 0.5 * (matrices0[r] + matrix1)
             corrected[r] = cram.cram_expm(
                 avg, densities[r], dt, order=order, substeps=substeps
@@ -645,7 +708,7 @@ def ml_burnup(
     # --- End-of-life eigenvalue for the final composition ---
     step_fission_labels, step_scatter_labels = current_labels(densities)
     _, keff_history[-1] = _solve_ml_transport(
-        library,
+        _region_libraries(library, densities, xs_update),
         densities,
         medium_map,
         delta_x,

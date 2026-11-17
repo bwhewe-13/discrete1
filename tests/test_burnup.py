@@ -439,6 +439,44 @@ def test_power_iteration_flux_old_not_mutated():
     assert np.array_equal(seed, seed_before)
 
 
+def test_ml_burnup_identity_xs_update_changes_nothing():
+    lib = synthetic_library(groups=1)
+    medium_map, delta_x, angle_x, angle_w = _slab_setup(cells=20)
+    densities0 = np.array([[0.04, 0.0, 0.0, 0.0]])
+    kwargs = dict(
+        bc_x=[0, 0],
+        dt_steps=[2.6e6],
+        power=1.0e6,
+        order=16,
+        scatter_models=[0],
+        flux_old=np.full((medium_map.shape[0], 1), 2.0),
+    )
+    plain = burnup1d.ml_burnup(
+        lib, densities0, medium_map, delta_x, angle_x, angle_w, **kwargs
+    )
+
+    regions = []
+
+    def identity(library, densities, region):
+        regions.append(region)
+        return library
+
+    hooked = burnup1d.ml_burnup(
+        lib,
+        densities0,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        xs_update=identity,
+        **kwargs,
+    )
+    np.testing.assert_allclose(hooked[0], plain[0], rtol=1e-6, atol=1e-20)
+    np.testing.assert_allclose(hooked[1], plain[1], rtol=1e-6)
+    # predictor, corrector, end of life
+    assert regions == [0, 0, 0]
+
+
 def test_ml_burnup_passes_joint_keff(monkeypatch):
     lib = synthetic_library(groups=1)
     medium_map, delta_x, angle_x, angle_w = _slab_setup(cells=20)

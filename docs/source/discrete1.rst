@@ -34,6 +34,7 @@ Submodules
    discrete1.multi_group
    discrete1.multi_group_0d
    discrete1.nuclides
+   discrete1.shielding
    discrete1.spatial_sweep
    discrete1.timed1d
    discrete1.tools
