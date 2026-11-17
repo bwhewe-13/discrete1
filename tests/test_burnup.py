@@ -274,9 +274,13 @@ def test_ml_burnup_fission_models_without_full_matrix_fails():
         )
 
 
-def test_ml_burnup_fission_models_with_full_matrix_matches_burnup():
+def test_ml_burnup_fission_models_with_full_matrix_matches_burnup(monkeypatch):
     # [0] (physics placeholder) with full_fission_matrix=True must
     # reproduce the ordinary chi/nu_fission result exactly.
+    # Both outer loops have to converge: at the default iteration caps keff
+    # still depends on the random starting flux by a few pcm.
+    monkeypatch.setattr(critical1d, "count_kk", 2000)
+    monkeypatch.setattr(critical1d, "count_pp", 2000)
     lib = synthetic_library(groups=2)
     medium_map, delta_x, angle_x, angle_w = _slab_setup(cells=10)
     densities0 = np.array([[0.04, 0.0, 0.0, 0.0]])
@@ -433,3 +437,35 @@ def test_power_iteration_flux_old_not_mutated():
     )
     assert abs(keff_default - keff_seeded) < 2e-3
     assert np.array_equal(seed, seed_before)
+
+
+def test_ml_burnup_passes_joint_keff(monkeypatch):
+    lib = synthetic_library(groups=1)
+    medium_map, delta_x, angle_x, angle_w = _slab_setup(cells=20)
+    densities0 = np.array([[0.04, 0.0, 0.0, 0.0]])
+
+    seen = []
+    real_ml = critical1d.ml_power_iteration
+
+    def spy(*args, **kwargs):
+        seen.append(kwargs["joint_keff"])
+        return real_ml(*args, **kwargs)
+
+    monkeypatch.setattr(critical1d, "ml_power_iteration", spy)
+    burnup1d.ml_burnup(
+        lib,
+        densities0,
+        medium_map,
+        delta_x,
+        angle_x,
+        angle_w,
+        bc_x=[0, 0],
+        dt_steps=[2.6e6],
+        power=1.0e6,
+        order=16,
+        predictor_corrector=False,
+        scatter_models=[0],
+        joint_keff="growth",
+    )
+    # predictor, end of life
+    assert seen == ["growth", "growth"]

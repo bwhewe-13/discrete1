@@ -305,6 +305,28 @@ def collect_power_iteration(
     return flux, keff
 
 
+def _joint_fission_rate(flux, xs_fission, medium_map, fission_models):
+    """Total fission production for ``joint_keff="rate"``.
+
+    Materials with a fission model have their column sums stored in
+    ``xs_fission[mat, :, 0]`` (see ``ml.tools.update_cross_sections``), the
+    same values ``tools.fission_prod_predict`` rescales to. Materials with an
+    integer placeholder keep the full matrix. Materials past the end of
+    ``fission_models`` get no fission source, so they are skipped here too.
+    """
+    rate = 0.0
+    for mat in np.unique(medium_map):
+        if mat >= len(fission_models):
+            continue
+        idx = np.argwhere(medium_map == mat).flatten()
+        if isinstance(fission_models[mat], int):
+            nusf = xs_fission[mat].sum(axis=0)
+        else:
+            nusf = xs_fission[mat, :, 0]
+        rate += float((flux[idx] * nusf).sum())
+    return rate
+
+
 def ml_power_iteration(
     flux_old,
     xs_total,
@@ -322,6 +344,7 @@ def ml_power_iteration(
     scatter_models=None,
     fission_labels=None,
     scatter_labels=None,
+    joint_keff="rate",
 ):
     """Power iteration with optional DJINN surrogate model acceleration.
 
@@ -370,6 +393,17 @@ def ml_power_iteration(
         Material labels for fission model predictions. Default is None.
     scatter_labels : array_like, optional
         Material labels for scatter model predictions. Default is None.
+    joint_keff : {"rate", "growth"}, optional
+        Eigenvalue estimate used when ``fission_models`` is given. Default
+        ``"rate"`` divides the fission source by the previous keff and updates
+        keff from the ratio of fission rates, the same as the branches without
+        fission models. ``"growth"`` builds the source with keff = 1 and takes
+        keff as the norm of the new flux; it is kept to reproduce older
+        results. The two agree only if the inner ML source iteration converges,
+        and it stops after ``multi_group.count_pp`` iterations starting from the
+        normalized ``flux_old``. Under ``"growth"`` the solution is keff times
+        larger than that starting guess, so the truncation error goes straight
+        into keff.
 
     Returns
     -------
@@ -386,9 +420,10 @@ def ml_power_iteration(
       iteration (change_kk), more relaxed for DJINN-accelerated (change_pp).
     - Early termination occurs if flux change increases after 20 iterations,
       preventing divergence.
-    - Normalization strategy changes when DJINN models are used to maintain
-      numerical stability.
     """
+
+    if joint_keff not in ("rate", "growth"):
+        raise ValueError("joint_keff must be 'rate' or 'growth'")
 
     if (fission_models is None) and (scatter_models is None):
         print("WARNING: No ML models loaded, reverting to power_iteration")
@@ -443,7 +478,7 @@ def ml_power_iteration(
                 xs_fission,
                 fission_source,
                 medium_map,
-                1.0,
+                keff_old if joint_keff == "rate" else 1.0,
                 fission_models,
                 fission_labels,
             )
@@ -498,6 +533,13 @@ def ml_power_iteration(
         elif fission_models is None:
             keff = tools._update_keff_vec_echi(
                 flux, flux_old, chi, xs_fission, medium_map, keff_old
+            )
+            flux /= np.linalg.norm(flux)
+
+        elif joint_keff == "rate":
+            keff = keff_old * (
+                _joint_fission_rate(flux, xs_fission, medium_map, fission_models)
+                / _joint_fission_rate(flux_old, xs_fission, medium_map, fission_models)
             )
             flux /= np.linalg.norm(flux)
 

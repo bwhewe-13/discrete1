@@ -348,6 +348,7 @@ def _solve_ml_transport(
     scatter_labels=None,
     full_fission_matrix=False,
     flux_old=None,
+    joint_keff="rate",
 ):
     """Rebuild macroscopic xs, run power iteration, and normalize the flux."""
     xs_total, xs_scatter, nu_fission = macroscopic_xs(library, densities)
@@ -412,6 +413,7 @@ def _solve_ml_transport(
         scatter_models=scatter_models,
         fission_labels=fission_labels,
         scatter_labels=scatter_labels,
+        joint_keff=joint_keff,
     )
     flux = _normalize(flux, densities, library, medium_map, volumes, power, flux_level)
     return flux, keff
@@ -440,6 +442,7 @@ def ml_burnup(
     flux_old=None,
     fission_relabel_fn=None,
     scatter_relabel_fn=None,
+    joint_keff="rate",
 ):
     """Run a transport-coupled burnup calculation over a sequence of steps.
 
@@ -508,6 +511,9 @@ def ml_burnup(
         Same as ``fission_relabel_fn``, but for ``scatter_models`` and
         ``scatter_labels``, and independent of it: the two models can end
         up with different labels, or only one relabeled at all.
+    joint_keff : {"rate", "growth"}, optional
+        Eigenvalue estimate when ``fission_models`` is given; see
+        :func:`discrete1.critical1d.ml_power_iteration`. Default ``"rate"``.
 
     Returns
     -------
@@ -575,6 +581,7 @@ def ml_burnup(
             scatter_labels=step_scatter_labels,
             full_fission_matrix=full_fission_matrix,
             flux_old=flux_old,
+            joint_keff=joint_keff,
         )
         flux_old = flux0
         keff_history[step] = keff0
@@ -620,6 +627,7 @@ def ml_burnup(
             scatter_labels=step_scatter_labels,
             full_fission_matrix=full_fission_matrix,
             flux_old=flux_old,
+            joint_keff=joint_keff,
         )
         flux_old = flux1
         rflux1 = region_flux(flux1, medium_map, volumes, n_regions)
@@ -654,6 +662,7 @@ def ml_burnup(
         scatter_labels=step_scatter_labels,
         full_fission_matrix=full_fission_matrix,
         flux_old=flux_old,
+        joint_keff=joint_keff,
     )
 
     return density_history, keff_history
